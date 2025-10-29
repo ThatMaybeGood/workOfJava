@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>门诊现金总统计表</title>
+    <style>
+        /* 之前的CSS样式保持不变 */
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1200px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: center;
+            font-size: 14px;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .formula {
+            color: #e64a19;
+            font-style: italic;
+        }
+        .total-row {
+            background: #e8f5e9 !important;
+            font-weight: 600;
+        }
+        .total-row td {
+            border-bottom: 2px solid #4caf50;
+            color: #2e7d32;
+        }
+
+
+        /* 在原有样式基础上添加 */
+        .total-row {
+            background: #e8f5e9 !important;
+            font-weight: 600;
+        }
+
+        .total-row td {
+            border-bottom: 2px solid #4caf50;
+            color: #2e7d32;
+        }
+
+        .section-header {
+            background: #fff3e0 !important;
+            font-weight: 600;
+        }
+
+        .section-header td {
+            border-bottom: 2px solid #ff9800;
+            color: #ef6c00;
+        }
+
+        .custom-row {
+            background: #f5f5f5 !important;
+        }
+
+        .custom-row td {
+            border-bottom: 1px solid #ddd;
+        }
+
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>门诊现金总统计表</h1>
+    <div class="table-container">
+        <table id="cashTable">
+            <thead>
+            <tr>
+                <th>序号</th>
+                <th>姓名</th>
+                <th>his预交金</th>
+                <th>his医疗收入</th>
+                <th>his挂号收入</th>
+                <th>应交报表数</th>
+                <th>前日暂收款</th>
+                <th>实交报表数</th>
+                <th>当日暂收款1</th>
+                <th>实收现金数</th>
+                <th>留存数差额</th>
+                <th>留存现金数</th>
+                <th>备用金</th>
+                <th>备注</th>
+            </tr>
+            </thead>
+            <tbody id="tableBody">
+            <!-- 数据将通过JavaScript动态填充 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // 页面加载时从后端获取数据
+    document.addEventListener('DOMContentLoaded', function() {
+        loadCashStatistics();
+    });
+
+    function loadCashStatistics() {
+        fetch('/api/cash-statistics')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('网络响应不正常');
+                }
+                return response.json();
+            })
+            .then(data => {
+                renderTable(data);
+            })
+            .catch(error => {
+                console.error('加载数据失败:', error);
+                // 可以在这里显示错误信息给用户
+            });
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        let appointmentCenterRendered = false;
+        let appointmentCenterRowCount = 0;
+        let currentAppointmentRow = 0;
+
+        // 首先计算预约中心有多少行数据
+        data.forEach(item => {
+            if (item.displayName === '预约中心' && item.colspan === 14) {
+                // 这是预约中心标题行
+            } else if (item.isMerged && item.displayName === '预约中心' && item.rowspan > 1) {
+                appointmentCenterRowCount = item.rowspan;
+            }
+        });
+
+        data.forEach((item, index) => {
+            const row = document.createElement('tr');
+
+            // 设置样式
+            if (item.displayName === '会计室合计' || item.displayName === '预约合计' || item.displayName === '总计') {
+                row.className = 'total-row';
+            } else if (item.displayName === '预约中心' && item.colspan === 14) {
+                row.className = 'section-header';
+            } else if (item.isMerged && !item.displayName.includes('合计')) {
+                row.className = 'custom-row';
+            }
+
+            // 处理预约中心特殊合并单元格
+            if (item.displayName === '预约中心' && item.rowspan > 1 && item.colspan > 1) {
+                if (!appointmentCenterRendered) {
+                    appointmentCenterRendered = true;
+                    currentAppointmentRow = 1;
+                    row.innerHTML = `
+                    <td>${item.id || ''}</td>
+                    <td colspan="${item.colspan}" rowspan="${item.rowspan}"
+                         style="text-align: center; vertical-align: middle; background-color: #e3f2fd; font-weight: bold;">
+                        ${item.displayName}
+                    </td>
+                    <td>${formatNumber(item.hisAdvancePayment)}</td>
+                    <td>${formatNumber(item.hisMedicalIncome)}</td>
+                    <td>${formatNumber(item.hisRegistrationIncome)}</td>
+                    <td>${formatNumber(item.reportAmount)}</td>
+                    <td>${formatNumber(item.previousTemporaryReceipt)}</td>
+                    <td class="formula">${formatNumber(item.actualReportAmount)}</td>
+                    <td>${formatNumber(item.currentTemporaryReceipt)}</td>
+                    <td class="formula">${formatNumber(item.actualCashAmount)}</td>
+                    <td class="formula">${formatNumber(item.retainedDifference)}</td>
+                    <td>${formatNumber(item.retainedCash)}</td>
+                    <td>${formatNumber(item.pettyCash)}</td>
+                    <td>${item.remarks || ''}</td>
+                `;
+                } else {
+                    // 预约中心数据行（非第一行）
+                    currentAppointmentRow++;
+                    row.innerHTML = `
+                    <td>${item.id || ''}</td>
+                    <!-- 跳过了被合并的列 -->
+                    <td>${formatNumber(item.hisAdvancePayment)}</td>
+                    <td>${formatNumber(item.hisMedicalIncome)}</td>
+                    <td>${formatNumber(item.hisRegistrationIncome)}</td>
+                    <td>${formatNumber(item.reportAmount)}</td>
+                    <td>${formatNumber(item.previousTemporaryReceipt)}</td>
+                    <td class="formula">${formatNumber(item.actualReportAmount)}</td>
+                    <td>${formatNumber(item.currentTemporaryReceipt)}</td>
+                    <td class="formula">${formatNumber(item.actualCashAmount)}</td>
+                    <td class="formula">${formatNumber(item.retainedDifference)}</td>
+                    <td>${formatNumber(item.retainedCash)}</td>
+                    <td>${formatNumber(item.pettyCash)}</td>
+                    <td>${item.remarks || ''}</td>
+                `;
+                }
+            }
+            // 处理其他类型的合并单元格
+            else if (item.isMerged) {
+                let html = '';
+
+                if (item.colspan === 14) {
+                    // 全行合并
+                    html = `<td colspan="14" style="text-align: center; font-weight: bold; background-color: #fff3e0;">
+                    ${item.displayName}
+                </td>`;
+                } else if (item.colspan === 9 || item.colspan === 5) {
+                    // 部分合并
+                    html = `<td colspan="${item.colspan}" style="text-align: left; padding-left: 20px;">
+                    ${item.displayName}
+                </td>`;
+
+                    const remainingCols = 14 - item.colspan;
+                    for (let i = 0; i < remainingCols; i++) {
+                        html += '<td></td>';
+                    }
+                } else {
+                    // 常规合并（如合计行）
+                    html = `
+                    <td colspan="${item.colspan}" style="text-align: center; font-weight: bold;">
+                        ${item.displayName}
+                    </td>
+                    <td>${formatNumber(item.hisAdvancePayment)}</td>
+                    <td>${formatNumber(item.hisMedicalIncome)}</td>
+                    <td>${formatNumber(item.hisRegistrationIncome)}</td>
+                    <td>${formatNumber(item.reportAmount)}</td>
+                    <td>${formatNumber(item.previousTemporaryReceipt)}</td>
+                    <td class="formula">${formatNumber(item.actualReportAmount)}</td>
+                    <td>${formatNumber(item.currentTemporaryReceipt)}</td>
+                    <td class="formula">${formatNumber(item.actualCashAmount)}</td>
+                    <td class="formula">${formatNumber(item.retainedDifference)}</td>
+                    <td>${formatNumber(item.retainedCash)}</td>
+                    <td>${formatNumber(item.pettyCash)}</td>
+                    <td>${item.remarks || ''}</td>
+                `;
+                }
+
+                row.innerHTML = html;
+            } else {
+                // 正常数据行
+                row.innerHTML = `
+                <td>${item.id || ''}</td>
+                <td>${item.displayName || ''}</td>
+                <td>${formatNumber(item.hisAdvancePayment)}</td>
+                <td>${formatNumber(item.hisMedicalIncome)}</td>
+                <td>${formatNumber(item.hisRegistrationIncome)}</td>
+                <td>${formatNumber(item.reportAmount)}</td>
+                <td>${formatNumber(item.previousTemporaryReceipt)}</td>
+                <td class="formula">${formatNumber(item.actualReportAmount)}</td>
+                <td>${formatNumber(item.currentTemporaryReceipt)}</td>
+                <td class="formula">${formatNumber(item.actualCashAmount)}</td>
+                <td class="formula">${formatNumber(item.retainedDifference)}</td>
+                <td>${formatNumber(item.retainedCash)}</td>
+                <td>${formatNumber(item.pettyCash)}</td>
+                <td>${item.remarks || ''}</td>
+            `;
+            }
+
+            tbody.appendChild(row);
+        });
+    }
+
+    function formatNumber(value) {
+        if (value === null || value === undefined || value === 0 || value === 0.0) {
+            return '';
+        }
+        const num = Number(value);
+        if (isNaN(num)) {
+            return '';
+        }
+        return num.toFixed(2);
+    }
+
+</script>
+</body>
+</html>
