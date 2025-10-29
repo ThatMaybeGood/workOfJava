@@ -1,0 +1,182 @@
+<!-- 表格视图 -->
+<div id="tableView" class="view-content active">
+    <div class="content-header">
+        <h2>门诊现金总统计表 - 详细数据</h2>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <div class="action-buttons">
+                <button class="action-btn primary" id="printBtn">
+                    <i class="fas fa-print"></i> 打印
+                </button>
+                <button class="action-btn success" id="exportExcelBtn">
+                    <i class="fas fa-file-excel"></i> 导出Excel
+                </button>
+                <button class="action-btn" id="exportPdfBtn">
+                    <i class="fas fa-file-pdf"></i> 导出PDF
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table id="cashTable">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>姓名</th>
+                    <th>his预交金</th>
+                    <th>his医疗收入</th>
+                    <th>his挂号收入</th>
+                    <th>应交报表数</th>
+                    <th>前日暂收款</th>
+                    <th>实交报表数</th>
+                    <th>当日暂收款1</th>
+                    <th>实收现金数</th>
+                    <th>留存数差额</th>
+                    <th>留存现金数</th>
+                    <th>备用金</th>
+                    <th>备注</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- 数据将通过JavaScript动态填充 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 参数维护视图 -->
+<div id="paramView" class="view-content">
+    <div class="content-header">
+        <h2><i class="fas fa-cog"></i> 系统参数维护</h2>
+    </div>
+    <div class="view-body">
+        <div class="param-container">
+            <form id="paramForm" class="param-form">
+                <div class="form-group">
+                    <label for="targetIncome">目标收入（元）:</label>
+                    <input type="number" id="targetIncome" name="targetIncome" step="0.01" min="0" required>
+                    <span class="form-help">设置系统预期的月度收入目标</span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="warningThreshold">预警阈值（%）:</label>
+                    <input type="number" id="warningThreshold" name="warningThreshold" min="0" max="100" step="0.1" required>
+                    <span class="form-help">当实际收入低于目标的此百分比时触发预警</span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="dataRetentionDays">数据保留天数:</label>
+                    <input type="number" id="dataRetentionDays" name="dataRetentionDays" min="1" max="365" required>
+                    <span class="form-help">系统自动保留历史数据的天数</span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="autoBackup">自动备份:</label>
+                    <select id="autoBackup" name="autoBackup">
+                        <option value="true">开启</option>
+                        <option value="false">关闭</option>
+                    </select>
+                    <span class="form-help">是否启用系统自动备份功能</span>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="action-btn primary">
+                        <i class="fas fa-save"></i> 保存参数
+                    </button>
+                    <button type="button" class="action-btn" id="resetParams">
+                        <i class="fas fa-undo"></i> 恢复默认
+                    </button>
+                </div>
+            </form>
+            
+            <div class="param-status">
+                <h3><i class="fas fa-info-circle"></i> 当前参数状态</h3>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="status-label">目标收入:</span>
+                        <span class="status-value" id="currentTargetIncome">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">预警阈值:</span>
+                        <span class="status-value" id="currentWarningThreshold">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">数据保留:</span>
+                        <span class="status-value" id="currentDataRetention">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">自动备份:</span>
+                        <span class="status-value" id="currentAutoBackup">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 节假日维护视图 -->
+<div id="holidayView" class="view-content">
+    <div class="content-header">
+        <h2><i class="fas fa-calendar-alt"></i> 节假日维护</h2>
+        <div class="action-buttons">
+            <button class="action-btn primary" id="saveHolidays">
+                <i class="fas fa-save"></i> 保存设置
+            </button>
+            <button class="action-btn" id="importHolidays">
+                <i class="fas fa-file-import"></i> 导入节假日
+            </button>
+        </div>
+    </div>
+    <div class="view-body">
+        <div class="holiday-container">
+            <div class="calendar-section">
+                <div class="calendar-controls">
+                    <button id="prevYear" class="action-btn"><i class="fas fa-angle-double-left"></i> 上一年</button>
+                    <button id="prevMonth" class="action-btn"><i class="fas fa-chevron-left"></i> 上月</button>
+                    <h3 id="currentMonthYear"></h3>
+                    <button id="nextMonth" class="action-btn">下月 <i class="fas fa-chevron-right"></i></button>
+                    <button id="nextYear" class="action-btn">下一年 <i class="fas fa-angle-double-right"></i></button>
+                </div>
+                
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <div>日</div>
+                        <div>一</div>
+                        <div>二</div>
+                        <div>三</div>
+                        <div>四</div>
+                        <div>五</div>
+                        <div>六</div>
+                    </div>
+                    <div id="calendar" class="calendar-grid"></div>
+                </div>
+                
+                <div class="calendar-legend">
+                    <div class="legend-item">
+                        <div class="day-normal"></div>
+                        <span>工作日</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="day-holiday"></div>
+                        <span>节假日</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="day-weekend"></div>
+                        <span>周末</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="holiday-list-section">
+                <h3><i class="fas fa-list"></i> 已设置的节假日</h3>
+                <div class="holiday-list" id="holidayList">
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-plus"></i>
+                        <p>暂无节假日设置</p>
+                        <span>点击日历中的日期来设置或取消节假日</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
