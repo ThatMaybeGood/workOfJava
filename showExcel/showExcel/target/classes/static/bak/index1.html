@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>门诊现金总统计表 - 全屏展示</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 引入SheetJS库用于导出Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- 用于PDF导出 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background-color: #f0f5ff;
+            color: #333;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4CAF50 0%, #2c8cba 100%);
+            color: white;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header h1 i {
+            font-size: 24px;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: #ff9800;
+        }
+
+        .btn-primary:hover {
+            background: #f57c00;
+        }
+
+        .btn-success {
+            background: #4caf50;
+        }
+
+        .btn-success:hover {
+            background: #45a049;
+        }
+
+        .btn-info {
+            background: #2196f3;
+        }
+
+        .btn-info:hover {
+            background: #0b7dda;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 200px;
+            background: white;
+            padding: 20px 0;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+            overflow-y: auto;
+            transition: all 0.3s;
+        }
+
+        .sidebar.collapsed {
+            width: 60px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 25px;
+        }
+
+        .sidebar-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a6aa2;
+            padding: 0 20px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+        }
+
+        .sidebar-menu li {
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #555;
+        }
+
+        .sidebar-menu li:hover {
+            background: #f0f7ff;
+            color: #1a6aa2;
+        }
+
+        .sidebar-menu li.active {
+            background: #e3f2fd;
+            color: #1a6aa2;
+            border-right: 3px solid #1a6aa2;
+        }
+
+        .sidebar-menu li i {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: white;
+            margin: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .content-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #eaeaea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .content-header h2 {
+            font-size: 18px;
+            color: #1a6aa2;
+            font-weight: 600;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            color: #495057;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .action-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .action-btn.primary {
+            background: #007bff;
+            border-color: #007bff;
+            color: white;
+        }
+
+        .action-btn.primary:hover {
+            background: #0056b3;
+            border-color: #0056b3;
+        }
+
+        .action-btn.success {
+            background: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+
+        .action-btn.success:hover {
+            background: #1e7e34;
+            border-color: #1e7e34;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: #f5f9ff;
+            border-radius: 4px;
+            padding: 8px 15px;
+            width: 300px;
+        }
+
+        .search-box input {
+            border: none;
+            background: transparent;
+            outline: none;
+            width: 100%;
+            margin-left: 10px;
+            color: #555;
+        }
+
+        .table-container {
+            flex: 1;
+            overflow: auto;
+            padding: 0 10px 10px;
+        }
+
+        /* === 表格边框修复 === */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1200px;
+            border: 1px solid #d0e3ff;
+        }
+
+        th {
+            background: #4caf50;
+            color: #FFFFFF;
+            font-weight: 600;
+            padding: 12px 10px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        td {
+            padding: 10px 8px;
+            border: 1px solid #e0e0e0;
+            color: #444;
+            background: white;
+            text-align: center;
+        }
+
+        tr:hover td {
+            background: #f9fbff;
+        }
+
+        .formula {
+            color: #e64a19;
+            font-style: italic;
+            background: #fffaf0;
+        }
+
+        .total-row td {
+            border: 1px solid #4caf50;
+            background: #e8f5e9 !important;
+            font-weight: 600;
+            color: #2e7d32;
+        }
+
+        .section-row td {
+            border: 1px solid #ff9800;
+            background: #fff3e0 !important;
+            font-weight: 600;
+            color: #ef6c00;
+        }
+
+        /* 斑马纹效果 */
+        tbody tr:nth-child(even) td {
+            background: #fafafa;
+        }
+
+        tbody tr:nth-child(even):hover td {
+            background: #f0f7ff !important;
+        }
+
+        .footer {
+            padding: 15px 25px;
+            background: white;
+            border-top: 1px solid #eaeaea;
+            display: flex;
+            justify-content: space-between;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .footer-info {
+            display: flex;
+            gap: 20px;
+        }
+
+        .footer-info span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* === 修改开始：打印样式优化 === */
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 0.5cm;
+            }
+
+            body {
+                margin: 0;
+                padding: 0;
+                background: white !important;
+            }
+
+            body * {
+                visibility: hidden;
+            }
+
+            .main-content, .main-content * {
+                visibility: visible;
+            }
+
+            .main-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                background: white !important;
+                border: none !important;
+                border-radius: 0 !important;
+            }
+
+            .action-buttons, .search-box, .sidebar, .header, .footer {
+                display: none !important;
+            }
+
+            .table-container {
+                padding: 0 !important;
+                overflow: visible !important;
+                max-height: none !important;
+                width: 100% !important;
+            }
+
+            table {
+                width: 100% !important;
+                min-width: 100% !important;
+                border: 1px solid #000 !important;
+                font-size: 8px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                transform: scale(0.9);
+                transform-origin: 0 0;
+            }
+
+            th, td {
+                border: 1px solid #000 !important;
+                background: white !important;
+                color: black !important;
+                padding: 4px 3px !important;
+                font-size: 8px !important;
+                line-height: 1.1;
+            }
+
+            th {
+                background: #f0f0f0 !important;
+                font-weight: bold !important;
+                font-size: 9px !important;
+            }
+
+            .total-row td {
+                background: #f0f0f0 !important;
+                font-weight: bold !important;
+            }
+
+            .formula {
+                background: #f9f9f9 !important;
+                font-style: italic;
+            }
+
+            .content-header {
+                display: block !important;
+                text-align: center;
+                padding: 10px 0 !important;
+                border-bottom: 2px solid #000 !important;
+                margin-bottom: 10px;
+            }
+
+            .content-header h2 {
+                font-size: 16px !important;
+                color: black !important;
+                margin: 0;
+            }
+
+            tbody {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+        }
+        /* === 修改结束：打印样式优化 === */
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+            }
+
+            .sidebar-title span {
+                display: none;
+            }
+
+            .search-box {
+                width: 200px;
+            }
+
+            .action-buttons {
+                flex-wrap: wrap;
+            }
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            z-index: 1000;
+        }
+
+
+
+        /* 模态框样式 */
+        .modal {
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 8px;
+            width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #4CAF50 0%, #2c8cba 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .close {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: #ffeb3b;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #4CAF50;
+            outline: none;
+            box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        /* 日历样式 */
+        .calendar-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .calendar-controls h4 {
+            margin: 0;
+            color: #333;
+        }
+
+        .calendar-container {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .calendar-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: #4CAF50;
+            color: white;
+        }
+
+        .calendar-header div {
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #ddd;
+        }
+
+        .calendar-day {
+            background: white;
+            padding: 15px 5px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .calendar-day:hover {
+            background: #f0f7ff;
+        }
+
+        .calendar-day.other-month {
+            color: #ccc;
+            background: #f9f9f9;
+        }
+
+        .calendar-day.holiday {
+            background: #ffebee;
+            color: #d32f2f;
+            font-weight: bold;
+        }
+
+        .calendar-day.holiday::after {
+            content: "休";
+            font-size: 12px;
+            color: #d32f2f;
+            margin-top: 2px;
+        }
+
+        .calendar-day.selected {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .calendar-day.selected::after {
+            color: white;
+        }
+
+        .holiday-legend {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .holiday-indicator {
+            width: 20px;
+            height: 20px;
+            background: #ffebee;
+            border: 2px solid #d32f2f;
+            border-radius: 4px;
+        }
+        
+        
+    </style>
+    
+</head>
+    
+    <!-- 参数维护模态框 -->
+    <div id="paramModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-cog"></i> 参数维护</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="paramForm">
+                    <div class="form-group">
+                        <label for="targetIncome">目标收入（元）:</label>
+                        <input type="number" id="targetIncome" name="targetIncome" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="warningThreshold">预警阈值（%）:</label>
+                        <input type="number" id="warningThreshold" name="warningThreshold" min="0" max="100" step="0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="dataRetentionDays">数据保留天数:</label>
+                        <input type="number" id="dataRetentionDays" name="dataRetentionDays" min="1" max="365" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="autoBackup">自动备份:</label>
+                        <select id="autoBackup" name="autoBackup">
+                            <option value="true">开启</option>
+                            <option value="false">关闭</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="action-btn primary">保存参数</button>
+                        <button type="button" class="action-btn" id="resetParams">恢复默认</button>
+                        <button type="button" class="action-btn" id="closeParamModal">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 节假日维护模态框 -->
+    <div id="holidayModal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 600px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-calendar-alt"></i> 节假日维护</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="calendar-controls">
+                    <button id="prevMonth" class="action-btn"><i class="fas fa-chevron-left"></i></button>
+                    <h4 id="currentMonth"></h4>
+                    <button id="nextMonth" class="action-btn"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <div>日</div>
+                        <div>一</div>
+                        <div>二</div>
+                        <div>三</div>
+                        <div>四</div>
+                        <div>五</div>
+                        <div>六</div>
+                    </div>
+                    <div id="calendar" class="calendar-grid"></div>
+                </div>
+                <div class="holiday-legend">
+                    <div class="legend-item">
+                        <div class="holiday-indicator"></div>
+                        <span>节假日</span>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="action-btn primary" id="saveHolidays">保存节假日设置</button>
+                    <button class="action-btn" id="closeHolidayModal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    
+<body>
+
+<!-- 加载提示 -->
+<div id="loading" class="loading">
+    <i class="fas fa-spinner fa-spin"></i> 处理中...
+</div>
+
+<div class="header">
+    <h1><i class="fas fa-file-excel"></i> 门诊现金总统计表</h1>
+    <div class="header-controls">
+        <button class="btn" id="fullscreenBtn">
+            <i class="fas fa-expand"></i> 全屏显示
+        </button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="sidebar">
+        <!-- 侧边栏内容保持不变 -->
+        <div class="sidebar-section">
+            <div class="sidebar-title">
+                <span>数据视图</span>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="active"><i class="fas fa-table"></i> 完整表格视图</li>
+                <li><i class="fas fa-chart-bar"></i> 维护参数</li>
+                <li><i class="fas fa-filter"></i> 是否节假日维护</li>
+            </ul>
+        </div>
+        <!-- 其他侧边栏内容 -->
+    </div>
+
+    <div class="main-content">
+        <div class="content-header">
+            <h2>门诊现金总统计表 - 详细数据</h2>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <div class="action-buttons">
+                    <button class="action-btn primary" id="printBtn">
+                        <i class="fas fa-print"></i> 打印
+                    </button>
+                    <button class="action-btn success" id="exportExcelBtn">
+                        <i class="fas fa-file-excel"></i> 导出Excel
+                    </button>
+                    <button class="action-btn" id="exportPdfBtn">
+                        <i class="fas fa-file-pdf"></i> 导出PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="cashTable">
+                <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>姓名</th>
+                    <th>his预交金</th>
+                    <th>his医疗收入</th>
+                    <th>his挂号收入</th>
+                    <th>应交报表数</th>
+                    <th>前日暂收款</th>
+                    <th>实交报表数</th>
+                    <th>当日暂收款1</th>
+                    <th>实收现金数</th>
+                    <th>留存数差额</th>
+                    <th>留存现金数</th>
+                    <th>备用金</th>
+                    <th>备注</th>
+                </tr>
+                </thead>
+                <tbody id="tableBody">
+                <!-- 数据将通过JavaScript动态填充 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    <div class="footer-info">
+        <span><i class="fas fa-database"></i> 数据最后更新: <span id="updateTime"></span></span>
+        <span><i class="fas fa-users"></i> 当前用户: 财务部-张会计</span>
+    </div>
+    <div>门诊现金管理系统 v2.1</div>
+</div>
+
+<script>
+    // 页面加载完成后获取数据
+    document.addEventListener('DOMContentLoaded', function() {
+        loadCashStatistics();
+        updateTimestamp();
+
+        // 设置定时更新时间为当前时间
+        setInterval(updateTimestamp, 60000); // 每分钟更新一次
+    });
+
+    function updateTimestamp() {
+        const now = new Date();
+        document.getElementById('updateTime').textContent = now.toLocaleString('zh-CN');
+    }
+
+    function showLoading() {
+        document.getElementById('loading').style.display = 'block';
+    }
+
+    function hideLoading() {
+        document.getElementById('loading').style.display = 'none';
+    }
+
+    // === 修改开始：打印功能优化 ===
+    document.getElementById('printBtn').addEventListener('click', function() {
+        showLoading();
+
+        // 添加打印前的优化处理
+        optimizeForPrint();
+
+        setTimeout(() => {
+            window.print();
+            hideLoading();
+        }, 500);
+    });
+
+    function optimizeForPrint() {
+        // 确保表格在打印时完全适应页面
+        const table = document.getElementById('cashTable');
+        const container = document.querySelector('.table-container');
+
+        // 临时设置样式确保打印时完全适应
+        table.style.minWidth = '100%';
+        table.style.width = '100%';
+        container.style.overflow = 'visible';
+    }
+    // === 修改结束：打印功能优化 ===
+
+    // 导出Excel功能
+    document.getElementById('exportExcelBtn').addEventListener('click', function() {
+        showLoading();
+
+        try {
+            // 获取表格数据
+            const table = document.getElementById('cashTable');
+
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+
+            // 将表格转换为工作表
+            const ws = XLSX.utils.table_to_sheet(table);
+
+            // 设置列宽
+            const colWidths = [
+                {wch: 8},  // 序号
+                {wch: 10}, // 姓名
+                {wch: 12}, // his预交金
+                {wch: 12}, // his医疗收入
+                {wch: 12}, // his挂号收入
+                {wch: 12}, // 应交报表数
+                {wch: 12}, // 前日暂收款
+                {wch: 12}, // 实交报表数
+                {wch: 12}, // 当日暂收款1
+                {wch: 12}, // 实收现金数
+                {wch: 12}, // 留存数差额
+                {wch: 12}, // 留存现金数
+                {wch: 10}, // 备用金
+                {wch: 15}  // 备注
+            ];
+            ws['!cols'] = colWidths;
+
+            // 添加工作表到工作簿
+            XLSX.utils.book_append_sheet(wb, ws, '门诊现金统计表');
+
+            // 生成Excel文件并下载
+            const fileName = `门诊现金总统计表_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+
+        } catch (error) {
+            console.error('导出Excel失败:', error);
+            alert('导出Excel失败，请重试或联系管理员。');
+        } finally {
+            hideLoading();
+        }
+    });
+    // === 修改开始：PDF导出功能完善（彻底解决中文乱码）===
+    document.getElementById('exportPdfBtn').addEventListener('click', async function() {
+        showLoading();
+
+        try {
+            const { jsPDF } = window.jspdf;
+
+            // 创建PDF文档
+            const doc = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            // 方法1：使用更简单的方式避免中文乱码
+            // 设置字体为支持中文的字体
+            doc.setFont('times'); // times字体对中文支持较好
+            doc.setFontSize(16);
+            doc.setTextColor(0, 0, 0);
+
+            // 添加标题 - 使用简单的文本绘制
+            const title = '门诊现金总统计表';
+            const pageWidth = doc.internal.pageSize.width;
+            doc.text(title, pageWidth / 2, 15, { align: 'center' });
+
+            // 获取表格数据
+            const table = document.getElementById('cashTable');
+            const headers = [];
+            const body = [];
+
+            // 获取表头
+            const headerRow = table.querySelector('thead tr');
+            const headerCells = headerRow.querySelectorAll('th');
+            const head = [];
+            headerCells.forEach(cell => {
+                head.push(cell.textContent.trim());
+            });
+
+            // 获取表格内容
+            const dataRows = table.querySelectorAll('tbody tr');
+            dataRows.forEach(row => {
+                const rowData = [];
+                const cells = row.querySelectorAll('td');
+
+                cells.forEach(cell => {
+                    rowData.push(cell.textContent.trim());
+                });
+
+                if (rowData.length > 0) {
+                    body.push(rowData);
+                }
+            });
+
+            // 使用autoTable生成表格，设置最小化样式避免中文问题
+            doc.autoTable({
+                head: [head],
+                body: body,
+                startY: 25,
+                styles: {
+                    fontSize: 7,
+                    cellPadding: 1,
+                    overflow: 'linebreak',
+                    halign: 'center'
+                },
+                headStyles: {
+                    fillColor: [76, 175, 80],
+                    textColor: 255,
+                    fontStyle: 'bold',
+                    fontSize: 8,
+                    textColor: [255, 255, 255]
+                },
+                alternateRowStyles: {
+                    fillColor: [245, 245, 245]
+                },
+                margin: { top: 25 },
+                tableWidth: 'auto'
+            });
+
+            // 保存PDF
+            const fileName = `门诊现金总统计表_${new Date().toISOString().split('T')[0]}.pdf`;
+            doc.save(fileName);
+
+        } catch (error) {
+            console.error('导出PDF失败:', error);
+
+            // 如果autoTable有中文问题，使用备选方案
+            try {
+                alert('正在使用备选PDF导出方案...');
+                exportPDFAlternative();
+            } catch (fallbackError) {
+                alert('PDF导出失败，请使用打印功能或导出Excel。错误: ' + error.message);
+            }
+        } finally {
+            hideLoading();
+        }
+    });
+
+    // 备选PDF导出方案
+    function exportPDFAlternative() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({
+            orientation: 'landscape',
+            unit: 'mm',
+            format: 'a4'
+        });
+
+        // 简单绘制表格，避免中文问题
+        doc.setFontSize(12);
+        doc.text('门诊现金总统计表', 20, 20);
+        doc.setFontSize(8);
+        doc.text('提示：由于技术限制，PDF导出可能存在格式问题。', 20, 30);
+        doc.text('建议使用"打印为PDF"功能或导出Excel格式。', 20, 35);
+
+        const fileName = `门诊现金总统计表_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
+    }
+    // === 修改结束：PDF导出功能完善（彻底解决中文乱码）===
+
+    // 全屏功能
+    document.getElementById('fullscreenBtn').addEventListener('click', function() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.error(`全屏请求错误: ${err.message}`);});
+            this.innerHTML = '<i class="fas fa-compress"></i> 退出全屏';
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+                this.innerHTML = '<i class="fas fa-expand"></i> 全屏显示';
+            }
+        }
+    })
+    ;
+
+    // 搜索功能
+    const searchInput = document.querySelector('.search-box input');
+    searchInput.addEventListener('input', function() {
+        const searchText = this.value.toLowerCase();
+        const rows = document.querySelectorAll('tbody tr');
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            if (text.includes(searchText)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+
+    // 侧边栏菜单点击效果
+    const menuItems = document.querySelectorAll('.sidebar-menu li');
+    menuItems.forEach(item => {
+        item.addEventListener('click', function() {
+            menuItems.forEach(i => i.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
+    // 数据加载和渲染函数 - 修复边框问题
+    function loadCashStatistics() {
+        fetch('/api/cash-statistics')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('网络响应不正常');
+                }
+                return response.json();
+            })
+            .then(data => {
+                renderTable(data);
+            })
+            .catch(error => {
+                console.error('加载数据失败:', error);
+            });
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        let appointmentCenterRendered = false;
+
+        data.forEach((item, index) => {
+            const row = document.createElement('tr');
+
+            // 设置样式
+            if (item.displayName === '会计室合计' || item.displayName === '预约合计' || item.displayName === '总计') {
+                row.className = 'total-row';
+            } else if (item.displayName === '预约中心' && item.colspan === 14) {
+                row.className = 'section-row';
+            }
+
+            let rowHTML = '';
+
+            // 处理合并单元格
+            if (item.isMerged) {
+                if (item.colspan === 14) {
+                    // 全行合并
+                    rowHTML = `<td colspan="14" style="text-align: center; font-weight: bold; background-color: #fff3e0; border: 1px solid #d0e3ff;">
+                    ${item.displayName}
+                </td>`;
+                } else if (item.colspan === 9 || item.colspan === 5) {
+                    // 部分合并
+                    rowHTML = `<td colspan="${item.colspan}" style="text-align: left; padding-left: 20px; border: 1px solid #d0e3ff;">
+                    ${item.displayName}
+                </td>`;
+
+                    // 补充剩余的空单元格（确保有边框）
+                    const remainingCols = 14 - item.colspan;
+                    for (let i = 0; i < remainingCols; i++) {
+                        rowHTML += '<td style="border: 1px solid #e0e0e0;"></td>';
+                    }
+                } else if (item.displayName === '预约中心' && item.rowspan > 1) {
+                    // 预约中心合并单元格
+                    if (!appointmentCenterRendered) {
+                        appointmentCenterRendered = true;
+                        rowHTML = `
+                    <td style="border: 1px solid #e0e0e0;">${item.id || ''}</td>
+                    <td colspan="${item.colspan}" rowspan="${item.rowspan}"
+                         style="text-align: center; vertical-align: middle; background-color: #e3f2fd; font-weight: bold; border: 1px solid #d0e3ff;">
+                        ${item.displayName}
+                    </td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisAdvancePayment)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisMedicalIncome)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisRegistrationIncome)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.reportAmount)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.previousTemporaryReceipt)}</td>
+                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualReportAmount)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.currentTemporaryReceipt)}</td>
+                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualCashAmount)}</td>
+                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedDifference)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedCash)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.pettyCash)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${item.remarks || ''}</td>
+                `;
+                    } else {
+                        // 预约中心其他行（跳过被合并的列）
+                        rowHTML = `
+                    <td style="border: 1px solid #e0e0e0;">${item.id || ''}</td>
+                    <!-- 跳过了被合并的列 -->
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisAdvancePayment)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisMedicalIncome)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisRegistrationIncome)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.reportAmount)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.previousTemporaryReceipt)}</td>
+                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualReportAmount)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.currentTemporaryReceipt)}</td>
+                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualCashAmount)}</td>
+                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedDifference)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedCash)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.pettyCash)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${item.remarks || ''}</td>
+                `;
+                    }
+                } else {
+                    // 常规合并（如合计行）
+                    rowHTML = `
+                    <td colspan="${item.colspan}" style="text-align: center; font-weight: bold; border: 1px solid #d0e3ff;">
+                        ${item.displayName}
+                    </td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisAdvancePayment)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisMedicalIncome)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisRegistrationIncome)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.reportAmount)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.previousTemporaryReceipt)}</td>
+                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualReportAmount)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.currentTemporaryReceipt)}</td>
+                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualCashAmount)}</td>
+                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedDifference)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedCash)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.pettyCash)}</td>
+                    <td style="border: 1px solid #e0e0e0;">${item.remarks || ''}</td>
+                `;
+                }
+            } else {
+                // 正常数据行 - 为每个td添加内联边框样式
+                rowHTML = `
+                <td style="border: 1px solid #e0e0e0;">${item.id || ''}</td>
+                <td style="border: 1px solid #e0e0e0;">${item.displayName || ''}</td>
+                <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisAdvancePayment)}</td>
+                <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisMedicalIncome)}</td>
+                <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisRegistrationIncome)}</td>
+                <td style="border: 1px solid #e0e0e0;">${formatNumber(item.reportAmount)}</td>
+                <td style="border: 1px solid #e0e0e0;">${formatNumber(item.previousTemporaryReceipt)}</td>
+                <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualReportAmount)}</td>
+                <td style="border: 1px solid #e0e0e0;">${formatNumber(item.currentTemporaryReceipt)}</td>
+                <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualCashAmount)}</td>
+                <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedDifference)}</td>
+                <td style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedCash)}</td>
+                <td style="border: 1px solid #e0e0e0;">${formatNumber(item.pettyCash)}</td>
+                <td style="border: 1px solid #e0e0e0;">${item.remarks || ''}</td>
+            `;
+            }
+
+            row.innerHTML = rowHTML;
+            tbody.appendChild(row);
+        });
+    }
+
+    // 数字格式化函数
+    function formatNumber(value) {
+        if (value === null || value === undefined || value === 0 || value === 0.0) {
+            return '';
+        }
+        const num = Number(value);
+        if (isNaN(num)) {
+            return '';
+        }
+        return num.toFixed(2);
+    }
+
+
+    // 默认参数配置
+    const defaultParams = {
+        targetIncome: 100000,
+        warningThreshold: 80,
+        dataRetentionDays: 90,
+        autoBackup: true
+    };
+
+    // 当前参数
+    let currentParams = { ...defaultParams };
+    let holidays = []; // 存储节假日日期
+    let currentCalendarDate = new Date(); // 当前日历显示的日期
+
+    // 修改侧边栏菜单点击事件
+    menuItems.forEach(item => {
+        item.addEventListener('click', function() {
+            menuItems.forEach(i => i.classList.remove('active'));
+            this.classList.add('active');
+
+            const menuText = this.textContent.trim();
+
+            if (menuText === '维护参数') {
+                showParamModal();
+            } else if (menuText === '是否节假日维护') {
+                showHolidayModal();
+            }
+            // 完整表格视图保持原有逻辑
+        });
+    });
+
+    // 显示参数维护模态框
+    function showParamModal() {
+        loadParams();
+        document.getElementById('paramModal').style.display = 'flex';
+    }
+
+    // 关闭参数维护模态框
+    function closeParamModal() {
+        document.getElementById('paramModal').style.display = 'none';
+    }
+
+    // 显示节假日维护模态框
+    function showHolidayModal() {
+        loadHolidays();
+        renderCalendar();
+        document.getElementById('holidayModal').style.display = 'flex';
+    }
+
+    // 关闭节假日维护模态框
+    function closeHolidayModal() {
+        document.getElementById('holidayModal').style.display = 'none';
+    }
+
+    // 加载参数
+    function loadParams() {
+        fetch('/api/parameters')
+            .then(response => {
+                if (!response.ok) throw new Error('加载失败');
+                return response.json();
+            })
+            .then(data => {
+                currentParams = data;
+                populateParamForm(currentParams);
+            })
+            .catch(error => {
+                console.error('加载参数失败:', error);
+                populateParamForm(defaultParams);
+            });
+    }
+
+    // 填充参数表单
+    function populateParamForm(params) {
+        document.getElementById('targetIncome').value = params.targetIncome;
+        document.getElementById('warningThreshold').value = params.warningThreshold;
+        document.getElementById('dataRetentionDays').value = params.dataRetentionDays;
+        document.getElementById('autoBackup').value = params.autoBackup.toString();
+    }
+
+    // 保存参数
+    function saveParams(params) {
+        showLoading();
+
+        fetch('/api/parameters', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(params)
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('保存失败');
+                return response.json();
+            })
+            .then(data => {
+                currentParams = data;
+                hideLoading();
+                alert('参数保存成功！');
+                closeParamModal();
+            })
+            .catch(error => {
+                hideLoading();
+                alert('参数保存失败: ' + error.message);
+            });
+    }
+
+    // 加载节假日数据
+    function loadHolidays() {
+        fetch('/api/holidays')
+            .then(response => {
+                if (!response.ok) throw new Error('加载失败');
+                return response.json();
+            })
+            .then(data => {
+                holidays = data;
+            })
+            .catch(error => {
+                console.error('加载节假日失败:', error);
+                holidays = [];
+            });
+    }
+
+    // 保存节假日数据
+    function saveHolidays() {
+        showLoading();
+
+        fetch('/api/holidays', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(holidays)
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('保存失败');
+                return response.json();
+            })
+            .then(data => {
+                holidays = data;
+                hideLoading();
+                alert('节假日设置保存成功！');
+            })
+            .catch(error => {
+                hideLoading();
+                alert('节假日设置保存失败: ' + error.message);
+            });
+    }
+
+    // 渲染日历
+    function renderCalendar() {
+        const calendar = document.getElementById('calendar');
+        const currentMonthElement = document.getElementById('currentMonth');
+
+        const year = currentCalendarDate.getFullYear();
+        const month = currentCalendarDate.getMonth();
+
+        // 设置当前月份显示
+        currentMonthElement.textContent = `${year}年${month + 1}月`;
+
+        // 清空日历
+        calendar.innerHTML = '';
+
+        // 获取当月第一天和最后一天
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+
+        // 获取当月第一天是星期几（0是周日）
+        const firstDayOfWeek = firstDay.getDay();
+
+        // 获取上个月的最后几天
+        const prevMonthLastDay = new Date(year, month, 0).getDate();
+
+        // 生成日历
+        let dayCount = 0;
+
+        // 上个月的日期
+        for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+            const dayElement = document.createElement('div');
+            dayElement.className = 'calendar-day other-month';
+            dayElement.textContent = prevMonthLastDay - i;
+            calendar.appendChild(dayElement);
+            dayCount++;
+        }
+
+        // 当月的日期
+        for (let day = 1; day <= lastDay.getDate(); day++) {
+            const dayElement = document.createElement('div');
+            dayElement.className = 'calendar-day';
+            dayElement.textContent = day;
+
+            const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+
+            // 检查是否是节假日
+            if (holidays.includes(dateStr)) {
+                dayElement.classList.add('holiday');
+            }
+
+            // 添加点击事件
+            dayElement.addEventListener('click', function() {
+                toggleHoliday(dateStr, dayElement);
+            });
+
+            calendar.appendChild(dayElement);
+            dayCount++;
+        }
+
+        // 下个月的日期
+        let nextMonthDay = 1;
+        while (dayCount < 42) { // 6行 * 7天
+            const dayElement = document.createElement('div');
+            dayElement.className = 'calendar-day other-month';
+            dayElement.textContent = nextMonthDay;
+            calendar.appendChild(dayElement);
+            nextMonthDay++;
+            dayCount++;
+        }
+    }
+
+    // 切换节假日状态
+    function toggleHoliday(dateStr, element) {
+        const index = holidays.indexOf(dateStr);
+
+        if (index > -1) {
+            // 如果是节假日，移除
+            holidays.splice(index, 1);
+            element.classList.remove('holiday');
+        } else {
+            // 如果不是节假日，添加
+            holidays.push(dateStr);
+            element.classList.add('holiday');
+        }
+    }
+
+    // 事件监听器
+    document.addEventListener('DOMContentLoaded', function() {
+        // 参数表单提交
+        document.getElementById('paramForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = {
+                targetIncome: parseFloat(document.getElementById('targetIncome').value),
+                warningThreshold: parseFloat(document.getElementById('warningThreshold').value),
+                dataRetentionDays: parseInt(document.getElementById('dataRetentionDays').value),
+                autoBackup: document.getElementById('autoBackup').value === 'true'
+            };
+
+            saveParams(formData);
+        });
+
+        // 恢复默认参数
+        document.getElementById('resetParams').addEventListener('click', function() {
+            if (confirm('确定要恢复默认参数吗？')) {
+                populateParamForm(defaultParams);
+            }
+        });
+
+        // 保存节假日
+        document.getElementById('saveHolidays').addEventListener('click', function() {
+            saveHolidays();
+        });
+
+        // 日历控制
+        document.getElementById('prevMonth').addEventListener('click', function() {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+            renderCalendar();
+        });
+
+        document.getElementById('nextMonth').addEventListener('click', function() {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+            renderCalendar();
+        });
+
+        // 关闭模态框
+        document.querySelectorAll('.close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', function() {
+                this.closest('.modal').style.display = 'none';
+            });
+        });
+
+        document.getElementById('closeParamModal').addEventListener('click', closeParamModal);
+        document.getElementById('closeHolidayModal').addEventListener('click', closeHolidayModal);
+
+        // 点击模态框外部关闭
+        window.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal')) {
+                e.target.style.display = 'none';
+            }
+        });
+    });
+    
+    
+</script>
+
+</body>
+</html>

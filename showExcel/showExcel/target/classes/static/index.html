@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>门诊现金总统计表 - 全屏展示</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <!-- 加载提示 -->
+    <div id="loading" class="loading">
+      <i class="fas fa-spinner fa-spin"></i> 处理中...
+    </div>
+    
+    <div class="header">
+      <h1><i class="fas fa-file-excel"></i> 门诊现金总统计表</h1>
+      <div class="header-controls">
+        <button class="btn" id="fullscreenBtn">
+          <i class="fas fa-expand"></i> 全屏显示
+        </button>
+      </div>
+    </div>
+    
+    <div class="container">
+      <div class="sidebar">
+        <div class="sidebar-section">
+          <div class="sidebar-title">
+            <span>数据视图</span>
+          </div>
+          <ul class="sidebar-menu">
+            <li class="active" data-view="table"><i class="fas fa-table"></i> 完整表格视图</li>
+            <li data-view="param"><i class="fas fa-chart-bar"></i> 维护参数</li>
+            <li data-view="holiday"><i class="fas fa-filter"></i> 是否节假日维护</li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- 主内容区域将通过JavaScript动态加载 -->
+      <div id="mainContent" class="main-content">
+        <!-- 默认加载表格视图 -->
+      </div>
+    </div>
+    
+    <div class="footer">
+      <div class="footer-info">
+        <span><i class="fas fa-database"></i> 数据最后更新: <span id="updateTime"></span></span>
+        <span><i class="fas fa-users"></i> 当前用户: 财务部-张会计</span>
+      </div>
+      <div>门诊现金管理系统 v2.1</div>
+    </div>
+    
+    <script src="script.js"></script>
+  </body>
+</html>
