@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>现金统计表</title>
+        <style>
+            .cash-table {
+                border-collapse: collapse;
+                width: 100%;
+                margin: 20px 0;
+                font-family: "Microsoft YaHei", "SimHei", Arial, sans-serif;
+            }
+            .cash-table th, .cash-table td {
+                border: 1px solid #ddd;
+                padding: 8px 12px;
+                text-align: center;
+                min-width: 80px;
+            }
+            .cash-table th {
+                background-color: #f2f2f2;
+                font-weight: bold;
+                position: sticky;
+                top: 0;
+            }
+            .title-row {
+                background-color: #e6f3ff;
+                font-size: 18px;
+                font-weight: bold;
+                text-align: center;
+            }
+            .merged-cell {
+                background-color: #f0f8ff;
+                font-weight: bold;
+            }
+            .middle-section {
+                background-color: #fffacd;
+                font-weight: bold;
+            }
+            .row-type-0 {
+                background-color: #f9f9f9;
+            }
+            .row-type-1 {
+                background-color: #f0f8ff;
+            }
+            .table-container {
+                margin: 20px;
+                overflow-x: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="table-container" id="table-container">
+            <!-- 表格将在这里动态生成 -->
+        </div>
+        
+        <script>
+            async function loadData() {
+                try {
+                    const apiUrl = window.location.hostname === 'localhost'
+                        ? 'http://localhost:8080/api/cash-statistics/new'
+                        : '/api/cash-statistics/new';
+
+                    console.log('正在请求API:', apiUrl);
+
+                    const response = await fetch(apiUrl);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP错误! 状态: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+
+                    // 重要修正：后端返回的是数组，取第一个元素
+                    const tableData = Array.isArray(result) ? result[0] : result;
+
+                    if (!tableData) {
+                        throw new Error('数据格式错误：未找到表格数据');
+                    }
+
+                    console.log('API响应数据:', tableData);
+                    renderTable(tableData);
+                } catch (error) {
+                    console.error('获取数据失败:', error);
+
+                    // 使用您提供的实际数据进行回退
+                    const fallbackData = {
+                        "headers": ["序号","名称","预交金收入","医疗收入","挂号收入","应交报表数","前日暂收款","实交报表数","当日暂收款","实收现金数","留存数差额","留存现金数","备用金","备注"],
+                        "rows": [
+                            {"rowType":0,"data":{"id":1,"tableType":0,"name":"王玉莹","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":0},
+                            {"rowType":0,"data":{"id":2,"tableType":0,"name":"吕笳熙","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":1},
+                            {"rowType":0,"data":{"id":3,"tableType":0,"name":"陈燕","hisAdvancePayment":0.0,"hisMedicalIncome":20.2,"hisRegistrationIncome":9.08,"reportAmount":10.0,"previousTemporaryReceipt":1.0,"actualReportAmount":0.0,"currentTemporaryReceipt":10.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":2},
+                            {"rowType":0,"data":{"id":4,"tableType":0,"name":"袁贤梅","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":3},
+                            {"rowType":0,"data":{"id":5,"tableType":0,"name":"陈静","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":4},
+                            {"rowType":0,"data":{"id":6,"tableType":0,"name":"刘曼","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":50.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":20.0,"pettyCash":0.0},"rowIndex":5},
+                            {"rowType":0,"data":{"id":7,"tableType":0,"name":"贺揄佳","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":6},
+                            {"rowType":0,"data":{"id":8,"tableType":0,"name":"李春香","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":10.0},"rowIndex":7},
+                            {"rowType":0,"data":{"id":9,"tableType":0,"name":"卢语","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":8},
+                            {"rowType":0,"data":{"id":10,"tableType":0,"name":"孔庆霞","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":200.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":300.0,"pettyCash":300.0},"rowIndex":9},
+                            {"rowType":0,"data":{"id":11,"tableType":0,"name":"李家莲","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":10},
+                            {"rowType":0,"data":{"id":12,"tableType":0,"name":"聂佳","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":11},
+                            {"rowType":0,"data":{"id":13,"tableType":0,"name":"胡梦潭","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":12},
+                            {"rowType":0,"data":{"id":14,"tableType":0,"name":"杨红","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":13},
+                            {"rowType":0,"data":{"id":15,"tableType":0,"name":"甘玉佳","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":20.0,"pettyCash":0.0},"rowIndex":14},
+                            {"rowType":1,"data":{"id":16,"tableType":1,"name":"田雪琴","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":16},
+                            {"rowType":1,"data":{"id":17,"tableType":1,"name":"卢枕枕","hisAdvancePayment":20.0,"hisMedicalIncome":5.0,"hisRegistrationIncome":10.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":17},
+                            {"rowType":1,"data":{"id":18,"tableType":1,"name":"杨文佳","hisAdvancePayment":0.0,"hisMedicalIncome":10.0,"hisRegistrationIncome":0.0,"reportAmount":10.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":18},
+                            {"rowType":1,"data":{"id":19,"tableType":1,"name":"黄玉明","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":19},
+                            {"rowType":1,"data":{"id":20,"tableType":1,"name":"靳东","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":20}
+                        ],
+                        "mergeConfigs":[
+                            {"startRow":15,"startCol":0,"rowSpan":1,"colSpan":13,"content":"名字第二段"},
+                            {"startRow":16,"startCol":11,"rowSpan":3,"colSpan":2,"content":"合并内容1"},
+                            // {"startRow":21,"startCol":11,"rowSpan":3,"colSpan":5,"content":"合并内容2"}
+                        ],
+                        "title":"模拟现金统计表"
+                    };
+
+                    console.log('使用回退数据');
+                    renderTable(fallbackData);
+                }
+            }
+
+            // 页面加载完成后执行
+            document.addEventListener('DOMContentLoaded', () => {
+                loadData();
+            });
+
+            function renderTable(data) {
+                const container = document.getElementById('table-container');
+                container.innerHTML = '';
+
+                const table = document.createElement('table');
+                table.className = 'cash-table';
+                table.id = 'cash-statistics-table';
+
+                // 1. 创建标题行（合并整行）
+                const titleRow = document.createElement('tr');
+                const titleCell = document.createElement('th');
+                titleCell.textContent = data.title;
+                titleCell.colSpan = data.headers.length;
+                titleCell.className = 'title-row';
+                titleRow.appendChild(titleCell);
+                table.appendChild(titleRow);
+
+                // 2. 创建表头行
+                const headerRow = document.createElement('tr');
+                data.headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header;
+                    headerRow.appendChild(th);
+                });
+                table.appendChild(headerRow);
+
+                // 3. 创建数据行容器
+                const tbody = document.createElement('tbody');
+
+                // 计算需要的总行数 - 修正：考虑合并配置可能需要的额外行
+                const maxRowIndex = Math.max(...data.rows.map(row => row.rowIndex));
+                const maxMergeRow = Math.max(...data.mergeConfigs.map(merge => merge.startRow + merge.rowSpan - 1), 0);
+                const totalRows = Math.max(maxRowIndex, maxMergeRow) + 1;
+
+                console.log('需要创建的数据行数:', totalRows, 'maxRowIndex:', maxRowIndex, 'maxMergeRow:', maxMergeRow);
+
+                // 创建所有数据行框架
+                for (let i = 0; i < totalRows; i++) {
+                    const row = document.createElement('tr');
+                    row.className = `data-row row-type-default`;
+                    row.dataset.originalIndex = i;
+
+                    // 创建所有单元格
+                    for (let j = 0; j < data.headers.length; j++) {
+                        const cell = document.createElement('td');
+                        cell.textContent = ''; // 初始为空
+                        cell.dataset.colIndex = j;
+                        row.appendChild(cell);
+                    }
+
+                    tbody.appendChild(row);
+                }
+
+                table.appendChild(tbody);
+                container.appendChild(table);
+
+                // 4. 填充数据
+                fillTableData(table, data);
+
+                // 5. 应用合并单元格
+                applyCellMerges(table, data.mergeConfigs);
+
+                console.log('表格渲染完成');
+            }
+
+            function fillTableData(table, data) {
+                console.log('开始填充数据...');
+
+                // 按rowIndex排序
+                const sortedRows = [...data.rows].sort((a, b) => a.rowIndex - b.rowIndex);
+
+                sortedRows.forEach(rowData => {
+                    const rowIndex = rowData.rowIndex;
+                    const rowDataObj = rowData.data;
+                    const rowType = rowData.rowType;
+
+                    // +2 因为前面有标题行和表头行
+                    const tableRow = table.rows[rowIndex + 2];
+
+                    if (tableRow) {
+                        // 设置行样式
+                        tableRow.className = `data-row row-type-${rowType}`;
+
+                        // 填充序号
+                        tableRow.cells[0].textContent = rowIndex + 1;
+
+                        // 填充名称
+                        tableRow.cells[1].textContent = rowDataObj.name || '';
+
+                        // 填充数值字段
+                        const numericFields = [
+                            'hisAdvancePayment', 'hisMedicalIncome', 'hisRegistrationIncome',
+                            'reportAmount', 'previousTemporaryReceipt', 'actualReportAmount',
+                            'currentTemporaryReceipt', 'actualCashAmount', 'retainedDifference',
+                            'retainedCash', 'pettyCash'
+                        ];
+
+                        numericFields.forEach((field, index) => {
+                            const value = rowDataObj[field];
+                            if (value !== null && value !== undefined) {
+                                tableRow.cells[index + 2].textContent = formatValue(value);
+                            }
+                        });
+
+                        console.log(`填充第${rowIndex}行: ${rowDataObj.name}`);
+                    } else {
+                        console.warn(`找不到第${rowIndex}行`);
+                    }
+                });
+            }
+
+            function applyCellMerges(table, mergeConfigs) {
+                console.log('开始应用合并单元格...');
+
+                mergeConfigs.forEach(config => {
+                    // +2 因为前面有标题行和表头行
+                    const startRowIndex = config.startRow + 2;
+                    const startColIndex = config.startCol;
+
+                    console.log(`处理合并: 行${startRowIndex}, 列${startColIndex}, 跨度${config.rowSpan}x${config.colSpan}`);
+
+                    const startRow = table.rows[startRowIndex];
+                    if (!startRow) {
+                        console.warn(`找不到起始行: ${startRowIndex}`);
+                        return;
+                    }
+
+                    const startCell = startRow.cells[startColIndex];
+                    if (!startCell) {
+                        console.warn(`找不到起始单元格: 列${startColIndex}`);
+                        return;
+                    }
+
+                    // 设置合并属性
+                    startCell.rowSpan = config.rowSpan;
+                    startCell.colSpan = config.colSpan;
+                    startCell.className = 'merged-cell';
+                    startCell.textContent = config.content || '';
+
+                    // 移除被合并的单元格
+                    for (let r = startRowIndex; r < startRowIndex + config.rowSpan; r++) {
+                        const row = table.rows[r];
+                        if (!row) continue;
+
+                        let cellsRemoved = 0;
+                        for (let c = startColIndex; c < startColIndex + config.colSpan; c++) {
+                            if (r === startRowIndex && c === startColIndex) {
+                                continue; // 跳过起始单元格
+                            }
+
+                            const cellIndex = c - cellsRemoved;
+                            if (row.cells[cellIndex]) {
+                                row.removeChild(row.cells[cellIndex]);
+                                cellsRemoved++;
+                            }
+                        }
+                    }
+
+                    console.log(`成功合并单元格`);
+                });
+            }
+
+            function formatValue(value) {
+                if (typeof value === 'number') {
+                    return value.toFixed(2);
+                }
+                return value || '';
+            }
+        </script>
+    </body>
+</html>

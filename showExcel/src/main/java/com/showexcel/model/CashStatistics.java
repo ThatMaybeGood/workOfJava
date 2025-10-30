@@ -11,7 +11,7 @@ import java.util.Map;
 
 public class CashStatistics {
     private Integer id;
-    private Integer type;
+    private Integer tableType;
     private String name;
     private Double hisAdvancePayment; //his
     private Double hisMedicalIncome; //his
@@ -33,8 +33,6 @@ public class CashStatistics {
     private Double pettyCash;    // 备用金
 
     private String remarks;     // 备注信息
-
-    private Map<String, Object> mergeInfo; // 用于Excel单元格合并信息
 
 
     // 构造方法
@@ -104,20 +102,11 @@ public class CashStatistics {
         this.remarks = remarks;
     }
 
-    public Integer getType() {
-        return type;
+    public Integer getTableType() {
+        return tableType;
     }
 
-    public void setType(Integer type) {
-        this.type = type;
+    public void setTableType(Integer tableType) {
+        this.tableType = tableType;
     }
-
-    public Map<String, Object> getMergeInfo() {
-        return mergeInfo;
-    }
-
-    public void setMergeInfo(Map<String, Object> mergeInfo) {
-        this.mergeInfo = mergeInfo;
-    }
-
 }
