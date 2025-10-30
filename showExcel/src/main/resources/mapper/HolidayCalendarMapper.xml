@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.showexcel.mapper.HolidayCalendarMapper">
+
+    <!-- 复杂查询：统计每年的节假日数量 -->
+    <select id="countHolidaysByYear" resultType="map">
+        SELECT
+            year,
+            COUNT(*) as total_count,
+            SUM(CASE WHEN is_holiday = 1 THEN 1 ELSE 0 END) as holiday_count
+        FROM holiday_calendar
+        WHERE year BETWEEN #{startYear} AND #{endYear}
+        GROUP BY year
+        ORDER BY year DESC
+    </select>
+
+    <!-- 批量插入 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO holiday_calendar
+        (holiday_date, holiday_name, is_holiday, holiday_type, year, description)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.holidayDate}, #{item.holidayName}, #{item.isHoliday},
+            #{item.holidayType}, #{item.year}, #{item.description})
+        </foreach>
+    </insert>
+</mapper>

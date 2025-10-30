@@ -1,5 +1,6 @@
 package com.showexcel.server;
 
+import com.showexcel.dao.CashStatisticsTableDTO;
 import com.showexcel.model.CashStatistics;
 import com.showexcel.dao.CashStatisticsDTO;
 
@@ -70,4 +71,9 @@ public interface CashStatisticsService {
      * 计算总计
      */
     CashStatistics calculateGrandTotal(CashStatistics accountingTotal, CashStatistics appointmentTotal);
+
+
+
+    List<CashStatisticsTableDTO> getAllStatisticsTable();
+
 }

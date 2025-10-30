@@ -217,78 +217,13 @@ function hideLoading() {
     }
 }
 
-// 表格数据加载和渲染函数
-// function loadCashStatistics() {
-//     showLoading();
-//
-//     // 模拟API调用
-//     setTimeout(() => {
-//         // 模拟数据
-//         const mockData = [
-//             {
-//                 id: 1,
-//                 displayName: '张三',
-//                 hisAdvancePayment: 5000,
-//                 hisMedicalIncome: 12000,
-//                 hisRegistrationIncome: 800,
-//                 reportAmount: 17800,
-//                 previousTemporaryReceipt: 1000,
-//                 actualReportAmount: 16800,
-//                 currentTemporaryReceipt: 500,
-//                 actualCashAmount: 16300,
-//                 retainedDifference: 0,
-//                 retainedCash: 0,
-//                 pettyCash: 2000,
-//                 remarks: ''
-//             },
-//             {
-//                 id: 2,
-//                 displayName: '李四',
-//                 hisAdvancePayment: 3000,
-//                 hisMedicalIncome: 8000,
-//                 hisRegistrationIncome: 600,
-//                 reportAmount: 11600,
-//                 previousTemporaryReceipt: 800,
-//                 actualReportAmount: 10800,
-//                 currentTemporaryReceipt: 300,
-//                 actualCashAmount: 10500,
-//                 retainedDifference: 0,
-//                 retainedCash: 0,
-//                 pettyCash: 1500,
-//                 remarks: ''
-//             },
-//             {
-//                 displayName: '会计室合计',
-//                 hisAdvancePayment: 8000,
-//                 hisMedicalIncome: 20000,
-//                 hisRegistrationIncome: 1400,
-//                 reportAmount: 29400,
-//                 previousTemporaryReceipt: 1800,
-//                 actualReportAmount: 27600,
-//                 currentTemporaryReceipt: 800,
-//                 actualCashAmount: 26800,
-//                 retainedDifference: 0,
-//                 retainedCash: 0,
-//                 pettyCash: 3500,
-//                 isMerged: true,
-//                 colspan: 2
-//             }
-//         ];
-//
-//         AppState.tableData = mockData;
-//         renderTable(mockData);
-//         hideLoading();
-//     }, 1000);
-//
-//
-//
-// }
+
 
 // 表格数据加载和渲染函数 - 修复边框问题
 function loadCashStatistics() {
     showLoading();
 
-    fetch('/api/cash-statistics')
+    fetch('/api/cash-statistics/new')
         .then(response => {
             if (!response.ok) {
                 throw new Error('网络响应不正常');
@@ -305,6 +240,81 @@ function loadCashStatistics() {
             hideLoading();
         });
 }
+// async function loadCashStatistics() {
+//     try {
+//         const apiUrl = window.location.hostname === 'localhost'
+//             ? 'http://localhost:8080/api/cash-statistics/new'
+//             : '/api/cash-statistics/new';
+//
+//         console.log('正在请求API:', apiUrl);
+//
+//         const response = await fetch(apiUrl);
+//
+//         if (!response.ok) {
+//             throw new Error(`HTTP错误! 状态: ${response.status}`);
+//         }
+//
+//         const result = await response.json();
+//
+//         // 重要修正：后端返回的是数组，取第一个元素
+//         const tableData = Array.isArray(result) ? result[0] : result;
+//
+//         if (!tableData) {
+//             throw new Error('数据格式错误：未找到表格数据');
+//         }
+//
+//         console.log('API响应数据:', tableData);
+//         renderTable(tableData);
+//         hideLoading();
+//     } catch (error) {
+//         console.error('获取数据失败:', error);
+//         showErrorMessage('数据加载失败: ' + error.message);
+//         hideLoading();
+//
+//         // 使用您提供的实际数据进行回退
+//         // const fallbackData = {
+//         //     "headers": ["序号","名称","预交金收入","医疗收入","挂号收入","应交报表数","前日暂收款","实交报表数","当日暂收款","实收现金数","留存数差额","留存现金数","备用金","备注"],
+//         //     "rows": [
+//         //         {"rowType":0,"data":{"id":1,"tableType":0,"name":"王玉莹","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":0},
+//         //         {"rowType":0,"data":{"id":2,"tableType":0,"name":"吕笳熙","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":1},
+//         //         {"rowType":0,"data":{"id":3,"tableType":0,"name":"陈燕","hisAdvancePayment":0.0,"hisMedicalIncome":20.2,"hisRegistrationIncome":9.08,"reportAmount":10.0,"previousTemporaryReceipt":1.0,"actualReportAmount":0.0,"currentTemporaryReceipt":10.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":2},
+//         //         {"rowType":0,"data":{"id":4,"tableType":0,"name":"袁贤梅","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":3},
+//         //         {"rowType":0,"data":{"id":5,"tableType":0,"name":"陈静","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":4},
+//         //         {"rowType":0,"data":{"id":6,"tableType":0,"name":"刘曼","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":50.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":20.0,"pettyCash":0.0},"rowIndex":5},
+//         //         {"rowType":0,"data":{"id":7,"tableType":0,"name":"贺揄佳","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":6},
+//         //         {"rowType":0,"data":{"id":8,"tableType":0,"name":"李春香","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":10.0},"rowIndex":7},
+//         //         {"rowType":0,"data":{"id":9,"tableType":0,"name":"卢语","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":8},
+//         //         {"rowType":0,"data":{"id":10,"tableType":0,"name":"孔庆霞","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":200.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":300.0,"pettyCash":300.0},"rowIndex":9},
+//         //         {"rowType":0,"data":{"id":11,"tableType":0,"name":"李家莲","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":10},
+//         //         {"rowType":0,"data":{"id":12,"tableType":0,"name":"聂佳","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":11},
+//         //         {"rowType":0,"data":{"id":13,"tableType":0,"name":"胡梦潭","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":12},
+//         //         {"rowType":0,"data":{"id":14,"tableType":0,"name":"杨红","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":13},
+//         //         {"rowType":0,"data":{"id":15,"tableType":0,"name":"甘玉佳","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":20.0,"pettyCash":0.0},"rowIndex":14},
+//         //         {"rowType":1,"data":{"id":16,"tableType":1,"name":"田雪琴","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":16},
+//         //         {"rowType":1,"data":{"id":17,"tableType":1,"name":"卢枕枕","hisAdvancePayment":20.0,"hisMedicalIncome":5.0,"hisRegistrationIncome":10.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":17},
+//         //         {"rowType":1,"data":{"id":18,"tableType":1,"name":"杨文佳","hisAdvancePayment":0.0,"hisMedicalIncome":10.0,"hisRegistrationIncome":0.0,"reportAmount":10.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":18},
+//         //         {"rowType":1,"data":{"id":19,"tableType":1,"name":"黄玉明","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":19},
+//         //         {"rowType":1,"data":{"id":20,"tableType":1,"name":"靳东","hisAdvancePayment":0.0,"hisMedicalIncome":0.0,"hisRegistrationIncome":0.0,"reportAmount":0.0,"previousTemporaryReceipt":0.0,"actualReportAmount":0.0,"currentTemporaryReceipt":0.0,"actualCashAmount":0.0,"retainedDifference":0.0,"retainedCash":0.0,"pettyCash":0.0},"rowIndex":20}
+//         //     ],
+//         //     "mergeConfigs":[
+//         //         {"startRow":15,"startCol":0,"rowSpan":1,"colSpan":13,"content":"名字第二段"},
+//         //         {"startRow":16,"startCol":11,"rowSpan":3,"colSpan":2,"content":"合并内容1"},
+//         //         // {"startRow":21,"startCol":11,"rowSpan":3,"colSpan":5,"content":"合并内容2"}
+//         //     ],
+//         //     "title":"模拟现金统计表"
+//         // };
+//
+//         // console.log('使用回退数据');
+//
+//     }
+// }
+
+
+
+
+
+
+
 // 显示错误信息
 function showErrorMessage(message) {
     const tbody = document.getElementById('tableBody');
@@ -323,146 +333,9 @@ function showErrorMessage(message) {
     }
 }
 
-function renderTable(data) {
-    const tbody = document.getElementById('tableBody');
-    tbody.innerHTML = '';
-
-    let appointmentCenterRendered = false;
-
-    data.forEach((item, index) => {
-        const row = document.createElement('tr');
-
-        // 设置样式
-        if (item.displayName === '会计室合计' || item.displayName === '预约合计' || item.displayName === '总计') {
-            row.className = 'total-row';
-        } else if (item.displayName === '预约中心' && item.colspan === 14) {
-            row.className = 'section-row';
-        }
-
-        let rowHTML = '';
-
-        // 处理合并单元格
-        if (item.isMerged) {
-            if (item.colspan === 14) {
-                // 全行合并
-                rowHTML = `<td colspan="14" style="text-align: center; font-weight: bold; background-color: #fff3e0; border: 1px solid #d0e3ff;">
-                    ${item.displayName}
-                </td>`;
-            } else if (item.colspan === 9 || item.colspan === 5) {
-                // 部分合并
-                rowHTML = `<td colspan="${item.colspan}" style="text-align: left; padding-left: 20px; border: 1px solid #d0e3ff;">
-                    ${item.displayName}
-                </td>`;
-
-                // 补充剩余的空单元格（确保有边框）
-                const remainingCols = 14 - item.colspan;
-                for (let i = 0; i < remainingCols; i++) {
-                    rowHTML += '<td style="border: 1px solid #e0e0e0;"></td>';
-                }
-            } else if (item.displayName === '预约中心' && item.rowspan > 1) {
-                // 预约中心合并单元格
-                if (!appointmentCenterRendered) {
-                    appointmentCenterRendered = true;
-                    rowHTML = `
-                    <td style="border: 1px solid #e0e0e0;">${item.id || ''}</td>
-                    <td colspan="${item.colspan}" rowspan="${item.rowspan}"
-                         style="text-align: center; vertical-align: middle; background-color: #e3f2fd; font-weight: bold; border: 1px solid #d0e3ff;">
-                        ${item.displayName}
-                    </td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisAdvancePayment)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisMedicalIncome)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisRegistrationIncome)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.reportAmount)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.previousTemporaryReceipt)}</td>
-                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualReportAmount)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.currentTemporaryReceipt)}</td>
-                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualCashAmount)}</td>
-                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedDifference)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedCash)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.pettyCash)}</td>
-                    <td style="border: 1px solid #e0e0e0; padding: 5px 8px;">${item.remarks || ''}</td>
-                `;
-                } else {
-                    // 预约中心其他行（跳过被合并的列）
-                    rowHTML = `
-                    <td style="border: 1px solid #e0e0e0;">${item.id || ''}</td>
-                    <!-- 跳过了被合并的列 -->
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisAdvancePayment)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisMedicalIncome)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisRegistrationIncome)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.reportAmount)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.previousTemporaryReceipt)}</td>
-                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualReportAmount)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.currentTemporaryReceipt)}</td>
-                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualCashAmount)}</td>
-                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedDifference)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedCash)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.pettyCash)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${item.remarks || ''}</td>
-                `;
-                }
-            } else {
-                // 常规合并（如合计行）
-                rowHTML = `
-                    <td colspan="${item.colspan}" style="text-align: center; font-weight: bold; border: 1px solid #d0e3ff;">
-                        ${item.displayName}
-                    </td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisAdvancePayment)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisMedicalIncome)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisRegistrationIncome)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.reportAmount)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.previousTemporaryReceipt)}</td>
-                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualReportAmount)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.currentTemporaryReceipt)}</td>
-                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualCashAmount)}</td>
-                    <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedDifference)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedCash)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${formatNumber(item.pettyCash)}</td>
-                    <td style="border: 1px solid #e0e0e0;">${item.remarks || ''}</td>
-                `;
-            }
-        } else {
-            // 正常数据行 - 为每个td添加内联边框样式
-            rowHTML = `
-                <td style="border: 1px solid #e0e0e0;">${item.id || ''}</td>
-                <td style="border: 1px solid #e0e0e0;">${item.displayName || ''}</td>
-                <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisAdvancePayment)}</td>
-                <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisMedicalIncome)}</td>
-                <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisRegistrationIncome)}</td>
-                <td style="border: 1px solid #e0e0e0;">${formatNumber(item.reportAmount)}</td>
-                <td style="border: 1px solid #e0e0e0;">${formatNumber(item.previousTemporaryReceipt)}</td>
-                <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualReportAmount)}</td>
-                <td style="border: 1px solid #e0e0e0;">${formatNumber(item.currentTemporaryReceipt)}</td>
-                <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualCashAmount)}</td>
-                <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedDifference)}</td>
-                <td style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedCash)}</td>
-                <td style="border: 1px solid #e0e0e0;">${formatNumber(item.pettyCash)}</td>
-                <td style="border: 1px solid #e0e0e0; padding: 5px 8px;">${item.remarks || ''}</td>
-            `;
-        }
-
-        row.innerHTML = rowHTML;
-        tbody.appendChild(row);
-    });
-}
-
-// 渲染表格数据
 // function renderTable(data) {
 //     const tbody = document.getElementById('tableBody');
 //     tbody.innerHTML = '';
-//
-//     // 如果没有数据，显示空状态
-//     if (!data || data.length === 0) {
-//         tbody.innerHTML = `
-//             <tr>
-//                 <td colspan="14" style="text-align: center; color: #666; padding: 40px;">
-//                     <i class="fas fa-inbox" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
-//                     <div>暂无数据</div>
-//                 </td>
-//             </tr>
-//         `;
-//         return;
-//     }
 //
 //     let appointmentCenterRendered = false;
 //
@@ -500,6 +373,10 @@ function renderTable(data) {
 //                 // 预约中心合并单元格
 //                 if (!appointmentCenterRendered) {
 //                     appointmentCenterRendered = true;
+//
+//                     // 检查是否需要合并最后两列（retainedCash和pettyCash都为null）
+//                     const shouldMergeLastTwoColumns = item.retainedCash === null && item.pettyCash === null;
+//
 //                     rowHTML = `
 //                     <td style="border: 1px solid #e0e0e0;">${item.id || ''}</td>
 //                     <td colspan="${item.colspan}" rowspan="${item.rowspan}"
@@ -515,12 +392,20 @@ function renderTable(data) {
 //                     <td style="border: 1px solid #e0e0e0;">${formatNumber(item.currentTemporaryReceipt)}</td>
 //                     <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualCashAmount)}</td>
 //                     <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedDifference)}</td>
-//                     <td style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedCash)}</td>
-//                     <td style="border: 1px solid #e0e0e0;">${formatNumber(item.pettyCash)}</td>
-//                     <td style="border: 1px solid #e0e0e0;">${item.remarks || ''}</td>
+//                     ${shouldMergeLastTwoColumns ?
+//                         `<td colspan="2" rowspan="${item.rowspan}" style="text-align: center; vertical-align: middle; border: 1px solid #e0e0e0;">
+//                             ${item.remarks || ''}
+//                         </td>` :
+//                         `<td style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedCash)}</td>
+//                          <td style="border: 1px solid #e0e0e0;">${formatNumber(item.pettyCash)}</td>`
+//                     }
+//                     <td style="border: 1px solid #e0e0e0; padding: 5px 8px;">${item.remarks || ''}</td>
 //                 `;
 //                 } else {
 //                     // 预约中心其他行（跳过被合并的列）
+//                     // 检查是否需要跳过最后两列（retainedCash和pettyCash都为null）
+//                     const shouldSkipLastTwoColumns = item.retainedCash === null && item.pettyCash === null;
+//
 //                     rowHTML = `
 //                     <td style="border: 1px solid #e0e0e0;">${item.id || ''}</td>
 //                     <!-- 跳过了被合并的列 -->
@@ -533,30 +418,18 @@ function renderTable(data) {
 //                     <td style="border: 1px solid #e0e0e0;">${formatNumber(item.currentTemporaryReceipt)}</td>
 //                     <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualCashAmount)}</td>
 //                     <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedDifference)}</td>
-//                     <td style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedCash)}</td>
-//                     <td style="border: 1px solid #e0e0e0;">${formatNumber(item.pettyCash)}</td>
+//                     ${shouldSkipLastTwoColumns ?
+//                         `<td style="border: 1px solid #e0e0e0;"></td>
+//                          <td style="border: 1px solid #e0e0e0;"></td>` :
+//                         `<td style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedCash)}</td>
+//                          <td style="border: 1px solid #e0e0e0;">${formatNumber(item.pettyCash)}</td>`
+//                     }
 //                     <td style="border: 1px solid #e0e0e0;">${item.remarks || ''}</td>
 //                 `;
 //                 }
 //             } else {
-//                 // 常规合并（如合计行）
-//                 rowHTML = `
-//                     <td colspan="${item.colspan}" style="text-align: center; font-weight: bold; border: 1px solid #d0e3ff;">
-//                         ${item.displayName}
-//                     </td>
-//                     <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisAdvancePayment)}</td>
-//                     <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisMedicalIncome)}</td>
-//                     <td style="border: 1px solid #e0e0e0;">${formatNumber(item.hisRegistrationIncome)}</td>
-//                     <td style="border: 1px solid #e0e0e0;">${formatNumber(item.reportAmount)}</td>
-//                     <td style="border: 1px solid #e0e0e0;">${formatNumber(item.previousTemporaryReceipt)}</td>
-//                     <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualReportAmount)}</td>
-//                     <td style="border: 1px solid #e0e0e0;">${formatNumber(item.currentTemporaryReceipt)}</td>
-//                     <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.actualCashAmount)}</td>
-//                     <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedDifference)}</td>
-//                     <td style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedCash)}</td>
-//                     <td style="border: 1px solid #e0e0e0;">${formatNumber(item.pettyCash)}</td>
-//                     <td style="border: 1px solid #e0e0e0;">${item.remarks || ''}</td>
-//                 `;
+//                 // 常规合并（如合计行） - 使用动态null值合并
+//                 rowHTML = generateDynamicMergedRow(item);
 //             }
 //         } else {
 //             // 正常数据行 - 为每个td添加内联边框样式
@@ -574,7 +447,7 @@ function renderTable(data) {
 //                 <td class="formula" style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedDifference)}</td>
 //                 <td style="border: 1px solid #e0e0e0;">${formatNumber(item.retainedCash)}</td>
 //                 <td style="border: 1px solid #e0e0e0;">${formatNumber(item.pettyCash)}</td>
-//                 <td style="border: 1px solid #e0e0e0;">${item.remarks || ''}</td>
+//                 <td style="border: 1px solid #e0e0e0; padding: 5px 8px;">${item.remarks || ''}</td>
 //             `;
 //         }
 //
@@ -582,6 +455,176 @@ function renderTable(data) {
 //         tbody.appendChild(row);
 //     });
 // }
+
+function renderTable(data) {
+    const container = document.getElementById('table-container');
+    container.innerHTML = '';
+
+    const table = document.createElement('table');
+    table.className = 'cash-table';
+    table.id = 'cash-statistics-table';
+
+    // 1. 创建标题行（合并整行）
+    const titleRow = document.createElement('tr');
+    const titleCell = document.createElement('th');
+    titleCell.textContent = data.title;
+    titleCell.colSpan = data.headers.length;
+    titleCell.className = 'title-row';
+    titleRow.appendChild(titleCell);
+    table.appendChild(titleRow);
+
+    // 2. 创建表头行
+    const headerRow = document.createElement('tr');
+    data.headers.forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        headerRow.appendChild(th);
+    });
+    table.appendChild(headerRow);
+
+    // 3. 创建数据行容器
+    const tbody = document.createElement('tbody');
+
+    // 计算需要的总行数 - 修正：考虑合并配置可能需要的额外行
+    const maxRowIndex = Math.max(...data.rows.map(row => row.rowIndex));
+    const maxMergeRow = Math.max(...data.mergeConfigs.map(merge => merge.startRow + merge.rowSpan - 1), 0);
+    const totalRows = Math.max(maxRowIndex, maxMergeRow) + 1;
+
+    console.log('需要创建的数据行数:', totalRows, 'maxRowIndex:', maxRowIndex, 'maxMergeRow:', maxMergeRow);
+
+    // 创建所有数据行框架
+    for (let i = 0; i < totalRows; i++) {
+        const row = document.createElement('tr');
+        row.className = `data-row row-type-default`;
+        row.dataset.originalIndex = i;
+
+        // 创建所有单元格
+        for (let j = 0; j < data.headers.length; j++) {
+            const cell = document.createElement('td');
+            cell.textContent = ''; // 初始为空
+            cell.dataset.colIndex = j;
+            row.appendChild(cell);
+        }
+
+        tbody.appendChild(row);
+    }
+
+    table.appendChild(tbody);
+    container.appendChild(table);
+
+    // 4. 填充数据
+    fillTableData(table, data);
+
+    // 5. 应用合并单元格
+    applyCellMerges(table, data.mergeConfigs);
+
+    console.log('表格渲染完成');
+}
+
+function fillTableData(table, data) {
+    console.log('开始填充数据...');
+
+    // 按rowIndex排序
+    const sortedRows = [...data.rows].sort((a, b) => a.rowIndex - b.rowIndex);
+
+    sortedRows.forEach(rowData => {
+        const rowIndex = rowData.rowIndex;
+        const rowDataObj = rowData.data;
+        const rowType = rowData.rowType;
+
+        // +2 因为前面有标题行和表头行
+        const tableRow = table.rows[rowIndex + 2];
+
+        if (tableRow) {
+            // 设置行样式
+            tableRow.className = `data-row row-type-${rowType}`;
+
+            // 填充序号
+            tableRow.cells[0].textContent = rowIndex + 1;
+
+            // 填充名称
+            tableRow.cells[1].textContent = rowDataObj.name || '';
+
+            // 填充数值字段
+            const numericFields = [
+                'hisAdvancePayment', 'hisMedicalIncome', 'hisRegistrationIncome',
+                'reportAmount', 'previousTemporaryReceipt', 'actualReportAmount',
+                'currentTemporaryReceipt', 'actualCashAmount', 'retainedDifference',
+                'retainedCash', 'pettyCash'
+            ];
+
+            numericFields.forEach((field, index) => {
+                const value = rowDataObj[formatNumber(field)];
+                if (value !== null && value !== undefined) {
+                    tableRow.cells[index + 2].textContent = formatValue(value);
+                }
+            });
+
+            console.log(`填充第${rowIndex}行: ${rowDataObj.name}`);
+        } else {
+            console.warn(`找不到第${rowIndex}行`);
+        }
+    });
+}
+
+function applyCellMerges(table, mergeConfigs) {
+    console.log('开始应用合并单元格...');
+
+    mergeConfigs.forEach(config => {
+        // +2 因为前面有标题行和表头行
+        const startRowIndex = config.startRow + 2;
+        const startColIndex = config.startCol;
+
+        console.log(`处理合并: 行${startRowIndex}, 列${startColIndex}, 跨度${config.rowSpan}x${config.colSpan}`);
+
+        const startRow = table.rows[startRowIndex];
+        if (!startRow) {
+            console.warn(`找不到起始行: ${startRowIndex}`);
+            return;
+        }
+
+        const startCell = startRow.cells[startColIndex];
+        if (!startCell) {
+            console.warn(`找不到起始单元格: 列${startColIndex}`);
+            return;
+        }
+
+        // 设置合并属性
+        startCell.rowSpan = config.rowSpan;
+        startCell.colSpan = config.colSpan;
+        startCell.className = 'merged-cell';
+        startCell.textContent = config.content || '';
+
+        // 移除被合并的单元格
+        for (let r = startRowIndex; r < startRowIndex + config.rowSpan; r++) {
+            const row = table.rows[r];
+            if (!row) continue;
+
+            let cellsRemoved = 0;
+            for (let c = startColIndex; c < startColIndex + config.colSpan; c++) {
+                if (r === startRowIndex && c === startColIndex) {
+                    continue; // 跳过起始单元格
+                }
+
+                const cellIndex = c - cellsRemoved;
+                if (row.cells[cellIndex]) {
+                    row.removeChild(row.cells[cellIndex]);
+                    cellsRemoved++;
+                }
+            }
+        }
+
+        console.log(`成功合并单元格`);
+    });
+}
+
+function formatValue(value) {
+    if (typeof value === 'number') {
+        return value.toFixed(2);
+    }
+    return value || '';
+}
+
 
 // 数字格式化函数
 function formatNumber(value) {
@@ -683,11 +726,65 @@ async function saveHolidays() {
     showLoading();
 
     try {
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        hideLoading();
-        alert('节假日设置保存成功！');
+        // 准备请求数据
+        const holidaysData = AppState.holidays.map(date => ({
+            date,
+            type: 'PUBLIC' // 默认公共假期类型
+        }));
+
+        const requestData = holidaysData.map(item => ({
+            holidayDate: item.date,
+            holidayName: '自定义节假日',
+            isHoliday: true,
+            holidayType: item.type,
+            year: new Date(item.date).getFullYear(),
+            description: '通过前端设置的节假日'
+        }));
+
+        // 打印详细的请求参数
+        console.group('API请求详情');
+        console.log('请求URL:', '/api/holiday/batch-update');
+        console.log('请求方法:', 'POST');
+        console.log('请求头:', {
+            'Content-Type': 'application/json'
+        });
+        console.log('请求体:', requestData);
+        console.log('节假日数量:', holidaysData.length);
+        console.groupEnd();
+
+        const response = await fetch('/api/holiday/batch-update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        // 打印响应详情
+        console.group('API响应详情');
+        console.log('响应状态:', response.status);
+        console.log('响应状态文本:', response.statusText);
+        console.log('响应头:', Object.fromEntries(response.headers.entries()));
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('响应错误:', errorText);
+            throw new Error(errorText);
+        }
+
+        const result = await response.json();
+        console.log('响应结果:', result);
+        console.groupEnd();
+
+        if (result.success) {
+            hideLoading();
+            alert('节假日设置保存成功！');
+        } else {
+            throw new Error(result.message || '保存失败');
+        }
     } catch (error) {
+        console.error('保存失败:', error);
+        console.error('错误堆栈:', error.stack);
         hideLoading();
         alert('节假日设置保存失败: ' + error.message);
     }
@@ -974,6 +1071,114 @@ function handleParamReset() {
 
 function handleHolidaySave() {
     saveHolidays();
+}
+
+// 生成动态合并行的函数
+function generateDynamicMergedRow(item) {
+    // 定义字段顺序（对应表格的列顺序）
+    const fields = [
+        'id', 'displayName', 'hisAdvancePayment', 'hisMedicalIncome',
+        'hisRegistrationIncome', 'reportAmount', 'previousTemporaryReceipt',
+        'actualReportAmount', 'currentTemporaryReceipt', 'actualCashAmount',
+        'retainedDifference', 'retainedCash', 'pettyCash', 'remarks'
+    ];
+
+    let html = '';
+    let currentIndex = 0;
+
+    // 遍历所有字段，检测连续的null值
+    while (currentIndex < fields.length) {
+        const field = fields[currentIndex];
+        const value = item[field];
+
+        if (value === null) {
+            // 找到连续的null值范围
+            let nullCount = 1;
+            for (let i = currentIndex + 1; i < fields.length; i++) {
+                if (item[fields[i]] === null) {
+                    nullCount++;
+                } else {
+                    break;
+                }
+            }
+
+            // 如果连续null值超过1个，合并单元格
+            if (nullCount > 1) {
+                html += `<td colspan="${nullCount}" style="text-align: center; border: 1px solid #e0e0e0;">
+                    ${item.displayName || ''}
+                </td>`;
+                currentIndex += nullCount;
+            } else {
+                // 单个null值，生成空单元格
+                html += '<td style="border: 1px solid #e0e0e0;"></td>';
+                currentIndex++;
+            }
+        } else {
+            // 非null值，正常生成单元格
+            if (typeof value === 'number') {
+                html += `<td style="border: 1px solid #e0e0e0;">${formatNumber(value)}</td>`;
+            } else if (typeof value === 'string') {
+                html += `<td style="border: 1px solid #e0e0e0;">${value}</td>`;
+            } else {
+                html += '<td style="border: 1px solid #e0e0e0;"></td>';
+            }
+            currentIndex++;
+        }
+    }
+
+    return html;
+}
+
+// 生成剩余列的函数
+function generateRemainingColumns(startIndex, colspan, allFields, currentItem) {
+    let html = '';
+
+    // 计算剩余列数：14 - colspan
+    const remainingCols = 14 - colspan;
+
+    // 生成合并列之前的列
+    for (let i = 0; i < startIndex; i++) {
+        const field = allFields[i];
+        const value = currentItem[field];
+        if (typeof value === 'number') {
+            html += `<td style="border: 1px solid #e0e0e0;">${formatNumber(value)}</td>`;
+        } else if (typeof value === 'string') {
+            html += `<td style="border: 1px solid #e0e0e0;">${value}</td>`;
+        } else {
+            html += '<td style="border: 1px solid #e0e0e0;"></td>';
+        }
+    }
+
+    // 生成合并列
+    if (colspan > 1) {
+        html += `<td colspan="${colspan}" style="text-align: center; border: 1px solid #e0e0e0;">
+            ${currentItem.displayName || ''}
+        </td>`;
+    }
+
+    // 生成合并列之后的列（如果有）
+    const endIndex = startIndex + colspan;
+    for (let i = endIndex; i < allFields.length; i++) {
+        const field = allFields[i];
+        const value = currentItem[field];
+        if (i < 14) { // 确保不超过总列数
+            if (typeof value === 'number') {
+                html += `<td style="border: 1px solid #e0e0e0;">${formatNumber(value)}</td>`;
+            } else if (typeof value === 'string') {
+                html += `<td style="border: 1px solid #e0e0e0;">${value}</td>`;
+            } else {
+                html += '<td style="border: 1px solid #e0e0e0;"></td>';
+            }
+        }
+    }
+
+    // 补充剩余的空列以确保总共14列
+    const totalGeneratedCols = startIndex + (colspan > 1 ? 1 : 0) + (allFields.length - endIndex);
+    for (let i = totalGeneratedCols; i < 14; i++) {
+        html += '<td style="border: 1px solid #e0e0e0;"></td>';
+    }
+
+    return html;
 }
 
 // 工具函数

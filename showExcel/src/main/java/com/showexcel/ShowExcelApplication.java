@@ -1,21 +1,20 @@
 package com.showexcel;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 // import java.util.Arrays;
 
 @SpringBootApplication
+@MapperScan("com.showexcel.mapper")
 public class ShowExcelApplication {
-    static String a = "";
-
-
 
     public static void main(String[] args) {
 
- 
+
         SpringApplication.run(ShowExcelApplication.class, args);
-        System.out.println("localhost:8080/showExcel");
+        System.out.println("http://localhost:8080");
     }
 
 }
