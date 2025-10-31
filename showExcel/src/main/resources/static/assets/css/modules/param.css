@@ -1,0 +1,47 @@
+/* 参数维护视图样式 */
+.param-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    max-width: 1200px;
+}
+
+.param-form {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.param-status {
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.status-grid {
+    display: grid;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.status-label {
+    font-weight: 600;
+    color: #333;
+}
+
+.status-value {
+    color: #4CAF50;
+    font-weight: 600;
+}
+

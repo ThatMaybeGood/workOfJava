@@ -15,7 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.showexcel.dao.CashStatisticsTableDTO;
+import com.showexcel.dto.CashStatisticsTableDTO;
 import com.showexcel.server.CashStatisticsService;
 
 @ExtendWith(MockitoExtension.class)
