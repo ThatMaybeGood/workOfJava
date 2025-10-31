@@ -1,0 +1,24 @@
+<!-- 表格视图 -->
+<div id="tableView" class="view-content active">
+    <div class="content-header">
+        <h2>门诊现金总统计表 - 详细数据</h2>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <div class="action-buttons">
+                <button class="action-btn primary" id="printBtn">
+                    <i class="fas fa-print"></i> 打印
+                </button>
+                <button class="action-btn success" id="exportExcelBtn">
+                    <i class="fas fa-file-excel"></i> 导出Excel
+                </button>
+                <button class="action-btn" id="exportPdfBtn">
+                    <i class="fas fa-file-pdf"></i> 导出PDF
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="table-container" id="cashTableContainer">
+        <!-- 表格内容将由JavaScript动态渲染 -->
+    </div>
+</div>
+
