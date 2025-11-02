@@ -1,5 +1,6 @@
 package com.showexcel.service.impl;
 
+import com.showexcel.constant.CashStatisticsConstant;
 import com.showexcel.dto.CashStatisticsRow;
 import com.showexcel.dto.CashStatisticsTableDTO;
 import com.showexcel.model.CashStatistics;
@@ -11,10 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -31,69 +30,6 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
     @Autowired
     private CashStatisticsRepository cashStatisticsRepository;
 
-    @Override
-    public List<CashStatisticsDTO> getAllStatistics() {
-        // 从数据库获取所有数据
-        List<CashStatistics> allData = cashStatisticsRepository.findAll();
-
-        // 转换为DTO
-        List<CashStatisticsDTO> result = new ArrayList<>();
-
-        // 添加会计室数据（只处理type为0的数据）
-        if (allData != null && !allData.isEmpty()) {
-            List<CashStatisticsDTO> accountingDTOs = allData.stream()
-                    .filter(item -> item.getTableType() != null && item.getTableType() == 0) // 只筛选type为0的数据
-                    .map(CashStatisticsDTO::new)
-                    .collect(Collectors.toList());
-            result.addAll(accountingDTOs);
-        }
-        // 添加会计室合计行
-        if (allData != null && !allData.isEmpty()) {
-            CashStatistics accountingTotal = calculateAccountingTotal(allData);
-            CashStatisticsDTO accountingTotalDTO = createMergedRow(accountingTotal, "会计室合计", 2, 1);
-            result.add(accountingTotalDTO);
-        }
-
-        // 预约中心标题行
-        CashStatisticsDTO titleRow = new CashStatisticsDTO();
-        titleRow.setDisplayName("预约中心");
-        titleRow.setColspan(14);
-        titleRow.setRowspan(1);
-        titleRow.setIsMerged(true);
-        result.add(titleRow);
-
-
-        // 添加预约数据（只处理type为1的数据）
-        if (allData != null && !allData.isEmpty()) {
-            List<CashStatisticsDTO> accountingDTOs = allData.stream()
-                    .filter(item -> item.getTableType() != null && item.getTableType() == 1) // 只筛选type为1的数据
-                    .map(CashStatisticsDTO::new)
-                    .collect(Collectors.toList());
-            result.addAll(accountingDTOs);
-        }
-
-
-        // 添加预约合计行
-        if (allData != null && !allData.isEmpty()) {
-            CashStatistics appointmentTotal = calculateAppointmentTotal(allData);
-            CashStatisticsDTO appointmentTotalDTO = createMergedRow(appointmentTotal, "预约合计", 2, 1);
-            result.add(appointmentTotalDTO);
-        }
-
-        // 添加总计行
-        if ((allData != null && !allData.isEmpty()) || (allData != null && !allData.isEmpty())) {
-            CashStatistics accountingTotal = calculateAccountingTotal(allData);
-            CashStatistics appointmentTotal = calculateAppointmentTotal(allData);
-            CashStatistics grandTotal = calculateGrandTotal(accountingTotal, appointmentTotal);
-            CashStatisticsDTO grandTotalDTO = createMergedRow(grandTotal, "总计", 2, 1);
-            result.add(grandTotalDTO);
-        }
-
-        // 添加自定义行
-        result.addAll(createCustomRows(3));
-
-        return result;
-    }
 
     @Override
     public List<CashStatistics> getDataByType(Integer type) {
@@ -141,11 +77,31 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
         return true;
     }
 
-    @Override
-    public CashStatistics calculateAccountingTotal(List<CashStatistics> data) {
+    /**
+     * 统一计算合计方法
+     *
+     * @param data 数据列表
+     * @param type 计算类型：0-会计室合计，1-预约合计，2-总计
+     * @return 合计结果
+     */
+    private CashStatistics calculateTotal(List<CashStatistics> data, int type) {
         CashStatistics total = new CashStatistics();
-        total.setName("会计室合计");
 
+        switch (type) {
+            case 0: // 会计室合计
+                total.setName("会计室合计");
+                break;
+            case 1: // 预约合计
+                total.setName("预约合计");
+                break;
+            case 2: // 总计
+                total.setName("总计");
+                break;
+            default:
+                total.setName("合计");
+        }
+
+        // 计算公共字段
         total.setHisAdvancePayment(sumField(data, CashStatistics::getHisAdvancePayment));
         total.setHisMedicalIncome(sumField(data, CashStatistics::getHisMedicalIncome));
         total.setHisRegistrationIncome(sumField(data, CashStatistics::getHisRegistrationIncome));
@@ -153,63 +109,51 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
         total.setPreviousTemporaryReceipt(sumField(data, CashStatistics::getPreviousTemporaryReceipt));
         total.setCurrentTemporaryReceipt(sumField(data, CashStatistics::getCurrentTemporaryReceipt));
         total.setRetainedCash(sumField(data, CashStatistics::getRetainedCash));
-        total.setPettyCash(sumField(data, CashStatistics::getPettyCash));
+
+        // 根据类型处理pettyCash
+        switch (type) {
+            case 0: // 会计室合计：只有在包含类型0数据时才计算pettyCash
+                if (data != null && !data.isEmpty()) {
+                    boolean hasType0Data = data.stream().anyMatch(item -> item.getTableType() != null && item.getTableType() == 0);
+                    if (hasType0Data) {
+                        total.setPettyCash(sumField(data, CashStatistics::getPettyCash));
+                    } else {
+                        total.setPettyCash(0d);
+                    }
+                } else {
+                    total.setPettyCash(0d);
+                }
+                break;
+            case 1: // 预约合计：不计算pettyCash
+                total.setPettyCash(0d);
+                break;
+            case 2: // 总计：不计算pettyCash
+                total.setPettyCash(0d);
+                break;
+            default:
+                total.setPettyCash(0d);
+        }
 
         // 重新计算公式字段
         total.calculateFormulas();
-
         return total;
+    }
+
+    @Override
+    public CashStatistics calculateAccountingTotal(List<CashStatistics> data) {
+        return calculateTotal(data, 0);
     }
 
     @Override
     public CashStatistics calculateAppointmentTotal(List<CashStatistics> data) {
-        CashStatistics total = new CashStatistics();
-        total.setName("预约合计");
-
-        total.setHisAdvancePayment(sumField(data, CashStatistics::getHisAdvancePayment));
-        total.setHisMedicalIncome(sumField(data, CashStatistics::getHisMedicalIncome));
-        total.setHisRegistrationIncome(sumField(data, CashStatistics::getHisRegistrationIncome));
-        total.setReportAmount(sumField(data, CashStatistics::getReportAmount));
-        total.setPreviousTemporaryReceipt(sumField(data, CashStatistics::getPreviousTemporaryReceipt));
-        total.setCurrentTemporaryReceipt(sumField(data, CashStatistics::getCurrentTemporaryReceipt));
-        total.setRetainedCash(sumField(data, CashStatistics::getRetainedCash));
-        total.setPettyCash(sumField(data, CashStatistics::getPettyCash));
-
-        // 重新计算公式字段
-        total.calculateFormulas();
-
-        return total;
+        return calculateTotal(data, 1);
     }
 
     @Override
-    public CashStatistics calculateGrandTotal(CashStatistics accountingTotal, CashStatistics appointmentTotal) {
-        CashStatistics total = new CashStatistics();
-        total.setName("总计");
-
-        total.setHisAdvancePayment(sum(accountingTotal.getHisAdvancePayment(), appointmentTotal.getHisAdvancePayment()));
-        total.setHisMedicalIncome(sum(accountingTotal.getHisMedicalIncome(), appointmentTotal.getHisMedicalIncome()));
-        total.setHisRegistrationIncome(sum(accountingTotal.getHisRegistrationIncome(), appointmentTotal.getHisRegistrationIncome()));
-        total.setReportAmount(sum(accountingTotal.getReportAmount(), appointmentTotal.getReportAmount()));
-        total.setPreviousTemporaryReceipt(sum(accountingTotal.getPreviousTemporaryReceipt(), appointmentTotal.getPreviousTemporaryReceipt()));
-        total.setCurrentTemporaryReceipt(sum(accountingTotal.getCurrentTemporaryReceipt(), appointmentTotal.getCurrentTemporaryReceipt()));
-        total.setRetainedCash(sum(accountingTotal.getRetainedCash(), appointmentTotal.getRetainedCash()));
-        // 由于总计行不涉及备用金合计，这两项可以直接设置为0或null
-        total.setPettyCash(0d);
-//        total.setPettyCash(sum(accountingTotal.getPettyCash(), appointmentTotal.getPettyCash()));
-
-        // 重新计算公式字段
-        total.calculateFormulas();
-
-        return total;
+    public CashStatistics calculateGrandTotal(List<CashStatistics> data) {
+        return calculateTotal(data, 2);
     }
 
-    // 表头常量
-    private static final String[] TABLE_HEADERS = {
-            "序号", "名称", "预交金收入", "医疗收入", "挂号收入",
-            "应交报表数", "前日暂收款", "实交报表数",
-            "当日暂收款", "实收现金数", "留存数差额",
-            "留存现金数", "备用金", "备注"
-    };
 
     @Override
     public List<CashStatisticsTableDTO> getAllStatisticsTable() {
@@ -218,46 +162,158 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
 
         // 构建表格数据
         CashStatisticsTableDTO table = new CashStatisticsTableDTO();
-        initTableHeaders(table);
+
+        // 添加表头
+        for (String header : CashStatisticsConstant.TABLE_HEADERS) {
+            table.addHeader(header);
+        }
 
         // 按类型分组处理数据
         Map<Integer, List<CashStatistics>> groupedData = allData.stream()
                 .collect(Collectors.groupingBy(CashStatistics::getTableType));
 
+        // 处理三种类型的数据
+        processAllData(table, groupedData, allData);
+
+        return Collections.singletonList(table);
+    }
+
+    /**
+     * 处理所有数据，构建完整的表格结构
+     * 包含三种类型的数据处理：
+     * 1. 类型0数据（会计室数据 + 合计行）
+     * 2. 类型1数据（预约数据 + 合计行）
+     * 3. 类型2数据（总计行，前两个合计行的合计）
+     * 4. 自定义行设置
+     * 5. 合并单元格配置
+     *
+     * @param table 目标表格DTO对象
+     * @param groupedData 按类型分组的数据
+     * @param allData 所有原始数据
+     */
+    private void processAllData(CashStatisticsTableDTO table,
+                              Map<Integer, List<CashStatistics>> groupedData,
+                              List<CashStatistics> allData) {
+        // 获取类型0和类型1的数据
         List<CashStatistics> type0Data = groupedData.getOrDefault(0, Collections.emptyList());
         List<CashStatistics> type1Data = groupedData.getOrDefault(1, Collections.emptyList());
 
-        processTableData(table, type0Data, type1Data);
-        return new ArrayList<>(Collections.singletonList(table));
-    }
+        int currentRowIndex = 0;
+        // 添加会计室行
+        int accountingRowIndex = 0;
+        // 添加预约中心行
+        int appointmentRowIndex = 0;
 
-    private void initTableHeaders(CashStatisticsTableDTO table) {
-        for (String header : TABLE_HEADERS) {
-            table.addHeader(header);
+
+        // 1. 处理类型0数据（会计室数据 + 合计行）
+        if (!type0Data.isEmpty()) {
+            // 添加明细数据
+            currentRowIndex = processRowsByType(table, type0Data, currentRowIndex, 0);
+
+            // 添加会计室合计行
+            CashStatistics accountingTotal = calculateAccountingTotal(type0Data);
+            accountingTotal.setTableType(0);
+            List<CashStatistics> totalRow = Collections.singletonList(accountingTotal);
+            currentRowIndex = processRowsByType(table, totalRow, currentRowIndex, 0);
+        }
+
+        // 2. 添加预约中心标题行
+        table.addMergeConfig(new CellMergeConfig(currentRowIndex, 0, 1, table.getHeaders().size(), "预约中心"));
+        currentRowIndex++;
+
+        // 添加预约行索引
+        appointmentRowIndex = currentRowIndex;
+
+        // 3. 处理类型1数据（预约数据 + 合计行）
+        if (!type1Data.isEmpty()) {
+            // 添加明细数据
+            currentRowIndex = processRowsByType(table, type1Data, currentRowIndex, 1);
+
+            // 添加预约合计行
+            CashStatistics appointmentTotal = calculateAppointmentTotal(type1Data);
+            appointmentTotal.setTableType(1);
+            List<CashStatistics> totalRow = Collections.singletonList(appointmentTotal);
+            currentRowIndex = processRowsByType(table, totalRow, currentRowIndex, 1);
+        }
+
+        // 4. 处理类型2数据（总计行）
+        if (!type0Data.isEmpty() || !type1Data.isEmpty()) {
+            CashStatistics grandTotal = calculateGrandTotalFromAllData(allData);
+            grandTotal.setTableType(2);
+            List<CashStatistics> totalRow = Collections.singletonList(grandTotal);
+            currentRowIndex = processRowsByType(table, totalRow, currentRowIndex, 2);
+        }
+
+        // 5. 添加自定义行
+        String[] customRowNames = {"当日暂收款", "日报表数", "合计存款金额",
+                "住院部当日借款", "住院部当日回款", "门诊当日借款", "门诊当日回款",
+                "门诊当日抵扣报表金额", "门诊当日退主病房", "门诊当日退三住院部", "门诊当日实存金额"};
+        for (String rowName : customRowNames) {
+            table.addMergeConfig(new CellMergeConfig(currentRowIndex, 0, 1, 2, rowName));
+            currentRowIndex++;
+        }
+
+        // 6. 添加审核和出纳行
+        table.addMergeConfig(new CellMergeConfig(currentRowIndex, 0, 1, 2, "审核"));
+        table.addMergeConfig(new CellMergeConfig(currentRowIndex, table.getHeaders().size() - 5, 1, 0, "出纳"));
+
+        // 7. 添加自定义合并配置
+        if (!type1Data.isEmpty()) {
+            table.addMergeConfig(new CellMergeConfig(appointmentRowIndex, table.getHeaders().size() -2, type1Data.size()+1, 2, "合并预约中心"));
         }
     }
 
-    private void processTableData(CashStatisticsTableDTO table,
-                                List<CashStatistics> type0Data,
-                                List<CashStatistics> type1Data) {
-                // 处理类型0数据
-                int currentRowIndex = processRowsByType(table, type0Data, 0, 0);
 
-                // 添加中间合并行
-                table.addMergeConfig(new CellMergeConfig(
-                        currentRowIndex, 0, 1, table.getHeaders().size(), "预约中心"
-                ));
-                currentRowIndex++;
 
-                // 处理类型1数据
-                processRowsByType(table, type1Data, currentRowIndex, 1);
+    /**
+     * 计算所有数据的汇总合计（类型0和类型1的合计之和）
+     *
+     * @param allData 所有数据
+     * @return 总合计数据
+     */
+    public CashStatistics calculateGrandTotalFromAllData(List<CashStatistics> allData) {
+        // 过滤出类型0和类型1的数据
+        List<CashStatistics> type0Data = allData.stream()
+                .filter(item -> item.getTableType() != null && item.getTableType() == 0)
+                .collect(Collectors.toList());
+        List<CashStatistics> type1Data = allData.stream()
+                .filter(item -> item.getTableType() != null && item.getTableType() == 1)
+                .collect(Collectors.toList());
 
-                // 添加自定义合并配置
-                table.addMergeConfig(new CellMergeConfig(16, 12, type1Data.size(), 2, "预约中心"));
-        //        table.addMergeConfig(new CellMergeConfig(21, 13, 3, 5, "合并内容2"));
+        // 分别计算两个类型的合计
+        CashStatistics total0 = calculateAccountingTotal(type0Data);
+        CashStatistics total1 = calculateAppointmentTotal(type1Data);
+
+        // 计算总合计（两个合计的和）
+        CashStatistics grandTotal = new CashStatistics();
+        grandTotal.setName("总计");
+
+        grandTotal.setHisAdvancePayment(sum(total0.getHisAdvancePayment(), total1.getHisAdvancePayment()));
+        grandTotal.setHisMedicalIncome(sum(total0.getHisMedicalIncome(), total1.getHisMedicalIncome()));
+        grandTotal.setHisRegistrationIncome(sum(total0.getHisRegistrationIncome(), total1.getHisRegistrationIncome()));
+        grandTotal.setReportAmount(sum(total0.getReportAmount(), total1.getReportAmount()));
+        grandTotal.setPreviousTemporaryReceipt(sum(total0.getPreviousTemporaryReceipt(), total1.getPreviousTemporaryReceipt()));
+        grandTotal.setCurrentTemporaryReceipt(sum(total0.getCurrentTemporaryReceipt(), total1.getCurrentTemporaryReceipt()));
+        grandTotal.setRetainedCash(sum(total0.getRetainedCash(), total1.getRetainedCash()));
+
+        // 总合计不计算pettyCash
+        grandTotal.setPettyCash(0d);
+
+        // 重新计算公式字段
+        grandTotal.calculateFormulas();
+        return grandTotal;
     }
 
 
+    /**
+     * 根据行类型处理数据行并添加到表格中
+     *
+     * @param table 目标表格DTO对象
+     * @param data 待处理的现金统计数据列表
+     * @param startIndex 起始行索引
+     * @param rowType 行类型标识
+     * @return 处理后的下一个可用行索引
+     */
     private int processRowsByType(CashStatisticsTableDTO table,
                                 List<CashStatistics> data,
                                 int startIndex,
@@ -276,60 +332,6 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
     }
 
 
-
-
-    private List<CashStatisticsDTO> createCustomRows(int rowspan) {
-        List<CashStatisticsDTO> customRows = new ArrayList<>();
-
-        // 添加自定义行
-        customRows.add(createCustomMergedRow("当日暂收款", rowspan));
-        customRows.add(createCustomMergedRow("日报表数", rowspan));
-        customRows.add(createCustomMergedRow("合计存款金额", rowspan));
-        customRows.add(createCustomMergedRow("住院部当日借款", rowspan));
-        customRows.add(createCustomMergedRow("住院部当日回款", rowspan));
-        customRows.add(createCustomMergedRow("门诊当日借款", rowspan));
-        customRows.add(createCustomMergedRow("门诊当日回款", rowspan));
-        customRows.add(createCustomMergedRow("门诊当日抵扣报表金额", rowspan));
-        customRows.add(createCustomMergedRow("门诊当日退主病房", rowspan));
-        customRows.add(createCustomMergedRow("门诊当日退三住院部", rowspan));
-        customRows.add(createCustomMergedRow("门诊当日实存金额", rowspan));
-
-        // 审核行
-        CashStatisticsDTO auditRow = new CashStatisticsDTO();
-        auditRow.setDisplayName("审核：");
-        auditRow.setColspan(9);
-        auditRow.setRowspan(1);
-        auditRow.setIsMerged(true);
-        customRows.add(auditRow);
-
-        // 出纳行
-        CashStatisticsDTO cashierRow = new CashStatisticsDTO();
-        cashierRow.setDisplayName("出纳：");
-        cashierRow.setColspan(5);
-        cashierRow.setRowspan(1);
-        cashierRow.setIsMerged(true);
-        customRows.add(cashierRow);
-
-        return customRows;
-    }
-
-    private CashStatisticsDTO createCustomMergedRow(String displayName, int colspan) {
-        CashStatisticsDTO row = new CashStatisticsDTO();
-        row.setDisplayName(displayName);
-        row.setColspan(colspan);
-        row.setRowspan(1);
-        row.setIsMerged(true);
-        return row;
-    }
-
-    private CashStatisticsDTO createMergedRow(CashStatistics entity, String displayName, int colspan, int rowspan) {
-        CashStatisticsDTO dto = new CashStatisticsDTO(entity);
-        dto.setDisplayName(displayName);
-        dto.setColspan(colspan);
-        dto.setRowspan(rowspan);
-        dto.setIsMerged(true);
-        return dto;
-    }
 
     private double sumField(List<CashStatistics> data, Function<CashStatistics, Double> fieldGetter) {
         if (data == null || data.isEmpty()) {

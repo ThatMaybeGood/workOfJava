@@ -223,7 +223,7 @@ function hideLoading() {
 function loadCashStatistics() {
     showLoading();
 
-    fetch('/api/cash-statistics/new')
+    fetch('/api/cash-statistics')
         .then(response => {
             if (!response.ok) {
                 throw new Error('网络响应不正常');
@@ -243,8 +243,8 @@ function loadCashStatistics() {
 // async function loadCashStatistics() {
 //     try {
 //         const apiUrl = window.location.hostname === 'localhost'
-//             ? 'http://localhost:8080/api/cash-statistics/new'
-//             : '/api/cash-statistics/new';
+//             ? 'http://localhost:8080/api/cash-statistics'
+//             : '/api/cash-statistics';
 //
 //         console.log('正在请求API:', apiUrl);
 //

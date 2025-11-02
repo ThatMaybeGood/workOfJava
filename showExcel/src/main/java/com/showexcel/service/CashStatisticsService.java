@@ -17,10 +17,7 @@ import java.util.List;
 
 public interface CashStatisticsService {
 
-    /**
-     * 获取所有统计数据（包含会计室数据、预约中心数据和统计行）
-     */
-    List<CashStatisticsDTO> getAllStatistics();
+
 
     /**
      * 根据类型获取数据
@@ -70,7 +67,7 @@ public interface CashStatisticsService {
     /**
      * 计算总计
      */
-    CashStatistics calculateGrandTotal(CashStatistics accountingTotal, CashStatistics appointmentTotal);
+    CashStatistics calculateGrandTotal(List<CashStatistics> data);
 
 
 

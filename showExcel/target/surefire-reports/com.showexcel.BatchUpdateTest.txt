@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.showexcel.BatchUpdateTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.647 s -- in com.showexcel.BatchUpdateTest

@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.showexcel.controller.CashStatisticsController;
+import com.showexcel.service.CashStatisticsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,7 +17,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.showexcel.dto.CashStatisticsTableDTO;
-import com.showexcel.server.CashStatisticsService;
 
 @ExtendWith(MockitoExtension.class)
 class CashStatisticsControllerTest {
