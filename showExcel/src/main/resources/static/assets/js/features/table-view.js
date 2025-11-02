@@ -205,9 +205,9 @@ async function loadCashStatistics() {
 
 function getCashStatisticsApiUrl() {
     if (window.location.hostname === 'localhost') {
-        return 'http://localhost:8080/api/cash-statistics/new';
+        return 'http://localhost:8080/api/cash-statistics/table';
     }
-    return '/api/cash-statistics/new';
+    return '/api/cash-statistics/table';
 }
 
 function renderCashStatisticsTable(data, options = {}) {
@@ -303,6 +303,8 @@ function fillCashStatisticsTable(table, data) {
 
     const sortedRows = [...data.rows].sort((a, b) => a.rowIndex - b.rowIndex);
     const columnCount = data.headers.length;
+    // 按类型分组并计算每种类型的序号
+    const typeSequenceMap = new Map();
 
     sortedRows.forEach(rowData => {
         const rowIndex = Number(rowData.rowIndex);
@@ -318,12 +320,18 @@ function fillCashStatisticsTable(table, data) {
         const rowType = rowData.rowType !== undefined ? rowData.rowType : 'default';
         tableRow.className = `data-row row-type-${rowType}`;
 
-        const rowValues = rowData.data || {};
-
-        if (tableRow.cells[0]) {
-            tableRow.cells[0].textContent = String(rowIndex + 1);
+        // 计算每种类型的序号（从1开始）
+        if (!typeSequenceMap.has(rowType)) {
+            typeSequenceMap.set(rowType, 1);
+        } else {
+            typeSequenceMap.set(rowType, typeSequenceMap.get(rowType) + 1);
         }
 
+        if (tableRow.cells[0]) {
+            tableRow.cells[0].textContent = String(typeSequenceMap.get(rowType));
+        }
+
+        const rowValues = rowData.data || {};
         if (tableRow.cells[1]) {
             tableRow.cells[1].textContent = rowValues.name || '';
         }
@@ -419,8 +427,10 @@ function applyCashStatisticsMerges(table, mergeConfigs) {
     });
 }
 
+
+// 数字格式化函数，用于表格显示
 function formatTableValue(value) {
-    if (value === null || value === undefined) {
+    if (value === null || value === undefined || value === 0 || value === 0.0) {
         return '';
     }
     if (typeof value === 'number') {

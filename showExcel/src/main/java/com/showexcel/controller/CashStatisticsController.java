@@ -23,24 +23,6 @@ public class CashStatisticsController {
     @Autowired
     private CashStatisticsService cashStatisticsService;
 
-    @GetMapping
-    public List<CashStatisticsDTO> getAllStatistics() {
-        List<CashStatisticsDTO> result = cashStatisticsService.getAllStatistics();
-
-//        try {
-//            // 打印JSON串到控制台
-//            String jsonString = objectMapper.writeValueAsString(result);
-//            logger.info("返回的JSON数据: {}", jsonString);
-//            System.out.println("=== JSON数据输出 ===");
-//            System.out.println(jsonString);
-//            System.out.println("===================");
-//        } catch (Exception e) {
-//            logger.error("JSON序列化失败: {}", e.getMessage());
-//        }
-
-        return result;
-    }
-
 
     @GetMapping("/type/{type}")
     public List<CashStatistics> getDataByType(@PathVariable Integer type) {
@@ -78,9 +60,7 @@ public class CashStatisticsController {
     }
 
 
-
-
-    @GetMapping("/new")
+    @GetMapping("/table")
     public List<CashStatisticsTableDTO> getCashStatisticsTable() {
         List<CashStatisticsTableDTO> result = cashStatisticsService.getAllStatisticsTable();
         try {
