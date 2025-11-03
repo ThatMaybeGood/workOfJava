@@ -24,9 +24,9 @@ public class CashStatisticsController {
     private CashStatisticsService cashStatisticsService;
 
 
-    @GetMapping("/type/{type}")
-    public List<CashStatistics> getDataByType(@PathVariable Integer type) {
-        return cashStatisticsService.getDataByType(type);
+    @GetMapping("/date/{date}")
+    public List<CashStatistics> getDataByDate(@PathVariable String date) {
+        return cashStatisticsService.getDataByDate(date);
     }
 
     @GetMapping("/accounting")

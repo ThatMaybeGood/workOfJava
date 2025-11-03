@@ -34,7 +34,7 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
     private CashStatisticsRepository cashStatisticsRepository;
 
     //获取当前日期时间，例如2025-10-29并将其格式化为字符串形式
-    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime now = LocalDateTime.now().minusDays(1);
     String currentDate = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
 
@@ -103,7 +103,7 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
     @Override
     public List<CashStatisticsTableDTO> getAllStatisticsTable() {
         // 一次性查询所有数据
-        List<CashStatistics> allData = cashStatisticsRepository.findAll();
+        List<CashStatistics> allData = cashStatisticsRepository.findByTableDate(currentDate);
 
         // 构建表格数据
         CashStatisticsTableDTO table = new CashStatisticsTableDTO();
