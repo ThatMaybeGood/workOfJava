@@ -48,7 +48,7 @@ public class CashStatisticsRepository {
                 "report_amount as reportAmount, previous_temporary_receipt as previousTemporaryReceipt, " +
                 "current_temporary_receipt as currentTemporaryReceipt, retained_cash as retainedCash, " +
                 "petty_cash as pettyCash " +
-                "FROM cash_statistics WHERE his_date = ?";
+                "FROM cash_statistics WHERE cash_date = ?";
 
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             CashStatistics item = new CashStatistics();
@@ -64,6 +64,6 @@ public class CashStatisticsRepository {
             item.setRetainedCash(rs.getObject("retainedCash", Double.class));
             item.setPettyCash(rs.getObject("pettyCash", Double.class));
             return item;
-        }, tableType);
+        }, date);
     }
 }
