@@ -4,6 +4,7 @@ import com.showexcel.dto.CashStatisticsTableDTO;
 import com.showexcel.model.CashStatistics;
 import com.showexcel.dto.CashStatisticsDTO;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -20,9 +21,9 @@ public interface CashStatisticsService {
 
 
     /**
-     * 根据类型获取数据
+     * 根据日期获取数据
      */
-    List<CashStatistics> getDataByType(Integer type);
+    List<CashStatistics> getDataByDate(String date);
 
     /**
      * 获取会计室数据

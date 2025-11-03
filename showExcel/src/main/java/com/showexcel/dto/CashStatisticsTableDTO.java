@@ -16,7 +16,7 @@ public class CashStatisticsTableDTO {
     private List<String> headers; // 表头（包含序号列）
     private List<CashStatisticsRow> rows; // 数据行
     private List<CellMergeConfig> mergeConfigs; // 合并配置
-    private String title = "现金统计表"; // 表格标题
+    private String title = ""; // 表格标题
 
     // 构造函数、getter、setter
     public CashStatisticsTableDTO() {
