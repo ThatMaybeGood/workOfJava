@@ -41,7 +41,7 @@ public class CashStatistics {
     public void calculateFormulas() {
         // 所有字段都已经确保不为null，直接计算
         this.actualReportAmount = reportAmount - hisRegistrationIncome;
-        this.currentTemporaryReceipt = actualReportAmount + currentTemporaryReceipt;
+//        this.currentTemporaryReceipt = actualReportAmount + currentTemporaryReceipt;
         this.retainedDifference = retainedCash - pettyCash - actualReportAmount;
         this.actualCashAmount = actualReportAmount + currentTemporaryReceipt;
     }

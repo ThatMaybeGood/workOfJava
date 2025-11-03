@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -41,13 +42,13 @@ public class CashStatisticsRepository {
     }
 
     // 方案1：高效按类型查询（推荐数据量大时使用）
-    public List<CashStatistics> findByTableType(Integer tableType) {
+    public List<CashStatistics> findByTableDate(String date) {
         String sql = "SELECT id, tab_type as tableType, name, his_advance_payment as hisAdvancePayment, " +
                 "his_medical_income as hisMedicalIncome, his_registration_income as hisRegistrationIncome, " +
                 "report_amount as reportAmount, previous_temporary_receipt as previousTemporaryReceipt, " +
                 "current_temporary_receipt as currentTemporaryReceipt, retained_cash as retainedCash, " +
                 "petty_cash as pettyCash " +
-                "FROM cash_statistics WHERE tab_type = ?";
+                "FROM cash_statistics WHERE his_date = ?";
 
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             CashStatistics item = new CashStatistics();
@@ -64,12 +65,5 @@ public class CashStatisticsRepository {
             item.setPettyCash(rs.getObject("pettyCash", Double.class));
             return item;
         }, tableType);
-    }
-
-    // 方案2：批量查询所有数据后过滤（推荐数据量小时使用）
-    public Map<Integer, List<CashStatistics>> findAllGroupByTableType() {
-        List<CashStatistics> allData = findAll();
-        return allData.stream()
-                .collect(Collectors.groupingBy(CashStatistics::getTableType));
     }
 }
