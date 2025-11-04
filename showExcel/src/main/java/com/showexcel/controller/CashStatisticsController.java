@@ -3,7 +3,10 @@ package com.showexcel.controller;
 import com.showexcel.dto.CashStatisticsTableDTO;
 import com.showexcel.model.CashStatistics;
 import com.showexcel.dto.CashStatisticsDTO;
+import com.showexcel.response.CashStatisticsResponse;
+import com.showexcel.service.CashStatisticsNewService;
 import com.showexcel.service.CashStatisticsService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,13 +18,16 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/cash-statistics")
 @CrossOrigin(origins = "*")
+@Slf4j
 public class CashStatisticsController {
 
-    private static final Logger logger = LoggerFactory.getLogger(CashStatisticsController.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     private CashStatisticsService cashStatisticsService;
+
+    @Autowired
+    private CashStatisticsNewService cashStatisticsNewService;
 
 
     @GetMapping("/accounting")
@@ -61,12 +67,12 @@ public class CashStatisticsController {
         try {
             // 打印JSON串到控制台
             String jsonString = objectMapper.writeValueAsString(result);
-            logger.info("返回的JSON数据: {}", jsonString);
+            log.info("返回的JSON数据: {}", jsonString);
             System.out.println("=== JSON数据输出 ===");
             System.out.println(jsonString);
             System.out.println("===================");
         } catch (Exception e) {
-            logger.error("JSON序列化失败: {}", e.getMessage());
+            log.error("JSON序列化失败: {}", e.getMessage());
         }
 
         return result;
@@ -76,5 +82,13 @@ public class CashStatisticsController {
     public CashStatisticsTableDTO getDataByDate(@PathVariable String date) {
         return cashStatisticsService.getAllStatisticsTableByDate(date);
     }
+
+
+    @GetMapping("/datenew/{date}")
+    public CashStatisticsResponse getDataByDateNew(@PathVariable String date) {
+        return cashStatisticsNewService.getAllStatisticsTableByDate(date);
+    }
+
+
 
 }
