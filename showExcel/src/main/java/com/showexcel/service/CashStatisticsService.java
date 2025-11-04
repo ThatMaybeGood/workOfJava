@@ -20,10 +20,7 @@ public interface CashStatisticsService {
 
 
 
-    /**
-     * 根据日期获取数据
-     */
-    List<CashStatistics> getDataByDate(String date);
+
 
     /**
      * 获取会计室数据
@@ -73,5 +70,10 @@ public interface CashStatisticsService {
 
 
     List<CashStatisticsTableDTO> getAllStatisticsTable();
+    /**
+     * 根据日期获取数据
+     */
+    CashStatisticsTableDTO getAllStatisticsTableByDate(String date);
+
 
 }

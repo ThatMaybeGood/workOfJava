@@ -3,6 +3,12 @@
     <div class="content-header">
         <h2>门诊现金总统计表 - 详细数据</h2>
         <div style="display: flex; gap: 15px; align-items: center;">
+            <div class="filter-group" style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
+                <input type="date" id="queryDate" class="form-control" style="min-width: 150px; min-height: 50px">
+                <button class="action-btn primary" id="queryBtn">
+                    <i class="fas fa-search"></i> 查询
+                </button>
+            </div>
             <div class="action-buttons">
                 <button class="action-btn primary" id="printBtn">
                     <i class="fas fa-print"></i> 打印
@@ -16,9 +22,8 @@
             </div>
         </div>
     </div>
-    
+
     <div class="table-container" id="cashTableContainer">
         <!-- 表格内容将由JavaScript动态渲染 -->
     </div>
 </div>
-
