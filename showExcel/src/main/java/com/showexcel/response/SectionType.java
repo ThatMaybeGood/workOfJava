@@ -1,4 +1,4 @@
-package com.showexcel.dto;
+package com.showexcel.response;
 
 /**
  * 分区类型枚举

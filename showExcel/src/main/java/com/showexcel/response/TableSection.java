@@ -1,4 +1,4 @@
-package com.showexcel.dto;
+package com.showexcel.response;
 
 /**
  * @author Mine
