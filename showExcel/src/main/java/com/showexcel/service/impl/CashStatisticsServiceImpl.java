@@ -40,10 +40,6 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
 
 
 
-    @Override
-    public List<CashStatistics> getDataByDate(String type) {
-        return cashStatisticsRepository.findByTableDate(currentDate);
-    }
 
     @Override
     public List<CashStatistics> getAccountingData() {
@@ -103,7 +99,12 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
     @Override
     public List<CashStatisticsTableDTO> getAllStatisticsTable() {
         // 一次性查询所有数据
-        List<CashStatistics> allData = cashStatisticsRepository.findByTableDate(currentDate);
+        List<CashStatistics> allData = cashStatisticsRepository.findAll();
+
+        if (allData.isEmpty()||allData.size()==0) {
+            log.info("数据库没有数据！！！");
+            return null;
+        }
 
         // 构建表格数据
         CashStatisticsTableDTO table = new CashStatisticsTableDTO();
@@ -121,6 +122,175 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
 
         return Collections.singletonList(table);
     }
+
+    @Override
+    public CashStatisticsTableDTO getAllStatisticsTableByDate(String date) {
+
+        List<CashStatistics> allData = cashStatisticsRepository.findByTableDate(date);
+
+        if (allData.isEmpty()) {
+            log.info("指定日期 {} 无统计数据", date);
+            return new CashStatisticsTableDTO(); //返回空对象非null
+        }
+
+        // 构建表格数据
+        CashStatisticsTableDTO table = new CashStatisticsTableDTO();
+
+        // 设置标题
+        table.setTitle(CashStatisticsConstant.TITLE + "（" + date + "）");
+
+        // 添加表头
+        for (String header : CashStatisticsConstant.TABLE_HEADERS) {
+            table.addHeader(header);
+        }
+
+        // 处理三种类型的数据并转换为扁平化结构
+        processAllDataToFlat(table, allData);
+
+        return table;
+
+    }
+
+    /**
+     * 处理所有数据，构建扁平化的表格结构
+     */
+    private void processAllDataToFlat(CashStatisticsTableDTO table,
+                                     List<CashStatistics> allData) {
+        int currentRowIndex = 0;
+
+        // 1. 处理类型0数据（会计室数据 + 合计行）
+        currentRowIndex = doRowsByTypeToFlat(table, allData, CashStatisticsConstant.ACCOUNTING_STATISTICS_TYPE, CashStatisticsConstant.ACCOUNTING_STATISTICS_NAME, currentRowIndex);
+
+        // 2. 添加预约中心标题行
+        table.addMergeConfig("config_0", new CellMergeConfig(currentRowIndex, 0, 1, table.getHeaders().size(), "预约中心",1));
+        currentRowIndex++;
+
+        // 3. 处理类型1数据（预约数据 + 合计行）
+        currentRowIndex = doRowsByTypeToFlat(table, allData, CashStatisticsConstant.APPOINTMENT_STATISTICS_TYPE, CashStatisticsConstant.APPOINTMENT_STATISTICS_NAME, currentRowIndex);
+
+        // 4. 处理类型2数据（总合计行）
+        currentRowIndex = doRowsByTypeToFlat(table, allData, CashStatisticsConstant.ALL_STATISTICS_TYPE, CashStatisticsConstant.ALL_STATISTICS_NAME, currentRowIndex);
+
+        // 5. 添加其他自定义行
+        String[] customRowNames = {"当日暂收款", "日报表数", "合计存款金额",
+                "住院部当日借款", "住院部当日回款", "门诊当日借款", "门诊当日回款",
+                "门诊当日抵扣报表金额", "门诊当日退主病房", "门诊当日退三住院部", "门诊当日实存金额"};
+        for (int i = 0; i < customRowNames.length; i++) {
+            table.addMergeConfig("config_" + (i + 1), new CellMergeConfig(currentRowIndex, 0, 1, 2, customRowNames[i],1));
+            currentRowIndex++;
+        }
+
+        // 6. 添加审核和出纳行
+        table.addMergeConfig("config_12", new CellMergeConfig(currentRowIndex, 0, 1, 2, "审核",1));
+        table.addMergeConfig("config_13", new CellMergeConfig(currentRowIndex, table.getHeaders().size() - 5, 1, 0, "出纳",1));
+
+        // 设置行数
+        table.setRowCount(customRowNames.length + allData.size() +3 + 1 + 1); // 合并配置数 + 数据行数 + 合计行 + 自定义行 + 审核+出纳行
+        table.setColCount(table.getHeaders().size()); // 列数保持不变
+    }
+
+    /**
+     * 处理类型数据并转换为扁平化结构
+     */
+    private int doRowsByTypeToFlat(CashStatisticsTableDTO table, List<CashStatistics> allData, int type, String type_name,
+                                  int currentRowIndex) {
+        // 按类型分组处理数据
+        Map<Integer, List<CashStatistics>> groupedData = allData.stream()
+                .collect(Collectors.groupingBy(CashStatistics::getTableType));
+
+        List<CashStatistics> type0Data = groupedData.getOrDefault(0, Collections.emptyList());
+        List<CashStatistics> type1Data = groupedData.getOrDefault(1, Collections.emptyList());
+
+        CashStatistics commonTotal = new CashStatistics();
+
+        // 根据类型处理
+        switch (type) {
+            case 0:
+                commonTotal = calculateAccountingTotal(type0Data);
+                // 添加明细数据
+                currentRowIndex = processRowsByTypeToFlat(table, type0Data, currentRowIndex, type);
+                break;
+            case 1:
+                commonTotal = calculateAppointmentTotal(type1Data);
+                // 添加明细数据
+                currentRowIndex = processRowsByTypeToFlat(table, type1Data, currentRowIndex, type);
+                break;
+            case 2:
+                commonTotal = calculateGrandTotal(allData);
+                break;
+            default:
+                log.warn("未知的类型: {}", type);
+        }
+
+        // 添加合计行的合并配置
+        table.addMergeConfig("total_config_" + type, new CellMergeConfig(currentRowIndex, 0, 1, 2, type_name,0));
+
+        // 添加合计行
+        commonTotal.setTableType(type);
+        List<CashStatistics> totalRow = Collections.singletonList(commonTotal);
+        currentRowIndex = processRowsByTypeToFlat(table, totalRow, currentRowIndex, type);
+
+        return currentRowIndex;
+    }
+
+    /**
+     * 处理数据行并添加到扁平化表格中
+     */
+    private int processRowsByTypeToFlat(CashStatisticsTableDTO table,
+                                       List<CashStatistics> data,
+                                       int startIndex,
+                                       int rowType) {
+        if (data == null || data.isEmpty()) {
+            return startIndex;
+        }
+
+        int currentIndex = startIndex;
+        for (int i = 0; i < data.size(); i++) {
+            CashStatistics item = data.get(i);
+            // 计算公式
+            item.calculateFormulas();
+
+            // 创建行数据对象
+            Map<String, Object> rowData = new LinkedHashMap<>();
+            rowData.put("rowType", rowType);
+            rowData.put("data", convertCashStatisticsToMap(item));
+            rowData.put("rowIndex", currentIndex);
+
+            // 添加到表格
+            table.addRow("row_" + currentIndex, rowData);
+            currentIndex++;
+        }
+        return currentIndex;
+    }
+
+    /**
+     * 将CashStatistics对象转换为Map
+     */
+    private Map<String, Object> convertCashStatisticsToMap(CashStatistics data) {
+        if (data == null) {
+            return new LinkedHashMap<>();
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", data.getId());
+        result.put("tableType", data.getTableType());
+        result.put("name", data.getName());
+        result.put("hisAdvancePayment", data.getHisAdvancePayment());
+        result.put("hisMedicalIncome", data.getHisMedicalIncome());
+        result.put("hisRegistrationIncome", data.getHisRegistrationIncome());
+        result.put("reportAmount", data.getReportAmount());
+        result.put("previousTemporaryReceipt", data.getPreviousTemporaryReceipt());
+        result.put("actualReportAmount", data.getActualReportAmount());
+        result.put("currentTemporaryReceipt", data.getCurrentTemporaryReceipt());
+        result.put("actualCashAmount", data.getActualCashAmount());
+        result.put("retainedDifference", data.getRetainedDifference());
+        result.put("retainedCash", data.getRetainedCash());
+        result.put("pettyCash", data.getPettyCash());
+
+        return result;
+    }
+
+
 
     /**
      * 处理所有数据，构建完整的表格结构
@@ -143,7 +313,7 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
         currentRowIndex = doRowsByType(table, allData, CashStatisticsConstant.ACCOUNTING_STATISTICS_TYPE, CashStatisticsConstant.ACCOUNTING_STATISTICS_NAME, currentRowIndex);
 
         // 2. 添加预约中心标题行
-        table.addMergeConfig(new CellMergeConfig(currentRowIndex, 0, 1, table.getHeaders().size(), "预约中心"));
+        table.addMergeConfig("预约中心行",new CellMergeConfig(currentRowIndex, 0, 1, table.getHeaders().size(), "预约中心",1));
         currentRowIndex++;
 
         // 3. 处理类型1数据（预约数据 + 合计行）
@@ -158,13 +328,13 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
                 "住院部当日借款", "住院部当日回款", "门诊当日借款", "门诊当日回款",
                 "门诊当日抵扣报表金额", "门诊当日退主病房", "门诊当日退三住院部", "门诊当日实存金额"};
         for (String rowName : customRowNames) {
-            table.addMergeConfig(new CellMergeConfig(currentRowIndex, 0, 1, 2, rowName));
+            table.addMergeConfig("",new CellMergeConfig(currentRowIndex, 0, 1, 2, rowName,1));
             currentRowIndex++;
         }
 
         // 6. 添加审核和出纳行
-        table.addMergeConfig(new CellMergeConfig(currentRowIndex, 0, 1, 2, "审核"));
-        table.addMergeConfig(new CellMergeConfig(currentRowIndex, table.getHeaders().size() - 5, 1, 0, "出纳"));
+        table.addMergeConfig("审核行",new CellMergeConfig(currentRowIndex, 0, 1, 2, "审核",1));
+        table.addMergeConfig("出纳行",new CellMergeConfig(currentRowIndex, table.getHeaders().size() - 5, 1, 0, "出纳",0));
 
     }
 
@@ -214,7 +384,7 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
         }
 
         // 添加合计行的合并配置
-        table.addMergeConfig(new CellMergeConfig(currentRowIndex, 0, 1, 2, type_name));
+        table.addMergeConfig("合计行",new CellMergeConfig(currentRowIndex, 0, 1, 2, type_name,0));
         // 添加合计行
         commonTotal.setTableType(type);
         List<CashStatistics> totalRow = Collections.singletonList(commonTotal);
@@ -251,7 +421,7 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
             // 计算公式
             item.calculateFormulas();
             row.setRowIndex(currentIndex++);
-            table.addRow(row);
+            table.addRow(rowType + "_" + currentIndex, row);
         }
         return currentIndex;
     }

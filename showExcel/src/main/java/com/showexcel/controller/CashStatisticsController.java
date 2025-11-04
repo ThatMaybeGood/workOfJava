@@ -24,11 +24,6 @@ public class CashStatisticsController {
     private CashStatisticsService cashStatisticsService;
 
 
-    @GetMapping("/date/{date}")
-    public List<CashStatistics> getDataByDate(@PathVariable String date) {
-        return cashStatisticsService.getDataByDate(date);
-    }
-
     @GetMapping("/accounting")
     public List<CashStatistics> getAccountingData() {
         return cashStatisticsService.getAccountingData();
@@ -75,6 +70,11 @@ public class CashStatisticsController {
         }
 
         return result;
+    }
+
+    @GetMapping("/date/{date}")
+    public CashStatisticsTableDTO getDataByDate(@PathVariable String date) {
+        return cashStatisticsService.getAllStatisticsTableByDate(date);
     }
 
 }

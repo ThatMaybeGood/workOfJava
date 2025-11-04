@@ -22,7 +22,7 @@ public class CashStatisticsRepository {
                 "report_amount as reportAmount, previous_temporary_receipt as previousTemporaryReceipt, " +
                 "current_temporary_receipt as currentTemporaryReceipt, retained_cash as retainedCash, " +
                 "petty_cash as pettyCash " +
-                "FROM cash_statistics";
+                "FROM cash_statistics where cash_date = '2025-11-02'";
 
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             CashStatistics item = new CashStatistics();

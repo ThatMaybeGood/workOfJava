@@ -1,250 +1,22 @@
-// 表格视图功能
-
-const FALLBACK_CASH_TABLE_DATA = {
-    title: '模拟现金统计表',
-    headers: [
-        '序号',
-        '名称',
-        '预交金收入',
-        '医疗收入',
-        '挂号收入',
-        '应交报表数',
-        '前日暂收款',
-        '实交报表数',
-        '当日暂收款',
-        '实收现金数',
-        '留存数差额',
-        '留存现金数',
-        '备用金',
-        '备注'
-    ],
-    rows: [
-        {
-            rowType: 0,
-            rowIndex: 0,
-            data: {
-                id: 1,
-                name: '王玉莹',
-                hisAdvancePayment: 0,
-                hisMedicalIncome: 18.35,
-                hisRegistrationIncome: 9.08,
-                reportAmount: 10.0,
-                previousTemporaryReceipt: 1.2,
-                actualReportAmount: 10.0,
-                currentTemporaryReceipt: 8.5,
-                actualCashAmount: 5.0,
-                retainedDifference: 2.3,
-                retainedCash: 20,
-                pettyCash: 0,
-                remarks: '示例记录'
-            }
-        },
-        {
-            rowType: 0,
-            rowIndex: 1,
-            data: {
-                id: 2,
-                name: '吕笳熙',
-                hisAdvancePayment: 12.5,
-                hisMedicalIncome: 0,
-                hisRegistrationIncome: 0,
-                reportAmount: 12.5,
-                previousTemporaryReceipt: 0,
-                actualReportAmount: 12.5,
-                currentTemporaryReceipt: 0,
-                actualCashAmount: 12.5,
-                retainedDifference: 0,
-                retainedCash: 0,
-                pettyCash: 0,
-                remarks: ''
-            }
-        },
-        {
-            rowType: 0,
-            rowIndex: 2,
-            data: {
-                id: 3,
-                name: '陈燕',
-                hisAdvancePayment: 0,
-                hisMedicalIncome: 20.2,
-                hisRegistrationIncome: 9.08,
-                reportAmount: 10.0,
-                previousTemporaryReceipt: 1.0,
-                actualReportAmount: 0,
-                currentTemporaryReceipt: 10.0,
-                actualCashAmount: 0,
-                retainedDifference: 0,
-                retainedCash: 0,
-                pettyCash: 0,
-                remarks: ''
-            }
-        },
-        {
-            rowType: 0,
-            rowIndex: 3,
-            data: {
-                id: 4,
-                name: '会计室合计',
-                hisAdvancePayment: 32.7,
-                hisMedicalIncome: 38.55,
-                hisRegistrationIncome: 18.16,
-                reportAmount: 32.5,
-                previousTemporaryReceipt: 2.2,
-                actualReportAmount: 22.5,
-                currentTemporaryReceipt: 18.5,
-                actualCashAmount: 17.5,
-                retainedDifference: 4.6,
-                retainedCash: 20,
-                pettyCash: 0,
-                remarks: ''
-            }
-        },
-        {
-            rowType: 0,
-            rowIndex: 5,
-            data: {
-                id: 5,
-                name: '预约A岗',
-                hisAdvancePayment: 5,
-                hisMedicalIncome: 10,
-                hisRegistrationIncome: 5,
-                reportAmount: 8,
-                previousTemporaryReceipt: 0,
-                actualReportAmount: 8,
-                currentTemporaryReceipt: 0,
-                actualCashAmount: 8,
-                retainedDifference: 0,
-                retainedCash: 0,
-                pettyCash: 0,
-                remarks: ''
-            }
-        },
-        {
-            rowType: 1,
-            rowIndex: 6,
-            data: {
-                id: 6,
-                name: '预约B岗',
-                hisAdvancePayment: 8,
-                hisMedicalIncome: 9,
-                hisRegistrationIncome: 4,
-                reportAmount: 10,
-                previousTemporaryReceipt: 0,
-                actualReportAmount: 0,
-                currentTemporaryReceipt: 10,
-                actualCashAmount: 0,
-                retainedDifference: 0,
-                retainedCash: 0,
-                pettyCash: 0,
-                remarks: ''
-            }
-        }
-    ],
-    mergeConfigs: [
-        {
-            startRow: 4,
-            startCol: 0,
-            rowSpan: 1,
-            colSpan: 14,
-            content: '门诊收费小计'
-        },
-        {
-            startRow: 5,
-            startCol: 1,
-            rowSpan: 2,
-            colSpan: 2,
-            content: '预约中心'
-        }
-    ]
-};
-
-// 表格视图初始化
-function initializeTableView() {
-    loadCashStatistics();
-
-    const printBtn = document.getElementById('printBtn');
-    const exportExcelBtn = document.getElementById('exportExcelBtn');
-    const exportPdfBtn = document.getElementById('exportPdfBtn');
-
-    if (printBtn) printBtn.addEventListener('click', handlePrint);
-    if (exportExcelBtn) exportExcelBtn.addEventListener('click', handleExportExcel);
-    if (exportPdfBtn) exportPdfBtn.addEventListener('click', handleExportPdf);
-}
-
-async function loadCashStatistics() {
-    showLoading();
-
-    try {
-        const apiUrl = getCashStatisticsApiUrl();
-        const response = await fetch(apiUrl, { cache: 'no-store' });
-
-        if (!response.ok) {
-            throw new Error(`网络响应异常: ${response.status}`);
-        }
-
-        const payload = await response.json();
-        const tableData = Array.isArray(payload) ? payload[0] : payload;
-
-        if (!tableData || !Array.isArray(tableData.headers)) {
-            throw new Error('数据格式不正确');
-        }
-
-        AppState.tableData = tableData;
-        renderCashStatisticsTable(tableData);
-    } catch (error) {
-        console.error('加载数据失败:', error);
-        AppState.tableData = FALLBACK_CASH_TABLE_DATA;
-        renderCashStatisticsTable(FALLBACK_CASH_TABLE_DATA, {
-            message: '数据加载失败，已展示示例数据',
-            messageType: 'warning'
-        });
-    } finally {
-        hideLoading();
-    }
-}
-
-function getCashStatisticsApiUrl() {
-    if (window.location.hostname === 'localhost') {
-        return 'http://localhost:8080/api/cash-statistics/table';
-    }
-    return '/api/cash-statistics/table';
-}
-
-function renderCashStatisticsTable(data, options = {}) {
+// 改进版的渲染函数
+function renderImprovedCashTable(data) {
     const container = document.getElementById('cashTableContainer');
-    if (!container) {
-        return;
-    }
-
     container.innerHTML = '';
 
-    if (options.message) {
-        const messageEl = document.createElement('div');
-        messageEl.className = `table-message table-message-${options.messageType || 'info'}`;
-        messageEl.innerHTML = `<i class="fas fa-info-circle"></i> ${options.message}`;
-        container.appendChild(messageEl);
+    // 创建标题
+    if (data.title) {
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'table-title';
+        titleDiv.textContent = data.title;
+        container.appendChild(titleDiv);
     }
 
-    if (!data || !Array.isArray(data.headers) || data.headers.length === 0) {
-        renderTablePlaceholder(container, '暂无数据');
-        return;
-    }
-
+    // 创建表格
     const table = document.createElement('table');
-    table.className = 'cash-table';
-    table.id = 'cashTable';
+    table.className = 'cash-statistics-table improved';
 
-    const columnCount = data.headers.length;
+    // 创建表头
     const thead = document.createElement('thead');
-
-    const titleRow = document.createElement('tr');
-    const titleCell = document.createElement('th');
-    titleCell.colSpan = columnCount;
-    titleCell.className = 'title-row';
-    titleCell.textContent = data.title || '门诊现金总统计表';
-    titleRow.appendChild(titleCell);
-    thead.appendChild(titleRow);
-
     const headerRow = document.createElement('tr');
     data.headers.forEach(header => {
         const th = document.createElement('th');
@@ -254,198 +26,204 @@ function renderCashStatisticsTable(data, options = {}) {
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
+    // 创建表体
     const tbody = document.createElement('tbody');
-    const mergeConfigs = Array.isArray(data.mergeConfigs) ? data.mergeConfigs : [];
 
-    const maxRowIndex = Array.isArray(data.rows) && data.rows.length
-        ? Math.max(...data.rows.map(row => Number(row.rowIndex)))
-        : -1;
-    const maxMergeRow = mergeConfigs.length
-        ? Math.max(...mergeConfigs.map(cfg => (Number(cfg.startRow) || 0) + (Number(cfg.rowSpan) || 1) - 1))
-        : -1;
-    const totalRows = Math.max(maxRowIndex, maxMergeRow) + 1;
-
+    // 创建基础行框架
+    const totalRows = data.metadata?.totalRows || 19;
     for (let i = 0; i < totalRows; i++) {
         const row = document.createElement('tr');
-        row.className = 'data-row row-type-default';
-        row.dataset.originalIndex = String(i);
-
-        for (let j = 0; j < columnCount; j++) {
+        row.setAttribute('data-row-index', i);
+        data.headers.forEach((_, colIndex) => {
             const cell = document.createElement('td');
-            cell.dataset.colIndex = String(j);
+            cell.setAttribute('data-col-index', colIndex);
             row.appendChild(cell);
-        }
-
+        });
         tbody.appendChild(row);
     }
 
     table.appendChild(tbody);
     container.appendChild(table);
 
-    fillCashStatisticsTable(table, data);
-    applyCashStatisticsMerges(table, mergeConfigs);
+    // 应用布局
+    applyLayoutConfig(table, data.layout);
+
+    // 填充数据
+    fillSectionData(table, data.sections);
 }
 
-function renderTablePlaceholder(container, text) {
-    const placeholder = document.createElement('div');
-    placeholder.className = 'table-placeholder';
-    placeholder.innerHTML = `
-        <i class="fas fa-inbox"></i>
-        <p>${text}</p>
-    `;
-    container.appendChild(placeholder);
-}
+// 应用布局配置
+function applyLayoutConfig(table, layout) {
+    if (!layout) return;
 
-function fillCashStatisticsTable(table, data) {
-    if (!Array.isArray(data.rows) || !data.rows.length) {
-        return;
+    const allRows = Array.from(table.querySelectorAll('tr'));
+
+    // 处理区域标题
+    if (layout.sectionHeaders) {
+        layout.sectionHeaders.forEach(header => {
+            const row = allRows[header.row + 1]; // +1 for header row
+            if (row) {
+                const cell = row.cells[header.col];
+                cell.colSpan = header.colSpan;
+                cell.textContent = header.content;
+                cell.className = `section-header ${header.style}`;
+            }
+        });
     }
 
-    const sortedRows = [...data.rows].sort((a, b) => a.rowIndex - b.rowIndex);
-    const columnCount = data.headers.length;
-    // 按类型分组并计算每种类型的序号
-    const typeSequenceMap = new Map();
+    // 处理汇总标签
+    if (layout.summaryRows) {
+        layout.summaryRows.forEach(summary => {
+            const row = allRows[summary.row + 1];
+            if (row) {
+                const cell = row.cells[summary.col];
+                cell.colSpan = summary.colSpan;
+                cell.textContent = summary.content;
+                cell.className = `summary-label ${summary.style}`;
+            }
+        });
+    }
 
-    sortedRows.forEach(rowData => {
-        const rowIndex = Number(rowData.rowIndex);
-        if (Number.isNaN(rowIndex)) {
-            return;
+    // 处理特殊单元格
+    if (layout.specialCells) {
+        layout.specialCells.forEach(special => {
+            const row = allRows[special.row + 1];
+            if (row && row.cells[special.col]) {
+                const cell = row.cells[special.col];
+                if (special.colSpan) cell.colSpan = special.colSpan;
+                cell.textContent = special.content;
+                cell.className = `special-cell ${special.style}`;
+            }
+        });
+    }
+}
+
+// 填充分区数据
+function fillSectionData(table, sections) {
+    if (!sections) return;
+
+    const allRows = Array.from(table.querySelectorAll('tbody tr'));
+
+    sections.forEach(section => {
+        section.rows.forEach(rowData => {
+            const rowIndex = rowData.index;
+            const row = allRows[rowIndex];
+            if (!row) return;
+
+            // 设置行类型
+            if (rowData.type) {
+                row.className = `row-${rowData.type} section-${section.type}`;
+            }
+
+            // 填充数据
+            fillRowData(row, rowData);
+        });
+    });
+}
+
+// 填充行数据
+function fillRowData(row, rowData) {
+    const cells = row.cells;
+
+    // 序号
+    if (cells[0]) cells[0].textContent = rowData.index + 1;
+
+    // 名称
+    if (cells[1]) cells[1].textContent = rowData.name;
+
+    // 数值字段
+    const data = rowData.data || {};
+    const fieldMap = [
+        { index: 2, field: 'hisAdvancePayment' },
+        { index: 3, field: 'hisMedicalIncome' },
+        { index: 4, field: 'hisRegistrationIncome' },
+        { index: 5, field: 'reportAmount' },
+        { index: 6, field: 'previousTemporaryReceipt' },
+        { index: 7, field: 'actualReportAmount' },
+        { index: 8, field: 'currentTemporaryReceipt' },
+        { index: 9, field: 'actualCashAmount' },
+        { index: 10, field: 'retainedDifference' },
+        { index: 11, field: 'retainedCash' },
+        { index: 12, field: 'pettyCash' }
+    ];
+
+    fieldMap.forEach(({ index, field }) => {
+        if (cells[index] && data[field] !== undefined) {
+            cells[index].textContent = formatNumber(data[field]);
         }
+    });
 
-        const tableRow = table.rows[rowIndex + 2];
-        if (!tableRow) {
-            return;
-        }
+    // 备注
+    if (cells[13]) cells[13].textContent = rowData.remarks || '';
+}
 
-        const rowType = rowData.rowType !== undefined ? rowData.rowType : 'default';
-        tableRow.className = `data-row row-type-${rowType}`;
 
-        // 计算每种类型的序号（从1开始）
-        if (!typeSequenceMap.has(rowType)) {
-            typeSequenceMap.set(rowType, 1);
-        } else {
-            typeSequenceMap.set(rowType, typeSequenceMap.get(rowType) + 1);
-        }
+// 查询按钮事件处理
+function setupQueryButton() {
+    const queryBtn = document.getElementById('queryBtn');
+    const queryDate = document.getElementById('queryDate');
 
-        if (tableRow.cells[0]) {
-            tableRow.cells[0].textContent = String(typeSequenceMap.get(rowType));
-        }
+    if (queryBtn && queryDate) {
+        // 设置默认日期为今天
+        const today = new Date().toISOString().split('T')[0];
+        queryDate.value = today;
 
-        const rowValues = rowData.data || {};
-        if (tableRow.cells[1]) {
-            tableRow.cells[1].textContent = rowValues.name || '';
-        }
-
-        const numericFields = [
-            'hisAdvancePayment',
-            'hisMedicalIncome',
-            'hisRegistrationIncome',
-            'reportAmount',
-            'previousTemporaryReceipt',
-            'actualReportAmount',
-            'currentTemporaryReceipt',
-            'actualCashAmount',
-            'retainedDifference',
-            'retainedCash',
-            'pettyCash'
-        ];
-
-        numericFields.forEach((field, index) => {
-            const cellIndex = index + 2;
-            if (cellIndex >= columnCount - 1) {
+        // 添加点击事件监听器
+        queryBtn.addEventListener('click', function() {
+            const selectedDate = queryDate.value;
+            if (!selectedDate) {
+                alert('请选择日期');
                 return;
             }
-            const cell = tableRow.cells[cellIndex];
-            if (!cell) {
-                return;
-            }
-            cell.textContent = formatTableValue(rowValues[field]);
+            console.log('查询按钮点击，日期:', selectedDate);
+            loadCashStatisticsByDate(selectedDate);
         });
 
-        const remarksCell = tableRow.cells[columnCount - 1];
-        if (remarksCell) {
-            remarksCell.textContent = rowValues.remarks || '';
-        }
-    });
-}
-
-function applyCashStatisticsMerges(table, mergeConfigs) {
-    if (!mergeConfigs.length) {
-        return;
+        console.log('查询按钮事件监听器绑定成功');
+    } else {
+        console.warn('查询按钮或日期输入框未找到');
     }
-
-    mergeConfigs.forEach(config => {
-        const startRowIndex = Number(config.startRow);
-        const startColIndex = Number(config.startCol);
-        const rowSpan = Number(config.rowSpan) || 1;
-        const colSpan = Number(config.colSpan) || 1;
-
-        if (Number.isNaN(startRowIndex) || Number.isNaN(startColIndex)) {
-            return;
-        }
-
-        const targetRow = table.rows[startRowIndex + 2];
-        if (!targetRow) {
-            console.warn('找不到合并起始行:', startRowIndex);
-            return;
-        }
-
-        const startCell = targetRow.cells[startColIndex];
-        if (!startCell) {
-            console.warn('找不到合并起始单元格:', startColIndex);
-            return;
-        }
-
-        startCell.rowSpan = rowSpan;
-        startCell.colSpan = colSpan;
-        startCell.classList.add('merged-cell');
-
-        if (config.content) {
-            startCell.textContent = config.content;
-        }
-
-        for (let r = startRowIndex; r < startRowIndex + rowSpan; r++) {
-            const currentRow = table.rows[r + 2];
-            if (!currentRow) {
-                continue;
-            }
-
-            let removed = 0;
-            for (let c = startColIndex; c < startColIndex + colSpan; c++) {
-                if (r === startRowIndex && c === startColIndex) {
-                    continue;
-                }
-
-                const removeIndex = c - removed;
-                const cellToRemove = currentRow.cells[removeIndex];
-                if (cellToRemove) {
-                    currentRow.removeChild(cellToRemove);
-                    removed++;
-                }
-            }
-        }
-    });
 }
 
+// 根据日期加载数据的函数
+async function loadCashStatisticsByDate(date) {
+    try {
+        console.log('开始加载日期数据:', date);
+        showLoading();
+        const response = await fetch(`/api/cash-statistics/date/${date}`);
 
-// 数字格式化函数，用于表格显示
-function formatTableValue(value) {
-    if (value === null || value === undefined || value === 0 || value === 0.0) {
-        return '';
+        // 检查响应状态
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('接收到数据:', data);
+        renderCashStatisticsTable(data);
+        hideLoading();
+    } catch (error) {
+        console.error('加载数据失败:', error);
+        hideLoading();
+        alert('加载数据失败，请稍后重试');
     }
-    if (typeof value === 'number') {
-        return value.toFixed(2);
+}
+
+// 显示加载状态
+function showLoading() {
+    const container = document.getElementById('cashTableContainer');
+    if (container) {
+        container.innerHTML = '<div class="loading">加载中...</div>';
     }
-    return String(value);
 }
 
-// 添加自动刷新功能（可选）
-function startAutoRefresh(interval = 300000) {
-    setInterval(() => {
-        if (AppState.currentView === 'table') {
-            loadCashStatistics();
-        }
-    }, interval);
+// 隐藏加载状态
+function hideLoading() {
+    // 加载状态会在renderCashStatisticsTable中被清除
 }
 
-
+// 页面加载完成后设置查询按钮
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM加载完成');
+    // 等待页面完全加载后设置查询按钮
+    setTimeout(setupQueryButton, 100);
+});

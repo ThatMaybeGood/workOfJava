@@ -22,7 +22,7 @@ public class CashStatisticsConstant  {
 
     //会计类型 1:现金统计表
     public static final Integer ACCOUNTING_STATISTICS_TYPE = 0;
-    public static final String ACCOUNTING_STATISTICS_NAME = "现金统计表";
+    public static final String ACCOUNTING_STATISTICS_NAME = "会计室计表";
 
     //预约类型 1:预约统计表
     public static final Integer APPOINTMENT_STATISTICS_TYPE = 1;

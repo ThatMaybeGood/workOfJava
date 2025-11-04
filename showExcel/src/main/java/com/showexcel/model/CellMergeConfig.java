@@ -14,6 +14,8 @@ public class CellMergeConfig {
     private int colSpan;     // 合并列数
     private String content;  // 合并单元格内容
 
+    private int style; //0:横向合并 1:添加新行
+
     public CellMergeConfig(int startRow, int startCol, int rowSpan, int colSpan) {
         this.startRow = startRow;
         this.startCol = startCol;
@@ -21,9 +23,11 @@ public class CellMergeConfig {
         this.colSpan = colSpan;
     }
 
-    public CellMergeConfig(int startRow, int startCol, int rowSpan, int colSpan, String content) {
+    public CellMergeConfig(int startRow, int startCol, int rowSpan, int colSpan, String content,int style) {
         this(startRow, startCol, rowSpan, colSpan);
         this.content = content;
+        this.style = style;
+
     }
 
     // getter 和 setter
@@ -41,4 +45,8 @@ public class CellMergeConfig {
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
+
+     public Integer getStyle() { return style; }
+    public void setStyle(Integer style) { this.style = style; }
+
 }
