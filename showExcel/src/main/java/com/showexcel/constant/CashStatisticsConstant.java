@@ -26,10 +26,6 @@ public class CashStatisticsConstant  {
             "留存现金数", "备用金", "备注"
     };
 
-    // 5. 添加其他自定义行
-    public static final String[] CUSTOM_ROW_NAMES = {"当日暂收款", "日报表数", "合计存款金额",
-            "住院部当日借款", "住院部当日回款", "门诊当日借款", "门诊当日回款",
-            "门诊当日抵扣报表金额", "门诊当日退主病房", "门诊当日退三住院部", "门诊当日实存金额"};
 
     //会计类型 1:现金统计表
     public static final Integer ACCOUNTING_STATISTICS_TYPE = 0;
@@ -44,5 +40,10 @@ public class CashStatisticsConstant  {
     public static final String ALL_STATISTICS_NAME = "总合计";
 
     public static final Integer OTHER_STATISTICS_TYPE = 3;
+    // 5. 添加其他自定义行
+    public static final String[] CUSTOM_ROW_NAMES = {"当日暂收款", "日报表数", "合计存款金额",
+            "住院部当日借款", "住院部当日回款", "门诊当日借款", "门诊当日回款",
+            "门诊当日抵扣报表金额", "门诊当日退主病房", "门诊当日退三住院部", "门诊当日实存金额"};
+
 
 }
