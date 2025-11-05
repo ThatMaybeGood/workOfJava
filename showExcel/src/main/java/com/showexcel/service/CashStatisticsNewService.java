@@ -9,4 +9,5 @@ public interface CashStatisticsNewService {
      */
     CashStatisticsResponse getAllStatisticsTableByDate(String date);
 
- }
+
+}
