@@ -13,6 +13,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.function.Function;
 
 /**
@@ -23,6 +24,21 @@ import java.util.function.Function;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RowData {
+
+    /**
+     * 序号
+     */
+    private Integer index;
+
+    /**
+     * 表格类型（1-会计室，2-预约中心，3-其他）
+     */
+    private Integer tableType;
+
+    /**
+     * 名称
+     */
+    private String name;
 
     /**
      * 预交金收入
@@ -84,6 +100,28 @@ public class RowData {
      */
     private String remarks;
 
+
+    /**
+     * 样式类型
+     */
+    private RowType style;
+
+
+    /**
+     * 特殊单元格配置
+     */
+    private LayoutCell specialCells;
+
+
+
+    public RowData(Integer tableType, String name, RowType style, LayoutCell specialCells) {
+        this.tableType = tableType;
+        this.name = name;
+        this.style = style;
+        this.specialCells = specialCells;
+    }
+
+
     // constructors, getters, setters...
 
     /**
@@ -129,6 +167,17 @@ public class RowData {
 
     public BigDecimal getPettyCash() {
         return safeBigDecimal(this.pettyCash);
+    }
+
+    public BigDecimal getActualReportAmount() {
+        return safeBigDecimal(this.actualReportAmount);
+    }
+    public BigDecimal getActualCashAmount() {
+        return safeBigDecimal(this.actualCashAmount);
+    }
+
+    public BigDecimal getRetainedDifference() {
+        return safeBigDecimal(this.retainedDifference);
     }
 
 }

@@ -4,8 +4,8 @@ package com.showexcel.response;
  * 分区类型枚举
  */
 public enum SectionType {
-    ACCOUNTING("accounting", "会计室"),
-    RESERVATION("reservation", "预约中心"),
+    ACCOUNTING("accounting", "会计数据"),
+    RESERVATION("reservation", "预约数据"),
     GRAND_TOTAL("grand_total", "总计"),
     OTHER("other", "其他");
 

@@ -1,8 +1,17 @@
 package com.showexcel.response;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 /**
  * 布局单元格DTO
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class LayoutCell {
 
     /**
@@ -16,24 +25,18 @@ public class LayoutCell {
     private Integer col;
 
     /**
+     * 行合并数
+     */
+    private Integer rowSpan;
+    /**
      * 列合并数
      */
     private Integer colSpan;
 
     /**
-     * 行合并数
-     */
-    private Integer rowSpan;
-
-    /**
      * 显示内容
      */
     private String content;
-
-    /**
-     * 样式类型
-     */
-    private CellStyle style;
 
     // constructors, getters, setters...
 }

@@ -2,17 +2,12 @@ package com.showexcel.repository;
 
 import com.showexcel.model.CashStatistics;
 import com.showexcel.response.RowData;
-import com.showexcel.response.TableRow;
-import org.apache.poi.hpsf.Decimal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
-import java.util.Date;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Repository
 public class CashStatisticsRepository {
@@ -81,6 +76,9 @@ public class CashStatisticsRepository {
 
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             RowData item = new RowData();
+            item.setTableType(rs.getObject("tableType", Integer.class));
+            item.setName(rs.getString("name"));
+
             item.setHisAdvancePayment(rs.getObject("hisAdvancePayment", BigDecimal.class));
             item.setHisMedicalIncome(rs.getObject("hisMedicalIncome", BigDecimal.class));
             item.setHisRegistrationIncome(rs.getObject("hisRegistrationIncome", BigDecimal.class));

@@ -5,7 +5,7 @@ package com.showexcel.response;
  */
 public enum CellStyle {
     SECTION_HEADER("section_header", "区域标题"),
-    SUMMARY_LABEL("summary_label", "汇总标签"),
+    SUMMARY_LABEL("summary_label", "合并汇总标签"),
     SPECIAL_LABEL("special_label", "特殊标签"),
     SIGNATURE("signature", "签名区域"),
     DATA_CELL("data_cell", "数据单元格");

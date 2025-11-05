@@ -36,7 +36,7 @@ public class TableSection {
     /**
      * 分区内的数据行
      */
-    private List<TableRow> rows;
+    private List<RowData> rows;
 
     // constructors, getters, setters...
 }

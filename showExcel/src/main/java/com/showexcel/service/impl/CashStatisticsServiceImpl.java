@@ -128,13 +128,14 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
 
         List<CashStatistics> allData = cashStatisticsRepository.findByTableDate(date);
 
-        if (allData.isEmpty()) {
-            log.info("指定日期 {} 无统计数据", date);
-            return new CashStatisticsTableDTO(); //返回空对象非null
-        }
-
         // 构建表格数据
         CashStatisticsTableDTO table = new CashStatisticsTableDTO();
+
+
+        if (allData.isEmpty()) {
+            log.info("指定日期 {} 无统计数据", date);
+            return table; //返回空对象非null
+        }
 
         // 设置标题
         table.setTitle(CashStatisticsConstant.TITLE + "（" + date + "）");
@@ -172,11 +173,8 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
         currentRowIndex = doRowsByTypeToFlat(table, allData, CashStatisticsConstant.ALL_STATISTICS_TYPE, CashStatisticsConstant.ALL_STATISTICS_NAME, currentRowIndex);
 
         // 5. 添加其他自定义行
-        String[] customRowNames = {"当日暂收款", "日报表数", "合计存款金额",
-                "住院部当日借款", "住院部当日回款", "门诊当日借款", "门诊当日回款",
-                "门诊当日抵扣报表金额", "门诊当日退主病房", "门诊当日退三住院部", "门诊当日实存金额"};
-        for (int i = 0; i < customRowNames.length; i++) {
-            table.addMergeConfig("config_" + (i + 1), new CellMergeConfig(currentRowIndex, 0, 1, 2, customRowNames[i],1));
+        for (int i = 0; i < CashStatisticsConstant.CUSTOM_ROW_NAMES.length; i++) {
+            table.addMergeConfig("config_" + (i + 1), new CellMergeConfig(currentRowIndex, 0, 1, 2, CashStatisticsConstant.CUSTOM_ROW_NAMES[i],1));
             currentRowIndex++;
         }
 
@@ -185,7 +183,7 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
         table.addMergeConfig("config_13", new CellMergeConfig(currentRowIndex, table.getHeaders().size() - 5, 1, 0, "出纳",1));
 
         // 设置行数
-        table.setRowCount(customRowNames.length + allData.size() +3 + 1 + 1); // 合并配置数 + 数据行数 + 合计行 + 自定义行 + 审核+出纳行
+        table.setRowCount(CashStatisticsConstant.CUSTOM_ROW_NAMES.length + allData.size() +3 + 1 + 1); // 合并配置数 + 数据行数 + 合计行 + 自定义行 + 审核+出纳行
         table.setColCount(table.getHeaders().size()); // 列数保持不变
     }
 
