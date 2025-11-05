@@ -43,4 +43,6 @@ public class CashStatisticsConstant  {
     public static final Integer ALL_STATISTICS_TYPE = 2;
     public static final String ALL_STATISTICS_NAME = "总合计";
 
+    public static final Integer OTHER_STATISTICS_TYPE = 3;
+
 }
