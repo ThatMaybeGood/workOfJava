@@ -24,15 +24,12 @@ import java.util.List;
 @AllArgsConstructor
 public class TableLayout {
 
-    /**
-     * 区域标题配置
-     */
-    private List<LayoutCell> sectionHeaders;
 
     /**
-     * 汇总行标签配置
+     * 样式类型
      */
-    private List<LayoutCell> summaryRows;
+    private RowType style;
+
 
     /**
      * 特殊单元格配置

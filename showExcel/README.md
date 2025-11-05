@@ -80,3 +80,174 @@ java -jar target/showExcel-*.jar
 ---
 > 本项目目录结构参考大型企业常用的 Spring Boot 分层模式，保持了清晰的应用分层与前端资产分类，便于持续迭代与团队协作。
 
+
+
+```json
+{
+  "title": "现金统计表（2025-11-02）",
+  "metadata": {
+    "totalRows": 19,
+    "totalCols": 14,
+    "generatedAt": "2025-11-02T10:00:00Z"
+  },
+  "headers": [
+    "序号", "名称", "预交金收入", "医疗收入", "挂号收入", 
+    "应交报表数（1）", "前日暂收款（2）", "实交报表数（3）=（1）-（2）", 
+    "当日暂收款（4）", "实收现金数（5）=(3)+（4）", "留存数差额（6）=（7）-（3）-（8）", 
+    "留存现金数（7）", "备用金（8）", "备注"
+  ],
+  "sections": [
+    {
+      "name": "会计室",
+      "type": "accounting",
+      "rows": [
+	  {
+            "hisAdvancePayment": 20.0,
+            "hisMedicalIncome": 0.0,
+            "hisRegistrationIncome": 22.0,
+            "reportAmount": 0.0,
+            "previousTemporaryReceipt": 0.0,
+            "actualReportAmount": -22.0,
+            "currentTemporaryReceipt": 0.0,
+            "actualCashAmount": -22.0,
+            "retainedDifference": 22.0,
+            "retainedCash": 0.0,
+            "pettyCash": 0.0
+          }
+        ,
+        {
+            "hisAdvancePayment": 20.0,
+            "hisMedicalIncome": 0.0,
+            "hisRegistrationIncome": 22.0,
+            "reportAmount": 0.0,
+            "previousTemporaryReceipt": 0.0,
+            "actualReportAmount": -22.0,
+            "currentTemporaryReceipt": 0.0,
+            "actualCashAmount": -22.0,
+            "retainedDifference": 22.0,
+            "retainedCash": 0.0,
+            "pettyCash": 0.0
+        }
+		]
+    },
+    {
+      "name": "预约中心",
+      "type": "reservation",
+      "rows": [
+        {
+            "hisAdvancePayment": 0.0,
+            "hisMedicalIncome": 0.0,
+            "hisRegistrationIncome": 12.0,
+            "reportAmount": 10.0,
+            "previousTemporaryReceipt": 0.0,
+            "actualReportAmount": -2.0,
+            "currentTemporaryReceipt": 0.0,
+            "actualCashAmount": -2.0,
+            "retainedDifference": 25.0,
+            "retainedCash": 23.0,
+        },
+        {
+            "hisAdvancePayment": 20.0,
+            "hisMedicalIncome": 0.0,
+            "hisRegistrationIncome": 0.0,
+            "reportAmount": 0.0,
+            "previousTemporaryReceipt": 0.0,
+            "actualReportAmount": 0.0,
+            "currentTemporaryReceipt": 0.0,
+            "actualCashAmount": 0.0,
+            "retainedDifference": 0.0,
+            "retainedCash": 0.0,
+            "pettyCash": 0.0
+        },
+        {
+            "hisAdvancePayment": 20.0,
+            "hisMedicalIncome": 0.0,
+            "hisRegistrationIncome": 12.0,
+            "reportAmount": 10.0,
+            "previousTemporaryReceipt": 0.0,
+            "actualReportAmount": -2.0,
+            "currentTemporaryReceipt": 0.0,
+            "actualCashAmount": -2.0,
+            "retainedDifference": 25.0,
+            "retainedCash": 23.0,
+            "pettyCash": 0.0
+        }
+      ]
+    },
+    {
+      "name": "总计",
+      "type": "grand_total",
+      "rows": [
+        {
+            "hisAdvancePayment": 40.0,
+            "hisMedicalIncome": 0.0,
+            "hisRegistrationIncome": 34.0,
+            "reportAmount": 10.0,
+            "previousTemporaryReceipt": 0.0,
+            "actualReportAmount": -24.0,
+            "currentTemporaryReceipt": 0.0,
+            "actualCashAmount": -24.0,
+            "retainedDifference": 47.0,
+            "retainedCash": 23.0,
+            "pettyCash": 0.0
+        }
+      ]
+    }
+  ],
+  "layout": {
+    "sectionHeaders": [
+      {
+        "row": 2,
+        "col": 0,
+        "colSpan": 14,
+        "content": "预约中心",
+        "style": "section_header"
+      }
+    ],
+    "summaryRows": [
+      {
+        "row": 1,
+        "col": 0,
+        "colSpan": 2,
+        "content": "会计室计表",
+        "style": "summary_label"
+      },
+      {
+        "row": 5,
+        "col": 0,
+        "colSpan": 2,
+        "content": "预约统计表",
+        "style": "summary_label"
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "colSpan": 2,
+        "content": "合计统计表",
+        "style": "summary_label"
+      }
+    ],
+    "specialCells": [
+      {
+        "row": 7,
+        "col": 0,
+        "colSpan": 2,
+        "content": "当日暂收款",
+        "style": "special_label"
+      },
+      {
+        "row": 18,
+        "col": 0,
+        "colSpan": 2,
+        "content": "审核",
+        "style": "signature"
+      },
+      {
+        "row": 18,
+        "col": 9,
+        "content": "出纳",
+        "style": "signature"
+      }
+    ]
+  }
+}

@@ -85,8 +85,10 @@ public class CashStatisticsController {
 
 
     @GetMapping("/datenew/{date}")
-    public CashStatisticsResponse getDataByDateNew(@PathVariable String date) {
-        return cashStatisticsNewService.getAllStatisticsTableByDate(date);
+    public Result<CashStatisticsResponse> getDataByDateNew(@PathVariable String date) {
+//        log.info(Result.success("调用接口成功"));
+
+        return Result.success( cashStatisticsNewService.getAllStatisticsTableByDate(date));
     }
 
 
