@@ -110,11 +110,11 @@ public class RowData {
     /**
      * 特殊单元格配置
      */
-    private LayoutCell specialCells;
+    private List<LayoutCell> specialCells;
 
 
 
-    public RowData(Integer tableType, String name, RowType style, LayoutCell specialCells) {
+    public RowData(Integer tableType, String name, RowType style, List<LayoutCell> specialCells) {
         this.tableType = tableType;
         this.name = name;
         this.style = style;

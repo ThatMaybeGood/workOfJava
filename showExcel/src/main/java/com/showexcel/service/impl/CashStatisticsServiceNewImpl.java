@@ -57,7 +57,7 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
         TableSection accountingSection = TableSection.builder()
                 .name("会计室")
                 .type(SectionType.ACCOUNTING)
-                .rows(createAccountingRows(allData))
+                .rows(createCommonRows(allData, CashStatisticsConstant.ACCOUNTING_STATISTICS_TYPE, CashStatisticsConstant.ACCOUNTING_STATISTICS_NAME))
                 .rowCount(createAccountingRows(allData).size())
                 .build();
         sections.add(accountingSection);
@@ -66,7 +66,7 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
         TableSection reservationSection = TableSection.builder()
                 .name("预约中心")
                 .type(SectionType.RESERVATION)
-                .rows(createApptionRows(allData))
+                .rows(createCommonRows(allData, CashStatisticsConstant.APPOINTMENT_STATISTICS_TYPE, CashStatisticsConstant.APPOINTMENT_STATISTICS_NAME))
                 .rowCount(createApptionRows(allData).size())
                 .build();
         sections.add(reservationSection);
@@ -75,7 +75,7 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
         TableSection totalSection = TableSection.builder()
                 .name("总计")
                 .type(SectionType.GRAND_TOTAL)
-                .rows(createTotalRows(allData))
+                .rows(createCommonRows(allData, CashStatisticsConstant.ALL_STATISTICS_TYPE, CashStatisticsConstant.ALL_STATISTICS_NAME))
                 .rowCount(createTotalRows(allData).size())
                 .build();
         sections.add(totalSection);
@@ -140,9 +140,13 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
     private List<RowData> createOtherRows() {
         List<RowData> rows = new ArrayList<>();
         for (String rowName : CashStatisticsConstant.CUSTOM_ROW_NAMES) {
-            rows.add(new RowData(CashStatisticsConstant.ACCOUNTING_STATISTICS_TYPE, rowName,
-                    RowType.SINGLE_SINGLE_CELL_MERGED_DATA, new LayoutCell(6, 0, 1, 2, rowName)));
+            rows.add(new RowData(CashStatisticsConstant.OTHER_STATISTICS_TYPE, rowName,
+                    RowType.SINGLE_SINGLE_CELL_MERGED_DATA, List.of(new LayoutCell(6, 0, 1, 2, rowName))));
         }
+        List<LayoutCell> specialCells = new ArrayList<>();
+        specialCells.add(new LayoutCell(6, 0, 1, 2, "审核"));
+        specialCells.add(new LayoutCell(6, 0, 2, 1, "出纳"));
+        rows.add(new RowData(CashStatisticsConstant.OTHER_STATISTICS_TYPE, "最后一行",RowType.SINGLE_MULTI_CELL_MERGED_DATA, specialCells));
 
         return rows;
     }
@@ -171,7 +175,7 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
         }
         // 设置合计行的样式和特殊单元格配置
         total.setStyle(RowType.SINGLE_SINGLE_CELL_MERGED_DATA);
-        total.setSpecialCells(new LayoutCell(1, 0, 1, 2, name));
+        total.setSpecialCells(List.of(new LayoutCell(1, 0, 1, 2, name)));
 
         return total;
     }
@@ -211,7 +215,7 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
         List<RowData> rows = new ArrayList<>();
         // 预约中心分割行
         rows.add(new RowData(CashStatisticsConstant.APPOINTMENT_STATISTICS_TYPE, "预约中心分割行",
-                RowType.SINGLE_SINGLE_CELL_MERGED_DATA, new LayoutCell(2, 0, 1, 14, "预约中心分割行")));
+                RowType.SINGLE_SINGLE_CELL_MERGED_DATA, List.of(new LayoutCell(2, 0, 1, 14, "预约中心分割行"))));
 
         for (RowData item : appointmentRows) {
             rowIndex++;
@@ -248,7 +252,7 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
 
         if (tableType == 1) {
             // 预约中心分割行
-            rows.add(new RowData(tableType, "预约中心分割行", RowType.SINGLE_SINGLE_CELL_MERGED_DATA, new LayoutCell(2, 0, 1, 14, "预约中心分割行")));
+            rows.add(new RowData(tableType, "预约中心分割行", RowType.SINGLE_SINGLE_CELL_MERGED_DATA, List.of(new LayoutCell(2, 0, 1, 14, "预约中心"))));
         }
 
         if (tableType == 2) {
