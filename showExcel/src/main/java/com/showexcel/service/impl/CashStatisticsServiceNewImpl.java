@@ -31,9 +31,10 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
     String currentDate = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
 
-
     @Override
     public CashStatisticsResponse getAllStatisticsTableByDate(String date) {
+
+        int rowIndex = 0;
 
         List<RowData> allData = cashStatisticsRepository.findByTableDateNew(date);
 
@@ -44,7 +45,7 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
         response.setTitle("现金统计表（" + date + "）");
 
         // 设置元数据
-        response.setMetadata(new TableMetadata(19, 14, LocalDateTime.now(), LocalDate.parse(date)));
+        response.setMetadata(new TableMetadata(allData.size() + CashStatisticsConstant.CUSTOM_ROW_NAMES.length + 5, CashStatisticsConstant.TABLE_HEADERS.length, LocalDateTime.now(), LocalDate.parse(date)));
 
         // 设置表头
         response.setHeaders(List.of(CashStatisticsConstant.TABLE_HEADERS));
@@ -57,6 +58,7 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
                 .name("会计室")
                 .type(SectionType.ACCOUNTING)
                 .rows(createAccountingRows(allData))
+                .rowCount(createAccountingRows(allData).size())
                 .build();
         sections.add(accountingSection);
 
@@ -65,6 +67,7 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
                 .name("预约中心")
                 .type(SectionType.RESERVATION)
                 .rows(createApptionRows(allData))
+                .rowCount(createApptionRows(allData).size())
                 .build();
         sections.add(reservationSection);
 
@@ -73,6 +76,7 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
                 .name("总计")
                 .type(SectionType.GRAND_TOTAL)
                 .rows(createTotalRows(allData))
+                .rowCount(createTotalRows(allData).size())
                 .build();
         sections.add(totalSection);
 
@@ -81,6 +85,7 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
                 .name("其他")
                 .type(SectionType.OTHER)
                 .rows(createOtherRows())
+                .rowCount(createOtherRows().size())
                 .build();
         sections.add(otherSection);
 
@@ -103,7 +108,7 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
                 .build();
         layouts.add(layoutMultiCell);
 
-        response.setLayouts(layouts);
+//        response.setLayouts(layouts);
 
         return response;
     }
@@ -117,12 +122,13 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
         specialCells.add(new LayoutCell(5, 0, 1, 2, "预约合计"));
         specialCells.add(new LayoutCell(6, 0, 1, 2, "总合计"));
 
-        for (String name : CashStatisticsConstant.CUSTOM_ROW_NAMES){
+        for (String name : CashStatisticsConstant.CUSTOM_ROW_NAMES) {
             specialCells.add(new LayoutCell(6, 0, 2, 1, name));
         }
 
         return specialCells;
     }
+
     private List<LayoutCell> createMultiCells(int lastRowIndex) {
         List<LayoutCell> specialCells = new ArrayList<>();
 
@@ -135,31 +141,13 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
         List<RowData> rows = new ArrayList<>();
         for (String rowName : CashStatisticsConstant.CUSTOM_ROW_NAMES) {
             rows.add(new RowData(CashStatisticsConstant.ACCOUNTING_STATISTICS_TYPE, rowName,
-                    RowType.SINGLE_SINGLE_CELL_MERGED_DATA,new LayoutCell(6,0,1,2,rowName)));
+                    RowType.SINGLE_SINGLE_CELL_MERGED_DATA, new LayoutCell(6, 0, 1, 2, rowName)));
         }
 
         return rows;
     }
 
 
-    // 创建会计室数据行
-    private List<RowData> createAccountingRows(List<RowData> allData) {
-        //从所有数据中剥离出会计室相关的数据
-        List<RowData> accountingRows = allData.stream()
-                .filter(data -> data.getTableType().equals(CashStatisticsConstant.ACCOUNTING_STATISTICS_TYPE))
-                .collect(Collectors.toList());
-
-        // 会计室数据行
-        List<RowData> rows = new ArrayList<>();
-        for (RowData item : accountingRows){
-            rows.add(item);
-        }
-
-        // 会计室合计行
-        rows.add(calculateTotal(accountingRows,CashStatisticsConstant.ACCOUNTING_STATISTICS_TYPE,CashStatisticsConstant.ACCOUNTING_STATISTICS_NAME));
-
-        return rows;
-    }
     //calculateTotal 计算传入的合计行数据
     private RowData calculateTotal(List<RowData> data, Integer tableType, String name) {
         //计算传入的data的合计行数据
@@ -189,8 +177,32 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
     }
 
 
+    // 创建会计室数据行
+    private List<RowData> createAccountingRows(List<RowData> allData) {
+        int rowIndex = 0;
+        //从所有数据中剥离出会计室相关的数据
+        List<RowData> accountingRows = allData.stream()
+                .filter(data -> data.getTableType().equals(CashStatisticsConstant.ACCOUNTING_STATISTICS_TYPE))
+                .collect(Collectors.toList());
+
+        // 会计室数据行
+        List<RowData> rows = new ArrayList<>();
+        for (RowData item : accountingRows) {
+            rowIndex++;
+            item.setStyle(RowType.NO_MERGED_DATA);
+            item.setIndex(rowIndex);
+            rows.add(item);
+        }
+
+        // 会计室合计行
+        rows.add(calculateTotal(accountingRows, CashStatisticsConstant.ACCOUNTING_STATISTICS_TYPE, CashStatisticsConstant.ACCOUNTING_STATISTICS_NAME));
+
+        return rows;
+    }
+
     // 创建预约中心数据行
     private List<RowData> createApptionRows(List<RowData> allData) {
+        int rowIndex = 0;
         //从所有数据中剥离出预约中心相关的数据
         List<RowData> appointmentRows = allData.stream()
                 .filter(data -> data.getTableType().equals(CashStatisticsConstant.APPOINTMENT_STATISTICS_TYPE))
@@ -199,14 +211,17 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
         List<RowData> rows = new ArrayList<>();
         // 预约中心分割行
         rows.add(new RowData(CashStatisticsConstant.APPOINTMENT_STATISTICS_TYPE, "预约中心分割行",
-                RowType.SINGLE_SINGLE_CELL_MERGED_DATA,new LayoutCell(2,0,1,14,"预约中心分割行")));
+                RowType.SINGLE_SINGLE_CELL_MERGED_DATA, new LayoutCell(2, 0, 1, 14, "预约中心分割行")));
 
-        for (RowData item : appointmentRows){
+        for (RowData item : appointmentRows) {
+            rowIndex++;
+            item.setIndex(rowIndex);
+            item.setStyle(RowType.NO_MERGED_DATA);
             rows.add(item);
         }
 
-        // 会计室合计行
-        rows.add(calculateTotal(appointmentRows,CashStatisticsConstant.APPOINTMENT_STATISTICS_TYPE,CashStatisticsConstant.APPOINTMENT_STATISTICS_NAME));
+        // 预约合计行
+        rows.add(calculateTotal(appointmentRows, CashStatisticsConstant.APPOINTMENT_STATISTICS_TYPE, CashStatisticsConstant.APPOINTMENT_STATISTICS_NAME));
 
         return rows;
     }
@@ -216,14 +231,42 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
 
         // 总计数据行
         List<RowData> rows = new ArrayList<>();
-        // 会计室合计行
-        rows.add(calculateTotal(allData,CashStatisticsConstant.ALL_STATISTICS_TYPE,CashStatisticsConstant.ALL_STATISTICS_NAME));
+        // 总合计行
+        rows.add(calculateTotal(allData, CashStatisticsConstant.ALL_STATISTICS_TYPE, CashStatisticsConstant.ALL_STATISTICS_NAME));
 
         return rows;
     }
 
 
+    // 创建通用处理
+    private List<RowData> createCommonRows(List<RowData> allData, Integer tableType, String tableName) {
+        int rowIndex = 0;
+        //从所有数据中剥离出指定类型的数据
+        List<RowData> partRows = allData.stream().filter(data -> data.getTableType().equals(tableType)).collect(Collectors.toList());
 
+        List<RowData> rows = new ArrayList<>();
+
+        if (tableType == 1) {
+            // 预约中心分割行
+            rows.add(new RowData(tableType, "预约中心分割行", RowType.SINGLE_SINGLE_CELL_MERGED_DATA, new LayoutCell(2, 0, 1, 14, "预约中心分割行")));
+        }
+
+        if (tableType == 2) {
+            // 通用合计行
+            rows.add(calculateTotal(allData, tableType, tableName));
+        }else{
+            // 1 和 0 通用数据行
+            for (RowData item : partRows) {
+                rowIndex++;
+                item.setStyle(RowType.NO_MERGED_DATA);
+                item.setIndex(rowIndex);
+                rows.add(item);
+            }
+            rows.add(calculateTotal(partRows, tableType, tableName));
+        }
+
+        return rows;
+    }
 
 
 }

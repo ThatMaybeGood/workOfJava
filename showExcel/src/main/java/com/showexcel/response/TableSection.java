@@ -32,6 +32,10 @@ public class TableSection {
      * 分区类型
      */
     private SectionType type;
+     /**
+     * 分区内行数
+     */
+    private Integer rowCount;
 
     /**
      * 分区内的数据行

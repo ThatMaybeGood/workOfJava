@@ -26,5 +26,5 @@ public class CashStatisticsResponse {
     private TableMetadata metadata;
     private List<String> headers;
     private List<TableSection> sections;
-    private List<TableLayout> layouts;
+//    private List<TableLayout> layouts;
 }
