@@ -38,4 +38,10 @@ public interface HolidayService {
      * 获取节假日类型列表
      */
     List<HolidayType> getHolidayTypes();
+
+
+     /**
+     * 通过日期查询节假日信息
+     */
+    HolidayCalendar findByDate(Date date);
 }
