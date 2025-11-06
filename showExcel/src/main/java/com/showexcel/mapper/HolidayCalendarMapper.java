@@ -2,11 +2,13 @@ package com.showexcel.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.showexcel.model.HolidayCalendar;
+import com.showexcel.model.HolidayType;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -20,15 +22,6 @@ import java.util.Map;
 
 @Mapper
 public interface HolidayCalendarMapper extends BaseMapper<HolidayCalendar> {
-
-    // 不需要写任何方法，就已经拥有了以下功能：
-    // - insert(HolidayCalendar entity)       → 插入数据
-    // - deleteById(Serializable id)         → 根据ID删除
-    // - updateById(HolidayCalendar entity)  → 根据ID更新
-    // - selectById(Serializable id)         → 根据ID查询
-    // - selectList(Wrapper<T> queryWrapper) → 条件查询列表
-    // - selectOne(Wrapper<T> queryWrapper)  → 条件查询单个
-    // - selectCount(Wrapper<T> queryWrapper) → 计数查询
 
     // 自定义查询：根据年份和类型查询
     @Select("SELECT * FROM holiday_calendar WHERE year = #{year} AND holiday_type = #{type}")
@@ -49,6 +42,35 @@ public interface HolidayCalendarMapper extends BaseMapper<HolidayCalendar> {
     int batchInsert(@Param("list") List<HolidayCalendar> holidays);
 
 
+    /**
+     * 获取指定年份的节假日日历
+     */
+    List<HolidayCalendar> getHolidayCalendar(Integer year);
 
+    /**
+     * 批量更新节假日信息
+     */
+    Boolean batchUpdateHolidays(List<HolidayCalendar> holidays);
+
+    /**
+     * 标记某天为节假日或工作日
+     */
+    Boolean markHoliday(Date date, String holidayName, Boolean isHoliday, String holidayType);
+
+    /**
+     * 初始化国家法定节假日
+     */
+    Boolean initNationalHolidays(Integer year);
+
+    /**
+     * 获取节假日类型列表
+     */
+    List<HolidayType> getHolidayTypes();
+
+
+    /**
+     * 通过日期查询节假日信息
+     */
+    HolidayCalendar findByDate(String date);
 
 }

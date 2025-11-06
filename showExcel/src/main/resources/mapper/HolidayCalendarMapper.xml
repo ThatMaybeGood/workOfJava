@@ -25,4 +25,23 @@
             #{item.holidayType}, #{item.year}, #{item.description})
         </foreach>
     </insert>
+
+
+
+    <!-- 通过日期查询 -->
+    <select id="findByDate" resultMap="HolidayByDateMap" >
+            SELECT * FROM holiday_calendar WHERE holiday_date = #{date}
+    </select>
+
+    <resultMap id="HolidayByDateMap" type="com.showexcel.model.HolidayCalendar">
+        <id property="holidayDate" column="holiday_date" />
+        <result property="holidayName" column="holiday_name" />
+        <result property="isHoliday" column="is_holiday" />
+        <result property="holidayType" column="holiday_type" />
+        <result property="year" column="year" />
+        <result property="description" column="description" />
+        <result property="creator" column="creator" />
+        <result property="createdTime" column="created_time" />
+        <result property="updatedTime" column="updated_time" />
+    </resultMap>
 </mapper>

@@ -28,11 +28,14 @@ public class HolidayCalendar {
 
     private Boolean isHoliday;
 
+    // 节假日类型，周末，节假日，工作日 0，1，2
     private String holidayType;
 
     private Integer year;
 
     private String description;
+
+    private String creator;
 
     private Date createdTime;
 
