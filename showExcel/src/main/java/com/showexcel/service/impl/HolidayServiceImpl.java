@@ -100,6 +100,11 @@ public class HolidayServiceImpl implements HolidayService {
     }
 
     @Override
+    public List<String> findHolidayDatesByYear(Integer year) {
+        return holidayCalendarMapper.getHolidayDatesByYear(year);
+    }
+
+    @Override
     public Boolean initNationalHolidays(Integer year) {
         // 这里可以实现初始化国家法定节假日的逻辑
         // 比如从API获取或读取预设数据

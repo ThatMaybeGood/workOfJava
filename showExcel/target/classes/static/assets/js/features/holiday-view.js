@@ -24,8 +24,15 @@ function initializeHolidayView() {
 async function loadHolidays() {
     try {
         // 模拟API调用
-        const holidays = ['2024-01-01', '2024-02-10', '2024-02-11', '2024-02-12'];
-        AppState.holidays = holidays;
+        // const holidays = ['2024-01-01', '2024-02-10', '2024-02-11', '2024-02-12'];
+        // 从API获取节假日数据
+        const response = await fetch('/api/holidays/dates/' + AppState.currentCalendarDate.getFullYear());
+        // 检查响应状态
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        AppState.holidays = data.data || [];
     } catch (error) {
         console.error('加载节假日失败:', error);
         AppState.holidays = [];

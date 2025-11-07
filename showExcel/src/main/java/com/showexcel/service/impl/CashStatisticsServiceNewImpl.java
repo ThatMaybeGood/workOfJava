@@ -151,11 +151,11 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
                 /*
                    后续总计的，可能需要根据调整，当日期为正常节假日时候，就需要前面节假日的累积和显示
                 */
-            if (isAfterHolidayWorkday(date)) {
+//            if (isAfterHolidayWorkday(date)) {
                 rows.add(calculateTotal(allData, tableType, tableName, lastIndex));
-            } else {
-                rows.add(calculateTotal(allData, tableType, tableName, lastIndex));
-            }
+//            } else {
+//                rows.add(calculateTotal(allData, tableType, tableName, lastIndex));
+//            }
         }
 
 
@@ -224,13 +224,20 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
             total.setHisRegistrationIncome(total.getHisRegistrationIncome().add(item.getHisRegistrationIncome()));
             total.setReportAmount(total.getReportAmount().add(item.getReportAmount()));
             total.setPreviousTemporaryReceipt(total.getPreviousTemporaryReceipt().add(item.getPreviousTemporaryReceipt()));
-            total.setActualReportAmount(total.getActualReportAmount().add(item.getActualReportAmount()));
+            //total.setActualReportAmount(total.getActualReportAmount().add(item.getActualReportAmount()));
             total.setCurrentTemporaryReceipt(total.getCurrentTemporaryReceipt().add(item.getCurrentTemporaryReceipt()));
-            total.setActualCashAmount(total.getActualCashAmount().add(item.getActualCashAmount()));
-            total.setRetainedDifference(total.getRetainedDifference().add(item.getRetainedDifference()));
+            //total.setActualCashAmount(total.getActualCashAmount().add(item.getActualCashAmount()));
+            //total.setRetainedDifference(total.getRetainedDifference().add(item.getRetainedDifference()));
             total.setRetainedCash(total.getRetainedCash().add(item.getRetainedCash()));
             total.setPettyCash(total.getPettyCash().add(item.getPettyCash()));
         }
+        // 计算字段
+        total.setActualReportAmount(total.getReportAmount().subtract(total.getHisRegistrationIncome()));
+        total.setActualCashAmount(total.getActualReportAmount().add(total.getCurrentTemporaryReceipt()));
+        total.setRetainedDifference(total.getRetainedCash().subtract(total.getPettyCash()).subtract(total.getActualReportAmount()));
+
+
+
         // 设置合计行的样式和特殊单元格配置
         total.setStyle(RowType.SINGLE_SINGLE_CELL_MERGED_DATA);
         total.setSpecialCells(List.of(new LayoutCell(index, 0, 1, 2, name)));
@@ -251,7 +258,7 @@ public class CashStatisticsServiceNewImpl implements CashStatisticsNewService {
         LocalDate previousDay = current.minusDays(1);
 
         try {
-            HolidayCalendar holiday = holidayCalendarMapper.findByDate(String.valueOf(previousDay));
+            HolidayCalendar holiday = holidayCalendarMapper.getHolidayCalendarByDate(String.valueOf(previousDay));
             if (holiday == null) {
                 return result;
             }

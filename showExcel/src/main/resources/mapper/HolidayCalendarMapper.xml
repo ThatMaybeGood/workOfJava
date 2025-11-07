@@ -29,9 +29,11 @@
 
 
     <!-- 通过日期查询 -->
-    <select id="findByDate" resultMap="HolidayByDateMap" >
+    <select id="getHolidayCalendarByDate" resultMap="HolidayByDateMap" >
             SELECT * FROM holiday_calendar WHERE holiday_date = #{date}
     </select>
+
+
 
     <resultMap id="HolidayByDateMap" type="com.showexcel.model.HolidayCalendar">
         <id property="holidayDate" column="holiday_date" />
@@ -44,4 +46,9 @@
         <result property="createdTime" column="created_time" />
         <result property="updatedTime" column="updated_time" />
     </resultMap>
+
+    <!-- 通过年查询日期所有 -->
+    <select id="getHolidayDatesByYear" resultType="java.lang.String">
+        SELECT holiday_date FROM holiday_calendar WHERE year = #{year}
+    </select>
 </mapper>

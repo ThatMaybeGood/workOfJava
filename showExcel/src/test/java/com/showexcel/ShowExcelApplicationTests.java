@@ -24,7 +24,7 @@ class ShowExcelApplicationTests {
         String targetDate = "2025-10-30";
 
         // Act
-        HolidayCalendar result = holidayCalendarMapper.findByDate(targetDate);
+        HolidayCalendar result = holidayCalendarMapper.getHolidayCalendarByDate(targetDate);
 
         // Assert
         assertNotNull(result, "查询结果不应为空");
