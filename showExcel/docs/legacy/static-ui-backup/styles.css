@@ -522,7 +522,7 @@ tbody tr:nth-child(even):hover td {
 }
 
 .holiday-list {
-    max-height: 400px;
+    max-height: 800px;
     overflow-y: auto;
     margin-top: 15px;
 }

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/holiday")
+@RequestMapping("/api/holidays")
 @Slf4j
 public class HolidayController {
 
@@ -87,6 +87,20 @@ public class HolidayController {
         }
     }
 
+
+    @GetMapping("/dates/{year}")
+    public Result<List<String>> getHolidayDatesByYear(@PathVariable Integer year) {
+        try {
+            // 调用服务层的方法进行标记操作，此处仅为示意代码
+            List<String> result = holidayService.findHolidayDatesByYear(year);
+            return Result.success(result);
+        } catch (Exception e) {
+            log.error("获取节假日日期失败", e);
+            return Result.error("获取节假日日期失败");
+        }
+    }
+
+
     @GetMapping("/")
     public Result<String> getHolidayApiInfo() {
         return Result.success("节假日API服务已启动，可用端点：/calendar, /batch-update, /mark, /types");
@@ -96,4 +110,5 @@ public class HolidayController {
     public String redirectToSlash() {
         return "redirect:/api/holiday/";
     }
+
 }

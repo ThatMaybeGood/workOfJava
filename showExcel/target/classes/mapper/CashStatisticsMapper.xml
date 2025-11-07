@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.showexcel.mapper.HolidayCalendarMapper">
+<mapper namespace="com.showexcel.mapper.CashStatisticsMapper">
 
     <!-- 复杂查询：统计每年的节假日数量 -->
     <select id="countHolidaysByYear" resultType="map">

@@ -71,6 +71,11 @@ public interface HolidayCalendarMapper extends BaseMapper<HolidayCalendar> {
     /**
      * 通过日期查询节假日信息
      */
-    HolidayCalendar findByDate(String date);
+    HolidayCalendar getHolidayCalendarByDate(String date);
+
+    /**
+     * 获取指定年份的所有节假日日期
+     */
+    List<String>  getHolidayDatesByYear(@Param("year") Integer year);
 
 }
