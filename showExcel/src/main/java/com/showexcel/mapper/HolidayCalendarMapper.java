@@ -1,8 +1,8 @@
 package com.showexcel.mapper;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.showexcel.model.HolidayCalendar;
-import com.showexcel.model.HolidayType;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -38,35 +38,6 @@ public interface HolidayCalendarMapper extends BaseMapper<HolidayCalendar> {
     List<Map<String, Object>> countHolidaysByYear(@Param("startYear") Integer startYear,
                                                   @Param("endYear") Integer endYear);
 
-    // 批量插入
-    int batchInsert(@Param("list") List<HolidayCalendar> holidays);
-
-
-    /**
-     * 获取指定年份的节假日日历
-     */
-    List<HolidayCalendar> getHolidayCalendar(Integer year);
-
-    /**
-     * 批量更新节假日信息
-     */
-    Boolean batchUpdateHolidays(List<HolidayCalendar> holidays);
-
-    /**
-     * 标记某天为节假日或工作日
-     */
-    Boolean markHoliday(Date date, String holidayName, Boolean isHoliday, String holidayType);
-
-    /**
-     * 初始化国家法定节假日
-     */
-    Boolean initNationalHolidays(Integer year);
-
-    /**
-     * 获取节假日类型列表
-     */
-    List<HolidayType> getHolidayTypes();
-
 
     /**
      * 通过日期查询节假日信息
@@ -76,6 +47,12 @@ public interface HolidayCalendarMapper extends BaseMapper<HolidayCalendar> {
     /**
      * 获取指定年份的所有节假日日期
      */
-    List<String>  getHolidayDatesByYear(@Param("year") Integer year);
+    List<HolidayCalendar>  getHolidayDatesByYear(@Param("year") Integer year);
+
+    HolidayCalendar selectOne(QueryWrapper<HolidayCalendar> queryWrapper);
+
+    int updateById(HolidayCalendar holiday);
+
+    int insert(HolidayCalendar holiday);
 
 }

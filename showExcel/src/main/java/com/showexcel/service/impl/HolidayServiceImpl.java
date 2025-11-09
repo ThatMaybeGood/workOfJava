@@ -100,8 +100,10 @@ public class HolidayServiceImpl implements HolidayService {
     }
 
     @Override
-    public List<String> findHolidayDatesByYear(Integer year) {
-        return holidayCalendarMapper.getHolidayDatesByYear(year);
+    public List<HolidayCalendar> findHolidayDatesByYear(Integer year) {
+        List<HolidayCalendar> holidayDatesByYear = holidayCalendarMapper.getHolidayDatesByYear(year);
+        log.info("查询到{}年的节假日信息：{}", year, holidayDatesByYear);
+        return holidayDatesByYear;
     }
 
     @Override

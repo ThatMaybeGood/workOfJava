@@ -34,7 +34,6 @@
     </select>
 
 
-
     <resultMap id="HolidayByDateMap" type="com.showexcel.model.HolidayCalendar">
         <id property="holidayDate" column="holiday_date" />
         <result property="holidayName" column="holiday_name" />
@@ -48,7 +47,15 @@
     </resultMap>
 
     <!-- 通过年查询日期所有 -->
-    <select id="getHolidayDatesByYear" resultType="java.lang.String">
-        SELECT holiday_date FROM holiday_calendar WHERE year = #{year}
+    <select id="getHolidayDatesByYear" resultType="com.showexcel.model.HolidayCalendar">
+        SELECT * FROM holiday_calendar WHERE year = #{year}
     </select>
+
+
+    <!-- 通过年查询日期所有 -->
+    <select id="selectOne" resultType="java.lang.String">
+        SELECT * FROM holiday_calendar
+    </select>
+
+
 </mapper>

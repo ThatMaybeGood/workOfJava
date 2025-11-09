@@ -48,7 +48,7 @@ public interface HolidayService {
      /**
      * 获取指定年份的所有节假日日期
      */
-    List<String>  findHolidayDatesByYear(Integer year);
+    List<HolidayCalendar>  findHolidayDatesByYear(Integer year);
 
 
 
