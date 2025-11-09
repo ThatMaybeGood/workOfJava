@@ -23,14 +23,16 @@ public class HolidayController {
      * @param year 要查询的年份
      * @return 包含节假日日历列表的Result对象，成功时包含数据，失败时包含错误信息
      */
-    @GetMapping("/calendar")
-    public Result<List<HolidayCalendar>> getCalendar(@RequestParam Integer year) {
+    @GetMapping("/holiday/{year}")
+    public Result<List<HolidayCalendar>> getHolidayDatesByYear(@PathVariable Integer year) {
         try {
-            List<HolidayCalendar> calendar = holidayService.getHolidayCalendar(year);
-            return Result.success(calendar);
+            // 调用服务层的方法进行标记操作，此处仅为示意代码
+            List<HolidayCalendar> result = holidayService.findHolidayDatesByYear(year);
+
+            return Result.success(result);
         } catch (Exception e) {
-            log.error("获取节假日日历失败", e);
-            return Result.error("获取节假日日历失败");
+            log.error("获取节假日日期失败", e);
+            return Result.error("获取节假日日期失败");
         }
     }
 
@@ -76,34 +78,9 @@ public class HolidayController {
         }
     }
 
-    @GetMapping("/types")
-    public Result<List<HolidayType>> getHolidayTypes() {
-        try {
-            List<HolidayType> types = holidayService.getHolidayTypes();
-            return Result.success(types);
-        } catch (Exception e) {
-            log.error("获取节假日类型失败", e);
-            return Result.error("获取节假日类型失败");
-        }
-    }
-
-
-    @GetMapping("/dates/{year}")
-    public Result<List<String>> getHolidayDatesByYear(@PathVariable Integer year) {
-        try {
-            // 调用服务层的方法进行标记操作，此处仅为示意代码
-            List<String> result = holidayService.findHolidayDatesByYear(year);
-            return Result.success(result);
-        } catch (Exception e) {
-            log.error("获取节假日日期失败", e);
-            return Result.error("获取节假日日期失败");
-        }
-    }
-
-
     @GetMapping("/")
     public Result<String> getHolidayApiInfo() {
-        return Result.success("节假日API服务已启动，可用端点：/calendar, /batch-update, /mark, /types");
+        return Result.success("节假日API服务已启动，可用端点：/holiday, /batch-update, /mark");
     }
 
     @GetMapping("")
