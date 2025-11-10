@@ -1,27 +1,44 @@
-# Getting Started
+## 示例 1：带输入参数和输出参数的存储过程
+```sql
+-- 示例 1：带输入参数和输出参数的存储过程
+-- 创建存储过程：根据部门ID获取员工数量
+CREATE OR REPLACE PROCEDURE GET_EMPLOYEE_COUNT(
+    p_dept_id IN NUMBER,
+    p_count OUT NUMBER
+) AS
+BEGIN
+    SELECT COUNT(*) INTO p_count FROM employees WHERE department_id = p_dept_id;
+END;
+/
 
-### Reference Documentation
-
-For further reference, please consider the following sections:
-
-* [Official Apache Maven documentation](https://maven.apache.org/guides/index.html)
-* [Spring Boot Maven Plugin Reference Guide](https://docs.spring.io/spring-boot/3.5.7/maven-plugin)
-* [Create an OCI image](https://docs.spring.io/spring-boot/3.5.7/maven-plugin/build-image.html)
-* [Spring Web](https://docs.spring.io/spring-boot/3.5.7/reference/web/servlet.html)
-
-### Guides
-
-The following guides illustrate how to use some features concretely:
-
-* [Building a RESTful Web Service](https://spring.io/guides/gs/rest-service/)
-* [Serving Web Content with Spring MVC](https://spring.io/guides/gs/serving-web-content/)
-* [Building REST services with Spring](https://spring.io/guides/tutorials/rest/)
-
-### Maven Parent overrides
-
-Due to Maven's design, elements are inherited from the parent POM to the project POM.
-While most of the inheritance is fine, it also inherits unwanted elements like `<license>` and `<developers>` from the
-parent.
-To prevent this, the project POM contains empty overrides for these elements.
-If you manually switch to a different parent and actually want the inheritance, you need to remove those overrides.
-
+-- 创建存储过程：增加员工工资
+CREATE OR REPLACE PROCEDURE INCREASE_SALARY(
+    p_dept_id IN NUMBER,
+    p_percent IN NUMBER,
+    p_updated_count OUT NUMBER
+) AS
+BEGIN
+    UPDATE employees 
+    SET salary = salary * (1 + p_percent/100) 
+    WHERE department_id = p_dept_id;
+    
+    p_updated_count := SQL%ROWCOUNT;
+    COMMIT;
+END;
+/
+```
+## 示例 2：返回游标的存储过程
+```sql
+-- 创建返回游标的存储过程
+CREATE OR REPLACE PROCEDURE GET_EMPLOYEES_BY_DEPT(
+    p_dept_id IN NUMBER,
+    p_cursor OUT SYS_REFCURSOR
+) AS
+BEGIN
+    OPEN p_cursor FOR
+    SELECT employee_id, employee_name, salary, department_id
+    FROM employees 
+    WHERE department_id = p_dept_id;
+END;
+/
+```
