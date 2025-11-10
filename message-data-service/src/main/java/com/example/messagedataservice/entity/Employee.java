@@ -1,5 +1,8 @@
 package com.example.messagedataservice.entity;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 import java.math.BigDecimal;
 
 /**
