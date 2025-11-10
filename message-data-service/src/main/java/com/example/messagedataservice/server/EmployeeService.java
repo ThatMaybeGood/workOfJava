@@ -77,4 +77,10 @@ public class EmployeeService {
             throw new BusinessException("VALID_004", "员工薪资必须大于等于0");
         }
     }
+
+
+    // 保存员工信息到数据库的逻辑...
+    public Employee saveEmployee(Employee employee) {
+        return null;
+    }
 }
