@@ -5,15 +5,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f5e93bba-4bf8-4603-8f6b-5adf75c26676" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/message-data-service/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/message-data-service/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/showExcel/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/showExcel/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/jarRepositories.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/message-data-service/HELP.md" beforeDir="false" afterPath="$PROJECT_DIR$/message-data-service/HELP.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/jarRepositories.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/message-data-service/src/main/java/com/example/messagedataservice/config/DruidConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/message-data-service/src/main/java/com/example/messagedataservice/server/DruidCheckService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/message-data-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/message-data-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/message-data-service/src/main/java/com/example/messagedataservice/entity/Employee.java" beforeDir="false" afterPath="$PROJECT_DIR$/message-data-service/src/main/java/com/example/messagedataservice/entity/Employee.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/message-data-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/message-data-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/showExcel/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/showExcel/pom.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -75,7 +75,9 @@
     "RequestMappingsPanelWidth1": "75",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "WebServerToolWindowFactoryState": "false",
+    "codeReviewSummary": "[]",
     "jdk.selected.JAVA_MODULE": "17",
     "last_opened_file_path": "D:/JetBrains/Projects/IdeaProjects/workOfJava/showExcel",
     "node.js.detected.package.eslint": "true",
@@ -87,7 +89,7 @@
     "project.structure.proportion": "0.15",
     "project.structure.side.proportion": "0.2",
     "settings.editor.selected.configurable": "com.baidu.comate.intellij.config.id",
-    "spring.configuration.checksum": "e91c7ddb62448bce3c743f7712c50208",
+    "spring.configuration.checksum": "15a69574ef3b422007ec502eb04e3292",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -113,19 +115,6 @@
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration default="true" type="JetRunConfigurationType">
-      <module name="showExcel" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
-      <module name="showExcel" />
-      <option name="filePath" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
@@ -172,6 +161,8 @@
       <workItem from="1762776842744" duration="1978000" />
       <workItem from="1762782495224" duration="59000" />
       <workItem from="1762782560587" duration="954000" />
+      <workItem from="1762783525034" duration="74000" />
+      <workItem from="1762868297971" duration="3412000" />
     </task>
     <servers />
   </component>

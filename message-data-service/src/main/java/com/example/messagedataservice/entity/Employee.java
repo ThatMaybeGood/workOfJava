@@ -1,5 +1,6 @@
 package com.example.messagedataservice.entity;
 
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -12,6 +13,8 @@ import java.math.BigDecimal;
  * @date 2025/11/10 17:39
  */
 public class Employee {
+    @JacksonXmlProperty(localName = "user_id")
+
     private Long employeeId;
     @NotBlank(message = "员工姓名不能为空")
     @Size(min = 2, max = 50, message = "员工姓名长度必须在2-50字符之间")
