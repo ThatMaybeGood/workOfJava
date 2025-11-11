@@ -52,10 +52,10 @@
             <version>8.0.33</version>
         </dependency>
 
-        <!-- Druid连接池 -->
+        <!-- Druid连接池 (Spring Boot 3兼容版本) -->
         <dependency>
             <groupId>com.alibaba</groupId>
-            <artifactId>druid-spring-boot-starter</artifactId>
+            <artifactId>druid-spring-boot-3-starter</artifactId>
             <version>1.2.20</version>
         </dependency>
         <dependency>
