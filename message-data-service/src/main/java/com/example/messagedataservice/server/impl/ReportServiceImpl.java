@@ -16,6 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -41,20 +42,39 @@ public class generateReportImpl implements generateReportService {
     private RestTemplate restTemplate;
 
     @Override
-    public List<ReportDTO> getAll(Date reportDate) {
+    public List<ReportDTO> getAll(LocalDate reportDate) {
 
         // 1、判断当前日期类型  0 正常 ，1 节假日 ，2 节假日前一天 3 节假日后一天
         // 2、根据日期类型获取对应的操作员数据
         // 3、将获取到的数据转换为DTO对象，并填充到结果集中
-        return  getAllData(reportDate);
+        return  getAllReportData(reportDate);
     }
-
-
 
     @Override
-    public Boolean insert(Date reportDate) {
+    public Boolean insert(LocalDate reportDate) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         return null;
     }
+
 
     // 安全获取Double值
     private Double getSafeDouble(Double value) {
@@ -70,7 +90,7 @@ public class generateReportImpl implements generateReportService {
 
 
 
-    public List<ReportDTO> getAllData(Date reportDate) {
+    public List<ReportDTO> getAllReportData(LocalDate reportDate) {
 
         // 1. 获取所有数据（列表形式）
         List<HisOperator> operators = getHisOperatorsData(reportDate); // 操作员列表
@@ -135,9 +155,6 @@ public class generateReportImpl implements generateReportService {
             dto.setRetainedDifference(cashRecord.getRetainedCash() - dto.getActualReportAmount() - dto.getPettyCash());
 
 
-
-
-
             // 计算其他衍生字段
             calculateDerivedFields(dto);
 
@@ -158,16 +175,39 @@ public class generateReportImpl implements generateReportService {
     根据日期的情况分类得到最后时间，
      1、判断当前日期类型  0 正常 ，1 节假日 ，2 节假日前一天 3 节假日后一天
      */
-    public double getActualReportAmount(Date reportDate) {
+    public double getActualReportAmount(LocalDate reportDate) {
         Double amount = 0.00;
 
-        //1、判断日期是否在节假日中,只获取为1的数据
+        //1、获取目前维护的节假日列表
         List<HolidayCalendar> holidayCalendars  = getHolidayCalendar();
 
         if (holidayCalendars.isEmpty()) {
             log.warn("No holiday calendar data found.");
             return amount;
         }
+
+        //1、判断当前日期是否为节假日
+        if(isDateInvalid(holidayCalendars,reportDate)){
+            //节假日
+        }
+
+        if(isDateInvalid(holidayCalendars,reportDate.minusDays(1))){
+            //节假日后一天
+
+        }
+
+        if(isDateInvalid(holidayCalendars,reportDate.plusDays(1))){
+            //节假日前一天
+        }
+
+        //正常情况
+
+        amount = 0.00;
+
+
+
+
+
 
         return amount;
 
@@ -177,14 +217,14 @@ public class generateReportImpl implements generateReportService {
     /**
      * 最优解：字符串作废标志的HashSet方案
      */
-    public boolean isDateInvalid(List<HolidayCalendar> holidayList, Date targetDate) {
+    public boolean isDateInvalid(List<HolidayCalendar> holidayList, LocalDate targetDate) {
         if (holidayList == null || targetDate == null) {
             return false;
         }
 
-        // 创建作废日期的HashSet
-        Set<Date> invalidHolidayDates = holidayList.stream()
-                .filter(holiday -> "1".equals(holiday.getValid())) // 字符串"1"表示作废
+        // 创建有效日期的HashSet
+        Set<LocalDate> invalidHolidayDates = holidayList.stream()
+                .filter(holiday -> "1".equals(holiday.getValid())) // 字符串"1"表示有效
                 .map(HolidayCalendar::getHolidayDate)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
@@ -212,7 +252,7 @@ public class generateReportImpl implements generateReportService {
 
 
     // 获取his数据列表
-    public List<HisData> getHisData(Date reportDate) {
+    public List<HisData> getHisData(LocalDate reportDate) {
         try {
             // 假设API返回的是HisData数组
             ResponseEntity<HisData[]> response = restTemplate.getForEntity(HIS_DATA_URL, HisData[].class, reportDate);
@@ -230,7 +270,7 @@ public class generateReportImpl implements generateReportService {
     }
 
     // 获取YQ数据列表
-    public List<YQCashRegRecord> getYQData(Date reportDate) {
+    public List<YQCashRegRecord> getYQData(LocalDate reportDate) {
         try {
             // 假设API返回的是YQCashRegRecord数组
             ResponseEntity<YQCashRegRecord[]> response = restTemplate.getForEntity(YQ_DATA_URL, YQCashRegRecord[].class, reportDate);
@@ -248,7 +288,7 @@ public class generateReportImpl implements generateReportService {
     }
 
     // 获取操作员列表
-    public List<HisOperator> getHisOperatorsData(Date reportDate) {
+    public List<HisOperator> getHisOperatorsData(LocalDate reportDate) {
         try {
             // 假设API返回的是HisOperator数组
             ResponseEntity<HisOperator[]> response = restTemplate.getForEntity(OPERATOR_URL, HisOperator[].class, reportDate);

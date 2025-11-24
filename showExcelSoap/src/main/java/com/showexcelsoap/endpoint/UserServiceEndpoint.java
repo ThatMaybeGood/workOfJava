@@ -13,6 +13,12 @@ public class UserServiceEndpoint {
 
     private static final String NAMESPACE_URI = "http://example.com/webservice";
 
+    /**
+     * 根据用户ID获取用户信息
+     *
+     * @param request GetUserRequest请求对象，包含用户ID
+     * @return GetUserResponse响应对象，包含查询到的用户信息
+     */
     @PayloadRoot(namespace = NAMESPACE_URI, localPart = "GetUserRequest")
     @ResponsePayload
     public GetUserResponse getUser(@RequestPayload GetUserRequest request) {
@@ -32,6 +38,12 @@ public class UserServiceEndpoint {
         return response;
     }
 
+    /**
+     * 创建新用户
+     *
+     * @param request CreateUserRequest请求对象，包含用户基本信息
+     * @return CreateUserResponse响应对象，包含创建的用户信息和操作结果消息
+     */
     @PayloadRoot(namespace = NAMESPACE_URI, localPart = "CreateUserRequest")
     @ResponsePayload
     public CreateUserResponse createUser(@RequestPayload CreateUserRequest request) {
