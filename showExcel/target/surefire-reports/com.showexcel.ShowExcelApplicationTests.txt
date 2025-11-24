@@ -1,0 +1,19 @@
+-------------------------------------------------------------------------------
+Test set: com.showexcel.ShowExcelApplicationTests
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 33.86 s <<< FAILURE! -- in com.showexcel.ShowExcelApplicationTests
+com.showexcel.ShowExcelApplicationTests.contextLoads -- Time elapsed: 0.024 s <<< ERROR!
+org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.showexcel.mapper.HolidayCalendarMapper.getHolidayCalendarByDate
+	at org.apache.ibatis.binding.MapperMethod$SqlCommand.<init>(MapperMethod.java:229)
+	at com.baomidou.mybatisplus.core.override.MybatisMapperMethod.<init>(MybatisMapperMethod.java:50)
+	at com.baomidou.mybatisplus.core.override.MybatisMapperProxy.lambda$cachedInvoker$0(MybatisMapperProxy.java:99)
+	at java.base/java.util.concurrent.ConcurrentHashMap.computeIfAbsent(ConcurrentHashMap.java:1708)
+	at org.apache.ibatis.util.MapUtil.computeIfAbsent(MapUtil.java:36)
+	at com.baomidou.mybatisplus.core.override.MybatisMapperProxy.cachedInvoker(MybatisMapperProxy.java:97)
+	at com.baomidou.mybatisplus.core.override.MybatisMapperProxy.invoke(MybatisMapperProxy.java:89)
+	at jdk.proxy2/jdk.proxy2.$Proxy139.getHolidayCalendarByDate(Unknown Source)
+	at com.showexcel.ShowExcelApplicationTests.contextLoads(ShowExcelApplicationTests.java:26)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+

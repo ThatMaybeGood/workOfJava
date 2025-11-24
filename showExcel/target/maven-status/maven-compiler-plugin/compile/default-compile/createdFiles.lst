@@ -4,6 +4,7 @@ com\showexcel\model\CashStatistics.class
 com\showexcel\response\TableMetadata$TableMetadataBuilder.class
 com\showexcel\dto\CashStatisticsRow.class
 com\showexcel\response\CashStatisticsResponse$CashStatisticsResponseBuilder.class
+com\showexcel\model\PowerCashStatistics.class
 com\showexcel\response\TableMetadata.class
 com\showexcel\response\TableSection$TableSectionBuilder.class
 com\showexcel\controller\MarkHolidayRequest.class
