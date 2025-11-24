@@ -18,7 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(origins = "*")
-public class CommonController {
+public class ReportController {
 
     @Autowired
     private generateReportService generateReportService;

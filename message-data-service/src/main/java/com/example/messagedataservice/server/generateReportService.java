@@ -1,8 +1,15 @@
 package com.example.messagedataservice.server;
 
-import com.example.messagedataservice.model.CashStattisticsMain;
+import com.example.messagedataservice.dto.ReportDTO;
 
-public interface CommonExecuteProcedureService {
+import java.util.Date;
+import java.util.List;
 
-    CashStattisticsMain exec(String parm);
+public interface generateReportService {
+
+    // 生成报表，返回操作员编号和对应的DTO对象
+    List<ReportDTO> getAll(Date reportDate);
+
+    // 插入数据到数据库，返回是否成功
+    Boolean insert(Date reportDate);
 }
