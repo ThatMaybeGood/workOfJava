@@ -1,35 +1,16 @@
-spring.application.name=message-data-service
+# 应用基本配置
+spring:
+  application:
+    name: medical-data-service
+  profiles:
+    active: dev  # 默认激活开发环境
 
+# 服务器配置
+server:
+  port: 8080
 
-
-# ???????
-spring.datasource.type=com.alibaba.druid.pool.DruidDataSource
-spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
-spring.datasource.url=jdbc:oracle:thin:@localhost:1521:XE
-spring.datasource.username=your_username
-spring.datasource.password=your_password
-
-# Druid ?????
-spring.datasource.druid.initial-size=5
-spring.datasource.druid.min-idle=5
-spring.datasource.druid.max-active=20
-spring.datasource.druid.max-wait=60000
-spring.datasource.druid.time-between-eviction-runs-millis=60000
-spring.datasource.druid.min-evictable-idle-time-millis=300000
-spring.datasource.druid.validation-query=SELECT 1 FROM DUAL
-spring.datasource.druid.test-while-idle=true
-spring.datasource.druid.test-on-borrow=false
-spring.datasource.druid.test-on-return=false
-
-# ????
-spring.datasource.druid.web-stat-filter.enabled=true
-spring.datasource.druid.web-stat-filter.url-pattern=/*
-spring.datasource.druid.web-stat-filter.exclusions=*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*
-
-spring.datasource.druid.stat-view-servlet.enabled=true
-spring.datasource.druid.stat-view-servlet.url-pattern=/druid/*
-spring.datasource.druid.stat-view-servlet.reset-enable=false
-spring.datasource.druid.stat-view-servlet.login-username=admin
-spring.datasource.druid.stat-view-servlet.login-password=admin123
-spring.datasource.druid.stat-view-servlet.allow=127.0.0.1
-spring.datasource.druid.stat-view-servlet.deny=192.168.1.100
+# 日志配置
+logging:
+  level:
+    com.yourcompany: INFO
+    org.springframework: WARN
