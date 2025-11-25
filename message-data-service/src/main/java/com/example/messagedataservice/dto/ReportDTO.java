@@ -1,6 +1,7 @@
 package com.example.messagedataservice.dto;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class ReportDTO {
     // 操作员基础信息
@@ -84,7 +85,7 @@ public class ReportDTO {
 
 
     private LocalDate reportDate;
-    private LocalDate createTime;
+    private LocalDateTime createTime;
 
     public String getOperatorNo() {
         return operatorNo;
@@ -246,11 +247,11 @@ public class ReportDTO {
         this.reportDate = reportDate;
     }
 
-    public LocalDate getCreateTime() {
+    public LocalDateTime getCreateTime() {
         return createTime;
     }
 
-    public void setCreateTime(LocalDate createTime) {
+    public void setCreateTime(LocalDateTime createTime) {
         this.createTime = createTime;
     }
 }
