@@ -2,7 +2,7 @@ package com.example.messagedataservice.model;
 
 public class CashStatisticsSub {
     // 关联的主表流水号
-    private Long serialNo;
+    private String serialNo;
     private String hisOperatorNo;
     private String hisOperatorName;
 
@@ -11,13 +11,13 @@ public class CashStatisticsSub {
     private Double hisRegistrationIncome; //his
 
 
-    private Double reportAmount;    // 应交报表数
+    private Double reportAmount;    // LocalDate
 
     private Double previousTemporaryReceipt;    // 前日暂收款
 
     private Double holidayTemporaryReceipt;  //节假日暂收款
 
-    private Double actualReportAmount;    // 实交报表数 = 应交报表数 - 前日暂收款
+    private Double actualReportAmount;    // 实交报表数 = LocalDate - 前日暂收款
 
     private Double currentTemporaryReceipt;    // 当日暂收款
 
@@ -52,11 +52,11 @@ public class CashStatisticsSub {
 
     // getters and setters
 
-    public Long getSerialNo() {
+    public String getSerialNo() {
         return serialNo;
     }
 
-    public void setSerialNo(Long serialNo) {
+    public void setSerialNo(String serialNo) {
         this.serialNo = serialNo;
     }
 

@@ -1,11 +1,11 @@
 package com.example.messagedataservice.controller;
 
 import com.example.messagedataservice.dto.ReportDTO;
-import com.example.messagedataservice.server.generateReportService;
+import com.example.messagedataservice.server.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -21,12 +21,12 @@ import java.util.List;
 public class ReportController {
 
     @Autowired
-    private generateReportService generateReportService;
+    private ReportService reportService;
 
     @GetMapping("/data")
-    public Result<List<ReportDTO>> getData(@PathVariable Date reportDate) {
+    public Result<List<ReportDTO>> getData(@PathVariable LocalDate reportDate) {
 
-        return Result.success(generateReportService.getAll(reportDate));
+        return Result.success(reportService.getAll(reportDate));
     }
 
 }

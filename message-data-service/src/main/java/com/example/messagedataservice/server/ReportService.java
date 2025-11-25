@@ -5,12 +5,16 @@ import com.example.messagedataservice.dto.ReportDTO;
 import java.time.LocalDate;
 import java.util.List;
 
-public interface generateReportService {
+public interface ReportService {
 
-    // 生成报表，返回操作员编号和对应的DTO对象
+    /*
+     * 根据日期查询所有报表数据
+     */
     List<ReportDTO> getAll(LocalDate reportDate);
 
-    // 插入数据到数据库，返回是否成功
+    /*
+     * 根据日期插入报表数据
+     */
     Boolean insert(LocalDate reportDate);
 
 

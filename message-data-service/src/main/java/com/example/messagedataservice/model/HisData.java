@@ -1,12 +1,13 @@
 package com.example.messagedataservice.model;
 
-import java.util.Date;
+
+import java.time.LocalDate;
 
 public class HisData {
     private String  operatorNo;
     private Double  hisAdvancePayment; //his
     private Double  hisMedicalIncome; //his
-    private Date  reportDate;
+    private LocalDate  reportDate;
 
     public String getOperatorNo() {
         return operatorNo;
@@ -32,11 +33,11 @@ public class HisData {
         this.hisMedicalIncome = hisMedicalIncome;
     }
 
-    public Date getReportDate() {
+    public LocalDate getReportDate() {
         return reportDate;
     }
 
-    public void setReportDate(Date reportDate) {
+    public void setReportDate(LocalDate reportDate) {
         this.reportDate = reportDate;
     }
 }

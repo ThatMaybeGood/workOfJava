@@ -1,4 +1,4 @@
-package com.example.messagedataservice.server;
+package com.example.messagedataservice.server.impl;
 
 import com.alibaba.druid.pool.DruidDataSource;
 import jakarta.annotation.PostConstruct;
@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 
 @Component
-public class DruidCheckService {
+public class DruidCheckServiceImpl {
 
     @Autowired
     private DataSource dataSource;

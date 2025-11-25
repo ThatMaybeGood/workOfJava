@@ -4,23 +4,24 @@ package com.example.messagedataservice.model;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDate;
+
 
 /**
  * @author Mine
  * @version 1.0
  * 描述:
- * @date 2025/10/30 10:46
+ * @LocalDate 2025/10/30 10:46
  */
 // HolidayCalendar.java
 @Data
 //@TableName("holiday_calendar")
 public class HolidayCalendar {
 //    @TableId(type = IdType.AUTO)
-    private Long serialNo;
+    private String serialNo;
 
     @JsonFormat(pattern = "yyyy-MM-dd")
-    private Date holidayDate;
+    private LocalDate holidayDate;
 
     private String holidayName;
 
@@ -35,24 +36,24 @@ public class HolidayCalendar {
 
     private String creator;
 
-    private Date createdTime;
+    private LocalDate createdTime;
 
-    private Date updatedTime;
+    private LocalDate updatedTime;
 
 
-    public Long getSerialNo() {
+    public String getSerialNo() {
         return serialNo;
     }
 
-    public void setSerialNo(Long serialNo) {
+    public void setSerialNo(String serialNo) {
         this.serialNo = serialNo;
     }
 
-    public Date getHolidayDate() {
+    public LocalDate getHolidayDate() {
         return holidayDate;
     }
 
-    public void setHolidayDate(Date holidayDate) {
+    public void setHolidayDate(LocalDate holidayDate) {
         this.holidayDate = holidayDate;
     }
 
@@ -104,19 +105,19 @@ public class HolidayCalendar {
         this.creator = creator;
     }
 
-    public Date getCreatedTime() {
+    public LocalDate getCreatedTime() {
         return createdTime;
     }
 
-    public void setCreatedTime(Date createdTime) {
+    public void setCreatedTime(LocalDate createdTime) {
         this.createdTime = createdTime;
     }
 
-    public Date getUpdatedTime() {
+    public LocalDate getUpdatedTime() {
         return updatedTime;
     }
 
-    public void setUpdatedTime(Date updatedTime) {
+    public void setUpdatedTime(LocalDate updatedTime) {
         this.updatedTime = updatedTime;
     }
 }

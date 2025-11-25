@@ -5,26 +5,26 @@ import com.example.messagedataservice.model.HisData;
 import com.example.messagedataservice.model.HisOperator;
 import com.example.messagedataservice.model.HolidayCalendar;
 import com.example.messagedataservice.model.YQCashRegRecord;
-import com.example.messagedataservice.server.generateReportService;
+import com.example.messagedataservice.server.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
-public class generateReportImpl implements generateReportService {
+public class ReportServiceImpl implements ReportService {
 
-    private static final Logger log = LoggerFactory.getLogger(generateReportImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(ReportServiceImpl.class);
 
     @Value("${api.his.url}")
     private String HIS_DATA_URL;
@@ -36,7 +36,14 @@ public class generateReportImpl implements generateReportService {
     private String OPERATOR_URL;
 
     @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private HisDataService hisDataService;
+    @Autowired
+    private YQCashRegRecordService yqCashRegRecordService;
+    @Autowired
+    private HisOperatorService hisOperatorService;
+    @Autowired
+    private HolidayCalendarService holidayCalendarService;
+
 
     @Autowired
     private RestTemplate restTemplate;
@@ -52,25 +59,6 @@ public class generateReportImpl implements generateReportService {
 
     @Override
     public Boolean insert(LocalDate reportDate) {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         return null;
     }
@@ -93,9 +81,9 @@ public class generateReportImpl implements generateReportService {
     public List<ReportDTO> getAllReportData(LocalDate reportDate) {
 
         // 1. 获取所有数据（列表形式）
-        List<HisOperator> operators = getHisOperatorsData(reportDate); // 操作员列表
-        List<HisData> hisDataList = getHisData(reportDate);           // His数据列表
-        List<YQCashRegRecord> yqDataList = getYQData(reportDate);     // YQ数据列表
+        List<HisOperator> operators = hisOperatorService.findData(); // 操作员列表
+        List<HisData> hisDataList = hisDataService.findByDate(reportDate);           // His数据列表
+        List<YQCashRegRecord> yqDataList = yqCashRegRecordService.findByDate(reportDate);     // YQ数据列表
 
         // 2. 将关联数据转换为以 operatorNo 为key的Map
         Map<String, HisData> hisDataMap = hisDataList.stream()
@@ -179,7 +167,7 @@ public class generateReportImpl implements generateReportService {
         Double amount = 0.00;
 
         //1、获取目前维护的节假日列表
-        List<HolidayCalendar> holidayCalendars  = getHolidayCalendar();
+        List<HolidayCalendar> holidayCalendars  = holidayCalendarService.findByDate(reportDate);
 
         if (holidayCalendars.isEmpty()) {
             log.warn("No holiday calendar data found.");
@@ -193,7 +181,15 @@ public class generateReportImpl implements generateReportService {
 
         if(isDateInvalid(holidayCalendars,reportDate.minusDays(1))){
             //节假日后一天
+            while (true){
+                reportDate = reportDate.minusDays(1);
+                if(isDateInvalid(holidayCalendars,reportDate)){
+                    break;
+                }else{
+                    amount = amount + 0.00;
+                }
 
+            }
         }
 
         if(isDateInvalid(holidayCalendars,reportDate.plusDays(1))){
@@ -201,8 +197,6 @@ public class generateReportImpl implements generateReportService {
         }
 
         //正常情况
-
-        amount = 0.00;
 
 
 
@@ -217,91 +211,21 @@ public class generateReportImpl implements generateReportService {
     /**
      * 最优解：字符串作废标志的HashSet方案
      */
-    public boolean isDateInvalid(List<HolidayCalendar> holidayList, LocalDate targetDate) {
-        if (holidayList == null || targetDate == null) {
+    public boolean isDateInvalid(List<HolidayCalendar> holidayCalendarList, LocalDate targetDate) {
+        if (holidayCalendarList == null || targetDate == null) {
             return false;
         }
 
-        // 创建有效日期的HashSet
-        Set<LocalDate> invalidHolidayDates = holidayList.stream()
-                .filter(holiday -> "1".equals(holiday.getValid())) // 字符串"1"表示有效
+        // 先把所有日期提取到Set中
+        Set<LocalDate> dateSet = holidayCalendarList.stream()
                 .map(HolidayCalendar::getHolidayDate)
-                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        // O(1)时间复杂度判断
-        return invalidHolidayDates.contains(targetDate);
-    }
+        // 然后快速检查
+        boolean exists = dateSet.contains(targetDate);
 
-    public List<HolidayCalendar> getHolidayCalendar(){
-        try {
-            // 假设API返回的是HisData数组
-            ResponseEntity<HolidayCalendar[]> response = restTemplate.getForEntity(HIS_DATA_URL, HolidayCalendar[].class);
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                return Arrays.asList(response.getBody());
-            } else {
-                log.error("Failed to get holiday calendar, status: {}", response.getStatusCode());
-                return new ArrayList<>();
-            }
-        } catch (Exception e) {
-            log.error("获取节假日日历异常", e);
-            return new ArrayList<>();
-        }
+        return exists;
     }
 
 
-
-    // 获取his数据列表
-    public List<HisData> getHisData(LocalDate reportDate) {
-        try {
-            // 假设API返回的是HisData数组
-            ResponseEntity<HisData[]> response = restTemplate.getForEntity(HIS_DATA_URL, HisData[].class, reportDate);
-
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                return Arrays.asList(response.getBody());
-            } else {
-                log.error("Failed to get HIS data, status: {}", response.getStatusCode());
-                return new ArrayList<>();
-            }
-        } catch (Exception e) {
-            log.error("获取HIS数据异常", e);
-            return new ArrayList<>();
-        }
-    }
-
-    // 获取YQ数据列表
-    public List<YQCashRegRecord> getYQData(LocalDate reportDate) {
-        try {
-            // 假设API返回的是YQCashRegRecord数组
-            ResponseEntity<YQCashRegRecord[]> response = restTemplate.getForEntity(YQ_DATA_URL, YQCashRegRecord[].class, reportDate);
-
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                return Arrays.asList(response.getBody());
-            } else {
-                log.error("Failed to get YQ data, status: {}", response.getStatusCode());
-                return new ArrayList<>();
-            }
-        } catch (Exception e) {
-            log.error("获取YQ数据异常", e);
-            return new ArrayList<>();
-        }
-    }
-
-    // 获取操作员列表
-    public List<HisOperator> getHisOperatorsData(LocalDate reportDate) {
-        try {
-            // 假设API返回的是HisOperator数组
-            ResponseEntity<HisOperator[]> response = restTemplate.getForEntity(OPERATOR_URL, HisOperator[].class, reportDate);
-
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                return Arrays.asList(response.getBody());
-            } else {
-                log.error("Failed to get operators data, status: {}", response.getStatusCode());
-                return new ArrayList<>();
-            }
-        } catch (Exception e) {
-            log.error("获取操作员数据异常", e);
-            return new ArrayList<>();
-        }
-    }
 }

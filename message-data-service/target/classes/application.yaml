@@ -1,0 +1,16 @@
+# 应用基本配置
+spring:
+  application:
+    name: medical-data-service
+  profiles:
+    active: dev  # 默认激活开发环境
+
+# 服务器配置
+server:
+  port: 8080
+
+# 日志配置
+logging:
+  level:
+    com.yourcompany: INFO
+    org.springframework: WARN
