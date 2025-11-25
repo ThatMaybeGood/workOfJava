@@ -3,7 +3,7 @@ package com.example.messagedataservice.model;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 
 public class HisOperator {
@@ -13,17 +13,17 @@ public class HisOperator {
     @Size(min = 2, max = 50, message = "员工姓名长度必须在2-50字符之间")
     private String operatorName;
     //部门ID
-    private Integer departmentId;
+    private String departmentId;
     //是否有效（0:无效，1：有效）
     Boolean isValid;
     //创建人
     String creator;
     //创建时间
-    Date createTime;
+    LocalDate createTime;
     //更新人
     String updater;
     //更新时间
-    Date updateTime;
+    LocalDate updateTime;
 
     public String getOperatorNo() {
         return operatorNo;
@@ -41,11 +41,11 @@ public class HisOperator {
         this.operatorName = operatorName;
     }
 
-    public Integer getDepartmentId() {
+    public String getDepartmentId() {
         return departmentId;
     }
 
-    public void setDepartmentId(Integer departmentId) {
+    public void setDepartmentId(String departmentId) {
         this.departmentId = departmentId;
     }
 
@@ -65,11 +65,11 @@ public class HisOperator {
         this.creator = creator;
     }
 
-    public Date getCreateTime() {
+    public LocalDate getCreateTime() {
         return createTime;
     }
 
-    public void setCreateTime(Date createTime) {
+    public void setCreateTime(LocalDate createTime) {
         this.createTime = createTime;
     }
 
@@ -81,11 +81,11 @@ public class HisOperator {
         this.updater = updater;
     }
 
-    public Date getUpdateTime() {
+    public LocalDate getUpdateTime() {
         return updateTime;
     }
 
-    public void setUpdateTime(Date updateTime) {
+    public void setUpdateTime(LocalDate updateTime) {
         this.updateTime = updateTime;
     }
 }

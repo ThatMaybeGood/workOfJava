@@ -1,6 +1,7 @@
 package com.example.messagedataservice.model;
 
-import java.util.Date;
+
+import java.time.LocalDate;
 
 // 定义一个类，用于存储医院现金报表记录
 public class YQCashRegRecord {
@@ -8,9 +9,9 @@ public class YQCashRegRecord {
     //留存现金数
     private Double  retainedCash; //his
 
-    private Date  applyDate;
+    private LocalDate  applyDate;
 
-    private Date createTime;
+    private LocalDate createTime;
 
     private String operatorName;
 
@@ -40,19 +41,19 @@ public class YQCashRegRecord {
         this.retainedCash = retainedCash;
     }
 
-    public Date getApplyDate() {
+    public LocalDate getApplyDate() {
         return applyDate;
     }
 
-    public void setApplyDate(Date applyDate) {
+    public void setApplyDate(LocalDate applyDate) {
         this.applyDate = applyDate;
     }
 
-    public Date getCreateTime() {
+    public LocalDate getCreateTime() {
         return createTime;
     }
 
-    public void setCreateTime(Date createTime) {
+    public void setCreateTime(LocalDate createTime) {
         this.createTime = createTime;
     }
 

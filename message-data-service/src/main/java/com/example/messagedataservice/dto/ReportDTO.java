@@ -1,6 +1,6 @@
 package com.example.messagedataservice.dto;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 public class ReportDTO {
     // 操作员基础信息
@@ -32,7 +32,7 @@ public class ReportDTO {
     private String windowNo;
     private String operatType;
     private String sechduling;
-    private Date applyDate;
+    private LocalDate applyDate;
 
 
     // 其他报表字段（根据您提供的字段）
@@ -83,8 +83,8 @@ public class ReportDTO {
     private String remarks;
 
 
-    private Date reportDate;
-    private Date createTime;
+    private LocalDate reportDate;
+    private LocalDate createTime;
 
     public String getOperatorNo() {
         return operatorNo;
@@ -150,11 +150,11 @@ public class ReportDTO {
         this.sechduling = sechduling;
     }
 
-    public Date getApplyDate() {
+    public LocalDate getApplyDate() {
         return applyDate;
     }
 
-    public void setApplyDate(Date applyDate) {
+    public void setApplyDate(LocalDate applyDate) {
         this.applyDate = applyDate;
     }
 
@@ -238,19 +238,19 @@ public class ReportDTO {
         this.remarks = remarks;
     }
 
-    public Date getReportDate() {
+    public LocalDate getReportDate() {
         return reportDate;
     }
 
-    public void setReportDate(Date reportDate) {
+    public void setReportDate(LocalDate reportDate) {
         this.reportDate = reportDate;
     }
 
-    public Date getCreateTime() {
+    public LocalDate getCreateTime() {
         return createTime;
     }
 
-    public void setCreateTime(Date createTime) {
+    public void setCreateTime(LocalDate createTime) {
         this.createTime = createTime;
     }
 }
