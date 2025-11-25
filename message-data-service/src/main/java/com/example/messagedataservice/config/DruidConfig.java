@@ -10,7 +10,6 @@ import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
-import org.springframework.context.annotation.Scope;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
@@ -82,7 +81,7 @@ public class DruidConfig {
 
         Map<String, String> initParams = new HashMap<>();
         // 忽略过滤格式
-        initParams.put("exclusions", "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*");
+        initParams.put("exclusions", "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*,/reportapi/*");
         // 开启session统计功能
         initParams.put("sessionStatEnable", "true");
         // 配置profileEnable能够监控单个url调用的sql列表

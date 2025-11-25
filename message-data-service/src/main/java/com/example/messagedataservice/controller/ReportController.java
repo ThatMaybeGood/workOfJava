@@ -16,7 +16,7 @@ import java.util.List;
  */
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping()
 @CrossOrigin(origins = "*")
 public class ReportController {
 
@@ -24,9 +24,21 @@ public class ReportController {
     private ReportService reportService;
 
     @GetMapping("/data")
-    public Result<List<ReportDTO>> getData(@PathVariable LocalDate reportDate) {
+    public Result<List<ReportDTO>> getData(@RequestParam LocalDate reportDate) {
+        if (reportDate == null) {
+            return Result.error("报表日期不能为空");
+        }
 
+        if (reportService.getAll(reportDate) == null || reportService.getAll(reportDate).isEmpty() ) {
+            return Result.error("查询失败");
+        }
         return Result.success(reportService.getAll(reportDate));
+    }
+
+
+    @GetMapping("/")
+    public Result<String> getHolidayApiInfo() {
+        return Result.success("API服务已启动，可用端点：/R /data, /insert");
     }
 
 }
