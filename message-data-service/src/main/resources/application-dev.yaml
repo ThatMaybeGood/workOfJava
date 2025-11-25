@@ -11,3 +11,14 @@ api:
   yq: # 预约挂号接口配置
     cash_url: https://api.example.com/yq
     operator_url: https://api.example.com/operator
+
+external-api:
+  # 统一的 API Endpoint 路径，如果所有接口都一样，可以通用
+  endpoint-path: "/data"
+
+  # 定义所有 API 类型的基地址映射
+  base-urls:
+    hisData: "http://his-service.com/api/v1"
+    hisOperator: "http://operator-service.com/api/v2"
+    holidayCalendar: "http://calendar-service.com/util"
+    yqCashReg: "http://cash-reg-service.com/reports"
