@@ -39,7 +39,7 @@ public class ExternalApiRequestService {
      * @param departmentId 部门ID
      * @return 用户列表，调用失败返回空列表
      */
-    public List<HisIncomeDTO> getUsersList(String reportDate) {
+    public List<HisIncomeDTO> getHisIncomeList(String reportDate) {
         log.info("开始调用用户服务 API: {}", HISINCOME_SERVICE_URL);
 
         // 1. 组装请求 Body
