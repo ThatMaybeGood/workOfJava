@@ -1,11 +1,10 @@
 package com.mergedata.controller;
 
-import com.mergedata.dto.ReportDTO;
-import com.mergedata.server.ReportService;
+import com.mergedata.dto.HisIncomeDTO;
+import com.mergedata.server.impl.ExternalApiRequestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
 
@@ -22,13 +21,13 @@ import java.util.List;
 public class ReportController {
 
     @Autowired
-    private ReportService reportService;
+    private ExternalApiRequestService reportService;
 
     @GetMapping("/data")
-    public Result<List<ReportDTO>> getData(@RequestParam String reportDate) {
+    public Result<List<HisIncomeDTO>> getData(@RequestParam String reportDate) {
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        List<ReportDTO> resultList = reportService.getAll(LocalDate.parse(reportDate));
+        List<HisIncomeDTO> resultList = reportService.getHisIncomeList(reportDate);
 
         // 3. 检查结果
         if (resultList == null || resultList.isEmpty()) {
