@@ -12,8 +12,7 @@ server:
 # 日志配置
 logging:
   level:
-    com.example.: INFO
-    org.springframework: WARN
+    com.mergedata: INFO
     root: INFO
 
 
