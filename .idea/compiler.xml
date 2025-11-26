@@ -8,14 +8,14 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="showExcel" />
-        <module name="message-data-service" />
         <module name="showExcelSoap" />
+        <module name="mergedata" />
       </profile>
     </annotationProcessing>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
-      <module name="message-data-service" options="-parameters" />
+      <module name="mergedata" options="-parameters" />
       <module name="showExcel" options="-parameters" />
       <module name="showExcelSoap" options="-parameters" />
     </option>

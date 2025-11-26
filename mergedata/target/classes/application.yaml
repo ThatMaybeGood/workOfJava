@@ -1,0 +1,38 @@
+# 应用基本配置
+spring:
+  application:
+    name: medical-data-service
+  profiles:
+    active: dev  # 默认激活开发环境
+
+# 服务器配置
+server:
+  port: 8081
+
+# 日志配置
+logging:
+  level:
+    com.yourcompany: INFO
+    org.springframework: WARN
+
+
+
+#请求头的配置
+request:
+  head:
+    charset: UTF-8
+    encryptType: AES
+    enterpriseId: xinqiao
+    language: zh_CN
+    #方法需要动态
+    #method: orgine.powermsp.service.overt.extend.SP_GetHolidayCalendar
+    sign: 1
+    signType: md5
+    sysTrackCode: c92b2f334a7442b698b774e5ccc3e3f8
+    #时间戳需要复制
+    timestamp: 2023-10-01T12:00:00Z
+    version: 1.0
+    #accessToken可以不传
+    accessToken: 123456
+    #用的掌医小程序-管理门户
+    appId: b16ff06f5fd44ab6b56e037d7ee1a6ed
