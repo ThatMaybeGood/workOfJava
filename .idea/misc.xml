@@ -7,6 +7,7 @@
         <option value="$PROJECT_DIR$/message-data-service/pom.xml" />
         <option value="$PROJECT_DIR$/showExcel/pom.xml" />
         <option value="$PROJECT_DIR$/showExcelSoap/pom.xml" />
+        <option value="$PROJECT_DIR$/mergedata/pom.xml" />
       </list>
     </option>
   </component>

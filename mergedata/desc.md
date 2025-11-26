@@ -8,7 +8,7 @@
 
 Java
 
-package com.example.messagedataservice.server.util; // 建议放在一个 utility 包中
+package com.example.mergedata.server.util; // 建议放在一个 utility 包中
 
 import java.util.stream.Stream;
 
