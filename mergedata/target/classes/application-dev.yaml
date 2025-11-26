@@ -1,0 +1,14 @@
+# 激活开发环境配置
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+# 运行模式:  prod-生产模式(使用真实接口)
+api:
+  # 定义所有 API 类型的基地址映射
+  urls:
+    hisIncome: "http://168.168.235.88:18401/orgine/powermsp/service/overt"
+    hisOperator: "http://168.168.235.88:18401/orgine/powermsp/service/overt"
+    holidayCalendar: "http://calendar-service.com/util"
+    yqCashReg: "http://cash-reg-service.com/reports"
