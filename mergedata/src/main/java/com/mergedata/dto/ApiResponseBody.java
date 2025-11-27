@@ -1,13 +1,13 @@
 package com.mergedata.dto;
 
 import lombok.Data;
-import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Data
-@Component
 public class ApiResponseBody<T> {
 
-    private T list;
+    private List<T> list;
 
     // Getters and Setters
 

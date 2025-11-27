@@ -1,48 +1,29 @@
-package com.mergedata.dto;
+package com.mergedata.dto;// File: com.mergedata.dto.HisIncomeDTO.java (您需要修改或确认该文件)
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
-// 核心：启用 SnakeCase 策略，将 内部字段从驼峰转为下划线
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+@Data
 public class HisIncomeDTO {
+
+    @JsonProperty("operator_no")
     private String  operatorNo;
-    private Double  hisAdvancePayment; //his
-    private Double  hisMedicalIncome; //his
-    private LocalDate  reportDate;
 
-    public String getOperatorNo() {
-        return operatorNo;
-    }
+    @JsonProperty("his_advance_payment") // <-- 确保有此注解
+    private BigDecimal hisAdvancePayment;
 
-    public void setOperatorNo(String operatorNo) {
-        this.operatorNo = operatorNo;
-    }
+    // 注意：字段名称在 JSON 中是下划线 his_medical_income，但 DTO 中用驼峰
+    // 因为 JacksonConfig 中配置了 SNAKE_CASE，所以这里继续使用驼峰命名
+    @JsonProperty("his_medical_income") // <-- 确保有此注解
+    private BigDecimal  hisMedicalIncome;
 
-    public Double getHisAdvancePayment() {
-        return hisAdvancePayment;
-    }
+    @JsonProperty("report_date")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDate reportDate;
 
-    public void setHisAdvancePayment(Double hisAdvancePayment) {
-        this.hisAdvancePayment = hisAdvancePayment;
-    }
-
-    public Double getHisMedicalIncome() {
-        return hisMedicalIncome;
-    }
-
-    public void setHisMedicalIncome(Double hisMedicalIncome) {
-        this.hisMedicalIncome = hisMedicalIncome;
-    }
-
-    public LocalDate getReportDate() {
-        return reportDate;
-    }
-
-    public void setReportDate(LocalDate reportDate) {
-        this.reportDate = reportDate;
-    }
+    // ... 其他字段也应如此
 }

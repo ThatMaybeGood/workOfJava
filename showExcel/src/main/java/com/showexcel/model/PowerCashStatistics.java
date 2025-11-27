@@ -4,6 +4,6 @@ public class PowerCashStatistics {
 
     private CashStatistics cashStatistics;
 
-    private Double holidayTemporaryReceipt;
+    private BigDecimal holidayTemporaryReceipt;
 
 }

@@ -7,7 +7,7 @@ spring:
 api:
   # 定义所有 API 类型的基地址映射
   urls:
-    hisIncome: "http://168.168.235.88:18401/orgine/powermsp/service/overt"
-    hisOperator: "http://168.168.235.88:18401/orgine/powermsp/service/overt"
-    holidayCalendar: "http://calendar-service.com/util"
-    yqCashReg: "http://cash-reg-service.com/reports"
+    hisincome: "http://168.168.235.88:18401/orgine/powermsp/service/overt"
+    hisoperator: "http://168.168.235.88:18401/orgine/powermsp/service/overt"
+    holidaycalendar: "http://calendar-service.com/util"
+    yqcashreg: "http://cash-reg-service.com/reports"
