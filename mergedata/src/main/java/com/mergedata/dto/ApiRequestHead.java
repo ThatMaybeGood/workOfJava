@@ -1,5 +1,7 @@
 package com.mergedata.dto;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -7,6 +9,7 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "request.head")
 @Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class) // <--- 确保添加这个！
 public class ApiRequestHead {
 
     private String charset;

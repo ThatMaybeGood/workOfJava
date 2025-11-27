@@ -3,14 +3,11 @@ package com.mergedata.dto;
 import lombok.Data;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Map;
-
 @Data
 @Component
-public class ApiResponseBody {
+public class ApiResponseBody<T> {
 
-    private List<Map<String, Object>> list;
+    private T list;
 
     // Getters and Setters
 

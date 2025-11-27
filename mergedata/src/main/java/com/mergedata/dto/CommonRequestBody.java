@@ -1,4 +1,4 @@
-package com.mergedata.entity;
+package com.mergedata.dto;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
@@ -7,8 +7,8 @@ import lombok.Data;
 @Data
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CommonRequestBody {
-    private String reportDate;
-    private String extendParam1;
-    private String extendParam2;
-    private String extendParam3;
+    private String reportdate;
+    private String extendParams1;
+    private String extendParams2;
+    private String extendParams3;
 }

@@ -16,6 +16,8 @@ server:
 # 日志配置
 logging:
   level:
+    com.mergedata.config: DEBUG
+    com.mergedata.server: DEBUG
     com.mergedata: INFO
     root: INFO
 
