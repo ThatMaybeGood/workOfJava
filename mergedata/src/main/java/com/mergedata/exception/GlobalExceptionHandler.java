@@ -2,8 +2,6 @@ package com.mergedata.exception;
 
 import com.mergedata.entity.BusinessException;
 import com.mergedata.entity.ErrorResponse;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -14,8 +12,10 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -160,10 +160,10 @@ public class GlobalExceptionHandler {
 
 
 
-    @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException ex, HttpServletRequest request) {
-        // 记录为 WARN 级别，因为它通常不是一个严重问题
-        logger.warn("资源未找到: {}", ex.getMessage());
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoHandlerFoundException(NoHandlerFoundException ex, HttpServletRequest request) {
+        // 注意：这个异常默认情况下需要配置 spring.mvc.throw-exception-if-no-handler-found=true 才能被捕获。
+        logger.warn("处理器未找到: {}", ex.getMessage());
 
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.NOT_FOUND.value(),
@@ -172,7 +172,6 @@ public class GlobalExceptionHandler {
         );
         errorResponse.setPath(request.getRequestURI());
 
-        // 返回 404
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 }

@@ -4,7 +4,11 @@ spring:
     name: medical-data-service
   profiles:
     active: dev  # 默认激活开发环境
-
+  mvc:   # 确保 Spring Boot 在找不到 Handler 时抛出异常，而不是直接返回默认的 404 页面
+    throw-exception-if-no-handler-found: true
+  web:    # 确保 DispatcherServlet 对静态资源的处理不会影响到上面的配置
+    resources:
+      add-mappings: false
 # 服务器配置
 server:
   port: 8081
