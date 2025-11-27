@@ -13,7 +13,7 @@ class MessageDataServiceApplicationTests {
 
     @Test
     void contextLoads() {
-        externalApiRequestService.getUsersList("2023-10-01");
+//        externalApiRequestService.getHisIncomeList("2023-10-01");
 //        log.info("测试通过");
 
     }

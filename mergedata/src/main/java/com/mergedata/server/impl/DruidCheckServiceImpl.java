@@ -1,10 +1,10 @@
 package com.mergedata.server.impl;
 
 import com.alibaba.druid.pool.DruidDataSource;
-import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 
 @Component
