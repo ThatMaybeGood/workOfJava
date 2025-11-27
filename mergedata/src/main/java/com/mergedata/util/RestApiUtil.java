@@ -2,14 +2,17 @@ package com.mergedata.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mergedata.entity.BusinessException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.client.*;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 /**
@@ -17,13 +20,14 @@ import java.util.Collections;
  */
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class RestApiUtil {
 
     @Autowired
     private RestTemplate restTemplate;
 
     @Autowired
-    private ObjectMapper objectMapper; // 注入或创建 ObjectMapper 用于 String 解析
+    private final ObjectMapper objectMapper; // 注入或创建 ObjectMapper 用于 String 解析
 
     /**
      * 【方法一：推荐】使用 ParameterizedTypeReference 发起通用的 POST 请求。
@@ -118,20 +122,31 @@ public class RestApiUtil {
         HttpEntity<Req> requestEntity = new HttpEntity<>(requestBody, headers);
 
         try {
-            // 2. 发起调用，接收 String
-            ResponseEntity<String> responseEntity = restTemplate.exchange(
-                    url, HttpMethod.POST, requestEntity, String.class
-            );
+            // 2. 【核心修改】使用 execute() 方法，并提供自定义的 ResponseExtractor。
+            // 这样做可以完全控制响应流的读取过程，不依赖于 MessageConverter 的顺序。
+            return restTemplate.execute(
+                    url,
+                    HttpMethod.POST,
+                    // RequestCallback: 将请求体序列化为 JSON (使用 Jackson)
+                    restTemplate.httpEntityCallback(requestEntity),
+                    // ResponseExtractor: 强制读取响应体为原始 String
+                    response -> {
+                        // 检查 HTTP 状态码，如果是非 2xx 状态码，则抛出相应的异常
+                        if (response.getStatusCode().isError()) {
+                            // 抛出 HttpStatusCodeException，以便外部的 catch 块能够精确捕获
+                            throw new HttpStatusCodeException(
+                                    response.getStatusCode(),
+                                    response.getStatusCode().getReasonPhrase(),
+                                    response.getHeaders(),
+                                    StreamUtils.copyToByteArray(response.getBody()),
+                                    StandardCharsets.UTF_8
+                            ) {};
+                        }
 
-            // 3. 检查 HTTP 状态码
-            if (responseEntity.getStatusCode().is2xxSuccessful() && responseEntity.getBody() != null) {
-                return responseEntity.getBody();
-            } else {
-                String msg = String.format("API 调用成功，但返回体为空或状态码异常。URL: %s, Status: %s",
-                        url, responseEntity.getStatusCode());
-                log.error(msg);
-                throw new BusinessException(msg);
-            }
+                        // 【关键步骤】使用 StreamUtils 强制将响应流转换为 String
+                        return StreamUtils.copyToString(response.getBody(), StandardCharsets.UTF_8);
+                    }
+            );
 
         } catch (ResourceAccessException e) {
             log.error("调用失败，网络或连接问题（服务可能未启动或连接超时）: {}", url, e);

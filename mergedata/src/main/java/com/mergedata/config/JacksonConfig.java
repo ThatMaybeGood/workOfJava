@@ -22,6 +22,7 @@ public class JacksonConfig {
 
             // 2. 统一注册所有模块
             JavaTimeModule javaTimeModule = new JavaTimeModule();
+
             SimpleModule customModule = new SimpleModule();
 
             // 注册 BigDecimal Deserializer

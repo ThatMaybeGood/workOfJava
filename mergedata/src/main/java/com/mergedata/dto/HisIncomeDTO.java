@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 public class HisIncomeDTO {
@@ -23,7 +23,7 @@ public class HisIncomeDTO {
 
     @JsonProperty("report_date")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDate reportDate;
+    private LocalDateTime reportDate;
 
     // ... 其他字段也应如此
 }
