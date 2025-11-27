@@ -16,11 +16,16 @@ server:
 # 日志配置
 logging:
   level:
-    com.mergedata.config: DEBUG
-    com.mergedata.server: DEBUG
+    # ！！！【关键修改】：直接指定到日志拦截器的完整路径 ！！！
+    com.mergedata.config.RequestLoggingInterceptor: DEBUG
+
+    # 保持您对核心业务包的 DEBUG 级别，便于查看调用流程
+    com.mergedata.service: DEBUG
+    com.mergedata.util.RestApiUtil: DEBUG
+
+    # 保持其他配置不变，确保根级别不会阻止 DEBUG 向上输出
     com.mergedata: INFO
     root: INFO
-
 
 
 #请求头的配置

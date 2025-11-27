@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -68,7 +69,7 @@ public class ReportServiceImpl implements ReportService {
             List<ReportDTO> result = new ArrayList<>();
             
             // 优化: 在循环外计算一次即可
-            double actualReportAmount = getActualReportAmount(reportDate);
+            BigDecimal actualReportAmount = getActualReportAmount(reportDate);
 
             for (YQOperatorDTO operator : operators) {
                 ReportDTO dto = new ReportDTO();
@@ -81,36 +82,36 @@ public class ReportServiceImpl implements ReportService {
                 // 1、关联 HisData 数据（如果有）
                 HisIncomeDTO hisIncomeDTO = hisDataMap.get(operator.getOperatorNo());
                 if (hisIncomeDTO != null) {
-                    dto.setHisAdvancePayment(getSafeDouble(hisIncomeDTO.getHisAdvancePayment()));
-                    dto.setHisMedicalIncome(getSafeDouble(hisIncomeDTO.getHisMedicalIncome()));
+                    dto.setHisAdvancePayment(getSafeBigDecimal(hisIncomeDTO.getHisAdvancePayment()));
+                    dto.setHisMedicalIncome(getSafeBigDecimal(hisIncomeDTO.getHisMedicalIncome()));
                     //目前默认为0.00，后续根据实际业务调整
-                    dto.setHisRegistrationIncome(0.00);
+                    dto.setHisRegistrationIncome(BigDecimal.ZERO);
 
                     //应交报表数
-                    dto.setReportAmount(dto.getHisAdvancePayment() + dto.getHisMedicalIncome() + dto.getHisRegistrationIncome());
+                    dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()).add(dto.getHisRegistrationIncome()));
                 }
 
                 // 2、关联 YQCashRegRecord 数据（如果有）
                 YQCashRegRecordDTO cashRecord = cashRecordMap.get(operator.getOperatorNo());
                 if (cashRecord != null) {
-                    dto.setRetainedCash(getSafeDouble(cashRecord.getRetainedCash()));
+                    dto.setRetainedCash(getSafeBigDecimal(cashRecord.getRetainedCash()));
                     dto.setWindowNo(cashRecord.getWindowNo());
                     dto.setOperatType(cashRecord.getOperatType());
                     dto.setSechduling(cashRecord.getSechduling());
                     dto.setApplyDate(cashRecord.getApplyDate());
                     
                     // 修复: 将依赖 cashRecord 的计算移入此代码块
-                    dto.setRetainedDifference(cashRecord.getRetainedCash() - actualReportAmount - dto.getPettyCash());
+                    dto.setRetainedDifference(cashRecord.getRetainedCash().subtract(actualReportAmount).subtract(dto.getPettyCash()));
                 }
 
                 //前日暂收款 正常情况为前一天的当日暂收款
-                dto.setPreviousTemporaryReceipt(0.00);
-                dto.setHolidayTemporaryReceipt(0.00);
-                dto.setCurrentTemporaryReceipt(0.00);
+                dto.setPreviousTemporaryReceipt(BigDecimal.ZERO);
+                dto.setHolidayTemporaryReceipt(BigDecimal.ZERO);
+                dto.setCurrentTemporaryReceipt(BigDecimal.ZERO);
 
                 //实交报表数  通过计算得出
                 dto.setActualReportAmount(actualReportAmount);
-                dto.setActualCashAmount(dto.getActualReportAmount() + dto.getCurrentTemporaryReceipt());
+                dto.setActualCashAmount(dto.getActualReportAmount().add(dto.getCurrentTemporaryReceipt()));
 
                 // 以放入结果
                 result.add(dto);
@@ -131,8 +132,8 @@ public class ReportServiceImpl implements ReportService {
     根据日期的情况分类得到最后时间，
      1、判断当前日期类型  0 正常 ，1 节假日 ，2 节假日前一天 3 节假日后一天
      */
-    public double getActualReportAmount(LocalDate reportDate) {
-        Double amount = 0.00;
+    public BigDecimal getActualReportAmount(LocalDate reportDate) {
+        BigDecimal amount = BigDecimal.ZERO;
 
         //1、获取目前维护的节假日列表
         List<HolidayCalendarDTO> holidayCalendarDTOS = holidayCalendarService.findByDate(reportDate);
@@ -154,7 +155,8 @@ public class ReportServiceImpl implements ReportService {
                 if (isDateInvalid(holidayCalendarDTOS, reportDate)) {
                     break;
                 } else {
-                    amount = amount + 0.00;
+                    //加amount = amount + 昨日留存现金数
+                    amount = amount.add(BigDecimal.ZERO) ;
                 }
 
             }
@@ -171,38 +173,82 @@ public class ReportServiceImpl implements ReportService {
 
     }
 
-    // 安全获取Double值
-    private Double getSafeDouble(Double value) {
-        return value != null ? value : 0.0;
+    // 安全获取BigDecimal值
+    private BigDecimal getSafeBigDecimal(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
     }
 
-    // 计算衍生字段
-    private ReportDTO calculateTotal(List<ReportDTO> dto, LocalDate reportDate) {
-        // 汇总数据，计算总金额等字段
+    // 计算衍生字段  字段是Double的时候累计加和
+//    private ReportDTO calculateTotal(List<ReportDTO> dto, LocalDate reportDate) {
+//        // 汇总数据，计算总金额等字段
+//        ReportDTO total = new ReportDTO();
+//        total.setOperatorNo("");
+//        total.setOperatorName("合计");
+//
+//        total.setHisAdvancePayment(dto.stream().mapToBigDecimal(ReportDTO::getHisAdvancePayment).sum());
+//        total.setHisMedicalIncome(dto.stream().mapToBigDecimal(ReportDTO::getHisMedicalIncome).sum());
+//        total.setHisRegistrationIncome(dto.stream().mapToBigDecimal(ReportDTO::getHisRegistrationIncome).sum());
+//
+//
+//        total.setRetainedCash(dto.stream().mapToBigDecimal(ReportDTO::getRetainedCash).sum());
+//
+//        total.setReportAmount(dto.stream().mapToBigDecimal(ReportDTO::getReportAmount).sum());
+//        total.setPreviousTemporaryReceipt(dto.stream().mapToBigDecimal(ReportDTO::getPreviousTemporaryReceipt).sum());
+//        total.setHolidayTemporaryReceipt(dto.stream().mapToBigDecimal(ReportDTO::getHolidayTemporaryReceipt).sum());
+//        total.setActualCashAmount(dto.stream().mapToBigDecimal(ReportDTO::getActualCashAmount).sum());
+//        total.setCurrentTemporaryReceipt(dto.stream().mapToBigDecimal(ReportDTO::getCurrentTemporaryReceipt).sum());
+//        total.setActualCashAmount(dto.stream().mapToBigDecimal(ReportDTO::getActualCashAmount).sum());
+//        total.setRetainedDifference(dto.stream().mapToBigDecimal(ReportDTO::getRetainedDifference).sum());
+//        total.setPettyCash(dto.stream().mapToBigDecimal(ReportDTO::getPettyCash).sum());
+//
+//        total.setRemarks("合计行，不展示在报表中");
+//        total.setReportDate(reportDate);
+//        total.setCreateTime(LocalDateTime.now());
+//
+//
+//        return total;
+//    }
+
+
+// 假设 ReportDTO 中所有相关金额字段都是 BigDecimal 类型
+
+    private ReportDTO calculateTotal(List<ReportDTO> dtoList, LocalDate reportDate) {
+        // 1. 定义 BigDecimal 求和初始值 (0) 和操作符 (加法)
+        final BigDecimal ZERO = BigDecimal.ZERO;
+        java.util.function.BinaryOperator<BigDecimal> sumOperator = BigDecimal::add;
+
+        // 2. 初始化合计对象
         ReportDTO total = new ReportDTO();
         total.setOperatorNo("");
         total.setOperatorName("合计");
 
-        total.setHisAdvancePayment(dto.stream().mapToDouble(ReportDTO::getHisAdvancePayment).sum());
-        total.setHisMedicalIncome(dto.stream().mapToDouble(ReportDTO::getHisMedicalIncome).sum());
-        total.setHisRegistrationIncome(dto.stream().mapToDouble(ReportDTO::getHisRegistrationIncome).sum());
+        // 3. 定义一个通用的求和方法 (可选，但推荐简化代码)
+        // 这是一个接受 List<ReportDTO> 和 Getter 方法引用的泛型函数
+        java.util.function.Function<java.util.function.Function<ReportDTO, BigDecimal>, BigDecimal> sumByField =
+                getter -> dtoList.stream()
+                        .map(getter)
+                        .filter(Objects::nonNull) // 过滤掉可能存在的 null 值
+                        .reduce(ZERO, sumOperator); // 使用 reduce 进行高精度求和
 
+        // 4. 应用求和逻辑到每个字段
+        total.setHisAdvancePayment(sumByField.apply(ReportDTO::getHisAdvancePayment));
+        total.setHisMedicalIncome(sumByField.apply(ReportDTO::getHisMedicalIncome));
+        total.setHisRegistrationIncome(sumByField.apply(ReportDTO::getHisRegistrationIncome));
+        total.setRetainedCash(sumByField.apply(ReportDTO::getRetainedCash));
+        total.setReportAmount(sumByField.apply(ReportDTO::getReportAmount));
+        total.setPreviousTemporaryReceipt(sumByField.apply(ReportDTO::getPreviousTemporaryReceipt));
+        total.setHolidayTemporaryReceipt(sumByField.apply(ReportDTO::getHolidayTemporaryReceipt));
 
-        total.setRetainedCash(dto.stream().mapToDouble(ReportDTO::getRetainedCash).sum());
+        // 注意：原代码中有重复求和 ActualCashAmount，这里只保留一次
+        total.setActualCashAmount(sumByField.apply(ReportDTO::getActualCashAmount));
+        total.setCurrentTemporaryReceipt(sumByField.apply(ReportDTO::getCurrentTemporaryReceipt));
+        total.setRetainedDifference(sumByField.apply(ReportDTO::getRetainedDifference));
+        total.setPettyCash(sumByField.apply(ReportDTO::getPettyCash));
 
-        total.setReportAmount(dto.stream().mapToDouble(ReportDTO::getReportAmount).sum());
-        total.setPreviousTemporaryReceipt(dto.stream().mapToDouble(ReportDTO::getPreviousTemporaryReceipt).sum());
-        total.setHolidayTemporaryReceipt(dto.stream().mapToDouble(ReportDTO::getHolidayTemporaryReceipt).sum());
-        total.setActualCashAmount(dto.stream().mapToDouble(ReportDTO::getActualCashAmount).sum());
-        total.setCurrentTemporaryReceipt(dto.stream().mapToDouble(ReportDTO::getCurrentTemporaryReceipt).sum());
-        total.setActualCashAmount(dto.stream().mapToDouble(ReportDTO::getActualCashAmount).sum());
-        total.setRetainedDifference(dto.stream().mapToDouble(ReportDTO::getRetainedDifference).sum());
-        total.setPettyCash(dto.stream().mapToDouble(ReportDTO::getPettyCash).sum());
-
+        // 5. 设置其他字段
         total.setRemarks("合计行，不展示在报表中");
         total.setReportDate(reportDate);
         total.setCreateTime(LocalDateTime.now());
-
 
         return total;
     }

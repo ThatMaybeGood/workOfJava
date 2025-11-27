@@ -6,17 +6,17 @@ public class CashStatisticsDTO {
     private Integer id;
     private Integer type;
     private String name;
-    private Double hisAdvancePayment;
-    private Double hisMedicalIncome;
-    private Double hisRegistrationIncome;
-    private Double reportAmount;
-    private Double previousTemporaryReceipt;
-    private Double actualReportAmount;
-    private Double currentTemporaryReceipt;
-    private Double actualCashAmount;
-    private Double retainedDifference;
-    private Double retainedCash;
-    private Double pettyCash;
+    private BigDecimal hisAdvancePayment;
+    private BigDecimal hisMedicalIncome;
+    private BigDecimal hisRegistrationIncome;
+    private BigDecimal reportAmount;
+    private BigDecimal previousTemporaryReceipt;
+    private BigDecimal actualReportAmount;
+    private BigDecimal currentTemporaryReceipt;
+    private BigDecimal actualCashAmount;
+    private BigDecimal retainedDifference;
+    private BigDecimal retainedCash;
+    private BigDecimal pettyCash;
     private String remarks;
 
     // 合并单元格相关属性
@@ -58,11 +58,11 @@ public class CashStatisticsDTO {
         this.type = type;
     }
 
-    public Double getCurrentTemporaryReceipt() {
+    public BigDecimal getCurrentTemporaryReceipt() {
         return currentTemporaryReceipt;
     }
 
-    public void setCurrentTemporaryReceipt(Double currentTemporaryReceipt) {
+    public void setCurrentTemporaryReceipt(BigDecimal currentTemporaryReceipt) {
         this.currentTemporaryReceipt = currentTemporaryReceipt;
     }
 
@@ -77,35 +77,35 @@ public class CashStatisticsDTO {
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
-    public Double getHisAdvancePayment() { return hisAdvancePayment; }
-    public void setHisAdvancePayment(Double hisAdvancePayment) { this.hisAdvancePayment = hisAdvancePayment; }
+    public BigDecimal getHisAdvancePayment() { return hisAdvancePayment; }
+    public void setHisAdvancePayment(BigDecimal hisAdvancePayment) { this.hisAdvancePayment = hisAdvancePayment; }
 
-    public Double getHisMedicalIncome() { return hisMedicalIncome; }
-    public void setHisMedicalIncome(Double hisMedicalIncome) { this.hisMedicalIncome = hisMedicalIncome; }
+    public BigDecimal getHisMedicalIncome() { return hisMedicalIncome; }
+    public void setHisMedicalIncome(BigDecimal hisMedicalIncome) { this.hisMedicalIncome = hisMedicalIncome; }
 
-    public Double getHisRegistrationIncome() { return hisRegistrationIncome; }
-    public void setHisRegistrationIncome(Double hisRegistrationIncome) { this.hisRegistrationIncome = hisRegistrationIncome; }
+    public BigDecimal getHisRegistrationIncome() { return hisRegistrationIncome; }
+    public void setHisRegistrationIncome(BigDecimal hisRegistrationIncome) { this.hisRegistrationIncome = hisRegistrationIncome; }
 
-    public Double getReportAmount() { return reportAmount; }
-    public void setReportAmount(Double reportAmount) { this.reportAmount = reportAmount; }
+    public BigDecimal getReportAmount() { return reportAmount; }
+    public void setReportAmount(BigDecimal reportAmount) { this.reportAmount = reportAmount; }
 
-    public Double getPreviousTemporaryReceipt() { return previousTemporaryReceipt; }
-    public void setPreviousTemporaryReceipt(Double previousTemporaryReceipt) { this.previousTemporaryReceipt = previousTemporaryReceipt; }
+    public BigDecimal getPreviousTemporaryReceipt() { return previousTemporaryReceipt; }
+    public void setPreviousTemporaryReceipt(BigDecimal previousTemporaryReceipt) { this.previousTemporaryReceipt = previousTemporaryReceipt; }
 
-    public Double getActualReportAmount() { return actualReportAmount; }
-    public void setActualReportAmount(Double actualReportAmount) { this.actualReportAmount = actualReportAmount; }
+    public BigDecimal getActualReportAmount() { return actualReportAmount; }
+    public void setActualReportAmount(BigDecimal actualReportAmount) { this.actualReportAmount = actualReportAmount; }
 
-    public Double getActualCashAmount() { return actualCashAmount; }
-    public void setActualCashAmount(Double actualCashAmount) { this.actualCashAmount = actualCashAmount; }
+    public BigDecimal getActualCashAmount() { return actualCashAmount; }
+    public void setActualCashAmount(BigDecimal actualCashAmount) { this.actualCashAmount = actualCashAmount; }
 
-    public Double getRetainedDifference() { return retainedDifference; }
-    public void setRetainedDifference(Double retainedDifference) { this.retainedDifference = retainedDifference; }
+    public BigDecimal getRetainedDifference() { return retainedDifference; }
+    public void setRetainedDifference(BigDecimal retainedDifference) { this.retainedDifference = retainedDifference; }
 
-    public Double getRetainedCash() { return retainedCash; }
-    public void setRetainedCash(Double retainedCash) { this.retainedCash = retainedCash; }
+    public BigDecimal getRetainedCash() { return retainedCash; }
+    public void setRetainedCash(BigDecimal retainedCash) { this.retainedCash = retainedCash; }
 
-    public Double getPettyCash() { return pettyCash; }
-    public void setPettyCash(Double pettyCash) { this.pettyCash = pettyCash; }
+    public BigDecimal getPettyCash() { return pettyCash; }
+    public void setPettyCash(BigDecimal pettyCash) { this.pettyCash = pettyCash; }
 
     public String getRemarks() { return remarks; }
     public void setRemarks(String remarks) { this.remarks = remarks; }

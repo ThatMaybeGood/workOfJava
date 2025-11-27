@@ -5,44 +5,58 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f5e93bba-4bf8-4603-8f6b-5adf75c26676" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/config/RequestLoggingInterceptor.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/ApiResponseResult.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/mergedata (2).zip" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/config/JacksonConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/util/JsonStringToBigDecimalDeserializer.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/util/RestApiUtil.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata.zip" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata.zip" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/MessageDataServiceApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/MessageDataApplication.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/config/RequestLoggingInterceptor.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/config/RequestLoggingInterceptor.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/config/RestTemplateConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/config/RestTemplateConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/constants/ReqConstant.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/constants/ReqConstant.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/ApiRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/ApiRequest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/ApiRequestHead.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/ApiRequestHead.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/ApiResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/ApiResponse.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/ApiResponseBody.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/ApiResponseBody.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/ApiResponseHead.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/entity/CommonRequestBody.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/CommonRequestBody.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/ApiResponseResult.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/ApiResponseResult.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/CommonRequestBody.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/CommonRequestBody.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/HisIncomeDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/HisIncomeDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/ReportDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/ReportDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/YQCashRegRecordDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/YQCashRegRecordDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/entity/CashStatisticsSub.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/entity/CashStatisticsSub.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/ExternalApiRequestService.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/ExternalApiRequestService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/ReportServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/ReportServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/util/HttpUtils.java" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/src/main/resources/application-dev.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/resources/application-dev.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/resources/application-prod.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/resources/application-prod.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/resources/application.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/test/java/com/mergedata/MessageDataServiceApplicationTests.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/test/java/com/mergedata/MessageDataServiceApplicationTests.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/test/java/com/mergedata/MessageDataServiceApplicationTests.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/test/java/com/mergedata/MessageDataApplicationTests.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/application-dev.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/application-dev.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/application-prod.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/application-prod.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/target/classes/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/application.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/MessageDataServiceApplication.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/config/RequestLoggingInterceptor.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/config/RequestLoggingInterceptor.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/config/RestTemplateConfig.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/config/RestTemplateConfig.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/constants/ReqConstant.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/constants/ReqConstant.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/ApiRequest.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/ApiRequest.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/ApiRequestHead.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/ApiRequestHead.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/ApiResponse.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/ApiResponse.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/ApiResponseBody.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/ApiResponseBody.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/ApiResponseHead.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/entity/CommonRequestBody.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/ApiResponseResult.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/ApiResponseResult.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/CommonRequestBody.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/CommonRequestBody.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/HisIncomeDTO.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/HisIncomeDTO.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/ReportDTO.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/ReportDTO.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/YQCashRegRecordDTO.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/dto/YQCashRegRecordDTO.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/entity/CashStatisticsSub.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/entity/CashStatisticsSub.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/ExternalApiRequestService$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/ExternalApiRequestService$1.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/ExternalApiRequestService$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/ExternalApiRequestService$2.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/ExternalApiRequestService.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/ExternalApiRequestService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/maven-archiver/pom.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/createdFiles.lst" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/mergedata-0.0.1-SNAPSHOT.jar.original" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/surefire-reports/2025-11-27T09-57-35_137-jvmRun1.dump" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/surefire-reports/2025-11-27T10-03-50_876-jvmRun1.dump" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/surefire-reports/TEST-com.mergedata.MessageDataServiceApplicationTests.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/surefire-reports/com.mergedata.MessageDataServiceApplicationTests.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/message-data-service.7z" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/ReportServiceImpl.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/ReportServiceImpl.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/util/HttpUtils.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/target/test-classes/com/mergedata/MessageDataServiceApplicationTests.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/showExcel/src/main/java/com/showexcel/dto/CashStatisticsDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/showExcel/src/main/java/com/showexcel/dto/CashStatisticsDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/showExcel/src/main/java/com/showexcel/model/CashStatistics.java" beforeDir="false" afterPath="$PROJECT_DIR$/showExcel/src/main/java/com/showexcel/model/CashStatistics.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/showExcel/src/main/java/com/showexcel/model/PowerCashStatistics.java" beforeDir="false" afterPath="$PROJECT_DIR$/showExcel/src/main/java/com/showexcel/model/PowerCashStatistics.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/showExcel/src/main/java/com/showexcel/repository/CashStatisticsRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/showExcel/src/main/java/com/showexcel/repository/CashStatisticsRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/showExcel/src/main/java/com/showexcel/service/impl/CashStatisticsServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/showExcel/src/main/java/com/showexcel/service/impl/CashStatisticsServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/showExcel/src/main/resources/static/assets/templates/holiday-view.html" beforeDir="false" afterPath="$PROJECT_DIR$/showExcel/src/main/resources/static/assets/templates/holiday-view.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -110,54 +124,56 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_ADD_EXTERNAL_FILES": "true",
-    "Application.MessageDataServiceApplication (1).executor": "Debug",
-    "Application.MessageDataServiceApplication.executor": "Run",
-    "Application.MultiFormatDateParser.executor": "Run",
-    "Application.ShowExcelApplication.executor": "Run",
-    "Application.ShowExcelSoapApplication.executor": "Run",
-    "Application.com.mergedata.MessageDataServiceApplication.executor": "Run",
-    "JUnit.MessageDataServiceApplicationTests.contextLoads (1).executor": "Run",
-    "JUnit.MessageDataServiceApplicationTests.contextLoads.executor": "Debug",
-    "JUnit.MessageDataServiceApplicationTests.executor": "Run",
-    "Maven.mergedata [clean].executor": "Run",
-    "Maven.mergedata [install].executor": "Run",
-    "Maven.mergedata [package].executor": "Run",
-    "Maven.message-data-service [clean].executor": "Run",
-    "Maven.message-data-service [install].executor": "Run",
-    "Maven.showExcel [clean].executor": "Run",
-    "Maven.showExcel [install].executor": "Run",
-    "Maven.showExcelSoap [clean].executor": "Run",
-    "Maven.showExcelSoap [package].executor": "Run",
-    "RequestMappingsPanelOrder0": "0",
-    "RequestMappingsPanelOrder1": "1",
-    "RequestMappingsPanelWidth0": "75",
-    "RequestMappingsPanelWidth1": "75",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "main",
-    "jdk.selected.JAVA_MODULE": "17",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "D:/JetBrains/IdeaProjects/workOfJava",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "Modules",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "MavenSettings",
-    "spring.configuration.checksum": "15a69574ef3b422007ec502eb04e3292",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;Application.MessageDataServiceApplication (1).executor&quot;: &quot;Debug&quot;,
+    &quot;Application.MessageDataServiceApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Application.MultiFormatDateParser.executor&quot;: &quot;Run&quot;,
+    &quot;Application.ShowExcelApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Application.ShowExcelSoapApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Application.com.mergedata.MessageDataServiceApplication.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.MessageDataApplicationTests.contextLoads.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.MessageDataApplicationTests.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.MessageDataServiceApplicationTests.contextLoads (1).executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.MessageDataServiceApplicationTests.contextLoads.executor&quot;: &quot;Debug&quot;,
+    &quot;JUnit.MessageDataServiceApplicationTests.executor&quot;: &quot;Run&quot;,
+    &quot;Maven.mergedata [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.mergedata [install].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.mergedata [package].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.message-data-service [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.message-data-service [install].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.showExcel [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.showExcel [install].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.showExcelSoap [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.showExcelSoap [package].executor&quot;: &quot;Run&quot;,
+    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
+    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
+    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;jdk.selected.JAVA_MODULE&quot;: &quot;17&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/JetBrains/IdeaProjects/workOfJava&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;MavenSettings&quot;,
+    &quot;spring.configuration.checksum&quot;: &quot;15a69574ef3b422007ec502eb04e3292&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\JetBrains\Projects\IdeaProjects\workOfJava" />
@@ -174,9 +190,9 @@
       </set>
     </option>
   </component>
-  <component name="RunManager" selected="JUnit.MessageDataServiceApplicationTests">
-    <configuration name="MessageDataServiceApplication" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
-      <option name="MAIN_CLASS_NAME" value="com.mergedata.MessageDataServiceApplication" />
+  <component name="RunManager" selected="JUnit.MessageDataApplicationTests.contextLoads">
+    <configuration name="MessageDataApplication" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="com.mergedata.MessageDataApplication" />
       <module name="mergedata" />
       <extension name="coverage">
         <pattern>
@@ -188,7 +204,7 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="MessageDataServiceApplicationTests" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="MessageDataApplicationTests" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="mergedata" />
       <extension name="coverage">
         <pattern>
@@ -197,8 +213,24 @@
         </pattern>
       </extension>
       <option name="PACKAGE_NAME" value="com.mergedata" />
-      <option name="MAIN_CLASS_NAME" value="com.mergedata.MessageDataServiceApplicationTests" />
+      <option name="MAIN_CLASS_NAME" value="com.mergedata.MessageDataApplicationTests" />
       <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="MessageDataApplicationTests.contextLoads" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="mergedata" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.mergedata.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="com.mergedata" />
+      <option name="MAIN_CLASS_NAME" value="com.mergedata.MessageDataApplicationTests" />
+      <option name="METHOD_NAME" value="contextLoads" />
+      <option name="TEST_OBJECT" value="method" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
@@ -234,14 +266,16 @@
       </method>
     </configuration>
     <list>
-      <item itemvalue="Application.MessageDataServiceApplication" />
-      <item itemvalue="JUnit.MessageDataServiceApplicationTests" />
+      <item itemvalue="Application.MessageDataApplication" />
+      <item itemvalue="JUnit.MessageDataApplicationTests" />
+      <item itemvalue="JUnit.MessageDataApplicationTests.contextLoads" />
       <item itemvalue="JUnit.MessageDataServiceApplicationTests.contextLoads" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="JUnit.MessageDataServiceApplicationTests" />
-        <item itemvalue="Application.MessageDataServiceApplication" />
+        <item itemvalue="JUnit.MessageDataApplicationTests.contextLoads" />
+        <item itemvalue="JUnit.MessageDataApplicationTests" />
+        <item itemvalue="Application.MessageDataApplication" />
         <item itemvalue="JUnit.MessageDataServiceApplicationTests.contextLoads" />
       </list>
     </recent_temporary>
@@ -315,7 +349,7 @@
         <line-breakpoint enabled="true" type="java-field">
           <url>file://$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/ReportDTO.java</url>
           <line>34</line>
-          <properties field="sechduling" class="com.mergedata.dto.ReportDTO" />
+          <properties field="retainedCash" class="com.mergedata.dto.ReportDTO" />
           <option name="timeStamp" value="4" />
         </line-breakpoint>
         <breakpoint enabled="true" type="java-exception">
@@ -325,6 +359,10 @@
       </breakpoints>
     </breakpoint-manager>
     <watches-manager>
+      <configuration name="JUnit">
+        <watch expression="responseEntity.getStatusCode().is2xxSuccessful()" language="JAVA" />
+        <watch expression="responseEntity.getBody()" language="JAVA" />
+      </configuration>
       <configuration name="Application">
         <watch expression="reportService.getAll(reportDate)" language="JAVA" />
       </configuration>

@@ -12,24 +12,24 @@ public class CashStatistics {
     private Integer id;
     private Integer tableType;
     private String name;
-    private Double hisAdvancePayment; //his
-    private Double hisMedicalIncome; //his
-    private Double hisRegistrationIncome; //his
-    private Double reportAmount;    // 应交报表数
+    private BigDecimal hisAdvancePayment; //his
+    private BigDecimal hisMedicalIncome; //his
+    private BigDecimal hisRegistrationIncome; //his
+    private BigDecimal reportAmount;    // 应交报表数
 
-    private Double previousTemporaryReceipt;    // 前日暂收款
+    private BigDecimal previousTemporaryReceipt;    // 前日暂收款
 
-    private Double actualReportAmount;    // 实交报表数 = 应交报表数 - 前日暂收款
+    private BigDecimal actualReportAmount;    // 实交报表数 = 应交报表数 - 前日暂收款
 
-    private Double currentTemporaryReceipt;    // 当日暂收款
+    private BigDecimal currentTemporaryReceipt;    // 当日暂收款
 
-    private Double actualCashAmount;     // 实收现金数 = 实交报表数 + 当日暂收款
+    private BigDecimal actualCashAmount;     // 实收现金数 = 实交报表数 + 当日暂收款
 
-    private Double retainedDifference;    // 留存数差额 = 留存现金数 - 实交报表数 - 备用金
+    private BigDecimal retainedDifference;    // 留存数差额 = 留存现金数 - 实交报表数 - 备用金
 
-    private Double retainedCash;     // 留存现金数
+    private BigDecimal retainedCash;     // 留存现金数
 
-    private Double pettyCash;    // 备用金
+    private BigDecimal pettyCash;    // 备用金
 
     private String remarks;     // 备注信息
 
@@ -46,8 +46,8 @@ public class CashStatistics {
         this.actualCashAmount = actualReportAmount + currentTemporaryReceipt;
     }
 
-    // 私有方法：统一处理Double类型的null值
-    private Double safeDouble(Double value) {
+    // 私有方法：统一处理BigDecimal类型的null值
+    private BigDecimal safeBigDecimal(BigDecimal value) {
         return value != null ? value : 0.00;
     }
 
@@ -59,39 +59,39 @@ public class CashStatistics {
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
-    public Double getHisAdvancePayment() { return safeDouble(hisAdvancePayment); }
-    public void setHisAdvancePayment(Double hisAdvancePayment) { this.hisAdvancePayment = safeDouble(hisAdvancePayment); }
+    public BigDecimal getHisAdvancePayment() { return safeBigDecimal(hisAdvancePayment); }
+    public void setHisAdvancePayment(BigDecimal hisAdvancePayment) { this.hisAdvancePayment = safeBigDecimal(hisAdvancePayment); }
 
-    public Double
-    getHisMedicalIncome() { return safeDouble(hisMedicalIncome); }
-    public void setHisMedicalIncome(Double hisMedicalIncome) { this.hisMedicalIncome = safeDouble(hisMedicalIncome); }
+    public BigDecimal
+    getHisMedicalIncome() { return safeBigDecimal(hisMedicalIncome); }
+    public void setHisMedicalIncome(BigDecimal hisMedicalIncome) { this.hisMedicalIncome = safeBigDecimal(hisMedicalIncome); }
 
-    public Double getHisRegistrationIncome() { return safeDouble(hisRegistrationIncome); }
-    public void setHisRegistrationIncome(Double hisRegistrationIncome) { this.hisRegistrationIncome = safeDouble(hisRegistrationIncome); }
+    public BigDecimal getHisRegistrationIncome() { return safeBigDecimal(hisRegistrationIncome); }
+    public void setHisRegistrationIncome(BigDecimal hisRegistrationIncome) { this.hisRegistrationIncome = safeBigDecimal(hisRegistrationIncome); }
 
-    public Double getReportAmount() { return safeDouble(reportAmount); }
-    public void setReportAmount(Double reportAmount) { this.reportAmount = safeDouble(reportAmount); }
+    public BigDecimal getReportAmount() { return safeBigDecimal(reportAmount); }
+    public void setReportAmount(BigDecimal reportAmount) { this.reportAmount = safeBigDecimal(reportAmount); }
 
-    public Double getPreviousTemporaryReceipt() { return safeDouble(previousTemporaryReceipt); }
-    public void setPreviousTemporaryReceipt(Double previousTemporaryReceipt) { this.previousTemporaryReceipt = safeDouble(previousTemporaryReceipt); }
+    public BigDecimal getPreviousTemporaryReceipt() { return safeBigDecimal(previousTemporaryReceipt); }
+    public void setPreviousTemporaryReceipt(BigDecimal previousTemporaryReceipt) { this.previousTemporaryReceipt = safeBigDecimal(previousTemporaryReceipt); }
 
-    public Double getActualReportAmount() { return safeDouble(actualReportAmount); }
-    public void setActualReportAmount(Double actualReportAmount) { this.actualReportAmount = safeDouble(actualReportAmount); }
+    public BigDecimal getActualReportAmount() { return safeBigDecimal(actualReportAmount); }
+    public void setActualReportAmount(BigDecimal actualReportAmount) { this.actualReportAmount = safeBigDecimal(actualReportAmount); }
 
-    public Double getCurrentTemporaryReceipt() { return safeDouble(currentTemporaryReceipt); }
-    public void setCurrentTemporaryReceipt(Double currentTemporaryReceipt) { this.currentTemporaryReceipt = safeDouble(currentTemporaryReceipt); }
+    public BigDecimal getCurrentTemporaryReceipt() { return safeBigDecimal(currentTemporaryReceipt); }
+    public void setCurrentTemporaryReceipt(BigDecimal currentTemporaryReceipt) { this.currentTemporaryReceipt = safeBigDecimal(currentTemporaryReceipt); }
 
-    public Double getActualCashAmount() { return safeDouble(actualCashAmount); }
-    public void setActualCashAmount(Double actualCashAmount) { this.actualCashAmount = safeDouble(actualCashAmount); }
+    public BigDecimal getActualCashAmount() { return safeBigDecimal(actualCashAmount); }
+    public void setActualCashAmount(BigDecimal actualCashAmount) { this.actualCashAmount = safeBigDecimal(actualCashAmount); }
 
-    public Double getRetainedDifference() { return safeDouble(retainedDifference); }
-    public void setRetainedDifference(Double retainedDifference) { this.retainedDifference = safeDouble(retainedDifference); }
+    public BigDecimal getRetainedDifference() { return safeBigDecimal(retainedDifference); }
+    public void setRetainedDifference(BigDecimal retainedDifference) { this.retainedDifference = safeBigDecimal(retainedDifference); }
 
-    public Double getRetainedCash() { return safeDouble(retainedCash); }
-    public void setRetainedCash(Double retainedCash) { this.retainedCash = safeDouble(retainedCash); }
+    public BigDecimal getRetainedCash() { return safeBigDecimal(retainedCash); }
+    public void setRetainedCash(BigDecimal retainedCash) { this.retainedCash = safeBigDecimal(retainedCash); }
 
-    public Double getPettyCash() { return safeDouble(pettyCash); }
-    public void setPettyCash(Double pettyCash) { this.pettyCash = safeDouble(pettyCash); }
+    public BigDecimal getPettyCash() { return safeBigDecimal(pettyCash); }
+    public void setPettyCash(BigDecimal pettyCash) { this.pettyCash = safeBigDecimal(pettyCash); }
 
     public String getRemarks() {
         return remarks;

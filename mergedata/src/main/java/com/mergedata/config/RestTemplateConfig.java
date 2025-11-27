@@ -1,9 +1,12 @@
 package com.mergedata.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.http.client.BufferingClientHttpRequestFactory;
+import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
@@ -12,10 +15,20 @@ import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Configuration
 public class RestTemplateConfig {
+
+    // 关键改变 1: 声明并注入我们自定义配置的 ObjectMapper
+    // 这个 ObjectMapper 会自动包含 JacksonConfig 中设置的 SNAKE_CASE 命名策略
+    private final ObjectMapper objectMapper;
+
+    @Autowired // 通过构造器注入 JacksonConfig 中定义的 ObjectMapper Bean
+    public RestTemplateConfig(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Bean
     public RestTemplate restTemplate() {
@@ -25,62 +38,43 @@ public class RestTemplateConfig {
         factory.setConnectTimeout(3000);
         factory.setReadTimeout(5000);
 
+        // ！！！【关键修复】：用 BufferingClientHttpRequestFactory 包装原始工厂 ！！！
+        // 解决响应流只能读取一次的问题（让拦截器和转换器都能读取）
+        ClientHttpRequestFactory bufferedFactory = new BufferingClientHttpRequestFactory(factory);
+
         // --- 2. 创建 RestTemplate 实例 ---
-        RestTemplate restTemplate = new RestTemplate(factory);
+        RestTemplate restTemplate = new RestTemplate(bufferedFactory);
+
+        // --- 3. 添加请求拦截器 (日志功能) ---
+        // 确保 RequestLoggingInterceptor.java 也是最新的简洁版本
+        restTemplate.setInterceptors(Collections.singletonList(new RequestLoggingInterceptor()));
+
+        // --- 4. 配置 HttpMessageConverter 列表 ---
+        List<HttpMessageConverter<?>> converters = new ArrayList<>();
+
+        // 4.1 **优先添加 JSON 转换器 (使用注入的 ObjectMapper，解决了命名策略和流读取问题)**
+        MappingJackson2HttpMessageConverter jsonConverter =
+                new MappingJackson2HttpMessageConverter(this.objectMapper);
+
+        // 配置 JSON 转换器支持的 MediaType
+        List<MediaType> supportedMediaTypes = new ArrayList<>();
+        supportedMediaTypes.add(MediaType.APPLICATION_JSON);
+        supportedMediaTypes.add(MediaType.APPLICATION_OCTET_STREAM);
+        supportedMediaTypes.add(MediaType.APPLICATION_XML); // 保持对 XML 的支持
+        supportedMediaTypes.add(new MediaType("application", "xml", StandardCharsets.UTF_8));
+
+        jsonConverter.setSupportedMediaTypes(supportedMediaTypes);
+        converters.add(jsonConverter); // 【优先添加 JSON 转换器】
 
 
-
-
-        // ========================================================
-        // === 关键修改：添加请求拦截器来打印请求报文 ===
-        // ========================================================
-        List<ClientHttpRequestInterceptor> interceptors = new ArrayList<>();
-        interceptors.add(new RequestLoggingInterceptor());
-        restTemplate.setInterceptors(interceptors);
-        // ========================================================
-
-
-
-
-        // 获取可修改的 HttpMessageConverter 列表
-        List<HttpMessageConverter<?>> converters = restTemplate.getMessageConverters();
-
-        // --- 3. 解决中文乱码问题：强制 String 转换器使用 UTF-8 ---
-        // 查找并移除默认的 StringHttpMessageConverter
-        converters.removeIf(converter -> converter instanceof StringHttpMessageConverter);
-
-        // 创建一个新的 StringHttpMessageConverter，并强制使用 UTF-8
+        // 4.2 **随后添加 String 转换器**
+        // 解决中文乱码问题：强制 String 转换器使用 UTF-8
         StringHttpMessageConverter stringConverter = new StringHttpMessageConverter(StandardCharsets.UTF_8);
-
-        // 将新的 UTF-8 String 转换器添加到列表的首位（优先级最高）
-        converters.add(0, stringConverter);
+        converters.add(stringConverter); // 【随后添加 String 转换器】
 
 
-        // --- 4. 强制 JSON 转换器处理 application/xml ---
-
-        // 遍历找到默认的 JSON 转换器（MappingJackson2HttpMessageConverter）
-        for (HttpMessageConverter<?> converter : converters) {
-            if (converter instanceof MappingJackson2HttpMessageConverter) {
-                MappingJackson2HttpMessageConverter jsonConverter =
-                        (MappingJackson2HttpMessageConverter) converter;
-
-                // 获取当前支持的 MediaTypes 列表
-                List<MediaType> supportedMediaTypes =
-                        new ArrayList<>(jsonConverter.getSupportedMediaTypes());
-
-                // 关键步骤：将 application/xml 添加到 JSON 转换器支持的类型列表中
-                if (!supportedMediaTypes.contains(MediaType.APPLICATION_XML)) {
-                    supportedMediaTypes.add(MediaType.APPLICATION_XML);
-                    // 确保 Media Type 的定义是正确的，避免字符集问题
-                    supportedMediaTypes.add(new MediaType("application", "xml", StandardCharsets.UTF_8));
-                }
-
-                // 更新支持列表
-                jsonConverter.setSupportedMediaTypes(supportedMediaTypes);
-
-                break;
-            }
-        }
+        // 4.3 设置自定义的 Converters 列表
+        restTemplate.setMessageConverters(converters);
 
         // --- 5. 返回配置完成的 RestTemplate ---
         return restTemplate;

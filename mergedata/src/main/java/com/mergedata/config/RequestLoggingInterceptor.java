@@ -6,6 +6,7 @@ import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
+// ！！！ 注意：这里不再需要 import BufferingClientHttpResponseWrapper ！！！
 import org.springframework.util.StreamUtils;
 
 import java.io.IOException;
@@ -23,9 +24,11 @@ public class RequestLoggingInterceptor implements ClientHttpRequestInterceptor {
         logRequest(request, body);
 
         // 2. 执行请求
+        // 注意：由于 RestTemplateConfig 中使用了 BufferingClientHttpRequestFactory，
+        // 这里的 response 已经是缓存过的，可以重复读取。
         ClientHttpResponse response = execution.execute(request, body);
 
-        // 3. 打印响应报文 (可选，但推荐)
+        // 3. 打印响应报文
         logResponse(response);
 
         return response;
@@ -38,7 +41,7 @@ public class RequestLoggingInterceptor implements ClientHttpRequestInterceptor {
             log.debug("URI         : {}", request.getURI());
             log.debug("Method      : {}", request.getMethod());
             log.debug("Headers     : {}", request.getHeaders());
-            // 打印请求体（假设是 UTF-8 编码）
+            // 打印请求体
             log.debug("Request Body: {}", new String(body, StandardCharsets.UTF_8));
             log.debug("====================== REQUEST END ======================");
         }
@@ -51,7 +54,7 @@ public class RequestLoggingInterceptor implements ClientHttpRequestInterceptor {
             log.debug("Status Code : {}", response.getStatusCode());
             log.debug("Status Text : {}", response.getStatusText());
             log.debug("Headers     : {}", response.getHeaders());
-            // 响应体是流，只能读取一次。这里先读到String，再重新包装成流返回。
+            // 由于请求工厂已做缓存，这里读取 body 是安全的
             String responseBody = StreamUtils.copyToString(response.getBody(), Charset.defaultCharset());
             log.debug("Response Body: {}", responseBody);
             log.debug("===================== RESPONSE END ======================");

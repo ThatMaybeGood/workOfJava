@@ -2,9 +2,8 @@ package com.mergedata.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
-import org.springframework.stereotype.Component;
 
-@Component
+
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true) // <--- 关键修改
 public class ApiResponseResult {

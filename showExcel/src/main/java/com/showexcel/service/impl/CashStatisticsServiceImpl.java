@@ -471,13 +471,13 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
     }
 
 
-    private double sumField(List<CashStatistics> data, Function<CashStatistics, Double> fieldGetter) {
+    private BigDecimal sumField(List<CashStatistics> data, Function<CashStatistics, BigDecimal> fieldGetter) {
         if (data == null || data.isEmpty()) {
             return 0.0;
         }
         return data.stream()
-                .mapToDouble(item -> {
-                    Double value = fieldGetter.apply(item);
+                .mapToBigDecimal(item -> {
+                    BigDecimal value = fieldGetter.apply(item);
                     return value != null ? value : 0.0;
                 })
                 .sum();

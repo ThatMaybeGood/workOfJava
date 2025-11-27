@@ -28,14 +28,14 @@ public class CashStatisticsRepository {
             item.setId(rs.getObject("id", Integer.class));
             item.setTableType(rs.getObject("tab_type", Integer.class));
             item.setName(rs.getString("name"));
-            item.setHisAdvancePayment(rs.getObject("hisAdvancePayment", Double.class));
-            item.setHisMedicalIncome(rs.getObject("hisMedicalIncome", Double.class));
-            item.setHisRegistrationIncome(rs.getObject("hisRegistrationIncome", Double.class));
-            item.setReportAmount(rs.getObject("reportAmount", Double.class));
-            item.setPreviousTemporaryReceipt(rs.getObject("previousTemporaryReceipt", Double.class));
-            item.setCurrentTemporaryReceipt(rs.getObject("currentTemporaryReceipt", Double.class));
-            item.setRetainedCash(rs.getObject("retainedCash", Double.class));
-            item.setPettyCash(rs.getObject("pettyCash", Double.class));
+            item.setHisAdvancePayment(rs.getObject("hisAdvancePayment", BigDecimal.class));
+            item.setHisMedicalIncome(rs.getObject("hisMedicalIncome", BigDecimal.class));
+            item.setHisRegistrationIncome(rs.getObject("hisRegistrationIncome", BigDecimal.class));
+            item.setReportAmount(rs.getObject("reportAmount", BigDecimal.class));
+            item.setPreviousTemporaryReceipt(rs.getObject("previousTemporaryReceipt", BigDecimal.class));
+            item.setCurrentTemporaryReceipt(rs.getObject("currentTemporaryReceipt", BigDecimal.class));
+            item.setRetainedCash(rs.getObject("retainedCash", BigDecimal.class));
+            item.setPettyCash(rs.getObject("pettyCash", BigDecimal.class));
             return item;
         });
     }
@@ -54,14 +54,14 @@ public class CashStatisticsRepository {
             item.setId(rs.getObject("id", Integer.class));
             item.setTableType(rs.getObject("tableType", Integer.class));
             item.setName(rs.getString("name"));
-            item.setHisAdvancePayment(rs.getObject("hisAdvancePayment", Double.class));
-            item.setHisMedicalIncome(rs.getObject("hisMedicalIncome", Double.class));
-            item.setHisRegistrationIncome(rs.getObject("hisRegistrationIncome", Double.class));
-            item.setReportAmount(rs.getObject("reportAmount", Double.class));
-            item.setPreviousTemporaryReceipt(rs.getObject("previousTemporaryReceipt", Double.class));
-            item.setCurrentTemporaryReceipt(rs.getObject("currentTemporaryReceipt", Double.class));
-            item.setRetainedCash(rs.getObject("retainedCash", Double.class));
-            item.setPettyCash(rs.getObject("pettyCash", Double.class));
+            item.setHisAdvancePayment(rs.getObject("hisAdvancePayment", BigDecimal.class));
+            item.setHisMedicalIncome(rs.getObject("hisMedicalIncome", BigDecimal.class));
+            item.setHisRegistrationIncome(rs.getObject("hisRegistrationIncome", BigDecimal.class));
+            item.setReportAmount(rs.getObject("reportAmount", BigDecimal.class));
+            item.setPreviousTemporaryReceipt(rs.getObject("previousTemporaryReceipt", BigDecimal.class));
+            item.setCurrentTemporaryReceipt(rs.getObject("currentTemporaryReceipt", BigDecimal.class));
+            item.setRetainedCash(rs.getObject("retainedCash", BigDecimal.class));
+            item.setPettyCash(rs.getObject("pettyCash", BigDecimal.class));
             return item;
         }, date);
     }
