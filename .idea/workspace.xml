@@ -5,7 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f5e93bba-4bf8-4603-8f6b-5adf75c26676" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/resources/application-prod.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/resources/application-prod.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/test.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dao/YQStoredProcedureDao.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dao/YQStoredProcedureDao.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/test/java/com/mergedata/MessageDataApplicationTests.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/test/java/com/mergedata/MessageDataApplicationTests.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/target/test-classes/com/mergedata/MessageDataApplicationTests.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/test-classes/com/mergedata/MessageDataApplicationTests.class" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -76,14 +80,14 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "ASKED_ADD_EXTERNAL_FILES": "true",
-    "Application.MessageDataApplication.executor": "Run",
+    "Application.MessageDataApplication.executor": "Debug",
     "Application.MessageDataServiceApplication (1).executor": "Debug",
     "Application.MessageDataServiceApplication.executor": "Run",
     "Application.MultiFormatDateParser.executor": "Run",
     "Application.ShowExcelApplication.executor": "Run",
     "Application.ShowExcelSoapApplication.executor": "Run",
     "Application.com.mergedata.MessageDataServiceApplication.executor": "Run",
-    "JUnit.MessageDataApplicationTests.contextLoads.executor": "Run",
+    "JUnit.MessageDataApplicationTests.contextLoads.executor": "Debug",
     "JUnit.MessageDataApplicationTests.executor": "Run",
     "JUnit.MessageDataServiceApplicationTests.contextLoads (1).executor": "Run",
     "JUnit.MessageDataServiceApplicationTests.contextLoads.executor": "Debug",
@@ -140,7 +144,7 @@
       </set>
     </option>
   </component>
-  <component name="RunManager" selected="Application.MessageDataApplication">
+  <component name="RunManager" selected="JUnit.MessageDataApplicationTests.contextLoads">
     <configuration name="MessageDataApplication" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="com.mergedata.MessageDataApplication" />
       <module name="mergedata" />
@@ -223,8 +227,8 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Application.MessageDataApplication" />
         <item itemvalue="JUnit.MessageDataApplicationTests.contextLoads" />
+        <item itemvalue="Application.MessageDataApplication" />
         <item itemvalue="JUnit.MessageDataApplicationTests" />
         <item itemvalue="JUnit.MessageDataServiceApplicationTests.contextLoads" />
       </list>

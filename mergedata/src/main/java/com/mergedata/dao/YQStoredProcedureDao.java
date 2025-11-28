@@ -4,6 +4,7 @@ import oracle.jdbc.OracleTypes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.SqlOutParameter;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Repository;
 
@@ -30,13 +31,14 @@ public class YQStoredProcedureDao {
         this.jdbcTemplate = jdbcTemplate;
         this.dataSource = dataSource;
     }
+
     /**
      * 【通用方法】调用接收一个 String 输入参数并返回单个游标的存储过程。
      *
-     * @param <T> 目标实体类型
-     * @param procedureName 存储过程的完整名称 (如: "GET_USER_RECORDS")
+     * @param <T>              目标实体类型
+     * @param procedureName    存储过程的完整名称 (如: "GET_USER_RECORDS")
      * @param inputStringParam 传入存储过程的 String 类型参数
-     * @param rowMapper 目标实体对应的 RowMapper 实例
+     * @param rowMapper        目标实体对应的 RowMapper 实例
      * @return 映射后的实体列表
      */
     public <T> List<T> executeQuerySingleStringParam(
@@ -83,14 +85,12 @@ public class YQStoredProcedureDao {
     }
 
 
-
-
     /**
      * 【通用方法】调用不接收输入参数，但返回单个游标的存储过程。
      *
-     * @param <T> 目标实体类型
+     * @param <T>           目标实体类型
      * @param procedureName 存储过程的完整名称 (如: "GET_ALL_PRODUCTS")
-     * @param rowMapper 目标实体对应的 RowMapper 实例
+     * @param rowMapper     目标实体对应的 RowMapper 实例
      * @return 映射后的实体列表
      */
     public <T> List<T> executeQueryNoParam(
@@ -130,7 +130,7 @@ public class YQStoredProcedureDao {
                 }
             }
             // 如果 rs 为 null (极少见) 或无数据，返回空列表
-            return Collections.emptyList();
+            return Collections. <T>emptyList();
         });
     }
 
@@ -138,10 +138,11 @@ public class YQStoredProcedureDao {
     /**
      * 【通用方法】调用具有不固定数量输入参数和单个游标返回的存储过程。
      * * @param <T> 目标实体类型
+     *
      * @param procedureName 存储过程的名称 (如: "GET_RECORDS_FLEXIBLE")
-     * @param rowMapper 目标实体对应的 RowMapper 实例
-     * @param inParams 包含所有输入参数的 Map<参数名, 参数值>
-     * @param cursorName 存储过程中 REF_CURSOR OUT 参数的名称 (如: "P_CURSOR")
+     * @param rowMapper     目标实体对应的 RowMapper 实例
+     * @param inParams      包含所有输入参数的 Map<参数名, 参数值>
+     * @param cursorName    存储过程中 REF_CURSOR OUT 参数的名称 (如: "P_CURSOR")
      * @return 映射后的实体列表
      */
     public <T> List<T> executeQueryFlexibleParams(
@@ -167,92 +168,53 @@ public class YQStoredProcedureDao {
         List<T> resultList = (List<T>) out.get(cursorName);
 
         // 4. 返回结果
-        return resultList != null ? resultList : Collections.emptyList();
+        return resultList != null ? resultList : Collections. <T>emptyList();
     }
 
 
+    // 假设这是在 YQStoredProcedureDao.java 中添加的新方法
 
+    /**
+     * 【通用方法】调用具有多输入参数和多 OUT 参数的存储过程。
+     *
+     * @param <T> 目标实体类型
+     * @param procedureName 存储过程的名称
+     * @param rowMapper 游标对应的 RowMapper 实例
+     * @param inParams 包含所有 IN 参数的 Map<参数名, 参数值>
+     * @param outParamNames 包含所有 OUT 参数信息的 Map<参数名, SQL类型>
+     * @param cursorName 存储过程中 REF_CURSOR OUT 参数的名称 (如: "P_CURSOR")
+     * @return 包含所有 OUT 参数和游标结果列表的 Map<String, Object>
+     */
+    public <T> Map<String, Object> executeQueryMultipleOutParams(
+            String procedureName,
+            RowMapper<T> rowMapper,
+            Map<String, Object> inParams,
+            Map<String, Integer> outParamNames, // Map<参数名, SQL类型(如Types.INTEGER, Types.VARCHAR)>
+            String cursorName) {
 
+        // 1. 初始化 SimpleJdbcCall
+        SimpleJdbcCall jdbcCall = new SimpleJdbcCall(dataSource)
+                .withProcedureName(procedureName);
 
+        // 2. 注册 REF_CURSOR OUT 参数 (游标)
+        jdbcCall.returningResultSet(cursorName, rowMapper);
 
-//
-//package com.mergedata.service;
-//
-//// ... (导入 ProductDTO, ProductRowMapper, ProcedureCaller)
-//import java.util.HashMap;
-//import java.util.List;
-//import java.util.Map;
-//
-//    @Service
-//    public class ProductService {
-//
-//        @Autowired
-//        private ProcedureCaller procedureCaller;
-//
-//        @Autowired
-//        private ProductRowMapper productRowMapper; // 假设映射 ProductDTO
-//
-//        public List<ProductDTO> getProductsFlexible(String date, Integer status) {
-//
-//            // 1. 构建输入参数 Map
-//            Map<String, Object> params = new HashMap<>();
-//
-//            // 动态添加参数：Map的键必须与存储过程的参数名完全一致
-//            if (date != null) {
-//                params.put("P_DATE", date);
-//            }
-//            if (status != null) {
-//                params.put("P_STATUS", status);
-//            }
-//            // 如果存储过程接收了参数但未在 Map 中提供，JDBC驱动会报错，
-//            // 除非该参数在存储过程中定义了默认值。
-//
-//            // 2. 调用通用方法
-//            return procedureCaller.executeQueryFlexibleParams(
-//                    "GET_RECORDS_FLEXIBLE", // 存储过程名
-//                    productRowMapper,       // 映射器
-//                    params,                 // 输入参数 Map
-//                    "P_CURSOR"              // 游标 OUT 参数名
-//            );
-//        }
-//    }
+        // 3. 注册所有其他 OUT 参数
+        if (outParamNames != null) {
+            // outParamNames 格式: Map<"P_INT_OUT", Types.INTEGER>, Map<"P_VARCHAR_OUT", Types.VARCHAR>
+            for (Map.Entry<String, Integer> entry : outParamNames.entrySet()) {
+                jdbcCall.declareParameters(
+                        new SqlOutParameter(entry.getKey(), entry.getValue())
+                );
+            }
+        }
 
+        // 4. 执行调用。out 包含了所有 OUT 参数和游标结果列表
+        Map<String, Object> out = jdbcCall.execute(inParams);
 
-
-
-
-
-
-
+        // 5. 返回所有结果
+        return out;
+    }
 
 }
 
-//
-//// 假设这是您的 Service 层代码
-//
-//// ... (导入和 @Autowired YQStoredProcedureDao)
-//
-//        // 在 Service 方法中：
-//        public List<SomeOtherDTO> getProducts(String categoryId) {
-//            // 假设您有一个名为 "GET_PRODUCTS_BY_CATEGORY" 的过程，接收一个 String
-//            // 并且您已经定义了 SomeOtherDTORowMapper
-//
-//            RowMapper<SomeOtherDTO> productMapper = new SomeOtherDTORowMapper();
-//
-//            return yqStoredProcedureDao.executeQuerySingleStringParam(
-//                    "GET_PRODUCTS_BY_CATEGORY", // 过程名
-//                    categoryId,                 // 输入参数
-//                    productMapper               // 映射器
-//            );
-//        }
-//
-//        public List<YQCashRegRecordDTO> getRecords(String date) {
-//            // 假设您有一个名为 "GET_RECORDS_BY_DATE" 的过程，接收一个 String
-//            RowMapper<YQCashRegRecordDTO> recordMapper = new YQCashRegRecordRowMapper();
-//
-//            return yqStoredProcedureDao.executeQuerySingleStringParam(
-//                    "GET_RECORDS_BY_DATE",
-//                    date,
-//                    recordMapper
-//            );
-//        }
