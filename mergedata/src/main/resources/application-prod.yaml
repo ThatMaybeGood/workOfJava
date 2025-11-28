@@ -14,11 +14,11 @@ spring:
     driver-class-name: oracle.jdbc.OracleDriver
 
     # 必需：数据库连接 URL (请替换您的实际值)
-    url: jdbc:oracle:thin:@localhost:1521:XE
+    url: jdbc:oracle:thin:@168.168.235.68:1521:yuanqi
 
     # 必需：用户名和密码
-    username: your_db_username
-    password: your_db_password
+    username: powermpp
+    password: yuanqi
 
     # ----------------------------------------
     # 2. Druid 连接池参数配置

@@ -2,10 +2,11 @@ package com.mergedata.mapper;
 
 import com.mergedata.model.ReportDTO;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Component;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
+@Component
 public class YQReportMapper implements RowMapper<ReportDTO> {
     @Override
     public ReportDTO mapRow(ResultSet rs, int rowNum) throws SQLException {

@@ -14,7 +14,7 @@ class MessageDataApplicationTests {
     @Test
     void contextLoads() {
 
-        externalApiRequestService.getHisIncomeList("2023-01-30");
+//        externalApiRequestService.getHisIncomeList("2023-01-30");
 //        externalApiRequestService.getHisIncomeList_String("2023-01-30");
 //        log.info("测试通过");
 
