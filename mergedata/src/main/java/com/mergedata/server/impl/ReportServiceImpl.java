@@ -1,6 +1,8 @@
 package com.mergedata.server.impl;
 
-import com.mergedata.dto.*;
+import com.mergedata.dao.YQStoredProcedureDao;
+import com.mergedata.mapper.YQReportMapper;
+import com.mergedata.model.*;
 import com.mergedata.server.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,10 +20,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ReportServiceImpl implements ReportService {
 
-
-    private String HIS_DATA_URL;
-
-
     @Autowired
     private HisDataService hisDataService;
     @Autowired
@@ -34,29 +32,59 @@ public class ReportServiceImpl implements ReportService {
     @Autowired
     private RestTemplate restTemplate;
 
-    @Override
-    public List<ReportDTO> getAll(LocalDate reportDate) {
+    @Autowired
+    YQStoredProcedureDao yqStoredProcedureDao;
 
-        // 1、判断当前日期类型  0 正常 ，1 节假日 ，2 节假日前一天 3 节假日后一天
-        // 2、根据日期类型获取对应的操作员数据
-        // 3、将获取到的数据转换为DTO对象，并填充到结果集中
-        return getAllReportData(reportDate);
+    @Autowired
+    YQReportMapper yqReportMapper;
+
+
+    @Override
+    public List<ReportDTO> getAll(String reportdate) {
+        // 调用存储过程获取报表数据
+        try {
+
+            // 调用通用方法，传入过程名和 Mapper
+            List<ReportDTO> resultLists = yqStoredProcedureDao.executeQueryNoParam(
+                    "GET_ALL_REPORTS",  // 存储过程名称
+                    yqReportMapper     // 对应的 RowMapper Bean
+            );
+
+
+            // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
+            if (!resultLists.isEmpty()){
+                return resultLists;
+            }else {
+                // 1、判断当前日期类型  0 正常 ，1 节假日 ，2 节假日前一天 3 节假日后一天
+                // 2、根据日期类型获取对应的操作员数据
+                // 3、将获取到的数据转换为DTO对象，并填充到结果集中
+                return getAllReportData(reportdate);
+            }
+
+        } catch (Exception e) {
+            log.error("获取报表数据异常", e);
+            return new ArrayList<>();
+        }
+
+
+
+
     }
 
     @Override
-    public Boolean insert(LocalDate reportDate) {
+    public Boolean insert(String reportdate) {
         // 建议: 如果方法未实现，返回 false 或抛出异常
         // throw new UnsupportedOperationException("Insert operation is not yet implemented.");
         return false;
     }
 
 
-    public List<ReportDTO> getAllReportData(LocalDate reportDate) {
+    public List<ReportDTO> getAllReportData(String reportdate) {
         try {
             // 1. 获取所有数据（列表形式）
             List<YQOperatorDTO> operators = hisOperatorService.findData(); // 操作员列表
-            List<HisIncomeDTO> hisIncomeDTOList = hisDataService.findByDate(reportDate);           // His数据列表
-            List<YQCashRegRecordDTO> yqDataList = yqCashRegRecordService.findByDate(reportDate);     // YQ数据列表
+            List<HisIncomeDTO> hisIncomeDTOList = hisDataService.findByDate(reportdate);           // His数据列表
+            List<YQCashRegRecordDTO> yqDataList = yqCashRegRecordService.findByDate(reportdate);     // YQ数据列表
 
             // 2. 将关联数据转换为以 operatorNo 为key的Map, 使用 (v1, v2) -> v1 来处理可能的重复键
             Map<String, HisIncomeDTO> hisDataMap = hisIncomeDTOList.stream()
@@ -69,7 +97,7 @@ public class ReportServiceImpl implements ReportService {
             List<ReportDTO> result = new ArrayList<>();
             
             // 优化: 在循环外计算一次即可
-            BigDecimal actualReportAmount = getActualReportAmount(reportDate);
+            BigDecimal actualReportAmount = getActualReportAmount(reportdate);
 
             for (YQOperatorDTO operator : operators) {
                 ReportDTO dto = new ReportDTO();
@@ -77,7 +105,7 @@ public class ReportServiceImpl implements ReportService {
                 // 设置操作员基础信息
                 dto.setOperatorNo(operator.getOperatorNo());
                 dto.setOperatorName(operator.getOperatorName());
-                dto.setReportDate(reportDate);
+                dto.setReportDate(reportdate);
 
                 // 1、关联 HisData 数据（如果有）
                 HisIncomeDTO hisIncomeDTO = hisDataMap.get(operator.getOperatorNo());
@@ -117,7 +145,7 @@ public class ReportServiceImpl implements ReportService {
                 result.add(dto);
             }
 
-            log.info("{}生成报表完成，共处理 {} 个操作员", reportDate, result.size());
+            log.info("{}生成报表完成，共处理 {} 个操作员", reportdate, result.size());
 
             return result;
         } catch (Exception e) {
@@ -132,27 +160,30 @@ public class ReportServiceImpl implements ReportService {
     根据日期的情况分类得到最后时间，
      1、判断当前日期类型  0 正常 ，1 节假日 ，2 节假日前一天 3 节假日后一天
      */
-    public BigDecimal getActualReportAmount(LocalDate reportDate) {
+    public BigDecimal getActualReportAmount(String date) {
+
         BigDecimal amount = BigDecimal.ZERO;
+        LocalDate reportdate = LocalDate.parse(date);
+
 
         //1、获取目前维护的节假日列表
-        List<HolidayCalendarDTO> holidayCalendarDTOS = holidayCalendarService.findByDate(reportDate);
+        List<YQHolidayCalendarDTO> YQHolidayCalendarDTOS = holidayCalendarService.findByDate(date);
 
-        if (holidayCalendarDTOS.isEmpty()) {
+        if (YQHolidayCalendarDTOS.isEmpty()) {
             log.warn("No holiday calendar data found.");
             return amount;
         }
 
         //1、判断当前日期是否为节假日
-        if (isDateInvalid(holidayCalendarDTOS, reportDate)) {
+        if (isDateInvalid(YQHolidayCalendarDTOS, reportdate)) {
             //节假日
         }
 
-        if (isDateInvalid(holidayCalendarDTOS, reportDate.minusDays(1))) {
+        if (isDateInvalid(YQHolidayCalendarDTOS, reportdate.minusDays(1))) {
             //节假日后一天
             while (true) {
-                reportDate = reportDate.minusDays(1);
-                if (isDateInvalid(holidayCalendarDTOS, reportDate)) {
+                reportdate = reportdate.minusDays(1);
+                if (isDateInvalid(YQHolidayCalendarDTOS, reportdate)) {
                     break;
                 } else {
                     //加amount = amount + 昨日留存现金数
@@ -162,7 +193,7 @@ public class ReportServiceImpl implements ReportService {
             }
         }
 
-        if (isDateInvalid(holidayCalendarDTOS, reportDate.plusDays(1))) {
+        if (isDateInvalid(YQHolidayCalendarDTOS, reportdate.plusDays(1))) {
             //节假日前一天
         }
 
@@ -179,7 +210,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     // 计算衍生字段  字段是Double的时候累计加和
-//    private ReportDTO calculateTotal(List<ReportDTO> dto, LocalDate reportDate) {
+//    private ReportDTO calculateTotal(List<ReportDTO> dto, String reportdate) {
 //        // 汇总数据，计算总金额等字段
 //        ReportDTO total = new ReportDTO();
 //        total.setOperatorNo("");
@@ -202,7 +233,7 @@ public class ReportServiceImpl implements ReportService {
 //        total.setPettyCash(dto.stream().mapToBigDecimal(ReportDTO::getPettyCash).sum());
 //
 //        total.setRemarks("合计行，不展示在报表中");
-//        total.setReportDate(reportDate);
+//        total.setReportDate(reportdate);
 //        total.setCreateTime(LocalDateTime.now());
 //
 //
@@ -212,7 +243,7 @@ public class ReportServiceImpl implements ReportService {
 
 // 假设 ReportDTO 中所有相关金额字段都是 BigDecimal 类型
 
-    private ReportDTO calculateTotal(List<ReportDTO> dtoList, LocalDate reportDate) {
+    private ReportDTO calculateTotal(List<ReportDTO> dtoList, String reportdate) {
         // 1. 定义 BigDecimal 求和初始值 (0) 和操作符 (加法)
         final BigDecimal ZERO = BigDecimal.ZERO;
         java.util.function.BinaryOperator<BigDecimal> sumOperator = BigDecimal::add;
@@ -247,7 +278,7 @@ public class ReportServiceImpl implements ReportService {
 
         // 5. 设置其他字段
         total.setRemarks("合计行，不展示在报表中");
-        total.setReportDate(reportDate);
+        total.setReportDate(reportdate);
         total.setCreateTime(LocalDateTime.now());
 
         return total;
@@ -257,14 +288,14 @@ public class ReportServiceImpl implements ReportService {
     /**
      * 最优解：字符串作废标志的HashSet方案
      */
-    public boolean isDateInvalid(List<HolidayCalendarDTO> holidayCalendarDTOList, LocalDate targetDate) {
-        if (holidayCalendarDTOList == null || targetDate == null) {
+    public boolean isDateInvalid(List<YQHolidayCalendarDTO> YQHolidayCalendarDTOList, LocalDate targetDate) {
+        if (YQHolidayCalendarDTOList == null || targetDate == null) {
             return false;
         }
 
         // 先把所有日期提取到Set中
-        Set<LocalDate> dateSet = holidayCalendarDTOList.stream()
-                .map(HolidayCalendarDTO::getHolidayDate)
+        Set<LocalDate> dateSet = YQHolidayCalendarDTOList.stream()
+                .map(YQHolidayCalendarDTO::getHolidayDate)
                 .collect(Collectors.toSet());
 
         // 然后快速检查

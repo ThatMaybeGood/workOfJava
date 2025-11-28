@@ -1,4 +1,4 @@
-package com.mergedata.dto;// File: com.mergedata.dto.HisIncomeDTO.java (您需要修改或确认该文件)
+package com.mergedata.model;// File: com.mergedata.model.HisIncomeDTO.java (您需要修改或确认该文件)
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;

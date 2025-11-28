@@ -1,10 +1,9 @@
-package com.mergedata.dto;
+package com.mergedata.model;
 
 
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 
 // 定义一个类，用于存储医院现金报表记录
 @Data
@@ -13,9 +12,9 @@ public class YQCashRegRecordDTO {
     //留存现金数
     private BigDecimal retainedCash; //his
 
-    private LocalDate  applyDate;
+    private String  applyDate;
 
-    private LocalDate createTime;
+    private String createTime;
 
     private String operatorName;
 

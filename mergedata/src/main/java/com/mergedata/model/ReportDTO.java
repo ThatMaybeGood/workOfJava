@@ -1,12 +1,14 @@
-package com.mergedata.dto;
+package com.mergedata.model;
 
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 @Data
 public class ReportDTO {
+
+    private String serialNo;
+
     // 操作员基础信息
     private String operatorNo;
     private String operatorName;
@@ -36,7 +38,7 @@ public class ReportDTO {
     private String windowNo;
     private String operatType;
     private String sechduling;
-    private LocalDate applyDate;
+    private String applyDate;
 
 
     // 其他报表字段（根据您提供的字段）
@@ -87,7 +89,7 @@ public class ReportDTO {
     private String remarks;
 
 
-    private LocalDate reportDate;
+    private String reportDate;
     private LocalDateTime createTime;
 
 

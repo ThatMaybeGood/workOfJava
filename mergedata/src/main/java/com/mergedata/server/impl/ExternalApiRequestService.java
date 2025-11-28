@@ -8,7 +8,7 @@ import com.mergedata.constants.ReqConstant;
 import com.mergedata.dto.ApiRequest;
 import com.mergedata.dto.ApiRequestHead;
 import com.mergedata.dto.ApiResponse;
-import com.mergedata.dto.HisIncomeDTO;
+import com.mergedata.model.HisIncomeDTO;
 import com.mergedata.entity.BusinessException;
 import com.mergedata.dto.CommonRequestBody;
 import com.mergedata.util.RestApiUtil;
