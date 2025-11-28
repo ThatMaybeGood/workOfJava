@@ -1,6 +1,7 @@
 package com.mergedata;
 
 import com.mergedata.server.impl.ExternalApiRequestService;
+import com.mergedata.server.impl.HisOperatorServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,8 +12,12 @@ class MessageDataApplicationTests {
     @Autowired
     ExternalApiRequestService externalApiRequestService;
 
+    @Autowired
+    HisOperatorServiceImpl hisOperatorService;
+
     @Test
     void contextLoads() {
+        hisOperatorService.findData();
 
 //        externalApiRequestService.getHisIncomeList("2023-01-30");
 //        externalApiRequestService.getHisIncomeList_String("2023-01-30");
