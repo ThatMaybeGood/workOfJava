@@ -2,7 +2,7 @@ package com.mergedata.server.impl;
 
 import com.mergedata.dto.ApiRequest;
 import com.mergedata.dto.ApiRequestHead;
-import com.mergedata.dto.HisIncomeDTO;
+import com.mergedata.model.HisIncomeDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

@@ -1,9 +1,9 @@
 package com.mergedata.util;
 
-import com.mergedata.dto.HisIncomeDTO;
-import com.mergedata.dto.YQOperatorDTO;
-import com.mergedata.dto.HolidayCalendarDTO;
-import com.mergedata.dto.YQCashRegRecordDTO;
+import com.mergedata.model.HisIncomeDTO;
+import com.mergedata.model.YQOperatorDTO;
+import com.mergedata.model.YQHolidayCalendarDTO;
+import com.mergedata.model.YQCashRegRecordDTO;
 
 /*
  * 定义一个枚举，用于标识不同类型的 API
@@ -13,7 +13,7 @@ public enum ApiType {
     // 增加枚举值，例如 HIS_REPORT
     HIS_REPORT("hisReport", YQOperatorDTO.class),
     // 增加枚举值，例如 HOLIDAY_CALENDAR
-    HOLIDAY_CALENDAR("holidayCalendar", HolidayCalendarDTO.class),
+    HOLIDAY_CALENDAR("holidayCalendar", YQHolidayCalendarDTO.class),
 
     // 增加新的枚举值，例如 HIS_OPERATOR
     HIS_OPERATOR("hisOperator", YQOperatorDTO.class),

@@ -108,10 +108,10 @@ public ReportDateType getReportDateType(LocalDate reportDate) {
     
     // 为了进行日期判断，我们需要查询 reportDate 及其前一天、后一天的节假日状态。
     // 假设 findData() 能获取当前所需判断范围内的所有节假日
-    List<HolidayCalendar> holidayCalendarDTOS = holidayCalendarService.findData(); // 假设这个方法能获取足够范围的数据
+    List<HolidayCalendar> YQHolidayCalendarDTOS = holidayCalendarService.findData(); // 假设这个方法能获取足够范围的数据
     
     // 转换为 Set 提高查找效率
-    Set<LocalDate> holidaySet = holidayCalendarDTOS.stream()
+    Set<LocalDate> holidaySet = YQHolidayCalendarDTOS.stream()
             .map(HolidayCalendar::getHolidayDate)
             .collect(Collectors.toSet());
             

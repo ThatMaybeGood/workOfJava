@@ -1,7 +1,7 @@
 package com.mergedata.controller;
 
-import com.mergedata.dto.HisIncomeDTO;
-import com.mergedata.server.impl.ExternalApiRequestService;
+import com.mergedata.model.ReportDTO;
+import com.mergedata.server.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,18 +21,18 @@ import java.util.List;
 public class ReportController {
 
     @Autowired
-    private ExternalApiRequestService reportService;
+    private ReportService reportService;
 
     @GetMapping("/data")
-    public Result<List<HisIncomeDTO>> getData(@RequestParam String reportDate) {
+    public Result<List<ReportDTO>> getData(@RequestParam String reportdate) {
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        List<HisIncomeDTO> resultList = reportService.getHisIncomeList(reportDate);
+        List<ReportDTO> resultList = reportService.getAll(reportdate);
 
-        // 3. 检查结果
-        if (resultList == null || resultList.isEmpty()) {
-            return Result.error("查询失败或无数据");
-        }
+//        // 3. 检查结果
+//        if (resultList == null || resultList.isEmpty()) {
+//            return Result.error("查询失败或无数据");
+//        }
 
         // 4. 返回结果
         return Result.success(resultList);

@@ -1,6 +1,6 @@
 package com.mergedata.server;
 
-import com.mergedata.dto.YQOperatorDTO;
+import com.mergedata.model.YQOperatorDTO;
 
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package com.mergedata.dto;
+package com.mergedata.model;
 
 
 import javax.validation.constraints.NotBlank;
