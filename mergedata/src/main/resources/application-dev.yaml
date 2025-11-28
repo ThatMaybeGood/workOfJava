@@ -14,16 +14,19 @@ spring:
     driver-class-name: oracle.jdbc.OracleDriver
 
     # 必需：数据库连接 URL (请替换您的实际值)
-    url: jdbc:oracle:thin:@localhost:1521:XE
+    url: jdbc:oracle:thin:@localhost:1521:orcl
 
     # 必需：用户名和密码
-    username: your_db_username
-    password: your_db_password
+    username: mine
+    password: Pass1230
+
 
     # ----------------------------------------
     # 2. Druid 连接池参数配置
     # ----------------------------------------
     druid:
+      # ❗ 显式指定 Druid 的数据库类型以避免 NPE
+      db-type: oracle
       # 初始化连接数
       initial-size: 5
       # 最小空闲连接数
