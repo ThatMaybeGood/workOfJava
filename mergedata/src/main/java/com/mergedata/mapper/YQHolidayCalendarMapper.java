@@ -2,14 +2,14 @@ package com.mergedata.mapper;
 
 import com.mergedata.model.YQHolidayCalendarDTO;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Component;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 
+@Component
 public class YQHolidayCalendarMapper implements RowMapper<YQHolidayCalendarDTO> {
-
-
 
     @Override
     public YQHolidayCalendarDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
