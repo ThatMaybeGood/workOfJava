@@ -1,7 +1,9 @@
 package com.mergedata.controller;
 
 import com.mergedata.model.ReportDTO;
+import com.mergedata.model.YQOperator;
 import com.mergedata.server.ReportService;
+import com.mergedata.server.YQOperatorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +24,9 @@ public class ReportController {
 
     @Autowired
     private ReportService reportService;
+    @Autowired
+    YQOperatorService operatorService;
+
 
     @GetMapping("/data")
     public Result<List<ReportDTO>> getData(@RequestParam String reportdate) {
@@ -29,14 +34,43 @@ public class ReportController {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         List<ReportDTO> resultList = reportService.getAll(reportdate);
 
-//        // 3. 检查结果
-//        if (resultList == null || resultList.isEmpty()) {
-//            return Result.error("查询失败或无数据");
-//        }
-
         // 4. 返回结果
         return Result.success(resultList);
     }
+
+
+
+
+     @PostMapping("/oper/batch")
+    public Result<String> operBatchInsert(@RequestBody List<YQOperator> oper) {
+
+        boolean success = operatorService.batchInsert(oper);
+
+        if (success) {
+            // 写入成功，返回 200 OK
+            return Result.success("写入成功。");
+        } else {
+            // 写入失败，返回 500 Internal Server Error 或 400 Bad Request
+            // 具体取决于失败原因，这里用简单的失败提示
+            // Response.setStatus(500);
+            return Result.error("写入失败，请查看系统日志获取详细错误信息。");
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     @GetMapping("/")

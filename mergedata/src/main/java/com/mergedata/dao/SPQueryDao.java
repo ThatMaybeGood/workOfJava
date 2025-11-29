@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SqlOutParameter;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Repository;
 
@@ -18,7 +19,7 @@ import java.util.Map;
 
 // ❗ 标记为 Spring Bean，以便 @Autowired 生效
 @Repository
-public class YQStoredProcedureDao {
+public class SPQueryDao {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -27,7 +28,7 @@ public class YQStoredProcedureDao {
 
     // 注入 JdbcTemplate 和 DataSource
     @Autowired
-    public YQStoredProcedureDao(JdbcTemplate jdbcTemplate, DataSource dataSource) {
+    public SPQueryDao(JdbcTemplate jdbcTemplate, DataSource dataSource) {
         this.jdbcTemplate = jdbcTemplate;
         this.dataSource = dataSource;
     }
@@ -215,6 +216,97 @@ public class YQStoredProcedureDao {
         // 5. 返回所有结果
         return out;
     }
+
+
+    /**
+     * 调用具有多输入参数、多个 OUT 参数和多个游标的存储过程。
+     *
+     * @param procedureName 存储过程的名称 (如: "PKG_REPORT.GET_REPORT_DATA")
+     * @param inParams 包含所有 IN 参数的 Map<参数名, 参数值>
+     * @param outParamNames 包含所有非游标 OUT 参数信息的 Map<参数名, SQL类型> (例如: Types.INTEGER, Types.VARCHAR)
+     * @param cursorMappers 包含所有游标 OUT 参数信息的 Map<游标名, RowMapper实例>
+     * @return 包含所有 OUT 参数（包括游标结果列表）的 Map<String, Object>
+     */
+    public Map<String, Object> executeQueryMultipleCursors(
+            String procedureName,
+            Map<String, Object> inParams,
+            Map<String, Integer> outParamNames, // Map<参数名, SQL类型(如Types.INTEGER, Types.VARCHAR)>
+            Map<String, RowMapper<?>> cursorMappers) { // Map<游标名, 对应的 RowMapper>
+
+        // 1. 初始化 SimpleJdbcCall
+        SimpleJdbcCall jdbcCall = new SimpleJdbcCall(dataSource)
+                .withProcedureName(procedureName);
+
+        // 2. 注册所有 REF_CURSOR OUT 参数 (游标)
+        if (cursorMappers != null) {
+            for (Map.Entry<String, RowMapper<?>> entry : cursorMappers.entrySet()) {
+                // 关键点：为每个游标 OUT 参数注册其名称和对应的 RowMapper
+
+                //cursorMappers 里的每个游标名，都通过 returningResultSet 隐式 自动完成了**“它是一个游标出参”
+                jdbcCall.returningResultSet(entry.getKey(), entry.getValue());
+            }
+        }
+
+        // 3. 注册所有其他 OUT 参数 (如 CODE, MESSAGE, 计数等)
+        if (outParamNames != null) {
+            for (Map.Entry<String, Integer> entry : outParamNames.entrySet()) {
+                // 注册非游标 OUT 参数的名称和 SQL 类型  显示声明出参
+                jdbcCall.declareParameters(
+                        new SqlOutParameter(entry.getKey(), entry.getValue())
+                );
+            }
+        }
+
+        // 4. 将 IN 参数转换为 SimpleJdbcCall 可接受的 MapSqlParameterSource
+        MapSqlParameterSource in = new MapSqlParameterSource(inParams);
+
+        // 5. 执行调用
+        // out 包含了所有 OUT 参数、所有游标的结果列表（以游标名为 Key）
+        Map<String, Object> out = jdbcCall.execute(in);
+
+        // 6. 返回所有结果
+        return out;
+    }
+
+    /*
+     * 示例用法：
+     * 假设存储过程返回 P_CODE, P_MSG, P_CURSOR_A, P_CURSOR_B
+     */
+    /*
+    public void exampleUsage() {
+        // 1. 定义游标映射器：为每个游标指定不同的 RowMapper
+        Map<String, RowMapper<?>> cursorMap = new HashMap<>();
+        // 游标 P_CURSOR_A 映射到 UserEntity.class
+        cursorMap.put("P_CURSOR_USER", new BeanPropertyRowMapper<>(UserEntity.class));
+        // 游标 P_CURSOR_B 映射到 LogEntity.class
+        cursorMap.put("P_CURSOR_LOG", new BeanPropertyRowMapper<>(LogEntity.class));
+
+        // 2. 定义非游标 OUT 参数
+        Map<String, Integer> outMap = new HashMap<>();
+        outMap.put("P_CODE", java.sql.Types.INTEGER);
+        outMap.put("P_MSG", java.sql.Types.VARCHAR);
+
+        // 3. 定义 IN 参数
+        Map<String, Object> inMap = new HashMap<>();
+        inMap.put("P_USER_ID", 123);
+
+        // 4. 执行调用
+        Map<String, Object> results = executeQueryMultipleCursors(
+                "PKG_DATA.GET_USER_AND_LOGS",
+                inMap,
+                outMap,
+                cursorMap
+        );
+
+        // 5. 获取结果
+        Integer code = (Integer) results.get("P_CODE");
+        String message = (String) results.get("P_MSG");
+        List<UserEntity> users = (List<UserEntity>) results.get("P_CURSOR_USER");
+        List<LogEntity> logs = (List<LogEntity>) results.get("P_CURSOR_LOG");
+
+        // ... 后续逻辑处理
+    }
+    */
 
 }
 

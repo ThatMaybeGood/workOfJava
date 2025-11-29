@@ -1,6 +1,6 @@
 package com.mergedata.server.impl;
 
-import com.mergedata.dao.YQStoredProcedureDao;
+import com.mergedata.dao.SPQueryDao;
 import com.mergedata.mapper.YQReportMapper;
 import com.mergedata.model.*;
 import com.mergedata.server.*;
@@ -25,7 +25,7 @@ public class ReportServiceImpl implements ReportService {
     @Autowired
     private YQCashRegRecordService yqCashRegRecordService;
     @Autowired
-    private HisOperatorService hisOperatorService;
+    private YQOperatorService YQOperatorService;
     @Autowired
     private HolidayCalendarService holidayCalendarService;
 
@@ -33,7 +33,7 @@ public class ReportServiceImpl implements ReportService {
     private RestTemplate restTemplate;
 
     @Autowired
-    YQStoredProcedureDao yqStoredProcedureDao;
+    SPQueryDao SPQueryDao;
 
     @Autowired
     YQReportMapper yqReportMapper;
@@ -45,7 +45,7 @@ public class ReportServiceImpl implements ReportService {
         try {
 
             // 调用通用方法，传入过程名和 Mapper
-            List<ReportDTO> resultLists = yqStoredProcedureDao.executeQueryNoParam(
+            List<ReportDTO> resultLists = SPQueryDao.executeQueryNoParam(
                     "GET_ALL_REPORTS",  // 存储过程名称
                     yqReportMapper     // 对应的 RowMapper Bean
             );
@@ -82,7 +82,7 @@ public class ReportServiceImpl implements ReportService {
     public List<ReportDTO> getAllReportData(String reportdate) {
         try {
             // 1. 获取所有数据（列表形式）
-            List<YQOperatorDTO> operators = hisOperatorService.findData(); // 操作员列表
+            List<YQOperator> operators = YQOperatorService.findData(); // 操作员列表
             List<HisIncomeDTO> hisIncomeDTOList = hisDataService.findByDate(reportdate);           // His数据列表
             List<YQCashRegRecordDTO> yqDataList = yqCashRegRecordService.findByDate(reportdate);     // YQ数据列表
 
@@ -99,7 +99,7 @@ public class ReportServiceImpl implements ReportService {
             // 优化: 在循环外计算一次即可
             BigDecimal actualReportAmount = getActualReportAmount(reportdate);
 
-            for (YQOperatorDTO operator : operators) {
+            for (YQOperator operator : operators) {
                 ReportDTO dto = new ReportDTO();
 
                 // 设置操作员基础信息

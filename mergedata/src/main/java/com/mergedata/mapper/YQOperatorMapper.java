@@ -1,6 +1,6 @@
 package com.mergedata.mapper;
 
-import com.mergedata.model.YQOperatorDTO;
+import com.mergedata.model.YQOperator;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 
@@ -8,10 +8,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 @Component
-public class YQOperatorMapper implements RowMapper<YQOperatorDTO> {
+public class YQOperatorMapper implements RowMapper<YQOperator> {
     @Override
-    public YQOperatorDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
-        YQOperatorDTO dto = new YQOperatorDTO();
+    public YQOperator mapRow(ResultSet rs, int rowNum) throws SQLException {
+        YQOperator dto = new YQOperator();
 
         // --- 修正后的映射 ---
 
