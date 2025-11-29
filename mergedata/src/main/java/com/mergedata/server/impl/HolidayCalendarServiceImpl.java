@@ -1,6 +1,6 @@
 package com.mergedata.server.impl;
 
-import com.mergedata.dao.YQStoredProcedureDao;
+import com.mergedata.dao.SPQueryDao;
 import com.mergedata.mapper.YQHolidayCalendarMapper;
 import com.mergedata.model.YQHolidayCalendarDTO;
 import com.mergedata.server.HolidayCalendarService;
@@ -15,7 +15,7 @@ import java.util.List;
 @Slf4j
 public class HolidayCalendarServiceImpl implements HolidayCalendarService {
     @Autowired
-    YQStoredProcedureDao yqStoredProcedureDao;
+    SPQueryDao SPQueryDao;
 
     @Autowired
     YQHolidayCalendarMapper yqHolidayCalendarMapper;
@@ -23,7 +23,7 @@ public class HolidayCalendarServiceImpl implements HolidayCalendarService {
     @Override
     public List<YQHolidayCalendarDTO> findByDate(String date) {
             try {
-                List<YQHolidayCalendarDTO> getAllProducts = yqStoredProcedureDao.executeQueryNoParam(
+                List<YQHolidayCalendarDTO> getAllProducts = SPQueryDao.executeQueryNoParam(
                         "GET_ALL_PRODUCTS",  // 存储过程名称
                         yqHolidayCalendarMapper     // 对应的 RowMapper Bean
                 );

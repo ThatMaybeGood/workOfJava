@@ -1,7 +1,7 @@
 package com.mergedata.util;
 
 import com.mergedata.model.HisIncomeDTO;
-import com.mergedata.model.YQOperatorDTO;
+import com.mergedata.model.YQOperator;
 import com.mergedata.model.YQHolidayCalendarDTO;
 import com.mergedata.model.YQCashRegRecordDTO;
 
@@ -11,12 +11,12 @@ import com.mergedata.model.YQCashRegRecordDTO;
 public enum ApiType {
     HIS_DATA("hisData", HisIncomeDTO.class),
     // 增加枚举值，例如 HIS_REPORT
-    HIS_REPORT("hisReport", YQOperatorDTO.class),
+    HIS_REPORT("hisReport", YQOperator.class),
     // 增加枚举值，例如 HOLIDAY_CALENDAR
     HOLIDAY_CALENDAR("holidayCalendar", YQHolidayCalendarDTO.class),
 
     // 增加新的枚举值，例如 HIS_OPERATOR
-    HIS_OPERATOR("hisOperator", YQOperatorDTO.class),
+    HIS_OPERATOR("hisOperator", YQOperator.class),
 
     YQ_CASH_REG("yqCashReg", YQCashRegRecordDTO.class),
         // 未知类型，用于处理外部接口返回的新增枚举值

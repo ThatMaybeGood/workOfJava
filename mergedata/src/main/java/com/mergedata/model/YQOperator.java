@@ -1,6 +1,8 @@
 package com.mergedata.model;
 
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
@@ -8,8 +10,10 @@ import javax.validation.constraints.Size;
 import java.time.LocalDate;
 
 
+@AllArgsConstructor
 @Data
-public class YQOperatorDTO {
+@Builder
+public class YQOperator {
     //员工ID
     private String operatorNo;
     @NotBlank(message = "员工姓名不能为空")
