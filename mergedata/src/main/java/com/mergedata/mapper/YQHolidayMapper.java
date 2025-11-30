@@ -26,9 +26,9 @@ public class YQHolidayMapper extends AbstractSPQueryMapper implements RowMapper<
     @Override
     public YQHolidayCalendarDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
         YQHolidayCalendarDTO dto = new YQHolidayCalendarDTO();
+
         // 确保这里的字段名与存储过程返回的游标字段名一致！
         dto.setSerialNo(rs.getString("SERIAL_NO"));
-//        dto.setHolidayDate(rs.getDate("HOLIDAY_DATE").toLocalDate());
 
         // 1. 使用 rs.getDate()：JDBC会忽略时间部分
         java.sql.Date sqlDate = rs.getDate("HOLIDAY_DATE");

@@ -81,7 +81,7 @@ public class ExternalApiRequestService {
             } else {
                 // ... (错误处理逻辑不变)
                 String errMsg = String.format("HIS接口业务失败。Code: %s, Msg: %s",
-                        apiResponse.getResult().getCode(), apiResponse.getResult().getSub_msg());
+                        apiResponse.getResult().getCode(), apiResponse.getResult().getSubMsg());
                 log.error(errMsg);
                 throw new BusinessException(errMsg);
             }
@@ -132,7 +132,7 @@ public class ExternalApiRequestService {
             } else {
                 // ... (错误处理逻辑不变)
                 String msg = String.format("HIS接口业务失败。Code: %s, Msg: %s",
-                        responseCode, apiResponse.getResult().getSub_msg());
+                        responseCode, apiResponse.getResult().getSubMsg());
                 log.error(msg);
                 throw new BusinessException(msg);
             }

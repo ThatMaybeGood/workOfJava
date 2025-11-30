@@ -59,7 +59,7 @@ public class YQCashMapper {
     public List<YQCashRegRecordDTO> getCashRegRecordsByDate(String inputDate) {
 
         // 1. 存储过程调用语句：包含一个输入参数 (?) 和一个输出游标参数 (?)
-        final String procedureCall = "{call" + SP_NAME+"(?, ?,?,?)}";
+        final String procedureCall = "{call " + SP_NAME+"(?, ?,?,?)}";
 
         // 2. 使用 execute 方法执行 CallableStatement 原生调用
         return jdbcTemplate.execute(procedureCall, (CallableStatement cs) -> {

@@ -78,9 +78,7 @@ api:
   # 定义所有 API 类型的基地址映射
   urls:
     hisincome: "https://hlwyy.xqhospital.com.cn/orgine/powermsp/service/overt"
-    hisoperator: "http://168.168.235.88:18401/orgine/powermsp/service/overt"
-    holidaycalendar: "http://calendar-service.com/util"
-    yqcashreg: "http://cash-reg-service.com/reports"
+
 
 # 存储过程名称配置
 sp:

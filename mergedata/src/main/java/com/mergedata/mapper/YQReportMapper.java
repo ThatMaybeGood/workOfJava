@@ -28,7 +28,11 @@ public class YQReportMapper extends AbstractSPQueryMapper implements RowMapper<R
     public ReportDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
         ReportDTO dto = new ReportDTO();
         dto.setSerialNo(rs.getString("SERIAL_NO"));
-        dto.setOperatorNo(rs.getString("OPERATOR_NO"));
+        dto.setOperatorNo(rs.getString("EMP_ID"));
+        dto.setReportDate(rs.getString("REPORT_DATE"));
+        dto.setHisAdvancePayment(rs.getBigDecimal("HISADVANCEPAYMENT"));
+        dto.setHisMedicalIncome(rs.getBigDecimal("HISMEDICALINCOME"));
+        dto.setHisRegistrationIncome(rs.getBigDecimal("HISREGISTRATIONINCOME"));
         //..................................未添加完
         return dto;
     }
