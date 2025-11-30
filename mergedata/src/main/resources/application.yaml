@@ -13,19 +13,28 @@ spring:
 server:
   port: 8081
 
-# 日志配置
+# --- Logback 相关的属性配置 ---
 logging:
+  # 日志文件存储路径 (请根据您的环境调整)
+  log-dir: logs
+
+  # 日志级别
   level:
-    # ！！！【关键修改】：直接指定到日志拦截器的完整路径 ！！！
-    com.mergedata.config.RequestLoggingInterceptor: DEBUG
-
-    # 保持您对核心业务包的 DEBUG 级别，便于查看调用流程
-    com.mergedata.service: DEBUG
-    com.mergedata.util.RestApiUtil: DEBUG
-
-    # 保持其他配置不变，确保根级别不会阻止 DEBUG 向上输出
-    com.mergedata: INFO
     root: INFO
+    com.alibaba.druid: WARN
+    com.zaxxer.hikari: WARN
+    oracle.jdbc: WARN
+
+  # 控制台 Appender 的 Pattern (在 dev/test/default profile 下使用)
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID}){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40c{1.}){cyan} %clr(:){faint} %m%n%wex"
+
+    # 文件 Appender 的 Pattern (在 prod profile 下使用)
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p ${PID} --- [%t] %-40.40c{1.} : %m%n%wex"
+
+  # 滚动策略相关的参数 (用于 logback-spring.xml)
+  max-file-size: 50MB           # 单个归档日志文件的最大大小
+  max-history-days: 30          # 最大历史文件保存天数
 
 
 #请求头的配置
@@ -36,7 +45,7 @@ request:
     enterpriseId: xinqiao
     language: zh_CN
     #方法需要动态
-    #method: orgine.powermsp.service.overt.extend.SP_GetHolidayCalendar
+    method: orgine.powermsp.service.overt.extend.SP_GetHisIncome_938
     sign: 1
     signType: md5
     sysTrackCode: c92b2f334a7442b698b774e5ccc3e3f8
