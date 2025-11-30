@@ -1,6 +1,9 @@
 package com.mergedata;
 
 import com.mergedata.model.YQOperator;
+import com.mergedata.server.HisDataService;
+import com.mergedata.server.YQHolidayService;
+import com.mergedata.server.YQCashService;
 import com.mergedata.server.impl.ExternalApiRequestService;
 import com.mergedata.server.impl.YQOperatorServiceImpl;
 import org.junit.jupiter.api.Test;
@@ -19,7 +22,14 @@ class MessageDataApplicationTests {
     @Autowired
     YQOperatorServiceImpl hisOperatorService;
 
+    @Autowired
+    HisDataService hisDataService;
 
+    @Autowired
+    YQCashService yqCashService;
+
+    @Autowired
+    YQHolidayService yqHolidayService;
 
     @Test
     void contextLoads() {
@@ -40,10 +50,13 @@ class MessageDataApplicationTests {
         operatorList.add(y);
         operatorList.add(y);
 
-        hisOperatorService.batchInsert(operatorList);
-        System.out.println("测试通过");
 
-//        externalApiRequestService.getHisIncomeList("2023-01-30");
+//        yqCashService.findByDate("2025-11-30");
+//        hisOperatorService.batchInsert(operatorList);
+//             hisOperatorService.findData()  ;
+
+        yqHolidayService.findByDate("2025-11-25");
+//            hisDataService.findByDate("2023-01-30");
 //        externalApiRequestService.getHisIncomeList_String("2023-01-30");
 //        log.info("测试通过");
 

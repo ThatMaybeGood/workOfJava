@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 
 /**
@@ -39,7 +40,7 @@ public class YQHolidayCalendarDTO {
 
     private String creator;
 
-    private LocalDate createdTime;
+    private LocalDateTime createdTime;
 
     private LocalDate updatedTime;
 

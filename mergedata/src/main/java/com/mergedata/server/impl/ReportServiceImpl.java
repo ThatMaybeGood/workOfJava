@@ -23,11 +23,11 @@ public class ReportServiceImpl implements ReportService {
     @Autowired
     private HisDataService hisDataService;
     @Autowired
-    private YQCashRegRecordService yqCashRegRecordService;
+    private YQCashService yqCashService;
     @Autowired
     private YQOperatorService YQOperatorService;
     @Autowired
-    private HolidayCalendarService holidayCalendarService;
+    private YQHolidayService holidayCalendarService;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -44,12 +44,16 @@ public class ReportServiceImpl implements ReportService {
         // 调用存储过程获取报表数据
         try {
 
-            // 调用通用方法，传入过程名和 Mapper
-            List<ReportDTO> resultLists = SPQueryDao.executeQueryNoParam(
-                    "GET_ALL_REPORTS",  // 存储过程名称
-                    yqReportMapper     // 对应的 RowMapper Bean
-            );
 
+//
+//            // 调用通用方法，传入过程名和 Mapper
+//            List<ReportDTO> resultLists = SPQueryDao.executeQueryNoParam(
+//                    "GET_ALL_REPORTS",  // 存储过程名称
+//                    yqReportMapper     // 对应的 RowMapper Bean
+//            );
+//
+            //调用调用查询数据方法，传入参数为日期
+           List<ReportDTO> resultLists = yqReportMapper.getOpertList(Collections.singletonMap("reportdate", reportdate));
 
             // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
             if (!resultLists.isEmpty()){
@@ -84,7 +88,7 @@ public class ReportServiceImpl implements ReportService {
             // 1. 获取所有数据（列表形式）
             List<YQOperator> operators = YQOperatorService.findData(); // 操作员列表
             List<HisIncomeDTO> hisIncomeDTOList = hisDataService.findByDate(reportdate);           // His数据列表
-            List<YQCashRegRecordDTO> yqDataList = yqCashRegRecordService.findByDate(reportdate);     // YQ数据列表
+            List<YQCashRegRecordDTO> yqDataList = yqCashService.findByDate(reportdate);     // YQ数据列表
 
             // 2. 将关联数据转换为以 operatorNo 为key的Map, 使用 (v1, v2) -> v1 来处理可能的重复键
             Map<String, HisIncomeDTO> hisDataMap = hisIncomeDTOList.stream()
@@ -124,7 +128,7 @@ public class ReportServiceImpl implements ReportService {
                 if (cashRecord != null) {
                     dto.setRetainedCash(getSafeBigDecimal(cashRecord.getRetainedCash()));
                     dto.setWindowNo(cashRecord.getWindowNo());
-                    dto.setOperatType(cashRecord.getOperatType());
+                    dto.setOperatType(cashRecord.getOpeType());
                     dto.setSechduling(cashRecord.getSechduling());
                     dto.setApplyDate(cashRecord.getApplyDate());
                     

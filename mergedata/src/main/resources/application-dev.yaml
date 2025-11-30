@@ -82,3 +82,12 @@ api:
     hisoperator: "http://168.168.235.88:18401/orgine/powermsp/service/overt"
     holidaycalendar: "http://calendar-service.com/util"
     yqcashreg: "http://cash-reg-service.com/reports"
+
+# 存储过程名称配置
+sp:
+  name:
+    operator: "SP_OPERATOR"
+    cash: "SP_CASH_REG_RECORD"
+    holiday: "SP_CASH_REG_HOLIDAY"
+    report: "SP_GETREPORT"
+

@@ -8,7 +8,10 @@ import java.math.BigDecimal;
 // 定义一个类，用于存储医院现金报表记录
 @Data
 public class YQCashRegRecordDTO {
-    private String  operatorNo;
+    private String  operator;
+    //操作员编号
+    private String operatorNo;
+
     //留存现金数
     private BigDecimal retainedCash; //his
 
@@ -16,9 +19,7 @@ public class YQCashRegRecordDTO {
 
     private String createTime;
 
-    private String operatorName;
-
-    public String operatType;
+    public String opeType;
 
     public String windowNo;
 
@@ -26,6 +27,7 @@ public class YQCashRegRecordDTO {
 
     //报表日期
     public String saveDate;
+
 
 
 }

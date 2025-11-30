@@ -4,7 +4,7 @@ import com.mergedata.model.YQCashRegRecordDTO;
 
 import java.util.List;
 
-public interface YQCashRegRecordService {
+public interface YQCashService {
 
     List<YQCashRegRecordDTO> findByDate(String reportdate);
 
