@@ -1,16 +1,18 @@
 package com.mergedata;
 
-import com.mergedata.model.YQOperator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mergedata.model.ReportDTO;
 import com.mergedata.server.HisDataService;
-import com.mergedata.server.YQHolidayService;
+import com.mergedata.server.ReportService;
 import com.mergedata.server.YQCashService;
+import com.mergedata.server.YQHolidayService;
 import com.mergedata.server.impl.ExternalApiRequestService;
 import com.mergedata.server.impl.YQOperatorServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @SpringBootTest
@@ -31,34 +33,31 @@ class MessageDataApplicationTests {
     @Autowired
     YQHolidayService yqHolidayService;
 
+    @Autowired
+    ReportService reportService;
+
     @Test
-    void contextLoads() {
-        //查询数据
-//        hisOperatorService.findData();
-        List<YQOperator> operatorList = new ArrayList<>();
-
-        YQOperator y=new YQOperator();
-        y.setOperatorNo("123");
-        y.setOperatorName("张三");
-
-        YQOperator y1=new YQOperator();
-        y1.setOperatorNo("456");
-        y1.setOperatorName("李四");
-
-        operatorList.add(y1);
-
-        operatorList.add(y);
-        operatorList.add(y);
+    void contextLoads()  {
 
 
 //        yqCashService.findByDate("2025-11-30");
 //        hisOperatorService.batchInsert(operatorList);
 //             hisOperatorService.findData()  ;
 
-        yqHolidayService.findByDate("2025-11-25");
-//            hisDataService.findByDate("2023-01-30");
+        List<ReportDTO> results = reportService.getAll("2025-11-20");
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            String jsonStringPretty = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(results);
+            //打印results的json格式
+            String jsonStringCompact = objectMapper.writeValueAsString(results);
+            System.out.println("\n--- 美化 JSON 格式 ---");
+            System.out.println(jsonStringCompact);
+        } catch (JsonProcessingException e) {
+        e.printStackTrace();
+        System.err.println("JSON 序列化失败!");
+    }
+ //            hisDataService.findByDate("2023-01-30");
 //        externalApiRequestService.getHisIncomeList_String("2023-01-30");
-//        log.info("测试通过");
 
     }
 
