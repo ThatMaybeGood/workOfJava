@@ -4,7 +4,7 @@ import com.mergedata.model.YQHolidayCalendarDTO;
 
 import java.util.List;
 
-public interface HolidayCalendarService {
+public interface YQHolidayService {
     /*
      * 根据日期查询节假日信息
      */

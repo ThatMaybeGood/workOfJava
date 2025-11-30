@@ -2,8 +2,10 @@ package com.mergedata.mapper;
 
 
 import com.mergedata.model.YQCashRegRecordDTO;
+import lombok.extern.slf4j.Slf4j;
 import oracle.jdbc.OracleTypes;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
@@ -17,7 +19,12 @@ import java.util.List;
 
 @Repository
 @Component
-public class YQCashRegRecordMapper {
+@Slf4j
+public class YQCashMapper {
+
+    @Value("${sp.name.cash}")
+    private String SP_NAME ;
+
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -30,15 +37,11 @@ public class YQCashRegRecordMapper {
             YQCashRegRecordDTO dto = new YQCashRegRecordDTO();
             // 确保这里的字段名与存储过程返回的游标字段名一致！
             dto.setApplyDate(rs.getString("APPLY_DATE"));
-            dto.setCreateTime(rs.getString("USER_NAME"));
-            dto.setOperatorNo(rs.getString("USER_EMAIL"));
-            dto.setOperatType(rs.getString("USER_EMAIL"));
-
-            dto.setWindowNo(rs.getString("USER_EMAIL"));
-            dto.setSechduling(rs.getString("USER_EMAIL"));
-            dto.setSaveDate(rs.getString("USER_EMAIL"));
-            dto.setRetainedCash(rs.getBigDecimal("USER_EMAIL"));
-            dto.setOperatorNo(rs.getString("USER_EMAIL"));
+            dto.setCreateTime(rs.getString("CREATE_TIME"));
+            dto.setOperator(rs.getString("OPERATOR"));
+            dto.setRetainedCash(rs.getBigDecimal("AMOUNT"));
+            dto.setOperatorNo(rs.getString("OPERATOR_NO"));
+            dto.setSaveDate(rs.getString("SAVE_DATE"));
 
             // ... 设置其他字段 ...
             return dto;
@@ -56,7 +59,7 @@ public class YQCashRegRecordMapper {
     public List<YQCashRegRecordDTO> getCashRegRecordsByDate(String inputDate) {
 
         // 1. 存储过程调用语句：包含一个输入参数 (?) 和一个输出游标参数 (?)
-        final String procedureCall = "{call GET_USER_RECORDS(?, ?)}";
+        final String procedureCall = "{call" + SP_NAME+"(?, ?,?,?)}";
 
         // 2. 使用 execute 方法执行 CallableStatement 原生调用
         return jdbcTemplate.execute(procedureCall, (CallableStatement cs) -> {
@@ -68,11 +71,20 @@ public class YQCashRegRecordMapper {
             // 绑定第二个参数：输出游标
             cs.registerOutParameter(2, OracleTypes.CURSOR);
 
+            cs.registerOutParameter(3, OracleTypes.INTEGER);
+
+            cs.registerOutParameter(4, OracleTypes.VARCHAR);
+
+            //打印出call所有情况
+            log.info("执行存储过程：{}", procedureCall);
             // 5. 执行存储过程
             cs.execute();
 
             // 6. 获取游标结果集 (游标在第二个位置)
             ResultSet rs = (ResultSet) cs.getObject(2);
+
+            Integer errorCode = cs.getInt(3);
+            String errorMsg = cs.getString(4);
 
             // 7. 使用 RowMapper 将 ResultSet 映射为 List
             List<YQCashRegRecordDTO> resultList = new ArrayList<>();
@@ -96,19 +108,3 @@ public class YQCashRegRecordMapper {
     // 您可以根据需要，为其他存储过程编写类似的、独立的 DAO 方法。
     // 例如：public List<Order> getOrdersByStatus(String status) { ... }
 }
-
-// -------------------------------------------------------------
-// 注意：以下是假定的 DTO 类结构，您需要确保它在您的项目中存在
-// -------------------------------------------------------------
-/*
-public class YQCashRegRecordDTO {
-    private String applyDate;
-    private String name;
-    private String email;
-    // Getters and Setters
-    public void setApplyDate(String applyDate) { this.applyDate = applyDate; }
-    public void setName(String name) { this.name = name; }
-    public void setEmail(String email) { this.email = email; }
-    // ...
-}
-*/
