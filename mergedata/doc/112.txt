@@ -1,0 +1,311 @@
+create or replace procedure SP_INSERT_CASH_REG_report(
+  a_serial_no   VARCHAR2 ,
+  a_report_date VARCHAR2,
+  a_report_year VARCHAR2,
+  a_emp_id    VARCHAR2 ,
+  a_emp_name   VARCHAR2 ,
+  a_hisadvancepayment   NUMBER ,
+  a_hismedicalincome         NUMBER ,
+  a_hisregistrationincome    NUMBER,
+  a_reportamount             NUMBER,
+  a_previoustemporaryreceipt NUMBER,
+  a_holidaytemporaryreceipt  NUMBER,
+  a_actualreportaount        NUMBER,
+  a_currenttemporaryreceipt  NUMBER,
+  a_actualcashamount         NUMBER,
+  a_retaineddifference       NUMBER,
+  a_retainedcash             NUMBER,
+  a_pettycash                NUMBER,
+  a_remarks                  VARCHAR2,
+  a_type VARCHAR2,
+  a_RetCode out integer, /*返回值 1成功 -1失败*/
+  a_ErrMsg  out varchar2 /*出错信息*/
+  ) as
+
+  vCnt   integer; /*计数*/
+  v_reportdate  date;
+
+
+  begin
+       if a_report_date is null or a_serial_no is null   then
+            a_RetCode := -1;
+            a_ErrMsg  := '写入现金报表节假日相关记录参数错误！';
+            return;
+      else
+         v_reportdate:=to_date(a_report_date,'yyyy-mm-dd');
+      end if;
+
+
+
+    a_RetCode := 1;
+    a_ErrMsg  := '写入现金报表记录成功';
+    return;
+
+    /*异常处理*/
+  exception
+    when others then
+      a_RetCode := -1;
+      a_ErrMsg  := '写入现金报表记录成功异常！' || sqlerrm;
+      return;
+  end;
+----------------------------------
+create or replace procedure SP_INSERT_CASH_REG_holiday(
+  a_serial_no     VARCHAR2   ,
+  a_report_date       varchar2,       --报表日期
+  a_holiday_type  VARCHAR2 ,
+  a_holiday_month INTEGER,
+  a_holiday_year  INTEGER,
+  a_isvalid       VARCHAR2 ,
+  a_type VARCHAR2,
+  a_RetCode out integer, /*返回值 1成功 -1失败*/
+  a_ErrMsg  out varchar2 /*出错信息*/
+  ) as
+  v_cnt number ;
+   v_reportdate  date;
+  begin
+
+      if a_report_date is null or a_serial_no is null   then
+            a_RetCode := -1;
+            a_ErrMsg  := '写入现金报表节假日相关记录参数错误！';
+            return;
+      else
+         v_reportdate:=to_date(a_report_date,'yyyy-mm-dd');
+      end if;
+
+  select count(1) into v_cnt
+         from  MPP_CASH_REG_HOLIDAY
+         where holiday_date = v_reportdate
+               and isvalid ='1';
+
+    --类型1则为写入数据
+    if a_type = '1' and v_cnt <=0 then
+      insert into MPP_CASH_REG_HOLIDAY
+             (serial_no,holiday_date)
+         values (a_serial_no,v_reportdate);
+
+         commit;
+    end if;
+
+    if a_type = '2' then
+        update MPP_CASH_REG_HOLIDAY set isvalid ='0',update_time=sysdate
+         where  holiday_date = v_reportdate and isvalid ='1' ;
+        commit;
+    end if ;
+
+
+
+    a_RetCode := 1;
+    a_ErrMsg  := '写入现金报表节假日相关记录成功';
+    return;
+
+    /*异常处理*/
+  exception
+    when others then
+      a_RetCode := -1;
+      a_ErrMsg  := '查询现金报表节假日相关记录成功异常！' || sqlerrm;
+      return;
+  end;
+-------------------------------------------
+create or replace procedure SP_INSERT_CASH_REG_OPER(
+  a_operator_no in varchar2,
+  a_operator_name in varchar2,
+  a_isvalid in varchar2,
+  a_type  in varchar2,
+  a_RetCode out integer, /*返回值 1成功 -1失败*/
+  a_ErrMsg  out varchar2 /*出错信息*/
+  ) as
+  v_cnt number;
+  begin
+
+  select count(1) into v_cnt
+         from  MPP_CASH_REG_OPERATOR
+         where operator_no = a_operator_no
+               and isvalid ='1';
+
+    if a_type is null or  a_operator_no is null or a_operator_name is null then
+        a_RetCode := 1;
+        a_ErrMsg  := '写入报表操作员参数错误';
+        return;
+    end if;
+
+    --类型1则为写入数据
+    if a_type = '1' and v_cnt <=0 then
+      insert into MPP_CASH_REG_OPERATOR
+             (operator_no,operator_name)
+         values (a_operator_no,a_operator_name);
+
+         commit;
+    end if;
+    
+    if a_type = '2' then 
+        update MPP_CASH_REG_OPERATOR set isvalid ='0',update_time=sysdate
+         where  operator_no = a_operator_no and isvalid ='1' ;
+        commit;
+    end if ;
+
+    a_RetCode := 1;
+    a_ErrMsg  := '写入现金报表操作员相关记录成功';
+    return;
+
+    /*异常处理*/
+  exception
+    when others then
+      a_RetCode := -1;
+      a_ErrMsg  := '写入现金报表操作员相关记录异常！' || sqlerrm;
+      return;
+  end;
+---------------------------------------
+create or replace procedure SP_QUERY_CASH_REG_report(
+
+  a_reportDate     in varchar2,       --报表日期
+
+  a_resultset_report out sys_refcursor,  --报表数据
+
+  a_RetCode out integer, /*返回值 1成功 -1失败*/
+  a_ErrMsg  out varchar2 /*出错信息*/
+  ) as
+
+  vCnt   integer; /*计数*/
+  v_reportdate  date;
+
+
+  begin
+
+      if a_reportdate is null   then
+            a_RetCode := -1;
+            a_ErrMsg  := '查询现金报表记录参数错误！';
+            return;
+      else
+         v_reportdate:=to_date(a_reportdate,'yyyy-mm-dd');
+      end if;
+
+    open a_resultset_report for
+      select * from  MPP_CASH_STATISTICS_MASTER a,
+      MPP_CASH_STATISTICS_SUB b 
+       where a.SERIAL_NO =b.SERIAL_NO
+       and a.isvalid ='1' 
+       and a.REPORT_DATE = v_reportDate;
+
+    a_RetCode := 1;
+    a_ErrMsg  := '查询现金报表记录成功';
+    return;
+
+    /*异常处理*/
+  exception
+    when others then
+      a_RetCode := -1;
+      a_ErrMsg  := '查询现金报表记录成功异常！' || sqlerrm;
+      return;
+  end;
+----------------------------------------------
+create or replace procedure SP_QUERY_CASH_REG_holiday(
+
+  a_reportDate     in varchar2,       --报表日期
+
+
+  a_resultset_holiday out sys_refcursor,  --节假日
+
+  a_RetCode out integer, /*返回值 1成功 -1失败*/
+  a_ErrMsg  out varchar2 /*出错信息*/
+  ) as
+
+  v_reportdate  date;
+
+
+  begin
+
+      if a_reportdate is null   then
+            a_RetCode := -1;
+            a_ErrMsg  := '查询现金报表节假日相关记录参数错误！';
+            return;
+      else
+         v_reportdate:=to_date(a_reportdate,'yyyy-mm-dd');
+      end if;
+
+
+    open a_resultset_holiday for
+         select * from  MPP_CASH_REG_HOLIDAY where ISVALID ='1' and HOLIDAY_DATE = v_reportDate;
+
+
+
+    a_RetCode := 1;
+    a_ErrMsg  := '查询现金报表节假日相关记录成功';
+    return;
+
+    /*异常处理*/
+  exception
+    when others then
+      a_RetCode := -1;
+      a_ErrMsg  := '查询现金报表节假日相关记录成功异常！' || sqlerrm;
+      return;
+  end;
+-----------------------------------------------------
+create or replace procedure SP_query_CASH_REG_RECORD(
+  a_OPERATOR_NO   in varchar2,  --操作员编号
+  a_startTime     in date,       --开始时间
+  a_endTime       in date,       --结束时间
+
+  a_Resultset out sys_refcursor,
+  a_RetCode out integer, /*返回值 1成功 -1失败*/
+  a_ErrMsg  out varchar2 /*出错信息*/
+  ) as
+
+  vCnt   integer; /*计数*/
+  begin
+
+  if a_OPERATOR_NO is null or a_startTime is null or a_endTime is null then
+    a_RetCode := -1;
+    a_ErrMsg  := '参数错误';
+    return;
+  end if;
+
+open a_Resultset for
+select APPLY_DATE,
+   CREATE_TIME,
+   OPERATOR,
+   OPE_TYPE,
+   WINDOW_NO,
+   SCHEDULING,
+   SAVE_DATE,
+   AMOUNT,
+   OPERATOR_NO
+  from MPP_CASH_REG_RECORD a
+ where a.create_time >= a_startTime
+   and a.create_time <= a_endTime;
+
+    a_RetCode := 1;
+    a_ErrMsg  := '查询现金留存登记记录成功';
+    return;
+
+    /*异常处理*/
+  exception
+    when others then
+      a_RetCode := -1;
+      a_ErrMsg  := '查询现金留存登记记录异常！' || sqlerrm;
+      return;
+  end;
+---------------------------------------------------
+create or replace procedure SP_QUERY_CASH_REG_OPER(
+  a_resultset out sys_refcursor,  --操作员
+  a_RetCode out integer, /*返回值 1成功 -1失败*/
+  a_ErrMsg  out varchar2 /*出错信息*/
+  ) as
+ 
+  begin
+    
+      open a_resultset for
+          select * from  MPP_CASH_REG_OPERATOR where ISVALID ='1';
+
+
+    
+    a_RetCode := 1;
+    a_ErrMsg  := '查询现金报表操作员相关记录成功';
+    return;
+
+    /*异常处理*/
+  exception
+    when others then
+      a_RetCode := -1;
+      a_ErrMsg  := '查询现金报表操作员相关记录异常！' || sqlerrm;
+      return;
+  end;
