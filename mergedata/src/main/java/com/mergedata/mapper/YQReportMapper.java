@@ -67,7 +67,7 @@ public class YQReportMapper extends AbstractSPQueryMapper implements RowMapper<R
     /**
      * Service 层的带参接口。
      */
-    public List<ReportDTO> getOpertList(Map<String, Object> inParams) {
+    public List<ReportDTO> getReportList(Map<String, Object> inParams) {
 
         // 1. 设置 ThreadLocal
         threadLocalInParams.set(inParams);

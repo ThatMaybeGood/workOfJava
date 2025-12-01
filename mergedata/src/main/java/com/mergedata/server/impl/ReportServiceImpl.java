@@ -35,8 +35,6 @@ public class ReportServiceImpl implements ReportService {
 
     List<ReportDTO> results = new ArrayList<>();
 
-    // 操作员列表
-    List<YQOperator> operators = oper.findData();
 
 
     @Override
@@ -45,7 +43,7 @@ public class ReportServiceImpl implements ReportService {
         try {
 
 
-           results = report.getOpertList(Collections.singletonMap("A_REPORTDATE", reportdate));
+           results = report.getReportList(Collections.singletonMap("A_REPORTDATE", reportdate));
 
             // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
             if (results.isEmpty()){
@@ -80,11 +78,13 @@ public class ReportServiceImpl implements ReportService {
 
         try {
 
+            // 操作员列表
+            List<YQOperator> operators = oper.findData();
             List<YQCashRegRecordDTO> yqDataList = cash.findByDate(reportdate);     // YQ数据列表
             List<HisIncomeDTO> hisIncomeDTOList = hisdata.findByDate(reportdate);           // His数据列表
 
             // 昨日报表数据，用于计算昨日暂收款
-            List<ReportDTO> preReport = report.getOpertList(Collections.singletonMap("A_REPORTDATE", preDate));
+            List<ReportDTO> preReport = report.getReportList(Collections.singletonMap("A_REPORTDATE", preDate));
 
             // 2. 将关联数据转换为以 operatorNo 为key的Map, 使用 (v1, v2) -> v1 来处理可能的重复键
             Map<String, HisIncomeDTO> hisDataMap = hisIncomeDTOList.stream()
