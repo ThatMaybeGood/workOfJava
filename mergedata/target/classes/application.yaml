@@ -35,8 +35,7 @@ request:
     encryptType: AES
     enterpriseId: xinqiao
     language: zh_CN
-    #方法需要动态
-    #method: orgine.powermsp.service.overt.extend.SP_GetHolidayCalendar
+    method: orgine.powermsp.service.overt.extend.SP_GetHisIncome_938
     sign: 1
     signType: md5
     sysTrackCode: c92b2f334a7442b698b774e5ccc3e3f8

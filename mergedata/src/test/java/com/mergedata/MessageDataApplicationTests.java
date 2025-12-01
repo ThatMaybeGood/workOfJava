@@ -5,7 +5,6 @@ import com.mergedata.server.HisDataService;
 import com.mergedata.server.ReportService;
 import com.mergedata.server.YQCashService;
 import com.mergedata.server.YQHolidayService;
-import com.mergedata.server.impl.ExternalApiRequestService;
 import com.mergedata.server.impl.YQOperatorServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

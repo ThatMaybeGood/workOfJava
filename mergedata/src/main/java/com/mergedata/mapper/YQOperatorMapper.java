@@ -108,7 +108,6 @@ public class YQOperatorMapper extends AbstractSPQueryMapper implements RowMapper
 
         // 1. 设置 ThreadLocal
         threadLocalInParams.set(inParams);
-        log.info("调用存储过程 {}：设置 {} 个输入参数。", getSPQueryName(), inParams.size());
 
         try {
             // 2. 调用基类方法

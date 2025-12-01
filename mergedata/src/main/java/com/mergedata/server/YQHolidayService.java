@@ -9,4 +9,7 @@ public interface YQHolidayService {
      * 根据日期查询节假日信息
      */
     List<YQHolidayCalendarDTO> findByDate(String reportdate);
+
+
+    Boolean insert(List<YQHolidayCalendarDTO> list);
 }

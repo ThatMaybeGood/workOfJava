@@ -79,10 +79,17 @@ api:
   urls:
     hisincome: "https://hlwyy.xqhospital.com.cn/orgine/powermsp/service/overt"
 
+
 # 存储过程名称配置
 sp:
   name:
-    operator: "SP_OPERATOR"
-    cash: "SP_CASH_REG_RECORD"
-    holiday: "SP_CASH_REG_HOLIDAY"
-    report: "SP_CASH_REG_REPORT"
+    insert:
+      operator: "SP_INSERT_CASH_REG_OPER"
+      cash: "SP_INSERT_CASH_REG_RECORD"
+      holiday: "SP_INSERT_CASH_REG_HOLIDAY"
+      report: "SP_INSERT_CASH_REG_REPORT"
+    query:
+      operator: "SP_QUERY_CASH_REG_OPER"
+      cash: "SP_QUERY_CASH_REG_RECORD_RPT"
+      holiday: "SP_QUERY_CASH_REG_HOLIDAY"
+      report: "SP_QUERY_CASH_REG_REPORT"

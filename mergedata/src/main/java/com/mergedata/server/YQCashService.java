@@ -8,6 +8,7 @@ public interface YQCashService {
 
     List<YQCashRegRecordDTO> findByDate(String reportdate);
 
+    Boolean insert(List<YQCashRegRecordDTO> list);
 
 
 }

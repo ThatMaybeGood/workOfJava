@@ -1,7 +1,9 @@
 package com.mergedata.server.impl;
 
-import com.mergedata.constants.ReqConstant;
-import com.mergedata.dto.*;
+import com.mergedata.dto.ApiRequest;
+import com.mergedata.dto.ApiRequestHead;
+import com.mergedata.dto.ApiResponse;
+import com.mergedata.dto.CommonRequestBody;
 import com.mergedata.entity.BusinessException;
 import com.mergedata.model.HisIncomeDTO;
 import com.mergedata.server.HisDataService;
@@ -39,7 +41,6 @@ public class HisDataServiceImpl implements HisDataService {
         // 1. 组装请求对象 (不变)
         CommonRequestBody body = new CommonRequestBody();
         body.setReportdate(reportdate);
-        headConfig.setMethod(ReqConstant.METHOD_HISINCOME);
         ApiRequest<CommonRequestBody> apiRequest = new ApiRequest<>();
         apiRequest.setHead(headConfig);
         apiRequest.setBody(body);

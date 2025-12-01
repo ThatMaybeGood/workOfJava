@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.sql.Types;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 抽象基类：用于封装通用的“调用带游标和出参的存储过程”的逻辑。
@@ -59,6 +60,19 @@ public abstract class AbstractSPQueryMapper<T> {
         String spName = getSPQueryName(); // 获取子类定义的SP名称
 
         try {
+            // 2. 将 Map 转换为目标格式的字符串
+            String paramsString = getInParams().entrySet().stream()
+                    // 映射每个 Entry 为 "key=>value" 格式
+                    .map(entry -> entry.getKey() + "=>" + (entry.getValue() != null ? entry.getValue().toString() : "NULL"))
+                    // 使用逗号和空格连接所有项
+                    .collect(Collectors.joining(", "));
+
+            // 3. 构建完整的日志信息
+            String logMessage = String.format("调用存储过程 %s (%s)", spName, paramsString);
+
+            // 4. 打印日志
+            log.debug(logMessage);
+
             // 1. 定义 OUT 参数和游标名 (这些通常是常量，所以可以固定定义)
             Map<String, Integer> outParamNames = new HashMap<>();
             outParamNames.put(ReqConstant.SP_OUT_CODE, Types.INTEGER);
@@ -116,6 +130,22 @@ public abstract class AbstractSPQueryMapper<T> {
          String spName = getSPInsertName(); // 获取子类定义的SP名称
 
         try {
+
+            // 2. 将 Map 转换为目标格式的字符串
+            String paramsString = getInParams().entrySet().stream()
+                    // 映射每个 Entry 为 "key=>value" 格式
+                    .map(entry -> entry.getKey() + "=>" + (entry.getValue() != null ? entry.getValue().toString() : "NULL"))
+                    // 使用逗号和空格连接所有项
+                    .collect(Collectors.joining(", "));
+
+            // 3. 构建完整的日志信息
+            String logMessage = String.format("调用存储过程 %s (%s)", spName, paramsString);
+
+            // 4. 打印日志
+            log.debug(logMessage);
+
+
+
             // 1. 定义 OUT 参数和游标名 (这些通常是常量，所以可以固定定义)
             Map<String, Integer> outParamNames = new HashMap<>();
             outParamNames.put(ReqConstant.SP_OUT_CODE, Types.INTEGER);
@@ -132,9 +162,12 @@ public abstract class AbstractSPQueryMapper<T> {
             // 3.2 提取和记录其他 OUT 参数
             Integer intResult = (Integer) results.get(ReqConstant.SP_OUT_CODE);
             String varcharResult = (String) results.get(ReqConstant.SP_OUT_MESSAGE);
-            log.info("{}存储过程 OUT 参数 [{}]: {}, [{}]: {}", spName,
-                    ReqConstant.SP_OUT_CODE, intResult,
-                    ReqConstant.SP_OUT_MESSAGE, varcharResult);
+
+            // ----------------------------------------------------
+            // 替换后的日志输出示例：
+            // 2025-12-01 INFO [main] ... : 调用存储过程 SP_QUERY_USER_LIST (A_USER_ID=>U001, A_STATUS=>Active)
+            // ----------------------------------------------------
+            log.info("{}存储过程:[{}]", spName, varcharResult);
 
             if (intResult != ReqConstant.SP_SUCCESS) {
                 return false;

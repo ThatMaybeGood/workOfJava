@@ -20,8 +20,18 @@ public class YQHolidayServiceImpl implements YQHolidayService {
 
     @Override
     public List<YQHolidayCalendarDTO> findByDate(String date) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("A_REPORT_DATE", date);
-        return  yqHolidayMapper.getYQHlidayList(params);
+        try {
+            Map<String, Object> params = new HashMap<>();
+            params.put("A_REPORTDATE", date);
+            return yqHolidayMapper.getYQHlidayList(params);
+        } catch (Exception e) {
+            log.error("获取YQ数据异常", e);
+            return null;
+        }
+    }
+
+    @Override
+    public Boolean insert(List<YQHolidayCalendarDTO> list) {
+        return null;
     }
 }
