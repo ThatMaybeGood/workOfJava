@@ -31,7 +31,7 @@ public class YQOperatorServiceImpl implements YQOperatorService {
         try {
 
             // 1. 调用 DAO 方法获取存储过程返回的结果列表
-            List<YQOperator> rawRecords = yqOperatorMapper.getOperatorsWithNoParams();
+            List<YQOperator> rawRecords = yqOperatorMapper.getNoParams();
 
             // 2. Service 层业务逻辑处理
             if (rawRecords.isEmpty()) {
@@ -70,7 +70,7 @@ public class YQOperatorServiceImpl implements YQOperatorService {
 
 
             // 1. 调用 DAO 方法获取存储过程返回的结果列表
-            Boolean b = yqOperatorMapper.insertOperatorsMultParams(map);
+            Boolean b = yqOperatorMapper.insertMultParams(map);
 
         }
         return true;

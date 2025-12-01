@@ -85,7 +85,7 @@ public class YQOperatorMapper extends AbstractSPQueryMapper implements RowMapper
     /**
      * Service 层的无参接口。
      */
-    public List<YQOperator> getOperatorsWithNoParams() {
+    public List<YQOperator> getNoParams() {
         log.info("调用存储过程 {}：无输入参数。", getSPQueryName());
         // 直接调用基类方法，参数自动解析为 Collections.emptyMap()
          return executeSPQuery();
@@ -104,7 +104,7 @@ public class YQOperatorMapper extends AbstractSPQueryMapper implements RowMapper
     /**
      * Service 层的带参接口。
      */
-    public Boolean insertOperatorsMultParams(Map<String, Object> inParams) {
+    public Boolean insertMultParams(Map<String, Object> inParams) {
 
         // 1. 设置 ThreadLocal
         threadLocalInParams.set(inParams);

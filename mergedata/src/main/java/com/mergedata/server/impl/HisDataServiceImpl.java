@@ -4,7 +4,7 @@ import com.mergedata.dto.ApiRequest;
 import com.mergedata.dto.ApiRequestHead;
 import com.mergedata.dto.ApiResponse;
 import com.mergedata.dto.CommonRequestBody;
-import com.mergedata.entity.BusinessException;
+import com.mergedata.exception.BusinessException;
 import com.mergedata.model.HisIncomeDTO;
 import com.mergedata.server.HisDataService;
 import com.mergedata.util.RestApiUtil;
@@ -47,9 +47,7 @@ public class HisDataServiceImpl implements HisDataService {
 
         // 2. 【修正点 1】定义正确的返回类型
         // 外部 ApiResponse<HisIncomeDTO> 结构：泛型 T 应该代表 list 内部的数据类型
-        ParameterizedTypeReference<ApiResponse<HisIncomeDTO>> typeRef = // 【修正】不再是 List<HisIncomeDTO>
-                new ParameterizedTypeReference<ApiResponse<HisIncomeDTO>>() {
-                };
+        ParameterizedTypeReference<ApiResponse<HisIncomeDTO>> typeRef = new ParameterizedTypeReference<ApiResponse<HisIncomeDTO>>() {};
 
         try {
             // 3. 调用工具类发起请求
@@ -63,7 +61,7 @@ public class HisDataServiceImpl implements HisDataService {
             // 4. 检查业务状态码 (核心判断逻辑)
             if (apiResponse.getResult().isSuccess()) {
                 log.info("调用成功，业务处理成功。");
-                // 【修正点 2】获取数据：getBody() 得到的是 ApiResponseBody<HisIncomeDTO> 对象
+                // 得到的是 ApiResponseBody<HisIncomeDTO> 对象
                 // 然后调用 getList() 才能获取到 List<HisIncomeDTO>
                 return Optional.ofNullable(apiResponse.getBody())
                         .map(b -> b.getList()) // <-- 正确获取 List<HisIncomeDTO>

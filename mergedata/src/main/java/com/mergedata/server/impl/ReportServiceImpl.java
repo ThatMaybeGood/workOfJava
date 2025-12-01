@@ -43,7 +43,7 @@ public class ReportServiceImpl implements ReportService {
         try {
 
 
-           results = report.getReportList(Collections.singletonMap("A_REPORTDATE", reportdate));
+           results = report.getMultParams(Collections.singletonMap("A_REPORTDATE", reportdate));
 
             // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
             if (results.isEmpty()){
@@ -65,10 +65,19 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     public Boolean insert(List<ReportDTO> reportDTO) {
+        Map<String,Object> map = new HashMap<>();
+
+         for (ReportDTO dto : reportDTO) {
+            map.put("A_SERIAL_NO",dto.getSerialNo());
+            map.put("A_EMP_ID",dto.getOperatorNo());
+            map.put("A_REPORT_DATE",dto.getReportDate()) ;
+            map.put("A_HISADVANCEPAYMENT",dto.getHisAdvancePayment());
+            report.insertMultParams(map);
+         }
 
         // 建议: 如果方法未实现，返回 false 或抛出异常
         // throw new UnsupportedOperationException("Insert operation is not yet implemented.");
-        return false;
+        return true;
     }
 
 
@@ -84,7 +93,7 @@ public class ReportServiceImpl implements ReportService {
             List<HisIncomeDTO> hisIncomeDTOList = hisdata.findByDate(reportdate);           // His数据列表
 
             // 昨日报表数据，用于计算昨日暂收款
-            List<ReportDTO> preReport = report.getReportList(Collections.singletonMap("A_REPORTDATE", preDate));
+            List<ReportDTO> preReport = report.getMultParams(Collections.singletonMap("A_REPORTDATE", preDate));
 
             // 2. 将关联数据转换为以 operatorNo 为key的Map, 使用 (v1, v2) -> v1 来处理可能的重复键
             Map<String, HisIncomeDTO> hisDataMap = hisIncomeDTOList.stream()

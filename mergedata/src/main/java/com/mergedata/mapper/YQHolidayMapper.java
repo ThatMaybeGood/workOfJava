@@ -77,7 +77,7 @@ public class YQHolidayMapper extends AbstractSPQueryMapper implements RowMapper<
     /**
      * Service 层的带参接口。
      */
-    public List<YQHolidayCalendarDTO> getYQHlidayList(Map<String, Object> inParams) {
+    public List<YQHolidayCalendarDTO> getMultParams(Map<String, Object> inParams) {
 
         // 1. 设置 ThreadLocal
         threadLocalInParams.set(inParams);
@@ -91,5 +91,17 @@ public class YQHolidayMapper extends AbstractSPQueryMapper implements RowMapper<
             threadLocalInParams.remove();
         }
     }
+    public Boolean insertMultParams(Map<String, Object> inParams) {
 
+        // 1. 设置 ThreadLocal
+        threadLocalInParams.set(inParams);
+
+        try {
+            // 2. 调用基类方法
+            return executeSPInsert();
+        } finally {
+            // 3. 清理 ThreadLocal
+            threadLocalInParams.remove();
+        }
+    }
 }

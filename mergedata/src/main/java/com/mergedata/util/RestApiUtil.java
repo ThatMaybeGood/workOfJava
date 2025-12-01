@@ -1,7 +1,6 @@
 package com.mergedata.util;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mergedata.entity.BusinessException;
+import com.mergedata.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,11 +25,9 @@ public class RestApiUtil {
     @Autowired
     private RestTemplate restTemplate;
 
-    @Autowired
-    private final ObjectMapper objectMapper; // 注入或创建 ObjectMapper 用于 String 解析
 
     /**
-     * 【方法一：推荐】使用 ParameterizedTypeReference 发起通用的 POST 请求。
+     * 使用 ParameterizedTypeReference 发起通用的 POST 请求。
      * 适用于返回结构（ApiResponse<T> 中的 T）是复杂泛型（如 List<HisIncomeDTO>）的情况。
      *
      * @param url             API 服务的 URL
@@ -103,7 +100,7 @@ public class RestApiUtil {
     }
 
     /**
-     * 【方法二：可选】发起通用的 POST 请求，接收 String 响应体。
+     * 发起通用的 POST 请求，接收 String 响应体。
      * 适用于需要手动进行多次 JSON 解析（例如：先解析 Code，再根据 Code 解析不同的 Body 结构）的情况。
      *
      * @param url         API 服务的 URL

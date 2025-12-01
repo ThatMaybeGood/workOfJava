@@ -73,7 +73,7 @@ public class YQCashMapper extends AbstractSPQueryMapper implements RowMapper<YQC
     /**
      * Service 层的带参接口。
      */
-    public List<YQCashRegRecordDTO> getCashList(Map<String, Object> inParams) {
+    public List<YQCashRegRecordDTO> getMultParams(Map<String, Object> inParams) {
 
         // 1. 设置 ThreadLocal
         threadLocalInParams.set(inParams);

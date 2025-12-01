@@ -1,4 +1,4 @@
-package com.mergedata.entity;
+package com.mergedata.exception;
 
 /**
  * @author Mine

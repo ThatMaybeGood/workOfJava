@@ -1,4 +1,4 @@
-package com.mergedata.entity;
+package com.mergedata.exception;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;

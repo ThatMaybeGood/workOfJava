@@ -7,10 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -29,11 +26,8 @@ public class YQCashServiceImpl implements YQCashService {
     @Override
     public List<YQCashRegRecordDTO> findByDate(String date) {
         try {
-
-            Map<String, Object> params = new HashMap<>();
-            params.put("A_REPORTDATE", date);
             // 1. 调用 DAO 方法获取存储过程返回的结果列表
-            List<YQCashRegRecordDTO> rawRecords = yqStoredProcedureDao.getCashList(params);
+            List<YQCashRegRecordDTO> rawRecords = yqStoredProcedureDao.getMultParams(Collections.singletonMap("A_REPORTDATE", date));
 
             // 3. 返回最终处理结果
             return rawRecords;
@@ -42,10 +36,5 @@ public class YQCashServiceImpl implements YQCashService {
             log.error("获取YQ数据异常", e);
             return new ArrayList<>();
         }
-    }
-
-    @Override
-    public Boolean insert(List<YQCashRegRecordDTO> list) {
-        return null;
     }
 }

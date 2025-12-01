@@ -11,7 +11,7 @@ spring:
       add-mappings: false
 # 服务器配置
 server:
-  port: 8081
+  port: 8060
 
 # 日志配置
 logging:

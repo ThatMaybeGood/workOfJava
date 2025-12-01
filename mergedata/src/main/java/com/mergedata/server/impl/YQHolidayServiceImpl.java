@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,9 +22,7 @@ public class YQHolidayServiceImpl implements YQHolidayService {
     @Override
     public List<YQHolidayCalendarDTO> findByDate(String date) {
         try {
-            Map<String, Object> params = new HashMap<>();
-            params.put("A_REPORTDATE", date);
-            return yqHolidayMapper.getYQHlidayList(params);
+            return yqHolidayMapper.getMultParams(Collections.singletonMap("A_REPORTDATE", date));
         } catch (Exception e) {
             log.error("获取YQ数据异常", e);
             return null;
@@ -32,6 +31,13 @@ public class YQHolidayServiceImpl implements YQHolidayService {
 
     @Override
     public Boolean insert(List<YQHolidayCalendarDTO> list) {
-        return null;
+
+        for (YQHolidayCalendarDTO dto : list) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("A_REPORTDATE", dto.getHolidayDate());
+            map.put("A_HOLIDAYFLAG", dto.getMonth());
+            yqHolidayMapper.insertMultParams(map);
+        }
+        return true;
     }
 }
