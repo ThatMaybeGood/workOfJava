@@ -268,6 +268,48 @@ public class SPQueryDao {
         return out;
     }
 
+
+
+    /**
+     * 【通用方法】调用具有多输入参数和多 OUT 参数的存储过程。
+     *
+     * @param <T> 目标实体类型
+     * @param procedureName 存储过程的名称
+     * @param inParams 包含所有 IN 参数的 Map<参数名, 参数值>
+     * @param outParamNames 包含所有 OUT 参数信息的 Map<参数名, SQL类型>
+     * @return 包含所有 OUT 参数和游标结果列表的 Map<String, Object>
+     */
+    public <T> Map<String, Object> executeInsertMultipleOutParams(
+            String procedureName,
+            Map<String, Object> inParams,
+            Map<String, Integer> outParamNames // Map<参数名, SQL类型(如Types.INTEGER, Types.VARCHAR)>
+            ) {
+
+        // 1. 初始化 SimpleJdbcCall
+        SimpleJdbcCall jdbcCall = new SimpleJdbcCall(dataSource)
+                .withProcedureName(procedureName);
+
+        // 2. 注册 REF_CURSOR OUT 参数 (游标)
+//        jdbcCall.returningResultSet(cursorName, rowMapper);
+
+        // 3. 注册所有其他 OUT 参数
+        if (outParamNames != null) {
+            // outParamNames 格式: Map<"P_INT_OUT", Types.INTEGER>, Map<"P_VARCHAR_OUT", Types.VARCHAR>
+            for (Map.Entry<String, Integer> entry : outParamNames.entrySet()) {
+                jdbcCall.declareParameters(
+                        new SqlOutParameter(entry.getKey(), entry.getValue())
+                );
+            }
+        }
+
+        // 4. 执行调用。out 包含了所有 OUT 参数和游标结果列表
+        Map<String, Object> out = jdbcCall.execute(inParams);
+
+        // 5. 返回所有结果
+        return out;
+    }
+
+
     /*
      * 示例用法：
      * 假设存储过程返回 P_CODE, P_MSG, P_CURSOR_A, P_CURSOR_B

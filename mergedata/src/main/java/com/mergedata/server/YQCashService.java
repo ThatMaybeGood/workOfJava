@@ -8,6 +8,4 @@ public interface YQCashService {
 
     List<YQCashRegRecordDTO> findByDate(String reportdate);
 
-
-
 }

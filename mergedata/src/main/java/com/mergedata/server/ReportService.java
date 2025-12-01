@@ -14,7 +14,7 @@ public interface ReportService {
     /*
      * 根据日期插入报表数据
      */
-    Boolean insert(String reportDate);
+    Boolean insert(List<ReportDTO> list);
 
 
 }

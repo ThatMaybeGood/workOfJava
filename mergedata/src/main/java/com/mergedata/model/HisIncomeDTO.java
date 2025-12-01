@@ -13,6 +13,9 @@ public class HisIncomeDTO {
     @JsonProperty("operator_no")
     private String  operatorNo;
 
+    @JsonProperty("operator_name")
+    public  String operatorName;
+
     @JsonProperty("his_advance_payment") // <-- 确保有此注解
     private BigDecimal hisAdvancePayment;
 

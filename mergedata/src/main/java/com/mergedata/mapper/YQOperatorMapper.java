@@ -11,18 +11,25 @@ import org.springframework.stereotype.Component;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Component
 @Slf4j
 public class YQOperatorMapper extends AbstractSPQueryMapper implements RowMapper<YQOperator> {
 
-    @Value("${sp.name.operator}")
-    public String SP_NAME ;
+    @Value("${sp.name.query.operator}")
+
+    public String SP_Query_Name ;
+    @Value("${sp.name.insert.operator}")
+    public String SP_Insert_Name ;
 
     @Autowired
     SPQueryDao queryDao;
 
+    // 【核心】：需要 ThreadLocal 来安全地传递参数
+    private final ThreadLocal<Map<String, Object>> threadLocalInParams = new ThreadLocal<>();
 
 
 
@@ -59,8 +66,13 @@ public class YQOperatorMapper extends AbstractSPQueryMapper implements RowMapper
 
 
     @Override
-    protected String getSPName() {
-        return SP_NAME;
+    protected String getSPQueryName() {
+        return SP_Query_Name;
+    }
+
+    @Override
+    protected String getSPInsertName() {
+        return SP_Insert_Name;
     }
 
     @Override
@@ -73,9 +85,36 @@ public class YQOperatorMapper extends AbstractSPQueryMapper implements RowMapper
     /**
      * Service 层的无参接口。
      */
-    public List<YQOperator> getYQOperators() {
-        log.info("调用存储过程 {}：无输入参数。", getSPName());
+    public List<YQOperator> getNoParams() {
+        log.info("调用存储过程 {}：无输入参数。", getSPQueryName());
         // 直接调用基类方法，参数自动解析为 Collections.emptyMap()
          return executeSPQuery();
+    }
+
+
+
+
+    // 【重要】：必须覆盖 getInParams() 来获取 ThreadLocal 中的参数
+    @Override
+    protected Map<String, Object> getInParams() {
+        Map<String, Object> params = threadLocalInParams.get();
+        return params != null ? params : Collections.emptyMap();
+    }
+
+    /**
+     * Service 层的带参接口。
+     */
+    public Boolean insertMultParams(Map<String, Object> inParams) {
+
+        // 1. 设置 ThreadLocal
+        threadLocalInParams.set(inParams);
+
+        try {
+            // 2. 调用基类方法
+            return executeSPInsert();
+        } finally {
+            // 3. 清理 ThreadLocal
+            threadLocalInParams.remove();
+        }
     }
 }

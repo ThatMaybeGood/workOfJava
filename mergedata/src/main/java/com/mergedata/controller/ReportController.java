@@ -1,6 +1,8 @@
 package com.mergedata.controller;
 
+import com.mergedata.dto.ApiRequest;
 import com.mergedata.dto.ApiResponse;
+import com.mergedata.dto.CommonRequestBody;
 import com.mergedata.model.ReportDTO;
 import com.mergedata.server.ReportService;
 import com.mergedata.server.YQOperatorService;
@@ -28,9 +30,10 @@ public class ReportController {
     YQOperatorService operatorService;
 
 
-    @GetMapping("/data")
-    public ApiResponse<ReportDTO> getData(@RequestParam String reportdate)  {
+    @PostMapping("/data")
+    public ApiResponse<ReportDTO> getData(@RequestBody ApiRequest<CommonRequestBody> request)  {
 
+        String reportdate = request.getBody().getReportdate();
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         List<ReportDTO> resultList = reportService.getAll(reportdate);
 

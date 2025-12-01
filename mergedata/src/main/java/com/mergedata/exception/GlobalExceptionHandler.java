@@ -1,17 +1,14 @@
 package com.mergedata.exception;
 
-import com.mergedata.entity.BusinessException;
-import com.mergedata.entity.ErrorResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import javax.servlet.http.HttpServletRequest;
@@ -25,9 +22,8 @@ import java.util.stream.Collectors;
  * 描述:
  * @date 2025/11/10 17:38
  */
-@Service
 @ControllerAdvice
-@RestController
+@Slf4j
 public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
@@ -51,23 +47,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
-    /**
-     * 处理数据库访问异常
-     */
-    @ExceptionHandler(DataAccessException.class)
-    public ResponseEntity<ErrorResponse> handleDataAccessException(DataAccessException ex,
-                                                                   HttpServletRequest request) {
-        logger.error("数据库访问异常: {}", ex.getMessage(), ex);
 
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "数据库操作失败",
-                "系统繁忙，请稍后重试"
-        );
-        errorResponse.setPath(request.getRequestURI());
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-    }
 
     /**
      * 处理参数验证异常
@@ -174,4 +154,44 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
+
+    /**
+     * 处理自定义的数据库连接异常 (Connection Refused/Timeout)
+     */
+    @ExceptionHandler(DatabaseConnectionException.class)
+    public ResponseEntity<ErrorResponse> handleDatabaseConnectionException(DatabaseConnectionException ex,
+                                                                           HttpServletRequest request) {
+        // 🚨 修正：使用 ex.getMessage() 获取异常信息
+        logger.error("数据库连接异常（自定义）：{}", ex.getMessage(), ex);
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "数据库连接错误",
+                // 确保将自定义的友好消息返回给前端
+                "系统正在维护或数据库连接失败：" + ex.getMessage()
+        );
+        // 也可以设置自定义错误码，例如 5001
+        errorResponse.setErrorCode("5001");
+        errorResponse.setPath(request.getRequestURI());
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+    /**
+     * 处理数据库访问异常
+     */
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<ErrorResponse> handleDataAccessException(DataAccessException ex,
+                                                                   HttpServletRequest request) {
+        logger.error("数据库访问异常: {}", ex.getMessage(), ex);
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "数据库操作失败",
+                "数据库操作失败，请检查数据权限或 SQL 语句。"
+        );
+        errorResponse.setPath(request.getRequestURI());
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+
 }

@@ -1,110 +1,90 @@
 package com.mergedata.mapper;
 
 
+import com.mergedata.dao.AbstractSPQueryMapper;
 import com.mergedata.model.YQCashRegRecordDTO;
 import lombok.extern.slf4j.Slf4j;
-import oracle.jdbc.OracleTypes;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 
-import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 @Component
 @Slf4j
-public class YQCashMapper {
+public class YQCashMapper extends AbstractSPQueryMapper implements RowMapper<YQCashRegRecordDTO> {
 
-    @Value("${sp.name.cash}")
-    private String SP_NAME ;
+    @Value("${sp.name.query.cash}")
+    private String SP_Query_Name;
 
+    @Value("${sp.name.insert.cash}")
+    private String SP_Insert_Name;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private final ThreadLocal<Map<String, Object>> threadLocalInParams = new ThreadLocal<>();
+
 
     // 定义 YQCashRegRecordDTO 的 RowMapper (用于映射游标结果)
     // 建议将这个 RowMapper 独立定义为一个公共类，以便重用
-    private final RowMapper<YQCashRegRecordDTO> cashRegRowMapper = new RowMapper<YQCashRegRecordDTO>() {
-        @Override
-        public YQCashRegRecordDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
-            YQCashRegRecordDTO dto = new YQCashRegRecordDTO();
-            // 确保这里的字段名与存储过程返回的游标字段名一致！
-            dto.setApplyDate(rs.getString("APPLY_DATE"));
-            dto.setCreateTime(rs.getString("CREATE_TIME"));
-            dto.setOperator(rs.getString("OPERATOR"));
-            dto.setRetainedCash(rs.getBigDecimal("AMOUNT"));
-            dto.setOperatorNo(rs.getString("OPERATOR_NO"));
-            dto.setSaveDate(rs.getString("SAVE_DATE"));
+    @Override
+    public YQCashRegRecordDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
+        YQCashRegRecordDTO dto = new YQCashRegRecordDTO();
+        // 确保这里的字段名与存储过程返回的游标字段名一致！
+        dto.setApplyDate(rs.getString("APPLY_DATE"));
+        dto.setCreateTime(rs.getString("CREATE_TIME"));
+        dto.setOperator(rs.getString("OPERATOR"));
+        dto.setRetainedCash(rs.getBigDecimal("AMOUNT"));
+        dto.setOperatorNo(rs.getString("OPERATOR_NO"));
+        dto.setSaveDate(rs.getString("SAVE_DATE"));
 
-            // ... 设置其他字段 ...
-            return dto;
-        }
-    };
-
-
-    /**
-     * 【具体业务方法】调用存储过程 GET_USER_RECORDS
-     * 该过程接收一个 String 参数，返回一个 YQCashRegRecordDTO 游标。
-     *
-     * @param inputDate 传入存储过程的查询日期参数
-     * @return YQCashRegRecordDTO 的列表
-     */
-    public List<YQCashRegRecordDTO> getCashRegRecordsByDate(String inputDate) {
-
-        // 1. 存储过程调用语句：包含一个输入参数 (?) 和一个输出游标参数 (?)
-        final String procedureCall = "{call " + SP_NAME+"(?, ?,?,?)}";
-
-        // 2. 使用 execute 方法执行 CallableStatement 原生调用
-        return jdbcTemplate.execute(procedureCall, (CallableStatement cs) -> {
-
-            // 3. 设置输入参数
-            cs.setString(1, inputDate); // 绑定第一个参数：输入日期
-
-            // 4. 注册 OUT 参数 (游标)
-            // 绑定第二个参数：输出游标
-            cs.registerOutParameter(2, OracleTypes.CURSOR);
-
-            cs.registerOutParameter(3, OracleTypes.INTEGER);
-
-            cs.registerOutParameter(4, OracleTypes.VARCHAR);
-
-            //打印出call所有情况
-            log.info("执行存储过程：{}", procedureCall);
-            // 5. 执行存储过程
-            cs.execute();
-
-            // 6. 获取游标结果集 (游标在第二个位置)
-            ResultSet rs = (ResultSet) cs.getObject(2);
-
-            Integer errorCode = cs.getInt(3);
-            String errorMsg = cs.getString(4);
-
-            // 7. 使用 RowMapper 将 ResultSet 映射为 List
-            List<YQCashRegRecordDTO> resultList = new ArrayList<>();
-
-            if (rs != null) {
-                try {
-                    int rowNum = 0;
-                    while (rs.next()) {
-                        // 使用我们定义的 RowMapper 进行映射
-                        resultList.add(cashRegRowMapper.mapRow(rs, rowNum++));
-                    }
-                } finally {
-                    // 确保 ResultSet 被关闭
-                    rs.close();
-                }
-            }
-            return resultList;
-        });
+        // ... 设置其他字段 ...
+        return dto;
     }
 
-    // 您可以根据需要，为其他存储过程编写类似的、独立的 DAO 方法。
-    // 例如：public List<Order> getOrdersByStatus(String status) { ... }
+    @Override
+    protected String getSPQueryName() {
+        return this.SP_Query_Name;
+    }
+
+    @Override
+    protected String getSPInsertName() {
+        return this.SP_Insert_Name;
+    }
+
+    @Override
+    protected RowMapper getRowMapper() {
+        return this;
+    }
+
+
+
+    // 【重要】：必须覆盖 getInParams() 来获取 ThreadLocal 中的参数
+    @Override
+    protected Map<String, Object> getInParams() {
+        Map<String, Object> params = threadLocalInParams.get();
+        return params != null ? params : Collections.emptyMap();
+    }
+
+    /**
+     * Service 层的带参接口。
+     */
+    public List<YQCashRegRecordDTO> getMultParams(Map<String, Object> inParams) {
+
+        // 1. 设置 ThreadLocal
+        threadLocalInParams.set(inParams);
+
+        try {
+            // 2. 调用基类方法
+            return executeSPQuery();
+        } finally {
+            // 3. 清理 ThreadLocal
+            threadLocalInParams.remove();
+        }
+    }
+
 }
