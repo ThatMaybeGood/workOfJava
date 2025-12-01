@@ -39,23 +39,20 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public List<ReportDTO> getAll(String reportdate)  {
         // 调用存储过程获取报表数据
-        try {
+//        try {
 
-//            // 调用通用方法，传入过程名和 Mapper
-//            List<ReportDTO> resultLists = SPQueryDao.executeQueryNoParam(
-//                    "GET_ALL_REPORTS",  // 存储过程名称
-//                    yqReportMapper     // 对应的 RowMapper Bean
-//            );
+
+//           results = reports.getOpertList(Collections.singletonMap("A_REPORT_DATE", reportdate));
+//            // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
+//            if (results.isEmpty()){
+//                results = getAllReportData(reportdate);
+//            }
+//        } catch (Exception e) {
+//            log.error("获取报表数据异常", e);
+//            return  results;
 //
-            //调用调用查询数据方法，传入参数为日期
-           results = reports.getOpertList(Collections.singletonMap("A_REPORT_DATE", reportdate));
-            // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
-            if (results.isEmpty()){
-                results = getAllReportData(reportdate);
-            }
-        } catch (Exception e) {
-            log.error("获取报表数据异常", e);
-        }
+//        }
+        results = getAllReportData(reportdate);
 
         return  results;
 
@@ -63,7 +60,16 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Boolean insert(String reportdate) {
+    public Boolean insert(List<ReportDTO> reportDTO) {
+
+
+
+
+
+
+
+
+
         // 建议: 如果方法未实现，返回 false 或抛出异常
         // throw new UnsupportedOperationException("Insert operation is not yet implemented.");
         return false;
@@ -73,8 +79,8 @@ public class ReportServiceImpl implements ReportService {
     public List<ReportDTO> getAllReportData(String reportdate) {
         try {
             // 1. 获取所有数据（列表形式）
-            List<YQOperator> operators = operors.findData(); // 操作员列表
             List<HisIncomeDTO> hisIncomeDTOList = hisdata.findByDate(reportdate);           // His数据列表
+            List<YQOperator> operators = operors.findData(); // 操作员列表
             List<YQCashRegRecordDTO> yqDataList = cashs.findByDate(reportdate);     // YQ数据列表
 
             // 2. 将关联数据转换为以 operatorNo 为key的Map, 使用 (v1, v2) -> v1 来处理可能的重复键

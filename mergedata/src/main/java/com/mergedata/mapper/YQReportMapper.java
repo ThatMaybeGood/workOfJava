@@ -17,8 +17,11 @@ import java.util.Map;
 @Slf4j
 public class YQReportMapper extends AbstractSPQueryMapper implements RowMapper<ReportDTO> {
 
-    @Value("${sp.name.report}")
-    private String SP_NAME;
+    @Value("${sp.name.query.report}")
+    private String SP_Query_Name;
+
+    @Value("${sp.name.insert.report}")
+    private String SP_Insert_Name;
 
     // 【核心】：需要 ThreadLocal 来安全地传递参数
     private final ThreadLocal<Map<String, Object>> threadLocalInParams = new ThreadLocal<>();
@@ -38,8 +41,13 @@ public class YQReportMapper extends AbstractSPQueryMapper implements RowMapper<R
     }
 
     @Override
-    protected String getSPName() {
-        return SP_NAME;
+    protected String getSPQueryName() {
+        return SP_Query_Name;
+    }
+
+    @Override
+    protected String getSPInsertName() {
+        return SP_Insert_Name;
     }
 
     @Override
@@ -63,7 +71,7 @@ public class YQReportMapper extends AbstractSPQueryMapper implements RowMapper<R
 
         // 1. 设置 ThreadLocal
         threadLocalInParams.set(inParams);
-        log.info("调用存储过程 {}：设置 {} 个输入参数。", getSPName(), inParams.size());
+        log.info("调用存储过程 {}：设置 {} 个输入参数。", getSPQueryName(), inParams.size());
 
         try {
             // 2. 调用基类方法

@@ -20,11 +20,13 @@ import java.util.List;
 @Repository
 @Component
 @Slf4j
-public class YQCashMapper {
+public class YQCashMapper  {
 
-    @Value("${sp.name.cash}")
-    private String SP_NAME ;
+    @Value("${sp.name.query.cash}")
+    private String SP_Query_Name ;
 
+    @Value("${sp.name.insert.cash}")
+    private String SP_Insert_Name ;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -59,7 +61,7 @@ public class YQCashMapper {
     public List<YQCashRegRecordDTO> getCashRegRecordsByDate(String inputDate) {
 
         // 1. 存储过程调用语句：包含一个输入参数 (?) 和一个输出游标参数 (?)
-        final String procedureCall = "{call " + SP_NAME+"(?, ?,?,?)}";
+        final String procedureCall = "{call " + SP_Query_Name+"(?, ?,?,?)}";
 
         // 2. 使用 execute 方法执行 CallableStatement 原生调用
         return jdbcTemplate.execute(procedureCall, (CallableStatement cs) -> {

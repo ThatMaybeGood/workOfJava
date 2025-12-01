@@ -18,15 +18,15 @@ public class ReqConstant {
     /*
      * 存储过程出参状态码名称
      */
-    public static final String SP_OUT_CODE ="A_CODE";
+    public static final String SP_OUT_CODE ="A_RETCODE";
     /*
      * 存储过程出参信息名称
      */
-    public static final String SP_OUT_MESSAGE ="A_MESSAGE";
+    public static final String SP_OUT_MESSAGE ="A_ERRMSG";
     /*
      * 存储过程出参游标名称
      */
-    public static final String SP_OUT_CURSOR ="A_CURSOR";
+    public static final String SP_OUT_CURSOR ="A_RESULTSET";
     /*
      * 存储过程出参状态码值
      */
@@ -36,5 +36,21 @@ public class ReqConstant {
      */
     public static final int SP_FAILURE = -1;
 
+    /*
+    * 存储过程类型：查询、插入、更新、删除
+     */
+    public static final String SP_TYPE_SELECT = "0";
+    /*
+    * 存储过程类型：插入
+     */
+    public static final String SP_TYPE_INSERT = "1";
+    /*
+    * 存储过程类型：更新
+     */
+    public static final String SP_TYPE_UPDATE = "2";
+    /*
+    * 存储过程类型：删除
+     */
+    public static final String SP_TYPE_DELETE = "3";
 
 }
