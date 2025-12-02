@@ -15,8 +15,6 @@ import java.util.List;
 @SpringBootTest
 class MessageDataApplicationTests {
 
-    @Autowired
-    ExternalApiRequestService externalApiRequestService;
 
     @Autowired
     YQOperatorServiceImpl hisOperatorService;

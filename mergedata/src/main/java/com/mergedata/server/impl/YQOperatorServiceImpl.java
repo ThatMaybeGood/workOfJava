@@ -65,7 +65,6 @@ public class YQOperatorServiceImpl implements YQOperatorService {
             Map<String,Object> map = new HashMap<>();
             map.put("A_OPERATOR_NO",dto.getOperatorNo());
             map.put("A_OPERATOR_NAME",dto.getOperatorName());
-            map.put("A_ISVALID","1");
             map.put("A_TYPE", ReqConstant.SP_TYPE_INSERT);
 
 

@@ -1,8 +1,10 @@
 package com.mergedata.server.impl;
 
+import com.mergedata.constants.ReqConstant;
 import com.mergedata.mapper.YQReportMapper;
 import com.mergedata.model.*;
 import com.mergedata.server.*;
+import com.mergedata.util.PrimaryKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -66,13 +68,48 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public Boolean insert(List<ReportDTO> reportDTO) {
         Map<String,Object> map = new HashMap<>();
+        PrimaryKeyGenerator pk = new PrimaryKeyGenerator();
 
-         for (ReportDTO dto : reportDTO) {
-            map.put("A_SERIAL_NO",dto.getSerialNo());
+        // 生成唯一序列号，此处使用 PrimaryKeyGenerator 类生成主键
+        String serialNo = pk.generateKey();
+
+        int index = 0;
+        int lastIndex = reportDTO.size() - 1;
+
+
+        for (ReportDTO dto : reportDTO) {
+            map.put("A_SERIAL_NO",serialNo);
             map.put("A_EMP_ID",dto.getOperatorNo());
-            map.put("A_REPORT_DATE",dto.getReportDate()) ;
+            map.put("A_REPORT_DATE",dto.getReportDate().toString());
+            map.put("A_REPORT_YEAR",dto.getReportDate().toString().substring(0,4));
+            map.put("A_EMP_ID",dto.getOperatorNo());
+            map.put("A_EMP_NAME",dto.getOperatorName());
             map.put("A_HISADVANCEPAYMENT",dto.getHisAdvancePayment());
+            map.put("A_HISMEDICALINCOME",dto.getHisMedicalIncome());
+            map.put("A_HISREGISTRATIONINCOME",dto.getHisRegistrationIncome());
+            map.put("A_REPORTAMOUNT",dto.getReportAmount());
+            map.put("A_PREVIOUSTEMPORARYRECEIPT",dto.getPreviousTemporaryReceipt());
+            map.put("A_HOLIDAYTEMPORARYRECEIPT",dto.getHolidayTemporaryReceipt());
+            map.put("A_ACTUALREPORTAMOUNT",dto.getActualReportAmount());
+            map.put("A_CURRENTTEMPORARYRECEIPT",dto.getCurrentTemporaryReceipt());
+            map.put("A_ACTUALCASHAMOUNT",dto.getActualCashAmount());
+            map.put("A_RETAINEDDIFFERENCE",dto.getRetainedDifference());
+            map.put("A_RETAINEDCASH",dto.getRetainedCash());
+            map.put("a_pettycash",dto.getPettyCash());
+            map.put("A_REMARKS",dto.getRemarks());
+            map.put("A_TYPE", ReqConstant.SP_TYPE_INSERT);
+
+            // **判断最后一条**
+            if (index == lastIndex) {
+                map.put("A_ISINSERTMASTER", '1');
+            }else
+            {
+                map.put("A_ISINSERTMASTER", '0');
+            }
+
             report.insertMultParams(map);
+
+            index++; // 每次迭代递增
          }
 
         // 建议: 如果方法未实现，返回 false 或抛出异常
