@@ -74,23 +74,13 @@ public class YQHolidayMapper extends AbstractSPQueryMapper implements RowMapper<
         return params != null ? params : Collections.emptyMap();
     }
 
-    /**
-     * Service 层的带参接口。
-     */
-    public List<YQHolidayCalendarDTO> getMultParams(Map<String, Object> inParams) {
-
-        // 1. 设置 ThreadLocal
-        threadLocalInParams.set(inParams);
-        log.info("调用存储过程 {}：设置 {} 个输入参数。", getSPQueryName(), inParams.size());
-
-        try {
-            // 2. 调用基类方法
-            return executeSPQuery();
-        } finally {
-            // 3. 清理 ThreadLocal
-            threadLocalInParams.remove();
-        }
+    public List<YQHolidayCalendarDTO> getNoParams() {
+        log.info("调用存储过程 {}：无输入参数。", getSPQueryName());
+        // 直接调用基类方法，参数自动解析为 Collections.emptyMap()
+        return executeSPQuery();
     }
+
+
     public Boolean insertMultParams(Map<String, Object> inParams) {
 
         // 1. 设置 ThreadLocal

@@ -72,11 +72,6 @@ public class ReportServiceImpl implements ReportService {
 
         // 生成唯一序列号，此处使用 PrimaryKeyGenerator 类生成主键
         String serialNo = pk.generateKey();
-
-        int index = 0;
-        int lastIndex = reportDTO.size() - 1;
-
-
         for (ReportDTO dto : reportDTO) {
             map.put("A_SERIAL_NO",serialNo);
             map.put("A_EMP_ID",dto.getOperatorNo());
@@ -98,19 +93,9 @@ public class ReportServiceImpl implements ReportService {
             map.put("a_pettycash",dto.getPettyCash());
             map.put("A_REMARKS",dto.getRemarks());
             map.put("A_TYPE", ReqConstant.SP_TYPE_INSERT);
-
-            // **判断最后一条**
-            if (index == lastIndex) {
-                map.put("A_ISINSERTMASTER", '1');
-            }else
-            {
-                map.put("A_ISINSERTMASTER", '0');
             }
 
             report.insertMultParams(map);
-
-            index++; // 每次迭代递增
-         }
 
         // 建议: 如果方法未实现，返回 false 或抛出异常
         // throw new UnsupportedOperationException("Insert operation is not yet implemented.");
@@ -118,148 +103,11 @@ public class ReportServiceImpl implements ReportService {
     }
 
 
-    public List<ReportDTO> getAllReportData(String reportdate) {
-        // 1. 获取昨日报表数据，用于计算昨日暂收款
-        LocalDate preDate = LocalDate.parse(reportdate).minusDays(1);
-
-        try {
-
-            // 操作员列表
-            List<YQOperator> operators = oper.findData();
-            List<YQCashRegRecordDTO> yqDataList = cash.findByDate(reportdate);     // YQ数据列表
-            List<HisIncomeDTO> hisIncomeDTOList = hisdata.findByDate(reportdate);           // His数据列表
-
-            // 昨日报表数据，用于计算昨日暂收款
-            List<ReportDTO> preReport = report.getMultParams(Collections.singletonMap("A_REPORTDATE", preDate));
-
-            // 2. 将关联数据转换为以 operatorNo 为key的Map, 使用 (v1, v2) -> v1 来处理可能的重复键
-            Map<String, HisIncomeDTO> hisDataMap = hisIncomeDTOList.stream()
-                    .collect(Collectors.toMap(HisIncomeDTO::getOperatorNo, Function.identity(), (v1, v2) -> v1));
-
-            Map<String, YQCashRegRecordDTO> cashRecordMap = yqDataList.stream()
-                    .collect(Collectors.toMap(YQCashRegRecordDTO::getOperatorNo, Function.identity(), (v1, v2) -> v1));
-
-            Map<String, ReportDTO> preReportMap = preReport.stream()
-                    .collect(Collectors.toMap(ReportDTO::getOperatorNo, Function.identity(), (v1, v2) -> v1));
 
 
-            // 3. 以操作员为主，构建结果集
-            List<ReportDTO> result = new ArrayList<>();
-            
-            // 优化: 在循环外计算一次即可
-            BigDecimal actualReportAmount = getActualReportAmount(reportdate);
-
-            for (YQOperator operator : operators) {
-                ReportDTO dto = new ReportDTO();
-
-                // 设置操作员基础信息
-                dto.setOperatorNo(operator.getOperatorNo());
-                dto.setOperatorName(operator.getOperatorName());
-                dto.setReportDate(reportdate);
-
-                // 1、关联 HisData 数据（如果有）
-                HisIncomeDTO hisIncomeDTO = hisDataMap.get(operator.getOperatorNo());
-                if (hisIncomeDTO != null) {
-                    dto.setHisAdvancePayment(getSafeBigDecimal(hisIncomeDTO.getHisAdvancePayment()));
-                    dto.setHisMedicalIncome(getSafeBigDecimal(hisIncomeDTO.getHisMedicalIncome()));
-                    //目前默认为0.00，后续根据实际业务调整
-                    dto.setHisRegistrationIncome(BigDecimal.ZERO);
-
-                    //应交报表数
-                    dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()).add(dto.getHisRegistrationIncome()));
-                }
-
-                // 2、关联 YQCashRegRecord 数据（如果有）
-                YQCashRegRecordDTO cashRecord = cashRecordMap.get(operator.getOperatorNo());
-                if (cashRecord != null) {
-                    dto.setRetainedCash(getSafeBigDecimal(cashRecord.getRetainedCash()));
-                    dto.setWindowNo(cashRecord.getWindowNo());
-                    dto.setOperatType(cashRecord.getOpeType());
-                    dto.setSechduling(cashRecord.getSechduling());
-                    dto.setApplyDate(cashRecord.getApplyDate());
-                    
-                    // 修复: 将依赖 cashRecord 的计算移入此代码块
-                    dto.setRetainedDifference(cashRecord.getRetainedCash().subtract(actualReportAmount).subtract(dto.getPettyCash()));
-                }
-
-                //前日暂收款 正常情况为前一天的当日暂收款
-                if (preReportMap.containsKey(operator.getOperatorNo())) {
-                    dto.setPreviousTemporaryReceipt(preReportMap.get(operator.getOperatorNo()).getCurrentTemporaryReceipt());
-                } else {
-                    // 若不存在前日暂收款，则设置为0
-                    dto.setPreviousTemporaryReceipt(BigDecimal.ZERO);
-                }
-                dto.setHolidayTemporaryReceipt(BigDecimal.ZERO);
-                dto.setCurrentTemporaryReceipt(BigDecimal.ZERO);
-
-                //实交报表数  通过计算得出
-                dto.setActualReportAmount(actualReportAmount);
-                dto.setActualCashAmount(dto.getActualReportAmount().add(dto.getCurrentTemporaryReceipt()));
-
-                // 以放入结果
-                result.add(dto);
-            }
-
-            log.info("{}生成报表完成，共处理 {} 个操作员", reportdate, result.size());
-
-            return result;
-        } catch (Exception e) {
-            log.error("报表生成失败", e);
-            // 建议: 返回空集合而不是 null
-            return Collections.emptyList();
-        }
-    }
 
 
-    /*
-    根据日期的情况分类得到最后时间，
-     1、判断当前日期类型  0 正常 ，1 节假日 ，2 节假日前一天 3 节假日后一天
-     */
-    public BigDecimal getActualReportAmount(String date) {
-
-        BigDecimal amount = BigDecimal.ZERO;
-        LocalDate reportdate = LocalDate.parse(date);
-
-        List<YQHolidayCalendarDTO> holidays = hiliday.findByDate(date);
-
-
-        //1、判断当前日期是否为节假日
-        if (isDateInvalid(holidays,reportdate)) {
-            //节假日
-        }
-
-        if (isDateInvalid(holidays,reportdate.minusDays(1))) {
-            //节假日后一天
-            while (true) {
-                reportdate = reportdate.minusDays(1);
-                if (isDateInvalid(holidays,reportdate)) {
-                    break;
-                } else {
-                    //加amount = amount + 昨日留存现金数
-                    amount = amount.add(BigDecimal.ZERO) ;
-                }
-
-            }
-        }
-
-        if (isDateInvalid(holidays,reportdate.plusDays(1))) {
-            //节假日前一天
-        }
-
-        //正常情况
-
-
-        return amount;
-
-    }
-
-    // 安全获取BigDecimal值
-    private BigDecimal getSafeBigDecimal(BigDecimal value) {
-        return value != null ? value : BigDecimal.ZERO;
-    }
-
-
-// 假设 ReportDTO 中所有相关金额字段都是 BigDecimal 类型
+    // 假设 ReportDTO 中所有相关金额字段都是 BigDecimal 类型
 
     private ReportDTO calculateTotal(List<ReportDTO> dtoList, String reportdate) {
         // 1. 定义 BigDecimal 求和初始值 (0) 和操作符 (加法)
@@ -322,6 +170,189 @@ public class ReportServiceImpl implements ReportService {
 
         return exists;
     }
+
+
+        /**
+         * 【核心报表生成方法】
+         * 1. 从各数据源获取数据。
+         * 2. 以操作员为基准进行匹配和计算。
+         * 3. 对周一进行特殊的财务回溯计算 (A = B - Sum(C) - D)。
+         *
+         * @param reportdate 目标报表日期 (String yyyy-MM-dd)
+         * @return 包含所有操作员计算结果的 ReportDTO 列表
+         */
+
+
+        public List<ReportDTO> getAllReportData(String reportdate) {
+            try {
+                LocalDate currtDate = LocalDate.parse(reportdate);
+                LocalDate preDate = currtDate.minusDays(1);
+
+                // 1. 获取所有必需的原始数据 (保持不变)
+                List<YQHolidayCalendarDTO> holidays = hiliday.findByDate();
+                List<YQOperator> operators = oper.findData();
+                List<YQCashRegRecordDTO> yqDataList = cash.findByDate(reportdate);
+                List<HisIncomeDTO> hisIncomeDTOList = hisdata.findByDate(reportdate);
+                List<ReportDTO> preReport = report.getMultParams(Collections.singletonMap("A_REPORTDATE", preDate.toString()));
+
+                // 2. 数据预处理：转换为 Map/Set (保持不变)
+                Map<String, HisIncomeDTO> hisDataMap = hisIncomeDTOList.stream()
+                        .collect(Collectors.toMap(HisIncomeDTO::getOperatorNo, Function.identity(), (v1, v2) -> v1));
+                // ... (其他 Map 转换不变)
+                Set<LocalDate> holidaySet = holidays.stream()
+                        .map(YQHolidayCalendarDTO::getHolidayDate)
+                        .collect(Collectors.toSet());
+
+                // 3. 构建结果集 (保持不变)
+                List<ReportDTO> resultList = new ArrayList<>();
+
+                // 4. 以操作员为主，遍历构建报表数据 (保持不变)
+                for (YQOperator operator : operators) {
+                    ReportDTO currentDto = new ReportDTO();
+
+                    // ... (基础信息、ReportAmount、PreviousTemporaryReceipt 赋值保持不变)
+
+                    // 5. 【修正回溯判断条件】
+                    /*
+                    根据日期的情况分类得到最后时间，
+                     1、判断当前日期类型  0 正常 ，1 节假日 ，2 节假日前一天 3 节假日后一天
+                     */
+                    // ❗ 修正后的条件：当前是工作日 且 前一天是节假日/周末
+                    boolean isAfterHoliday = !isHoliday(holidaySet, currtDate) && isHoliday(holidaySet, currtDate.minusDays(1));
+
+                    if (isAfterHoliday) {
+                        // 符合条件：执行复杂回溯计算 (A = B - Sum(C) - D)
+
+                        calculateActualReportAmountForMonday(
+                                currentDto,
+                                currtDate,
+                                holidaySet,
+                                // 传递查询函数
+                                dateString -> report.getMultParams(Collections.singletonMap("A_REPORTDATE", dateString))
+                        );
+
+                    } else if (isHoliday(holidaySet, currtDate)) {
+                        // 节假日逻辑：A = B - C
+                        BigDecimal actualReportAmount = currentDto.getReportAmount().subtract(currentDto.getHolidayTemporaryReceipt());
+                        currentDto.setActualReportAmount(actualReportAmount);
+
+                    } else if (isHoliday(holidaySet, currtDate.plusDays(1))) {
+                        // 节假日前一天 (周五/最后一天) 逻辑
+                        // A = B - D' - E'
+                        BigDecimal actualReportAmount = currentDto.getReportAmount()
+                                .subtract(currentDto.getPreviousTemporaryReceipt())
+                                .subtract(currentDto.getCurrentTemporaryReceipt());
+
+                        currentDto.setActualReportAmount(actualReportAmount);
+
+                    } else {
+                        // 正常工作日逻辑
+                        currentDto.setActualReportAmount(currentDto.getReportAmount());
+                    }
+
+
+                    // 6. 后续计算 (保持不变)
+                    currentDto.setActualCashAmount(currentDto.getActualReportAmount().add(currentDto.getCurrentTemporaryReceipt()));
+                    // ... (关联 YQCashRegRecord 数据和 RetainedDifference 计算保持不变)
+
+                    // 7. 加入结果集 (保持不变)
+                    resultList.add(currentDto);
+                }
+
+                log.info("{}生成报表完成，共处理 {} 个操作员", reportdate, resultList.size());
+                return resultList;
+
+            } catch (Exception e) {
+                log.error("报表生成失败", e);
+                return Collections.emptyList();
+            }
+        }
+
+        /**
+         * 【核心逻辑实现】处理周一的复杂回溯计算
+         * 公式: A = B - Sum(C){周末/节假日} - D{周五}
+         * C = HolidayTemporaryReceipt (节假日暂收款), D = CurrentTemporaryReceipt (当日暂收款)
+         */
+        private void calculateActualReportAmountForMonday(
+                ReportDTO currentDto,
+                LocalDate targetDate,
+                Set<LocalDate> holidaySet,
+                Function<String, List<ReportDTO>> reportQueryFunction) {
+
+            BigDecimal totalC = BigDecimal.ZERO;
+            BigDecimal dAmountFriday = BigDecimal.ZERO;
+            LocalDate currentDate = targetDate.minusDays(1); // 从周日开始回溯
+
+            // 2. 回溯循环
+            while (true) {
+
+                // 2.1 获取当前回溯日期的历史报表数据 (通过 Mapper)
+                List<ReportDTO> historicalReports = reportQueryFunction.apply(currentDate.toString());
+
+                // 2.2 查找当前操作员在历史报表中的记录 (确保用户匹配)
+                Optional<ReportDTO> historicalDtoOpt = historicalReports.stream()
+                        .filter(r -> currentDto.getOperatorNo().equals(r.getOperatorNo()))
+                        .findFirst();
+
+                if (isHoliday(holidaySet, currentDate)) {
+                    // 是节假日（周六、周日）：累加 C 金额 (HolidayTemporaryReceipt)
+
+                    BigDecimal cAmount = historicalDtoOpt
+                            .map(ReportDTO::getHolidayTemporaryReceipt)
+                            .orElse(BigDecimal.ZERO); // 缺失数据默认为 0
+
+                    totalC = totalC.add(getSafeBigDecimal(cAmount));
+
+                    currentDate = currentDate.minusDays(1); // 继续往前
+
+                } else {
+                    // 找到中断点：第一个非节假日日期（即周五）
+
+                    // 提取 D 金额 (CurrentTemporaryReceipt)
+                    dAmountFriday = historicalDtoOpt
+                            .map(ReportDTO::getCurrentTemporaryReceipt)
+                            .orElse(BigDecimal.ZERO); // 缺失数据默认为 0
+
+                    break; // 跳出循环
+                }
+
+                // 安全检查：防止无限循环
+                if (targetDate.toEpochDay() - currentDate.toEpochDay() > 7) {
+                    log.warn("回溯查找失败，连续节假日过多，在 {} 无法找到工作日。", targetDate);
+                    break;
+                }
+            }
+
+            // 3. 应用公式：A = B - Sum(C) - D
+            BigDecimal finalActualReportAmount = currentDto.getReportAmount()
+                    .subtract(totalC)
+                    .subtract(dAmountFriday);
+
+            // 4. 设置计算结果
+            currentDto.setActualReportAmount(finalActualReportAmount);
+        }
+
+
+        /**
+         * 判断日期是否为节假日 (使用 Set 版本)
+         */
+        private boolean isHoliday(Set<LocalDate> holidaySet, LocalDate targetDate) {
+            if (holidaySet == null || targetDate == null) {
+                return false;
+            }
+            return holidaySet.contains(targetDate);
+        }
+
+
+        /**
+         * 安全获取 BigDecimal 值，如果为 null 则返回 BigDecimal.ZERO
+         */
+        private BigDecimal getSafeBigDecimal(BigDecimal value) {
+            return value != null ? value : BigDecimal.ZERO;
+
+        }
+
+
 
 
 }

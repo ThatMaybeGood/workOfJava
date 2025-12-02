@@ -20,38 +20,36 @@ spring:
     username: mine
     password: Pass1230
 
-    initial-size: 8
     # ----------------------------------------
     # 2. Druid 连接池参数配置
     # ----------------------------------------
-    druid:
-      # ❗ 显式指定 Druid 的数据库类型以避免 NPE
-      db-type: oracle
-      # 初始化连接数
-      initial-size: 8
-      # 最小空闲连接数
-      min-idle: 5
-      # 最大活动连接数
-      max-active: 20
-      # 获取连接等待超时的时间 30秒
-      max-wait: 30000
+    # ❗ 显式指定 Druid 的数据库类型以避免 NPE
+    db-type: oracle
+    # 初始化连接数
+    initial-size: 8
+    # 最小空闲连接数
+    min-idle: 5
+    # 最大活动连接数
+    max-active: 20
+    # 获取连接等待超时的时间 30秒
+    max-wait: 30000
 
-      # 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒
-      time-between-eviction-runs-millis: 60000
-      # 连接在池中最小生存的时间（毫秒）
-      min-evictable-idle-time-millis: 300000
+    # 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒
+    time-between-eviction-runs-millis: 60000
+    # 连接在池中最小生存的时间（毫秒）
+    min-evictable-idle-time-millis: 300000
 
-      # Oracle 11g 验证连接是否有效的 SQL
-      validation-query: SELECT 1 FROM DUAL
-      # 建议配置为 true，应用在从池中获取连接时，校验连接是否有效
-      test-while-idle: true
-      test-on-borrow: true
-      test-on-return: false
+    # Oracle 11g 验证连接是否有效的 SQL
+    validation-query: SELECT 1 FROM DUAL
+    # 建议配置为 true，应用在从池中获取连接时，校验连接是否有效
+    test-while-idle: true
+    test-on-borrow: true
+    test-on-return: false
 
-      # 是否打开连接泄露检测。开启会降低性能。
-      remove-abandoned: true
-      remove-abandoned-timeout: 1800 # 连接被认为是泄露的超时时间（秒）
-      log-abandoned: true # 泄露时是否记录日志
+    # 是否打开连接泄露检测。开启会降低性能。
+    remove-abandoned: true
+    remove-abandoned-timeout: 1800 # 连接被认为是泄露的超时时间（秒）
+    log-abandoned: true # 泄露时是否记录日志
 
   # ----------------------------------------
   # 3. JPA/Hibernate 配置 (可选)
