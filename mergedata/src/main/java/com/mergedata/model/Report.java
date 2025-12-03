@@ -2,14 +2,16 @@ package com.mergedata.model;
 
 import lombok.Data;
 
+import javax.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 @Data
-public class ReportDTO {
+public class Report {
 
     private String serialNo;
 
     // 操作员基础信息
+    @NotBlank(message = "操作员编号不能为空")
     private String operatorNo;
     private String operatorName;
 
@@ -17,11 +19,13 @@ public class ReportDTO {
     /*
     his预交金
      */
+    @NotBlank(message = "his预交金不能为空", groups = {AddGroup.class})
     private BigDecimal hisAdvancePayment = BigDecimal.ZERO;
 
     /*
     his医疗收入
      */
+    @NotBlank(message = "his医疗收入不能为空", groups = {AddGroup.class})
     private BigDecimal hisMedicalIncome = BigDecimal.ZERO;
 
     /*
@@ -34,6 +38,7 @@ public class ReportDTO {
     /*
     留存现金数
      */
+    @NotBlank(message = "留存现金数不能为空", groups = {AddGroup.class} )
     private BigDecimal retainedCash = BigDecimal.ZERO;
     private String windowNo;
     private String operatType;
@@ -46,6 +51,7 @@ public class ReportDTO {
     /*
     应交报表数
      */
+    @NotBlank(message = "应交报表数不能为空", groups = {AddGroup.class})
     private BigDecimal reportAmount = BigDecimal.ZERO;
 
     /*
@@ -61,26 +67,31 @@ public class ReportDTO {
     /*
     实交报表数
      */
+    @NotBlank(message = "实交报表数不能为空", groups = {AddGroup.class})
     private BigDecimal actualReportAmount = BigDecimal.ZERO;       // 默认0
 
     /*
     当日暂收款
      */
+    @NotBlank(message = "当日暂收款不能为空", groups = {AddGroup.class})
     private BigDecimal currentTemporaryReceipt = BigDecimal.ZERO;  // 默认0
 
     /*
     实收现金数
      */
+    @NotBlank(message = "实收现金数不能为空", groups = {AddGroup.class})
     private BigDecimal actualCashAmount = BigDecimal.ZERO;         // 默认0
 
     /*
     留存差额数
      */
+    @NotBlank(message = "留存差额数不能为空", groups = {AddGroup.class})
     private BigDecimal retainedDifference = BigDecimal.ZERO;       // 默认0
 
     /*
     备用金
      */
+    @NotBlank(message = "备用金不能为空", groups = {AddGroup.class})
     private BigDecimal pettyCash = BigDecimal.ZERO;                // 默认0
 
     /*
@@ -88,7 +99,10 @@ public class ReportDTO {
      */
     private String remarks;
 
-
+    /*
+    报表日期
+     */
+    @NotBlank(message = "报表日期不能为空", groups = {AddGroup.class})
     private String reportDate;
 
     private LocalDateTime createTime;

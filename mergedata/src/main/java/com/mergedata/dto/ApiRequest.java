@@ -10,4 +10,5 @@ import lombok.Data;
 public class ApiRequest<T> {
     private ApiRequestHead head;
     private T body;
+
 }

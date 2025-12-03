@@ -1,6 +1,6 @@
 package com.mergedata.server;
 
-import com.mergedata.model.YQHolidayCalendarDTO;
+import com.mergedata.model.YQHolidayCalendar;
 
 import java.util.List;
 
@@ -8,8 +8,28 @@ public interface YQHolidayService {
     /*
      * 根据日期查询节假日信息
      */
-    List<YQHolidayCalendarDTO> findByDate();
+    List<YQHolidayCalendar> findAll();
+
+    /*
+     * 暂未编写相关过程
+     */
+    List<YQHolidayCalendar> findByDate();
+
+    /*
+     * 单条写入
+     */
+    Boolean batchInsert(YQHolidayCalendar holiday);
+
+    /*
+     * 批量写入
+     */
+    Boolean batchInsertList(List<YQHolidayCalendar> holidays);
 
 
-    Boolean insert(List<YQHolidayCalendarDTO> list);
+    /*
+     * 删除
+     */
+    Boolean delete(YQHolidayCalendar holiday);
+
+
 }

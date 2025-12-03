@@ -1,11 +1,12 @@
 package com.mergedata.server;
 
-import com.mergedata.model.YQCashRegRecordDTO;
+import com.mergedata.model.YQCashRegRecord;
 
 import java.util.List;
 
 public interface YQCashService {
 
-    List<YQCashRegRecordDTO> findByDate(String reportdate);
+    List<YQCashRegRecord> findByDate(String reportdate);
+
 
 }

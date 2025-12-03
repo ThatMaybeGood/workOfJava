@@ -5,7 +5,7 @@ import com.mergedata.dto.ApiRequestHead;
 import com.mergedata.dto.ApiResponse;
 import com.mergedata.dto.CommonRequestBody;
 import com.mergedata.exception.BusinessException;
-import com.mergedata.model.HisIncomeDTO;
+import com.mergedata.model.HisIncome;
 import com.mergedata.server.HisDataService;
 import com.mergedata.util.RestApiUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -34,25 +34,26 @@ public class HisDataServiceImpl implements HisDataService {
 
     private RestTemplate restTemplate;
     @Override
-    public List<HisIncomeDTO> findByDate(String reportdate) {
+    public List<HisIncome> findByDate(String reportdate) {
 
         log.info("开始调用 HIS 收入 API (TypeRef): {}", URL_API_HISINCOME);
 
         // 1. 组装请求对象 (不变)
-        CommonRequestBody body = new CommonRequestBody();
-        body.setReportdate(reportdate);
+        CommonRequestBody comBody = new CommonRequestBody();
+        comBody.setReportdate(reportdate);
+
         ApiRequest<CommonRequestBody> apiRequest = new ApiRequest<>();
         apiRequest.setHead(headConfig);
-        apiRequest.setBody(body);
+        apiRequest.setBody(comBody);
 
         // 2. 【修正点 1】定义正确的返回类型
         // 外部 ApiResponse<HisIncomeDTO> 结构：泛型 T 应该代表 list 内部的数据类型
-        ParameterizedTypeReference<ApiResponse<HisIncomeDTO>> typeRef = new ParameterizedTypeReference<ApiResponse<HisIncomeDTO>>() {};
+        ParameterizedTypeReference<ApiResponse<HisIncome>> typeRef = new ParameterizedTypeReference<ApiResponse<HisIncome>>() {};
 
         try {
             // 3. 调用工具类发起请求
             // 注意：apiResponse 的类型现在是 ApiResponse<HisIncomeDTO>
-            ApiResponse<HisIncomeDTO> apiResponse = restApiUtil.postForObject(
+            ApiResponse<HisIncome> apiResponse = restApiUtil.postForObject(
                     URL_API_HISINCOME,
                     apiRequest,
                     typeRef

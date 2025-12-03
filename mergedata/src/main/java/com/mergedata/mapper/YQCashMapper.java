@@ -2,7 +2,7 @@ package com.mergedata.mapper;
 
 
 import com.mergedata.dao.AbstractSPQueryMapper;
-import com.mergedata.model.YQCashRegRecordDTO;
+import com.mergedata.model.YQCashRegRecord;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.RowMapper;
@@ -18,7 +18,7 @@ import java.util.Map;
 @Repository
 @Component
 @Slf4j
-public class YQCashMapper extends AbstractSPQueryMapper implements RowMapper<YQCashRegRecordDTO> {
+public class YQCashMapper extends AbstractSPQueryMapper implements RowMapper<YQCashRegRecord> {
 
     @Value("${sp.name.query.cash}")
     private String SP_Query_Name;
@@ -32,8 +32,8 @@ public class YQCashMapper extends AbstractSPQueryMapper implements RowMapper<YQC
     // 定义 YQCashRegRecordDTO 的 RowMapper (用于映射游标结果)
     // 建议将这个 RowMapper 独立定义为一个公共类，以便重用
     @Override
-    public YQCashRegRecordDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
-        YQCashRegRecordDTO dto = new YQCashRegRecordDTO();
+    public YQCashRegRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
+        YQCashRegRecord dto = new YQCashRegRecord();
         // 确保这里的字段名与存储过程返回的游标字段名一致！
         dto.setApplyDate(rs.getString("APPLY_DATE"));
         dto.setCreateTime(rs.getString("CREATE_TIME"));
@@ -73,7 +73,7 @@ public class YQCashMapper extends AbstractSPQueryMapper implements RowMapper<YQC
     /**
      * Service 层的带参接口。
      */
-    public List<YQCashRegRecordDTO> getMultParams(Map<String, Object> inParams) {
+    public List<YQCashRegRecord> getMultParams(Map<String, Object> inParams) {
 
         // 1. 设置 ThreadLocal
         threadLocalInParams.set(inParams);

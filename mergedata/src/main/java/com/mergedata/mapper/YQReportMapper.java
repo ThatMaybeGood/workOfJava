@@ -1,7 +1,7 @@
 package com.mergedata.mapper;
 
 import com.mergedata.dao.AbstractSPQueryMapper;
-import com.mergedata.model.ReportDTO;
+import com.mergedata.model.Report;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.RowMapper;
@@ -15,7 +15,7 @@ import java.util.Map;
 
 @Component
 @Slf4j
-public class YQReportMapper extends AbstractSPQueryMapper implements RowMapper<ReportDTO> {
+public class YQReportMapper extends AbstractSPQueryMapper implements RowMapper<Report> {
 
     @Value("${sp.name.query.report}")
     private String SP_Query_Name;
@@ -28,8 +28,8 @@ public class YQReportMapper extends AbstractSPQueryMapper implements RowMapper<R
 
 
     @Override
-    public ReportDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
-        ReportDTO dto = new ReportDTO();
+    public Report mapRow(ResultSet rs, int rowNum) throws SQLException {
+        Report dto = new Report();
         dto.setSerialNo(rs.getString("SERIAL_NO"));
         dto.setOperatorNo(rs.getString("EMP_ID"));
         dto.setReportDate(rs.getString("REPORT_DATE"));
@@ -67,7 +67,7 @@ public class YQReportMapper extends AbstractSPQueryMapper implements RowMapper<R
     /**
      * Service 层的带参接口。
      */
-    public List<ReportDTO> getMultParams(Map<String, Object> inParams) {
+    public List<Report> getMultParams(Map<String, Object> inParams) {
 
         // 1. 设置 ThreadLocal
         threadLocalInParams.set(inParams);

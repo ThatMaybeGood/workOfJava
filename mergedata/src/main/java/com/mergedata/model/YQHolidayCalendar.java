@@ -4,6 +4,7 @@ package com.mergedata.model;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
+import javax.validation.constraints.NotBlank;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -14,14 +15,13 @@ import java.time.LocalDateTime;
  * 描述:
  * @LocalDate 2025/10/30 10:46
  */
-// HolidayCalendar.java
 @Data
 //@TableName("holiday_calendar")
-public class YQHolidayCalendarDTO {
-//    @TableId(type = IdType.AUTO)
-    private String serialNo;
+public class YQHolidayCalendar {
+     private String serialNo;
 
     @JsonFormat(pattern = "yyyy-MM-dd")
+    @NotBlank(message = "节假日日期不能为空")
     private LocalDate holidayDate;
 
     private String holidayName;

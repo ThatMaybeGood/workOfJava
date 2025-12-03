@@ -12,18 +12,19 @@ spring:
 # 服务器配置
 server:
   port: 8081
-#
-## --- Logback 相关的属性配置 ---
-#logging:
-#  # 日志文件存储路径 (请根据您的环境调整)
-#  log-dir: logs
-#
-#  # 日志级别
-#  level:
-#    root: INFO
-#    com.alibaba.druid: WARN
-#    com.zaxxer.hikari: WARN
-#    oracle.jdbc: WARN
+
+# --- Logback 相关的属性配置 ---
+logging:
+  # 日志文件存储路径 (请根据您的环境调整)
+  log-dir: logs
+
+  # 日志级别
+  level:
+    root: INFO
+    com.alibaba.druid: WARN
+    com.zaxxer.hikari: WARN
+    oracle.jdbc: WARN
+    com.mergedata.config: DEBUG
 #
 #  # 控制台 Appender 的 Pattern (在 dev/test/default profile 下使用)
 ##  pattern:

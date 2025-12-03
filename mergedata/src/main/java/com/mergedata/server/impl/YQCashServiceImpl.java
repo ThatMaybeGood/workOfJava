@@ -1,7 +1,7 @@
 package com.mergedata.server.impl;
 
 import com.mergedata.mapper.YQCashMapper;
-import com.mergedata.model.YQCashRegRecordDTO;
+import com.mergedata.model.YQCashRegRecord;
 import com.mergedata.server.YQCashService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,10 +24,10 @@ public class YQCashServiceImpl implements YQCashService {
      * @return 经过处理的现金记录列表
      */
     @Override
-    public List<YQCashRegRecordDTO> findByDate(String date) {
+    public List<YQCashRegRecord> findByDate(String date) {
         try {
             // 1. 调用 DAO 方法获取存储过程返回的结果列表
-            List<YQCashRegRecordDTO> rawRecords = yqStoredProcedureDao.getMultParams(Collections.singletonMap("A_REPORTDATE", date));
+            List<YQCashRegRecord> rawRecords = yqStoredProcedureDao.getMultParams(Collections.singletonMap("A_REPORTDATE", date));
 
             // 3. 返回最终处理结果
             return rawRecords;
@@ -37,4 +37,5 @@ public class YQCashServiceImpl implements YQCashService {
             return new ArrayList<>();
         }
     }
+
 }

@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 
 // 定义一个类，用于存储医院现金报表记录
 @Data
-public class YQCashRegRecordDTO {
+public class YQCashRegRecord {
     private String  operator;
     //操作员编号
     private String operatorNo;

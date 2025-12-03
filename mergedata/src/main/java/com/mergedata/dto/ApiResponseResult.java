@@ -31,14 +31,14 @@ public class ApiResponseResult {
         return result;
     }
 
-    public  static ApiResponseResult failureStatus() {
+    public  static ApiResponseResult failureStatus(String msg) {
         ApiResponseResult result = new ApiResponseResult();
         result.setSignType("md5");
         result.setSign("s1tTc4F8ZYzdJ7HkNUJkZw==");
         result.setCode("40004");
         result.setMsg("业务处理失败");
         result.setSubCode("request_thirdparty_service_return_error");
-        result.setSubMsg("查询报表信息失败！");
+        result.setSubMsg(msg);
         return result;
     }
 

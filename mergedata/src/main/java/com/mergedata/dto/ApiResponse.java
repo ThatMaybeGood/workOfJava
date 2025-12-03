@@ -27,17 +27,9 @@ public class ApiResponse<T> {
     }
 
     // 构造失败的响应 (如您示例所示)
-    public static <T> ApiResponse<T> failure(String errorCode, String errorMsg) {
+    public static <T> ApiResponse<T> failure(String erorMsg) {
         ApiResponse<T> response = new ApiResponse<>();
-
-//        // 假设 ApiResponseResult 内部逻辑可以根据输入构建失败状态
-//        ApiResponseResult status = new ApiResponseResult();
-//        status.setCode(errorCode);
-//        status.setMsg(errorMsg);
-//        status.setSubCode("failure");
-//        // ... 设置其他失败字段 ...
-
-        response.setResult(ApiResponseResult.failureStatus());
+        response.setResult(ApiResponseResult.failureStatus(erorMsg));
         response.setBody(ApiResponseBody.empty()); // 失败时 body.list 为空
         return response;
     }

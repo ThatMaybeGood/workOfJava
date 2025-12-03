@@ -1,11 +1,13 @@
 package com.mergedata.exception;
 
+import com.mergedata.dto.ApiResponseErrorParams;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -48,7 +50,27 @@ public class GlobalExceptionHandler {
     }
 
 
+    /**
+     * 专门处理请求体 JSON 格式错误或类型不匹配
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ApiResponseErrorParams<?> handleJsonFormatError(HttpMessageNotReadableException ex,
+                                                           HttpServletRequest request) {
 
+        log.error("请求体格式或类型转换错误", ex);
+
+        // 假设您使用 PARAMETER_ERROR_CODE = "4000"
+        String detailedMessage = "请求体JSON格式错误或字段类型不匹配。";
+
+        // 如果需要返回更具体的错误信息，可以解析 ex.getRootCause()
+        if (ex.getRootCause() != null) {
+            detailedMessage += " 详情: " + ex.getRootCause().getMessage();
+        }
+
+        return ApiResponseErrorParams.failure(
+                detailedMessage
+        );
+    }
     /**
      * 处理参数验证异常
      */

@@ -1,7 +1,7 @@
 package com.mergedata.mapper;
 
 import com.mergedata.dao.AbstractSPQueryMapper;
-import com.mergedata.model.YQHolidayCalendarDTO;
+import com.mergedata.model.YQHolidayCalendar;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.RowMapper;
@@ -15,7 +15,7 @@ import java.util.Map;
 
 @Component
 @Slf4j
-public class YQHolidayMapper extends AbstractSPQueryMapper implements RowMapper<YQHolidayCalendarDTO> {
+public class YQHolidayMapper extends AbstractSPQueryMapper implements RowMapper<YQHolidayCalendar> {
 
     @Value("${sp.name.query.holiday}")
     public String SP_Query_Name ;
@@ -27,8 +27,8 @@ public class YQHolidayMapper extends AbstractSPQueryMapper implements RowMapper<
     private final ThreadLocal<Map<String, Object>> threadLocalInParams = new ThreadLocal<>();
 
     @Override
-    public YQHolidayCalendarDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
-        YQHolidayCalendarDTO dto = new YQHolidayCalendarDTO();
+    public YQHolidayCalendar mapRow(ResultSet rs, int rowNum) throws SQLException {
+        YQHolidayCalendar dto = new YQHolidayCalendar();
 
         // 确保这里的字段名与存储过程返回的游标字段名一致！
         dto.setSerialNo(rs.getString("SERIAL_NO"));
@@ -74,7 +74,7 @@ public class YQHolidayMapper extends AbstractSPQueryMapper implements RowMapper<
         return params != null ? params : Collections.emptyMap();
     }
 
-    public List<YQHolidayCalendarDTO> getNoParams() {
+    public List<YQHolidayCalendar> getNoParams() {
         log.info("调用存储过程 {}：无输入参数。", getSPQueryName());
         // 直接调用基类方法，参数自动解析为 Collections.emptyMap()
         return executeSPQuery();

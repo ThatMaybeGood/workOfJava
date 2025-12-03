@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
-public class HisIncomeDTO {
+public class HisIncome {
 
     @JsonProperty("operator_no")
     private String  operatorNo;

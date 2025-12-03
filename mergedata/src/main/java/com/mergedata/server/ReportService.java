@@ -1,6 +1,6 @@
 package com.mergedata.server;
 
-import com.mergedata.model.ReportDTO;
+import com.mergedata.model.Report;
 
 import java.util.List;
 
@@ -9,12 +9,12 @@ public interface ReportService {
     /*
      * 根据日期查询所有报表数据
      */
-    List<ReportDTO> getAll(String reportDate)  ;
+    List<Report> getAll(String reportDate)  ;
 
     /*
      * 根据日期插入报表数据
      */
-    Boolean insert(List<ReportDTO> list);
+    Boolean batchInsert(List<Report> list);
 
 
 }
