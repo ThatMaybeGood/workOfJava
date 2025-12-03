@@ -13,32 +13,41 @@ spring:
 server:
   port: 8081
 
-# --- Logback 相关的属性配置 ---
+## --- Logback 相关的属性配置 ---
+#logging:
+#  # 日志文件存储路径 (请根据您的环境调整)
+#  log-dir: logs
+#
+#  # 日志级别
+#  level:
+#    root: INFO
+#    com.alibaba.druid: WARN
+#    com.zaxxer.hikari: WARN
+#    oracle.jdbc: WARN
+#    com.mergedata.config: DEBUG
+
+# application.yml
+
 logging:
-  # 日志文件存储路径 (请根据您的环境调整)
-  log-dir: logs
+  # 禁用 Spring Boot 默认的文件 Appender，避免与自定义的 XML Appender 冲突
+  file:
+    name:
 
-  # 日志级别
-  level:
-    root: INFO
-    com.alibaba.druid: WARN
-    com.zaxxer.hikari: WARN
-    oracle.jdbc: WARN
-    com.mergedata.config: DEBUG
-#
-#  # 控制台 Appender 的 Pattern (在 dev/test/default profile 下使用)
-##  pattern:
-##    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID}){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40c{1.}){cyan} %clr(:){faint} %m%n%wex"
-##
-##    # 文件 Appender 的 Pattern (在 prod profile 下使用)
-##    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p ${PID} --- [%t] %-40.40c{1.} : %m%n%wex"
-#
-#  # 滚动策略相关的参数 (用于 logback-spring.xml)
-#  max-file-size: 50MB           # 单个归档日志文件的最大大小
-#  max-history-days: 30          # 最大历史文件保存天数
+  # ❗ 告诉 Spring Boot 使用自定义的 Logback 配置文件
+  config: classpath:logback-spring.xml
 
+app:
+  log:
+    # 1. 定义日志存储路径：项目根目录下的 /logs 文件夹
+    dir: ${user.dir}/logs
 
-#请求头的配置
+    # 2. 定义单个文件的最大大小，达到此大小触发滚动
+    max-file-size: 50MB
+
+    # 3. 定义日志文件保留的最大天数 (maxHistory)
+    max-history: 30
+
+    #请求头的配置
 request:
   head:
     charset: UTF-8

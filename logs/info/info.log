@@ -1,0 +1,13 @@
+2025-12-03 20:55:43.126 [background-preinit] INFO  o.h.validator.internal.util.Version - HV000001: Hibernate Validator 6.2.5.Final
+2025-12-03 20:55:43.132 [main] INFO  com.mergedata.MessageDataApplication - Starting MessageDataApplication using Java 1.8.0_152 on mine with PID 37864 (D:\JetBrains\IdeaProjects\workOfJava\mergedata\target\classes started by 86156 in D:\JetBrains\IdeaProjects\workOfJava)
+2025-12-03 20:55:43.133 [main] INFO  com.mergedata.MessageDataApplication - The following 1 profile is active: "mine"
+2025-12-03 20:55:44.516 [main] INFO  o.s.b.w.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8081 (http)
+2025-12-03 20:55:44.523 [main] INFO  o.apache.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8081"]
+2025-12-03 20:55:44.527 [main] INFO  org.apache.catalina.core.StandardService - Starting service [Tomcat]
+2025-12-03 20:55:44.527 [main] INFO  org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/9.0.83]
+2025-12-03 20:55:44.659 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2025-12-03 20:55:44.659 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1480 ms
+2025-12-03 20:55:45.323 [main] INFO  o.apache.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8081"]
+2025-12-03 20:55:45.351 [main] INFO  o.s.b.w.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8081 (http) with context path ''
+2025-12-03 20:55:45.361 [main] INFO  com.mergedata.MessageDataApplication - Started MessageDataApplication in 2.649 seconds (JVM running for 2.993)
+2025-12-03 20:55:54.209 [SpringApplicationShutdownHook] INFO  com.alibaba.druid.pool.DruidDataSource - {dataSource-0} closing ...
