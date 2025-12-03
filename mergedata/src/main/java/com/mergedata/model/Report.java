@@ -99,11 +99,15 @@ public class Report {
      */
     private String remarks;
 
+
+
     /*
     报表日期
      */
     @NotBlank(message = "报表日期不能为空", groups = {AddGroup.class})
     private String reportDate;
+
+    private String reportYear;
 
     private LocalDateTime createTime;
 

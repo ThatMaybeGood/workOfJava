@@ -57,8 +57,8 @@ public class ReportServiceImpl implements ReportService {
             }
         } catch (Exception e) {
             log.error("获取报表数据异常", e);
-            return results;
-        }
+            throw new RuntimeException("获取报表数据异常");
+         }
         // 添加计算合计数据
         results.add(calculateTotal(results, reportdate));
 
@@ -72,8 +72,9 @@ public class ReportServiceImpl implements ReportService {
             // 如果列表为空，直接返回
             return false;
         }
+
         //作废原有的
-        executeInvalidate(list.get(0).getSerialNo(), ReqConstant.SP_TYPE_UPDATE,"0");
+        report.insertMultParams(buildParams(list.get(0).getSerialNo(),list.get(0), ReqConstant.SP_TYPE_UPDATE, "0"));
 
         // 生成唯一序列号，此处使用 PrimaryKeyGenerator 类生成主键
         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
@@ -83,7 +84,7 @@ public class ReportServiceImpl implements ReportService {
             report.insertMultParams(buildParams(pk, dto, ReqConstant.SP_TYPE_INSERT, "0"));
         }
         //写入主表数据，此处调用
-        executeInvalidate(pk,ReqConstant.SP_TYPE_INSERT,"1");
+        report.insertMultParams(buildParams(pk,list.get(0), ReqConstant.SP_TYPE_INSERT, "1"));
 
         return true;
     }
@@ -100,11 +101,12 @@ public class ReportServiceImpl implements ReportService {
                                             Report dto,
                                             String type, String isWriteMaster) {
         Map<String, Object> map = new HashMap<>();
-
+//        Map<String,ReportInsert> map= new HashMap<>();
         // ❗ 优化：只有 INSERT/UPDATE 时才传入日期数据，作废时传入 null 减少冗余
         map.put("A_SERIAL_NO", pk);
-        map.put("A_REPORT_DATE", dto.getReportDate().toString());
-        map.put("A_REPORT_YEAR", dto.getReportDate().toString().substring(0, 4));
+
+        map.put("A_REPORT_DATE", dto.getReportDate());
+        map.put("A_REPORT_YEAR", dto.getReportYear());
         map.put("A_EMP_ID", dto.getOperatorNo());
         map.put("A_EMP_NAME", dto.getOperatorName());
         map.put("A_HISADVANCEPAYMENT", dto.getHisAdvancePayment());
@@ -121,6 +123,7 @@ public class ReportServiceImpl implements ReportService {
         map.put("A_PETTYCASH", dto.getPettyCash());
         map.put("A_REMARKS", dto.getRemarks());
 
+
         map.put("A_TYPE", type);
         // 是否写入主表
         map.put("A_ISINSERTMASTER", isWriteMaster);
@@ -132,9 +135,9 @@ public class ReportServiceImpl implements ReportService {
     /**
      * 封装：执行作废操作
      */
-    private void executeInvalidate(String pk,String type,String isWriteMaster) {
+    private void executeInvalidate(String pk, String type, String isWriteMaster) {
         // ❗ 优化：调用封装方法，只传入作废必需的类型和序列号
-        Map<String, Object> invalidateMap = buildParams(pk, null, type , "1");
+        Map<String, Object> invalidateMap = buildParams(pk, null, type, isWriteMaster);
         //
         report.insertMultParams(invalidateMap);
     }
@@ -214,9 +217,17 @@ public class ReportServiceImpl implements ReportService {
             // 3. 构建结果集 (保持不变)
             List<Report> resultList = new ArrayList<>();
 
+            PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
+            String pk = pks.generateKey();
+
+
             // 4. 以操作员为主，遍历构建报表数据 (保持不变)
             for (YQOperator operator : operators) {
                 Report currentDto = new Report();
+                currentDto.setSerialNo(pk);
+                currentDto.setOperatorNo(operator.getOperatorNo());
+                currentDto.setOperatorName(operator.getOperatorName());
+                currentDto.setReportDate(reportdate);
 
                 // ... (基础信息、ReportAmount、PreviousTemporaryReceipt 赋值保持不变)
 
