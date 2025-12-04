@@ -13,6 +13,24 @@ spring:
 server:
   port: 8081
 
+
+# Consolidated MyBatis-Plus Configuration
+mybatis-plus:
+  # CRITICAL FIX: Set this to the package containing your Entity/Model classes (e.g., YQCashRegRecord)
+  # If you have multiple, use a comma-separated list.
+  type-aliases-package: com.mergedata.domain
+  mapper-locations: classpath*:mapper/**/*.xml # Ensure this is present if you use XML mappers
+
+#  configuration:
+#    # Use only mybatis-plus config (the 'mybatis:' block is redundant)
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#    log-prefix: "[MYBATIS] "
+
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+
 ## --- Logback 相关的属性配置 ---
 #logging:
 #  # 日志文件存储路径 (请根据您的环境调整)
@@ -29,7 +47,16 @@ server:
 # application.yml
 
 logging:
-  # 禁用 Spring Boot 默认的文件 Appender，避免与自定义的 XML Appender 冲突
+  level:
+    # 保持 MyBatis-Plus 的 INFO 或 DEBUG 级别（如果需要查看框架内部信息）
+    com.baomidou.mybatisplus: debug
+
+    # ❗ 关键修正 1: 将您的 Mapper 接口所在包设置为 INFO
+    # INFO 级别会打印 SQL 和参数，但不会打印 Row 数据
+    com.mergedata.mapper: debug
+
+    # 关键修正 2: 确保 MyBatis 的执行器日志也设置为 INFO (如果仅设置 Mapper 包无效)
+    org.apache.ibatis.executor: debug
   file:
     name:
 

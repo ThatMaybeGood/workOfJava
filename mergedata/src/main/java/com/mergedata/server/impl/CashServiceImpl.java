@@ -6,6 +6,7 @@ import com.mergedata.server.YQCashService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 
@@ -22,6 +23,6 @@ public class CashServiceImpl implements YQCashService {
 
     @Override
     public List<YQCashRegRecord> findByDate(String reportdate) {
-        return cashMapper.selectByDate(reportdate);
+        return cashMapper.selectByDate(LocalDate.parse(reportdate));
     }
 }

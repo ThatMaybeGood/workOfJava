@@ -4,6 +4,7 @@ import com.mergedata.model.YQHolidayCalendar;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Mapper
@@ -18,7 +19,7 @@ public interface HolidayMapper {
      * 根据日期查询节假日信息
      * @Param 指定名称，与 XML 中的 #{holiday_date} 匹配
      */
-    List<YQHolidayCalendar> selectByDate(@Param("holiday_date") String date);
+    List<YQHolidayCalendar> selectByDate(@Param("holiday_date") LocalDate date);
 
     /*
      * 插入单条节假日信息

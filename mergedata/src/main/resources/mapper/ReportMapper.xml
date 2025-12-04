@@ -67,14 +67,14 @@
         s.current_temporary_receipt, s.actual_cash_amount, s.retained_difference, s.retained_cash,
         s.petty_cash, s.remarks
         FROM
-        cash_statistics_main m
+        MPP_CASH_STATISTICS_MASTER m
         LEFT JOIN
-        cash_statistics_sub s
+        mpp_cash_statistics_sub s
         ON
         m.serial_no = s.serial_no
         WHERE
         m.serial_no = #{serialNo}
-        AND m.isvalid = TRUE
+        AND m.isvalid = '1'
     </select>
 
     <select id="selectByDate" resultMap="MainWithSubMap">
@@ -88,18 +88,18 @@
         s.current_temporary_receipt, s.actual_cash_amount, s.retained_difference, s.retained_cash,
         s.petty_cash, s.remarks
         FROM
-        cash_statistics_main m
+        MPP_CASH_STATISTICS_MASTER m
         LEFT JOIN
-        cash_statistics_sub s
+        mpp_cash_statistics_sub s
         ON
         m.serial_no = s.serial_no
         WHERE
         m.report_date = #{reportDate}
-        AND m.isvalid = TRUE
+        AND m.isvalid = '1'
     </select>
 
 
-    <select id="selectReportsByDateFlattened" resultMap="ReportMap">
+    <select id="selectReportByDate" resultMap="ReportMap">
         SELECT
         m.serial_no AS main_serial_no, m.report_date,
         m.report_year,
@@ -110,66 +110,96 @@
         s.current_temporary_receipt, s.actual_cash_amount, s.retained_difference, s.retained_cash,
         s.petty_cash, s.remarks
         FROM
-        cash_statistics_main m
+        MPP_CASH_STATISTICS_MASTER m
         LEFT JOIN
-        cash_statistics_sub s
+        mpp_cash_statistics_sub s
         ON
         m.serial_no = s.serial_no
         WHERE
         m.report_date = #{reportDate}
-        AND m.isvalid = TRUE
+        AND m.isvalid = '1'
     </select>
 
-</mapper>
 
     <insert id="batchInsertList">
-        INSERT INTO cash_statistics_main (
+        INSERT INTO MPP_CASH_STATISTICS_MASTER (
         serial_no, report_date, report_year,  isvalid, creator, create_time, update_time
         )
         VALUES
         <foreach collection="list" item="main" separator=",">
             (
-            #{main.serialNo}, #{main.reportDate}, #{main.reportYear}, #{main.isvalid}, #{main.creator},
-            #{main.createTime}, #{main.updateTime}
+            #{main.serialNo, jdbcType=VARCHAR},
+            #{main.reportDate, jdbcType=DATE},
+            #{main.reportYear, jdbcType=NUMERIC},
+            #{main.isvalid, jdbcType=VARCHAR},
+            #{main.creator, jdbcType=VARCHAR},
+            #{main.createTime, jdbcType=TIMESTAMP},
+            #{main.updateTime, jdbcType=TIMESTAMP}
             )
         </foreach>
     </insert>
 
     <insert id="batchInsertSubList">
-        INSERT INTO cash_statistics_sub (
-        serial_no, emp_id, emp_name, his_advance_payment, his_medical_income, his_registration_income, report_amount,
-        previous_temporary_receipt, holiday_temporary_receipt, actual_report_amount, current_temporary_receipt,
-        actual_cash_amount, retained_difference, retained_cash, petty_cash, remarks
+        INSERT INTO mpp_cash_statistics_sub (
+        serial_no,
+        emp_id,
+        emp_name,
+        his_advance_payment,
+        his_medical_income,
+        his_registration_income,
+        report_amount,
+        previous_temporary_receipt,
+        holiday_temporary_receipt,
+        actual_report_amount,
+        current_temporary_receipt,
+        actual_cash_amount,
+        retained_difference,
+        retained_cash,
+        petty_cash,
+        remarks
         )
-        VALUES
-        <foreach collection="list" item="sub" separator=",">
-            (
-            #{sub.serialNo}, #{sub.hisOperatorNo}, #{sub.hisOperatorName}, #{sub.hisAdvancePayment}, #{sub.hisMedicalIncome},
-            #{sub.hisRegistrationIncome}, #{sub.reportAmount}, #{sub.previousTemporaryReceipt}, #{sub.holidayTemporaryReceipt},
-            #{sub.actualReportAmount}, #{sub.currentTemporaryReceipt}, #{sub.actualCashAmount}, #{sub.retainedDifference},
-            #{sub.retainedCash}, #{sub.pettyCash}, #{sub.remarks}
-            )
+        SELECT * FROM (
+        <foreach collection="list" item="sub" separator="UNION ALL">
+            SELECT
+            #{sub.serialNo},
+            #{sub.hisOperatorNo},
+            #{sub.hisOperatorName},
+            #{sub.hisAdvancePayment},
+            #{sub.hisMedicalIncome},
+            #{sub.hisRegistrationIncome},
+            #{sub.reportAmount},
+            #{sub.previousTemporaryReceipt},
+            #{sub.holidayTemporaryReceipt},
+            #{sub.actualReportAmount},
+            #{sub.currentTemporaryReceipt},
+            #{sub.actualCashAmount},
+            #{sub.retainedDifference},
+            #{sub.retainedCash},
+            #{sub.pettyCash},
+            #{sub.remarks,jdbcType=VARCHAR}
+            FROM DUAL
         </foreach>
+        )
     </insert>
 
     <update id="updateByDate">
-        UPDATE cash_statistics_main
+        UPDATE MPP_CASH_STATISTICS_MASTER
         SET
-        update_time = CURRENT_DATE(),
-        isvalid = TRUE
+        update_time = sysdate,
+        isvalid = '0'
         WHERE
         report_date = #{reportDate}
-        AND  isvalid = FALSE
+        AND  isvalid = '1'
     </update>
 
     <update id="updateByPK">
-        UPDATE cash_statistics_main
+        UPDATE MPP_CASH_STATISTICS_MASTER
         SET
-        update_time = CURRENT_DATE(),
-        isvalid = TRUE
+        update_time = sysdate,
+        isvalid = '0'
         WHERE
         serial_no = #{serialNo}
-        AND  isvalid = FALSE
+        AND  isvalid = '1'
     </update>
 
 </mapper>

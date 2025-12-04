@@ -20,32 +20,32 @@
         operator_no,
         operator_name,
         department_id,
-        is_valid,
+        isvalid,
         creator,
         create_time,
          updator,
         update_time,
         update_count
         FROM
-        operator_table
+        MPP_CASH_REG_OPERATOR
         WHERE
-        is_valid = '1'
+        isvalid = '1'
     </select>
 
     <select id="selectByID" resultMap="YQOperatorMap">
         SELECT
-        operator_no, operator_name, department_id, is_valid, creator,
+        operator_no, operator_name, department_id, isvalid, creator,
         create_time,  updator, update_time, update_count
         FROM
-        operator_table
+        MPP_CASH_REG_OPERATOR
         WHERE
         operator_no = #{operatorNo}
-        AND is_valid = TRUE
+        AND isvalid = '1'
     </select>
 
     <insert id="insert" parameterType="com.mergedata.model.YQOperator">
-        INSERT INTO operator_table (
-        operator_no, operator_name, department_id, is_valid, creator,
+        INSERT INTO MPP_CASH_REG_OPERATOR (
+        operator_no, operator_name, department_id, isvalid, creator,
         create_time,  updator, update_time, update_count
         )
         VALUES (
@@ -55,8 +55,8 @@
     </insert>
 
     <insert id="batchInsertList">
-        INSERT INTO operator_table (
-        operator_no, operator_name, department_id, is_valid, creator,
+        INSERT INTO MPP_CASH_REG_OPERATOR (
+        operator_no, operator_name, department_id, isvalid, creator,
         create_time,  updator, update_time, update_count
         )
         VALUES
