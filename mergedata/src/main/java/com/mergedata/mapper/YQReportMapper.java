@@ -32,10 +32,21 @@ public class YQReportMapper extends AbstractSPQueryMapper implements RowMapper<R
         Report dto = new Report();
         dto.setSerialNo(rs.getString("SERIAL_NO"));
         dto.setOperatorNo(rs.getString("EMP_ID"));
+        dto.setOperatorName(rs.getString("EMP_NAME"));
         dto.setReportDate(rs.getString("REPORT_DATE"));
         dto.setHisAdvancePayment(rs.getBigDecimal("HISADVANCEPAYMENT"));
         dto.setHisMedicalIncome(rs.getBigDecimal("HISMEDICALINCOME"));
         dto.setHisRegistrationIncome(rs.getBigDecimal("HISREGISTRATIONINCOME"));
+        dto.setReportAmount(rs.getBigDecimal("REPORTAMOUNT"));
+        dto.setPreviousTemporaryReceipt(rs.getBigDecimal("PREVIOUSTEMPORARYRECEIPT"));
+        dto.setHolidayTemporaryReceipt(rs.getBigDecimal("HOLIDAYTEMPORARYRECEIPT"));
+        dto.setActualReportAmount(rs.getBigDecimal("ACTUALREPORTAMOUNT"));
+        dto.setCurrentTemporaryReceipt(rs.getBigDecimal("CURRENTTEMPORARYRECEIPT"));
+        dto.setActualCashAmount(rs.getBigDecimal("ACTUALCASHAMOUNT"));
+        dto.setRetainedDifference(rs.getBigDecimal("RETAINEDDIFFERENCE"));
+        dto.setRetainedCash(rs.getBigDecimal("RETAINEDCASH"));
+        dto.setPettyCash(rs.getBigDecimal("PETTYCASH"));
+        dto.setRemarks(rs.getString("REMARKS"));
         //..................................未添加完
         return dto;
     }

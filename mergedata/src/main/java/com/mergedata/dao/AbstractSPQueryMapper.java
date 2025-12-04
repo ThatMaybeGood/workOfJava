@@ -102,7 +102,7 @@ public abstract class AbstractSPQueryMapper<T> {
             // 3.2 提取和记录其他 OUT 参数
             Integer intResult = (Integer) results.get(ReqConstant.SP_OUT_CODE);
             String varcharResult = (String) results.get(ReqConstant.SP_OUT_MESSAGE);
-            log.info("{}存储过程 OUT 参数 [{}]: {}, [{}]: {}", spName,
+            log.debug("{}存储过程 OUT 参数 [{}]: {}, [{}]: {}", spName,
                     ReqConstant.SP_OUT_CODE, intResult,
                     ReqConstant.SP_OUT_MESSAGE, varcharResult);
 

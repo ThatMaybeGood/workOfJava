@@ -16,7 +16,6 @@ import java.time.LocalDateTime;
  * @LocalDate 2025/10/30 10:46
  */
 @Data
-//@TableName("holiday_calendar")
 public class YQHolidayCalendar {
      private String serialNo;
 

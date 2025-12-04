@@ -6,6 +6,7 @@ import com.mergedata.dto.ApiResponse;
 import com.mergedata.model.YQHolidayCalendar;
 import com.mergedata.server.YQHolidayService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,6 +27,7 @@ import java.util.List;
 public class HolidayController {
 
     @Autowired
+    @Qualifier("holidayServiceImpl")
     YQHolidayService holiday;
 
 

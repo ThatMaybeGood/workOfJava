@@ -55,7 +55,7 @@ public class YQOperatorServiceImpl implements YQOperatorService {
      */
     @Override
     @Transactional
-    public Boolean singleInsert(YQOperator operator) {
+    public Boolean insert(YQOperator operator) {
         if (operator == null) {
             // 如果列表为空，直接返回
             return false;
@@ -88,7 +88,7 @@ public class YQOperatorServiceImpl implements YQOperatorService {
 
         for (YQOperator dto : list) {
             // 1. 调用 DAO 方法获取存储过程返回的结果列表
-            Boolean b = singleInsert(dto);
+            Boolean b = insert(dto);
             // ❗ 如果存储过程返回失败（b=false），应该抛出运行时异常
             // 这样 Spring 才能捕获到错误并触发 ROLLBACK
             if (!b) {
@@ -101,7 +101,7 @@ public class YQOperatorServiceImpl implements YQOperatorService {
 
     @Override
     @Transactional
-    public Boolean singleDelete(YQOperator operator) {
+    public Boolean update(YQOperator operator) {
         if (operator == null) {
             // 如果列表为空，直接返回
             return false;

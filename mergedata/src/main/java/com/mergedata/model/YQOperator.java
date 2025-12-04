@@ -1,23 +1,20 @@
 package com.mergedata.model;
 
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
 import java.time.LocalDate;
 
 
-@AllArgsConstructor
 @Data
-@Builder
-@NoArgsConstructor
 public class YQOperator {
+
+    private String serialNo;
     //员工ID
     private String operatorNo;
+
     @NotBlank(message = "员工姓名不能为空")
     @Size(min = 2, max = 50, message = "员工姓名长度必须在2-50字符之间")
     private String operatorName;
@@ -30,9 +27,10 @@ public class YQOperator {
     //创建时间
     LocalDate createTime;
     //更新人
-    String updater;
+    String updator;
     //更新时间
     LocalDate updateTime;
 
+    Integer updateCount;
 
 }

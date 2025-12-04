@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mergedata.mapper.HolidayMapper">
+
+    <resultMap id="YQHolidayCalendarMap" type="com.mergedata.model.YQHolidayCalendar">
+        <id column="serial_no" property="serialNo"/>
+        <result column="holiday_date" property="holidayDate"/>
+        <result column="holiday_name" property="holidayName"/>
+    </resultMap>
+
+    <select id="selectAll" resultMap="YQHolidayCalendarMap">
+        SELECT *
+        FROM  mpp_cash_reg_holiday
+        WHERE is_valid = '1'
+    </select>
+
+    <select id="selectByDate" resultMap="YQHolidayCalendarMap">
+        SELECT *
+        FROM  mpp_cash_reg_holiday
+        WHERE holiday_date = #{holiday_date} AND is_valid = '1'
+    </select>
+
+    <insert id="insert" parameterType="com.mergedata.model.YQHolidayCalendar">
+        INSERT INTO  mpp_cash_reg_holiday (
+        serial_no, holiday_date, holiday_name, is_valid, holiday_type, year, month, description,
+        creator, created_time, updated_time, update_count, remarks
+        )
+        VALUES (
+        #{serialNo}, #{holidayDate}, #{holidayName}, #{isValid}, #{holidayType}, #{year}, #{month},
+        #{description}, #{creator}, #{createdTime}, #{updatedTime}, #{updateCount}, #{remarks}
+        )
+    </insert>
+
+    <insert id="batchInsertList">
+        INSERT INTO  mpp_cash_reg_holiday (
+        serial_no, holiday_date, holiday_name, is_valid, holiday_type, year, month, description,
+        creator, created_time, updated_time, update_count, remarks
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.serialNo}, #{item.holidayDate}, #{item.holidayName}, #{item.isValid}, #{item.holidayType},
+            #{item.year}, #{item.month}, #{item.description}, #{item.creator}, #{item.createdTime},
+            #{item.updatedTime}, #{item.updateCount}, #{item.remarks}
+            )
+        </foreach>
+    </insert>
+
+    <update id="update" parameterType="com.mergedata.model.YQHolidayCalendar">
+        UPDATE  mpp_cash_reg_holiday
+        <set>
+            <if test="holidayDate != null">holiday_date = #{holidayDate},</if>
+            <if test="holidayName != null and holidayName != ''">holiday_name = #{holidayName},</if>
+            <if test="isValid != null">is_valid = #{isValid},</if>
+            <if test="holidayType != null and holidayType != ''">holiday_type = #{holidayType},</if>
+            <if test="year != null">year = #{year},</if>
+            <if test="month != null">month = #{month},</if>
+            <if test="description != null and description != ''">description = #{description},</if>
+            updated_time = NOW(),
+            update_count = update_count + 1
+        </set>
+        WHERE serial_no = #{serialNo}
+    </update>
+
+</mapper>

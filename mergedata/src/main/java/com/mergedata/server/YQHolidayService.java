@@ -13,7 +13,7 @@ public interface YQHolidayService {
     /*
      * 暂未编写相关过程
      */
-    List<YQHolidayCalendar> findByDate();
+    List<YQHolidayCalendar> findByDate(String date);
 
     /*
      * 单条写入
@@ -27,9 +27,9 @@ public interface YQHolidayService {
 
 
     /*
-     * 删除
+     * 作废
      */
-    Boolean delete(YQHolidayCalendar holiday);
+    Boolean update(YQHolidayCalendar holiday);
 
 
 }

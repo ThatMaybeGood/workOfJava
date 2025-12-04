@@ -1,6 +1,5 @@
 package com.mergedata.dao;
 
-import com.mergedata.model.YQOperator;
 import oracle.jdbc.OracleConnection;
 import oracle.sql.ARRAY;
 import oracle.sql.ArrayDescriptor;
@@ -14,7 +13,6 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -182,70 +180,69 @@ public class SPBatchInsertDao {
         return oracleConn;
     }
 
-
-    /**
-     * 【测试方法】直接调用批量插入，用于连接性验证和调试。
-     */
-    public Map<String, Object> testBatchInsertMppOperConnection() {
-
-        System.out.println("--- Starting Batch Insert Test ---");
-
-        // 1. 准备测试数据 (使用 Java 8 兼容方式)
-        List<YQOperator> testList = new ArrayList<>();
-        testList.add(YQOperator.builder().
-                operatorNo("TEST_001").operatorName("Test Operator").
-                build());
-        testList.add(YQOperator.builder().
-                operatorNo("TEST_002").operatorName("Test2 Operator").
-                build());
-
-        // 2. Oracle 元数据 (请确保这些名称和大小写是正确的)
-        final String procedureName = "P_BATCH_CASH_REG_OPER";
-        final String objTypeName = "T_CASH_REG_OPERATOR_OBJ";
-        final String tabTypeName = "T_CASH_REG_OPERATOR_TAB";
-
-        // 3. 核心 Lambda 转换函数 (顺序必须与 Oracle 对象类型一致)
-        Function<YQOperator, Object[]> converter = (YQOperator oper) -> new Object[]{
-                oper.getOperatorNo(),
-                oper.getOperatorName(),
-                oper.getDepartmentId(),
-                oper.getIsValid(),
-                oper.getCreator(),
-                oper.getCreateTime(),
-                oper.getUpdater(),
-                oper.getUpdateTime()
-        };
-
-        Map<String, Object> result;
-        try {
-            // 4. 调用通用的批量插入方法
-            result = this.executeBatchInsert(
-                    procedureName,
-                    objTypeName,
-                    tabTypeName,
-                    testList,
-                    converter
-            );
-
-            // 5. 打印结果
-            Integer code = (Integer) result.get("A_RETCODE");
-            String message = (String) result.get("A_ERRMSG");
-
-            System.out.println("✅ Batch Test Complete.");
-            System.out.println("   Code: " + code);
-            System.out.println("   Message: " + message);
-
-            return result;
-
-        } catch (Exception e) {
-            // 6. 打印任何捕获到的 Spring 或底层异常
-            System.err.println("❌ Batch Test Failed Due to Exception:");
-            e.printStackTrace(System.err);
-
-            Map<String, Object> errorMap = new HashMap<>();
-            errorMap.put("P_OUT_CODE", -999);
-            errorMap.put("P_OUT_MSG", "System Error: " + e.getMessage());
-            return errorMap;
-        }
-    }
+//
+//    /**
+//     * 【测试方法】直接调用批量插入，用于连接性验证和调试。
+//     */
+//    public Map<String, Object> testBatchInsertMppOperConnection() {
+//
+//        System.out.println("--- Starting Batch Insert Test ---");
+//
+//        // 1. 准备测试数据 (使用 Java 8 兼容方式)
+//        List<YQOperator> testList = new ArrayList<>();
+//        testList.add(YQOperator.builder().
+//                operatorNo("TEST_001").operatorName("Test Operator").
+//                build());
+//        testList.add(YQOperator.builder().
+//                operatorNo("TEST_002").operatorName("Test2 Operator").
+//                build());
+//
+//        // 2. Oracle 元数据 (请确保这些名称和大小写是正确的)
+//        final String procedureName = "P_BATCH_CASH_REG_OPER";
+//        final String objTypeName = "T_CASH_REG_OPERATOR_OBJ";
+//        final String tabTypeName = "T_CASH_REG_OPERATOR_TAB";
+//
+//        // 3. 核心 Lambda 转换函数 (顺序必须与 Oracle 对象类型一致)
+//        Function<YQOperator, Object[]> converter = (YQOperator oper) -> new Object[]{
+//                oper.getOperatorNo(),
+//                oper.getOperatorName(),
+//                oper.getDepartmentId(),
+//                oper.getIsValid(),
+//                oper.getCreator(),
+//                oper.getCreateTime(),
+//                oper.getUpdateTime()
+//        };
+//
+//        Map<String, Object> result;
+//        try {
+//            // 4. 调用通用的批量插入方法
+//            result = this.executeBatchInsert(
+//                    procedureName,
+//                    objTypeName,
+//                    tabTypeName,
+//                    testList,
+//                    converter
+//            );
+//
+//            // 5. 打印结果
+//            Integer code = (Integer) result.get("A_RETCODE");
+//            String message = (String) result.get("A_ERRMSG");
+//
+//            System.out.println("✅ Batch Test Complete.");
+//            System.out.println("   Code: " + code);
+//            System.out.println("   Message: " + message);
+//
+//            return result;
+//
+//        } catch (Exception e) {
+//            // 6. 打印任何捕获到的 Spring 或底层异常
+//            System.err.println("❌ Batch Test Failed Due to Exception:");
+//            e.printStackTrace(System.err);
+//
+//            Map<String, Object> errorMap = new HashMap<>();
+//            errorMap.put("P_OUT_CODE", -999);
+//            errorMap.put("P_OUT_MSG", "System Error: " + e.getMessage());
+//            return errorMap;
+//        }
+//    }
 }

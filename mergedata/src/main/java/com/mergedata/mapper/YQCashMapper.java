@@ -23,8 +23,6 @@ public class YQCashMapper extends AbstractSPQueryMapper implements RowMapper<YQC
     @Value("${sp.name.query.cash}")
     private String SP_Query_Name;
 
-    @Value("${sp.name.insert.cash}")
-    private String SP_Insert_Name;
 
     private final ThreadLocal<Map<String, Object>> threadLocalInParams = new ThreadLocal<>();
 
@@ -53,7 +51,7 @@ public class YQCashMapper extends AbstractSPQueryMapper implements RowMapper<YQC
 
     @Override
     protected String getSPInsertName() {
-        return this.SP_Insert_Name;
+        return null;
     }
 
     @Override

@@ -6,6 +6,7 @@ import com.mergedata.dto.CommonRequestBody;
 import com.mergedata.model.YQCashRegRecord;
 import com.mergedata.server.YQCashService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +26,7 @@ import java.util.List;
 public class CashController {
 
     @Autowired
+    @Qualifier("cashServiceImpl")
     YQCashService cash;
 
     @PostMapping("findbydate")

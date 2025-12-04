@@ -6,6 +6,7 @@ import com.mergedata.dto.ApiResponse;
 import com.mergedata.model.YQOperator;
 import com.mergedata.server.YQOperatorService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.constraints.Null;
@@ -24,6 +25,7 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class OperatorController {
  
+    @Qualifier("operatorServiceImpl")
     @Autowired
     YQOperatorService operator; 
 
@@ -62,24 +64,24 @@ public class OperatorController {
     }
 
 
-    @PostMapping("singleinsert")
+    @PostMapping("insert")
     public Boolean singleInsert(@RequestBody ApiRequest<YQOperator> request)  {
 
         YQOperator list = request.getBody();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Boolean b = operator.singleInsert(list); ;
+        Boolean b = operator.insert(list); ;
         return b;
     }
 
 
-    @PostMapping("delete")
+    @PostMapping("update")
     public Boolean delete(@RequestBody ApiRequest<YQOperator> request)  {
 
         YQOperator list = request.getBody();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Boolean b = operator.singleDelete(list); ;
+        Boolean b = operator.update(list); ;
         return b;
     }
 

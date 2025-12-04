@@ -13,15 +13,16 @@ public interface YQOperatorService {
     /*
      * 单条插入操作员数据
      */
-    Boolean singleInsert(YQOperator yqOperators);
+    Boolean insert(YQOperator yqOperators);
 
     /*
      * 批量插入操作员数据
      */
     Boolean batchInsert(List<YQOperator> yqOperators);
+
     /*
-     * 删除
+     * 作废
      */
-    Boolean singleDelete(YQOperator yqOperator);
+    Boolean update(YQOperator yqOperator);
 
 }

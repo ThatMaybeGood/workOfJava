@@ -35,7 +35,7 @@ public class YQOperatorMapper extends AbstractSPQueryMapper implements RowMapper
 
     @Override
     public YQOperator mapRow(ResultSet rs, int rowNum) throws SQLException {
-        YQOperator dto = new YQOperator();
+        YQOperator dto =new YQOperator();
 
         // OPERATORNO (匹配)
         dto.setOperatorNo(rs.getString("OPERATOR_NO"));
@@ -58,7 +58,7 @@ public class YQOperatorMapper extends AbstractSPQueryMapper implements RowMapper
             dto.setCreateTime(null);
         }
         // 修正 3：UPDATER (匹配)
-        dto.setUpdater(rs.getString("UPDATOR"));
+        dto.setUpdator(rs.getString("UPDATOR"));
 
         return dto;
     }

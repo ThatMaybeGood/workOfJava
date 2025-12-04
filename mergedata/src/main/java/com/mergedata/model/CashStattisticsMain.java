@@ -3,7 +3,6 @@ package com.mergedata.model;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -23,16 +22,7 @@ public class CashStattisticsMain {
     //更新时间
     private LocalDate updateTime;
     //关联的子报表列表（一对多关系）
-    private List<CashStatisticsSub> subReports = new ArrayList<>();
-
-    // 添加子报表的方法
-    public void addSubReport(CashStatisticsSub subReport) {
-        if (subReport != null) {
-            subReport.setSerialNo(this.serialNo); // 设置关联的流水号
-            this.subReports.add(subReport);
-        }
-    }
-
+    private List<CashStatisticsSub> subs ;
 
 
 }

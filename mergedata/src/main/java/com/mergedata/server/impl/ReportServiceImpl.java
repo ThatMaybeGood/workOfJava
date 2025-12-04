@@ -1,11 +1,15 @@
 package com.mergedata.server.impl;
 
-import com.mergedata.constants.ReqConstant;
-import com.mergedata.mapper.YQReportMapper;
+import com.mergedata.mapper.CashMapper;
+import com.mergedata.mapper.HolidayMapper;
+import com.mergedata.mapper.OperatorMapper;
+import com.mergedata.mapper.ReportMapper;
 import com.mergedata.model.*;
-import com.mergedata.server.*;
+import com.mergedata.server.HisDataService;
+import com.mergedata.server.ReportService;
 import com.mergedata.util.PrimaryKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,16 +30,17 @@ public class ReportServiceImpl implements ReportService {
     HisDataService hisdata;
 
     @Autowired
-    YQCashService cash;
+    CashMapper cash;
 
     @Autowired
-    YQOperatorService oper;
+    OperatorMapper oper;
 
     @Autowired
-    YQHolidayService hiliday;
+    HolidayMapper hiliday;
 
     @Autowired
-    YQReportMapper report;
+    ReportMapper report;
+
 
     List<Report> results = new ArrayList<>();
 
@@ -44,8 +49,7 @@ public class ReportServiceImpl implements ReportService {
     public List<Report> getAll(String reportdate) {
         //调用存储过程获取报表数据
         try {
-
-            results = report.getMultParams(Collections.singletonMap("A_REPORTDATE", reportdate));
+             results = report.selectReportByDate(reportdate);
 
             // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
             if (results.isEmpty()) {
@@ -72,75 +76,86 @@ public class ReportServiceImpl implements ReportService {
             // 如果列表为空，直接返回
             return false;
         }
-
-        //作废原有的
-        report.insertMultParams(buildParams(list.get(0).getSerialNo(),list.get(0), ReqConstant.SP_TYPE_UPDATE, "0"));
+        //作废原有
+        for (Report dto : list) {
+            report.updateByPK(dto.getSerialNo());
+        }
 
         // 生成唯一序列号，此处使用 PrimaryKeyGenerator 类生成主键
         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
         String pk = pks.generateKey();
+        List<CashStattisticsMain> mainList = new ArrayList<>();
+        List<CashStatisticsSub> subList = new ArrayList<>();
 
-        for (Report dto : list) {
-            report.insertMultParams(buildParams(pk, dto, ReqConstant.SP_TYPE_INSERT, "0"));
+        // --- 核心逻辑：遍历 Report 列表，拆分数据 ---
+        for (Report report : list) {
+
+            // ------------------------------------------
+            // 1. 转换为 CashStattisticsMain (主表)
+            // ------------------------------------------
+            CashStattisticsMain main = new CashStattisticsMain();
+
+            // 复制同名字段（如 serialNo, createTime, updateTime, reportYear, reportDate）
+            // 注意：因为 Report.reportDate是String，而 Main.reportDate是LocalDate，BeanUtils不会自动转换，所以需要手动处理
+
+            // 复制同名字段（如 serialNo, reportYear, createTime...）
+            // 警告：如果 Report 和 Main 中字段类型不匹配，BeanUtils会忽略或报错，所以需要手动处理不匹配的字段
+            // 简单起见，这里选择手动映射关键字段:
+
+            main.setSerialNo(pk);
+            main.setIsvalid(true); // 默认有效
+            // 处理 Report.reportDate (String) -> Main.reportDate (LocalDate)
+            if (report.getReportDate() != null) {
+                try {
+                    main.setReportDate(LocalDate.parse(report.getReportDate()));
+                } catch (Exception e) {
+                    // 记录日志或抛出业务异常
+                    throw new RuntimeException("日期格式错误: " + report.getReportDate());
+                }
+            }
+            if (report.getReportYear() != null) {
+                main.setReportYear(Integer.valueOf(report.getReportYear()));
+            }
+
+            // 保持创建和更新时间
+            main.setCreateTime(report.getCreateTime() != null ? report.getCreateTime().toLocalDate() : LocalDate.now());
+            main.setUpdateTime(LocalDate.now());
+
+            mainList.add(main);
+
+            // ------------------------------------------
+            // 2. 转换为 CashStatisticsSub (明细表)
+            // ------------------------------------------
+            CashStatisticsSub sub = new CashStatisticsSub();
+
+            // ⭐ 快捷操作：使用 BeanUtils 复制大部分同名同类型字段
+            // 将 Report 中大量的 his*, amount*, cash* 字段复制到 Sub 对象
+            BeanUtils.copyProperties(report, sub);
+
+            // 关键：手动设置外键和名称不匹配的字段
+            sub.setSerialNo(report.getSerialNo()); // 外键，必须设置
+            sub.setHisOperatorNo(report.getOperatorNo());
+            sub.setHisOperatorName(report.getOperatorName());
+
+            subList.add(sub);
         }
-        //写入主表数据，此处调用
-        report.insertMultParams(buildParams(pk,list.get(0), ReqConstant.SP_TYPE_INSERT, "1"));
+
+        // --- 3. 批量插入操作（事务生效） ---
+        int mainCount = report.batchInsertList(mainList);
+
+        int subCount = 0;
+        if (!subList.isEmpty()) {
+            subCount = report.batchInsertSubList(subList);
+        }
+        // 验证插入数量是否一致
+        if (mainCount != subList.size()) {
+            throw new RuntimeException("插入数据不一致");
+        }
 
         return true;
     }
 
-    /**
-     * 封装：构建存储过程所需的参数 Map
-     *
-     * @param pk   主键生成器
-     * @param dto  当前 DTO 对象 (作废时可传入 null)
-     * @param type 操作类型 (INSERT/UPDATE/INVALIDATE)
-     * @return 封装好的 Map
-     */
-    private Map<String, Object> buildParams(String pk,
-                                            Report dto,
-                                            String type, String isWriteMaster) {
-        Map<String, Object> map = new HashMap<>();
-//        Map<String,ReportInsert> map= new HashMap<>();
-        // ❗ 优化：只有 INSERT/UPDATE 时才传入日期数据，作废时传入 null 减少冗余
-        map.put("A_SERIAL_NO", pk);
 
-        map.put("A_REPORT_DATE", dto.getReportDate());
-        map.put("A_REPORT_YEAR", dto.getReportYear());
-        map.put("A_EMP_ID", dto.getOperatorNo());
-        map.put("A_EMP_NAME", dto.getOperatorName());
-        map.put("A_HISADVANCEPAYMENT", dto.getHisAdvancePayment());
-        map.put("A_HISMEDICALINCOME", dto.getHisMedicalIncome());
-        map.put("A_HISREGISTRATIONINCOME", dto.getHisRegistrationIncome());
-        map.put("A_REPORTAMOUNT", dto.getReportAmount());
-        map.put("A_PREVIOUSTEMPORARYRECEIPT", dto.getPreviousTemporaryReceipt());
-        map.put("A_HOLIDAYTEMPORARYRECEIPT", dto.getHolidayTemporaryReceipt());
-        map.put("A_ACTUALREPORTAMOUNT", dto.getActualReportAmount());
-        map.put("A_CURRENTTEMPORARYRECEIPT", dto.getCurrentTemporaryReceipt());
-        map.put("A_ACTUALCASHAMOUNT", dto.getActualCashAmount());
-        map.put("A_RETAINEDDIFFERENCE", dto.getRetainedDifference());
-        map.put("A_RETAINEDCASH", dto.getRetainedCash());
-        map.put("A_PETTYCASH", dto.getPettyCash());
-        map.put("A_REMARKS", dto.getRemarks());
-
-
-        map.put("A_TYPE", type);
-        // 是否写入主表
-        map.put("A_ISINSERTMASTER", isWriteMaster);
-
-        return map;
-    }
-
-
-    /**
-     * 封装：执行作废操作
-     */
-    private void executeInvalidate(String pk, String type, String isWriteMaster) {
-        // ❗ 优化：调用封装方法，只传入作废必需的类型和序列号
-        Map<String, Object> invalidateMap = buildParams(pk, null, type, isWriteMaster);
-        //
-        report.insertMultParams(invalidateMap);
-    }
 
 
     private Report calculateTotal(List<Report> dtoList, String reportdate) {
@@ -200,15 +215,20 @@ public class ReportServiceImpl implements ReportService {
             LocalDate preDate = currtDate.minusDays(1);
 
             // 1. 获取所有必需的原始数据 (保持不变)
-            List<YQHolidayCalendar> holidays = hiliday.findAll();
-            List<YQOperator> operators = oper.findAll();
-            List<YQCashRegRecord> yqDataList = cash.findByDate(reportdate);
+            List<YQHolidayCalendar> holidays = hiliday.selectAll();
+            List<YQOperator> operators = oper.selectAll();
+            List<YQCashRegRecord> yqRecordList = cash.selectByDate(reportdate);
             List<HisIncome> hisIncomeList = hisdata.findByDate(reportdate);
-            List<Report> preReport = report.getMultParams(Collections.singletonMap("A_REPORTDATE", preDate.toString()));
+            List<Report> preReport = report.selectReportByDate(preDate.toString());
 
             // 2. 数据预处理：转换为 Map/Set (保持不变)
             Map<String, HisIncome> hisDataMap = hisIncomeList.stream()
                     .collect(Collectors.toMap(HisIncome::getOperatorNo, Function.identity(), (v1, v2) -> v1));
+
+            // 2. 数据预处理：转换为 Map/Set (保持不变)
+            Map<String, YQCashRegRecord> cashMap = yqRecordList.stream()
+                    .collect(Collectors.toMap(YQCashRegRecord::getOperatorNo, Function.identity(), (v1, v2) -> v1));
+
             // ... (其他 Map 转换不变)
             Set<LocalDate> holidaySet = holidays.stream()
                     .map(YQHolidayCalendar::getHolidayDate)
@@ -220,16 +240,80 @@ public class ReportServiceImpl implements ReportService {
             PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
             String pk = pks.generateKey();
 
+            Integer count = 0;
 
             // 4. 以操作员为主，遍历构建报表数据 (保持不变)
             for (YQOperator operator : operators) {
                 Report currentDto = new Report();
+                count++;
+
                 currentDto.setSerialNo(pk);
                 currentDto.setOperatorNo(operator.getOperatorNo());
                 currentDto.setOperatorName(operator.getOperatorName());
                 currentDto.setReportDate(reportdate);
 
-                // ... (基础信息、ReportAmount、PreviousTemporaryReceipt 赋值保持不变)
+
+
+                // =========================================================================
+                // 基础信息赋值区域：填充 HIS 收入、报表金额和各项暂收款
+                // =========================================================================
+
+                // 1. 获取当前操作员的 HIS 收入数据 (使用预处理的 Map 查找)
+                HisIncome hisIncome = hisDataMap.get(operator.getOperatorNo());
+
+                // 2. 从昨日数据 (preReport) 查找操作员的记录
+                Report yesterdayReport = preReport.stream()
+                        .filter(r -> operator.getOperatorNo().equals(r.getOperatorNo()))
+                        .findFirst()
+                        .orElse(null);
+
+                // --- 填充 HIS 收入和 ReportAmount ---
+                if (hisIncome != null) {
+                    // 假设 HisIncome 具有 getAdvancePayment(), getMedicalIncome(), getRegistrationIncome() 方法
+                    currentDto.setHisAdvancePayment(getSafeBigDecimal(hisIncome.getHisAdvancePayment()));
+                    currentDto.setHisMedicalIncome(getSafeBigDecimal(hisIncome.getHisMedicalIncome()));
+                    currentDto.setHisRegistrationIncome(BigDecimal.ZERO);
+
+                    // ReportAmount (应交报表数) = HIS 各项收入总和
+                    BigDecimal reportAmount = currentDto.getHisAdvancePayment()
+                            .add(currentDto.getHisMedicalIncome());
+
+                    currentDto.setReportAmount(reportAmount);
+
+                } else {
+                    // 如果没有 HIS 收入数据，所有收入和报表金额都设为零
+                    currentDto.setHisAdvancePayment(BigDecimal.ZERO);
+                    currentDto.setHisMedicalIncome(BigDecimal.ZERO);
+                    currentDto.setHisRegistrationIncome(BigDecimal.ZERO);
+                    currentDto.setReportAmount(BigDecimal.ZERO);
+                }
+
+
+                // --- 填充 昨日留存和暂收款 ---
+                if (yesterdayReport != null) {
+
+                    // PreviousTemporaryReceipt (昨日暂收款) = 昨日的 CurrentTemporaryReceipt
+                    currentDto.setPreviousTemporaryReceipt(getSafeBigDecimal(yesterdayReport.getCurrentTemporaryReceipt()));
+
+                } else {
+                    // 如果没有找到昨日数据，设为零
+                    currentDto.setPreviousTemporaryReceipt(BigDecimal.ZERO);
+                }
+
+
+                YQCashRegRecord  cashRecord = cashMap.get(operator.getOperatorNo());
+                //7.留存现金
+                if (cashRecord != null) {
+                    // RetainedCash (留存现金)
+                    currentDto.setRetainedCash(getSafeBigDecimal(cashRecord.getRetainedCash()));
+                }else {
+
+                    currentDto.setRetainedCash(BigDecimal.ZERO);
+                }
+
+                // =========================================================================
+                // End of 基础信息赋值
+                // =========================================================================
 
                     /*
                     根据日期的情况分类得到最后时间，
@@ -240,15 +324,14 @@ public class ReportServiceImpl implements ReportService {
 
                 if (isAfterHoliday) {
                     // 符合条件：执行复杂回溯计算 (A = B - Sum(C) - D)
-
+                    log.info("第{}条，[{}]节假日后正常工作日第一天特殊处理，回溯计算实际报表金额开始......................",count,currtDate);
                     calculateActualReportAmountForMonday(
                             currentDto,
                             currtDate,
                             holidaySet,
                             // 传递查询函数
-                            dateString -> report.getMultParams(Collections.singletonMap("A_REPORTDATE", dateString))
+                            dateString -> report.selectReportByDate(dateString)
                     );
-
                 } else if (isHoliday(holidaySet, currtDate)) {
                     // 节假日逻辑：A = B - C
                     BigDecimal actualReportAmount = currentDto.getReportAmount().subtract(currentDto.getHolidayTemporaryReceipt());
@@ -269,9 +352,13 @@ public class ReportServiceImpl implements ReportService {
                 }
 
 
-                // 6. 后续计算 (保持不变)
+                // 5.实收现金数 5 = 3+4
                 currentDto.setActualCashAmount(currentDto.getActualReportAmount().add(currentDto.getCurrentTemporaryReceipt()));
-                // ... (关联 YQCashRegRecord 数据和 RetainedDifference 计算保持不变)
+
+                //留存数差额 6 = 7-3-8
+                currentDto.setRetainedDifference(currentDto.getRetainedCash().
+                        subtract(currentDto.getPettyCash()).
+                        add(currentDto.getActualReportAmount()));
 
                 // 7. 加入结果集 (保持不变)
                 resultList.add(currentDto);
@@ -312,12 +399,15 @@ public class ReportServiceImpl implements ReportService {
                     .filter(r -> currentDto.getOperatorNo().equals(r.getOperatorNo()))
                     .findFirst();
 
+            // 提取当前的 金额 (HolidayTemporaryReceipt)
+            //{实交报表数}(3)={应交报表数}（1）- {周五，周六，周末}sum(x) - {周五：当日暂收款}(4)
+            // 无论是否为假日，这个金额都会被提取，以便在周五时累加
+            BigDecimal cAmount = historicalDtoOpt
+                    .map(Report::getHolidayTemporaryReceipt)
+                    .orElse(BigDecimal.ZERO); // 缺失数据默认为 0
+
             if (isHoliday(holidaySet, currentDate)) {
                 // 是节假日（周六、周日）：累加 C 金额 (HolidayTemporaryReceipt)
-
-                BigDecimal cAmount = historicalDtoOpt
-                        .map(Report::getHolidayTemporaryReceipt)
-                        .orElse(BigDecimal.ZERO); // 缺失数据默认为 0
 
                 totalC = totalC.add(getSafeBigDecimal(cAmount));
 
@@ -325,12 +415,13 @@ public class ReportServiceImpl implements ReportService {
 
             } else {
                 // 找到中断点：第一个非节假日日期（即周五）
+                // ❗ 将周五的 C (HolidayTemporaryReceipt) 也累加进去
+                totalC = totalC.add(getSafeBigDecimal(cAmount));
 
                 // 提取 D 金额 (CurrentTemporaryReceipt)
                 dAmountFriday = historicalDtoOpt
                         .map(Report::getCurrentTemporaryReceipt)
                         .orElse(BigDecimal.ZERO); // 缺失数据默认为 0
-
                 break; // 跳出循环
             }
 
@@ -345,8 +436,9 @@ public class ReportServiceImpl implements ReportService {
         BigDecimal finalActualReportAmount = currentDto.getReportAmount()
                 .subtract(totalC)
                 .subtract(dAmountFriday);
-
-        // 4. 设置计算结果
+        log.info("员工ID:{}，姓名:{},回溯计算实际报表金额 {} - {} - {} = {} ",
+                currentDto.getOperatorNo(),currentDto.getOperatorName(),currentDto.getReportAmount(),totalC,dAmountFriday,finalActualReportAmount);
+            // 4. 设置计算结果
         currentDto.setActualReportAmount(finalActualReportAmount);
     }
 

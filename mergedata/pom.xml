@@ -13,28 +13,25 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>mergedata</name>
     <description>for merge all data</description>
-    <url/>
-    <licenses>
-        <license/>
-    </licenses>
-    <developers>
-        <developer/>
-    </developers>
-    <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
-    </scm>
     <properties>
         <java.version>1.8</java.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <!-- 保持 mybatis-plus.version，但将 starter 改为 2.x 兼容版本 -->
+        <mybatis-plus.version>3.5.7</mybatis-plus.version>
     </properties>
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- ⭐ 修正点 1：使用 MyBatis-Plus 2.x 兼容的 Starter ⭐ -->
+        <!-- artifactId 必须是 mybatis-plus-boot-starter -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
+            <version>${mybatis-plus.version}</version>
         </dependency>
 
         <!-- 数据库驱动 -->
@@ -43,34 +40,25 @@
             <artifactId>ojdbc8</artifactId>
             <version>21.8.0.0</version>
         </dependency>
-<!--        &lt;!&ndash; 解决 ORA-06550 字符集不支持问题，需要 orai18n.jar &ndash;&gt;-->
-<!--        <dependency>-->
-<!--            <groupId>com.oracle.database.jdbc</groupId>-->
-<!--            <artifactId>orai18n</artifactId>-->
-<!--            &lt;!&ndash; 请确保这里的版本号与您的 ojdbc 驱动版本一致 &ndash;&gt;-->
-<!--            <version>21.8.0.0</version>-->
-<!--        </dependency>-->
 
-
-        <!-- https://mvnrepository.com/artifact/com.oracle.database.nls/orai18n -->
         <dependency>
             <groupId>com.oracle.database.nls</groupId>
             <artifactId>orai18n</artifactId>
             <version>21.8.0.0</version>
         </dependency>
 
-        <!-- Druid连接池 (Spring Boot 3兼容版本) -->
+        <!-- ⭐ 修正点 2：使用 Druid 2.x 兼容的 Starter ⭐ -->
+        <!-- 移除 spring-boot-3-starter 后缀，使用 2.x 兼容版本，版本号也需要降级 -->
         <dependency>
             <groupId>com.alibaba</groupId>
-            <artifactId>druid-spring-boot-3-starter</artifactId>
-            <version>1.2.20</version>
+            <artifactId>druid-spring-boot-starter</artifactId>
+            <version>1.2.18</version> <!-- 适用于 Spring Boot 2.x 的稳定版本 -->
         </dependency>
-        <!-- AOP 支持（如果使用增强版配置） -->
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
-        <!-- 显式确保 Jackson XML 存在 -->
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-xml</artifactId>
@@ -88,18 +76,19 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- 解决 LocalDate 序列化问题 -->
+        <!-- jackson-datatype-jsr310 由 starter-web 间接管理，通常不需要显式声明 -->
+        <!-- 如果出现序列化问题，可以保留，但我们先移除测试 -->
+        <!--
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
-
+        -->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
-
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -111,6 +100,8 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- ⚠️ 警告：如果您不是在 WAR 包部署，通常不需要这个 provided 依赖，
+                  但为了兼容您原有的设置，我保留它。-->
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>

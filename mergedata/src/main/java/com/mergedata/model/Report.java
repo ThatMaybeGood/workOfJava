@@ -40,11 +40,6 @@ public class Report {
      */
     @NotBlank(message = "留存现金数不能为空", groups = {AddGroup.class} )
     private BigDecimal retainedCash = BigDecimal.ZERO;
-    private String windowNo;
-    private String operatType;
-    private String sechduling;
-    private String applyDate;
-
 
     // 其他报表字段（根据您提供的字段）
 

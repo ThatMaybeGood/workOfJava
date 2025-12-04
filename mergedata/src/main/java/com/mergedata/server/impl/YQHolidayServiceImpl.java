@@ -33,7 +33,7 @@ public class YQHolidayServiceImpl implements YQHolidayService {
     }
 
     @Override
-    public List<YQHolidayCalendar> findByDate() {
+    public List<YQHolidayCalendar> findByDate(String date) {
         return Collections.emptyList();
     }
 
@@ -51,7 +51,7 @@ public class YQHolidayServiceImpl implements YQHolidayService {
 
     @Override
     @Transactional
-    public Boolean delete(YQHolidayCalendar holiday) {
+    public Boolean update(YQHolidayCalendar holiday) {
         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
 
         Boolean b = yqHolidayMapper.insertMultParams(buildParams(pks.generateKey(), holiday, ReqConstant.SP_TYPE_UPDATE));

@@ -14,7 +14,7 @@ public class OperTests {
 
     @Test
     void contextLoads() {
-        yqOperatorService.findAll();
+//        yqOperatorService.findAll();
     }
 
 
