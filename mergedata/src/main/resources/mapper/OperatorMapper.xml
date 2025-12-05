@@ -4,7 +4,8 @@
 <mapper namespace="com.mergedata.mapper.OperatorMapper">
 
     <resultMap id="YQOperatorMap" type="com.mergedata.model.YQOperator">
-        <id column="operator_no" property="operatorNo"/>
+        <id column="serial_no" property="serialNo"/>
+        <result column="operator_no" property="operatorNo"/>
         <result column="operator_name" property="operatorName"/>
         <result column="department_id" property="departmentId"/>
         <result column="isvalid" property="isValid"/>
@@ -44,20 +45,22 @@
     </select>
 
     <insert id="insert" parameterType="com.mergedata.model.YQOperator">
-        INSERT INTO MPP_CASH_REG_OPERATOR (
-        operator_no, operator_name, department_id, isvalid, creator,
-        create_time,  updator, update_time, update_count
+        INSERT INTO MPP_CASH_REG_OPERATOR (isvalid,
+        operator_no, operator_name, department_id,  creator,
+          updator, update_time
         )
-        VALUES (
-        #{operatorNo}, #{operatorName}, #{departmentId}, #{isValid}, #{creator},
-        #{createTime}, #{ updator}, #{updateTime}, #{updateCount}
+        VALUES (#{isvalid , jdbcType=VARCHAR },
+        #{operatorNo , jdbcType=VARCHAR },
+        #{operatorName , jdbcType=VARCHAR},
+        #{departmentId, jdbcType=VARCHAR}, #{creator, jdbcType=VARCHAR},
+         #{ updator, jdbcType=VARCHAR}, #{updateTime, jdbcType=DATE}
         )
     </insert>
 
     <insert id="batchInsertList">
         INSERT INTO MPP_CASH_REG_OPERATOR (
         operator_no, operator_name, department_id, isvalid, creator,
-        create_time,  updator, update_time, update_count
+         updator, update_count
         )
         VALUES
         <foreach collection="list" item="item" separator=",">

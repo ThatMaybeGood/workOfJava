@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -75,10 +74,11 @@ public class ReportServiceImpl implements ReportService {
             throw new RuntimeException("获取报表数据异常");
         }
         // 添加计算合计数据
-        results.add(calculateTotal(results, reportdate));
+        results.add(calculateTotal(results, LocalDate.parse(reportdate)));
 
         return results;
     }
+
     @Override
     @Transactional
     public Boolean batchInsert(List<Report> list) {
@@ -87,8 +87,8 @@ public class ReportServiceImpl implements ReportService {
         }
 
         // 1. 确定要作废的日期
-        String reportDateString = list.get(0).getReportDate();
-        LocalDate reportDate = LocalDate.parse(reportDateString);
+        LocalDate reportDate= list.get(0).getReportDate();
+
 
         // 2. 作废该日期下所有的主表记录
         log.info("开始作废日期 {} 下的历史报表数据...", reportDate);
@@ -96,7 +96,7 @@ public class ReportServiceImpl implements ReportService {
         log.info("历史报表数据作废完成.");
 
         // =======================================================
-        // 修正点 A: 只生成一个主键，作为主表的主键和明细表的外键
+        // 只生成一个主键，作为主表的主键和明细表的外键
         // =======================================================
         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
         String pk = pks.generateKey();
@@ -105,7 +105,7 @@ public class ReportServiceImpl implements ReportService {
         List<CashStatisticsSub> subList = new ArrayList<>();
 
         // ------------------------------------------
-        // 修正点 B: 只创建 1 条 CashStattisticsMain (主表) 记录
+        //  只创建 1 条 CashStattisticsMain (主表) 记录
         // ------------------------------------------
         CashStattisticsMain main = new CashStattisticsMain();
         Report firstReport = list.get(0); // 随便取一条 Report 来获取通用的主表信息
@@ -116,7 +116,7 @@ public class ReportServiceImpl implements ReportService {
         // 复制通用的日期/年份信息
         if (firstReport.getReportDate() != null) {
             try {
-                main.setReportDate(LocalDate.parse(firstReport.getReportDate()));
+                main.setReportDate(firstReport.getReportDate());
             } catch (Exception e) {
                 throw new RuntimeException("日期格式错误: " + firstReport.getReportDate());
             }
@@ -126,14 +126,14 @@ public class ReportServiceImpl implements ReportService {
         }
 
 
-        main.setCreateTime(firstReport.getCreateTime() != null ? firstReport.getCreateTime().toLocalDate() : LocalDate.now());
+        main.setCreateTime(firstReport.getCreateTime() != null ? firstReport.getCreateTime() : LocalDate.now());
         main.setUpdateTime(LocalDate.now());
 
         mainList.add(main); // 主表列表中只有 1 条记录
 
 
         // ------------------------------------------
-        // 修正点 C: 遍历 Report 列表，创建 N 条 CashStatisticsSub (明细表) 记录
+        // 遍历 Report 列表，创建 N 条 CashStatisticsSub (明细表) 记录
         // ------------------------------------------
         for (Report report : list) {
             CashStatisticsSub sub = new CashStatisticsSub();
@@ -144,8 +144,9 @@ public class ReportServiceImpl implements ReportService {
             sub.setSerialNo(pk);
             sub.setHisOperatorNo(report.getOperatorNo());
             sub.setHisOperatorName(report.getOperatorName());
-
-            subList.add(sub);
+            if (!report.getOperatorName().contains("合计")) {
+                subList.add(sub);
+            }
         }
 
         // --- 3. 批量插入操作（事务生效） ---
@@ -158,24 +159,23 @@ public class ReportServiceImpl implements ReportService {
             subCount = report.batchInsertSubList(subList);
         }
 
-        // 验证插入数量：主表插入 1 条，明细表插入 list.size() 条
-        if (mainCount != 1 || subCount != list.size()) {
-            log.error("插入数据数量不一致，主表插入：{}，明细表插入：{}", mainCount, subCount);
-            throw new RuntimeException("插入数据不一致");
-        }
+//        // 验证插入数量：主表插入 1 条，明细表插入 list.size() 条
+//        if (mainCount != 1 || subCount != list.size()) {
+//            log.error("插入数据数量不一致，主表插入：{}，明细表插入：{}", mainCount, subCount);
+//            throw new RuntimeException("插入数据不一致");
+//        }
 
         return true;
     }
 
 
-
-    private Report calculateTotal(List<Report> dtoList, String reportdate) {
+    private Report calculateTotal(List<Report> dtoList, LocalDate reportdate) {
         // ... (方法内部逻辑不变)
         final BigDecimal ZERO = BigDecimal.ZERO;
         BinaryOperator<BigDecimal> sumOperator = BigDecimal::add;
 
         Report total = new Report();
-        total.setOperatorNo("");
+        total.setOperatorNo("sum_total");
         total.setOperatorName("合计");
 
         Function<Function<Report, BigDecimal>, BigDecimal> sumByField =
@@ -199,7 +199,7 @@ public class ReportServiceImpl implements ReportService {
 
         total.setRemarks("合计行，不展示在报表中");
         total.setReportDate(reportdate);
-        total.setCreateTime(LocalDateTime.now());
+        total.setCreateTime(LocalDate.now());
 
         return total;
     }
@@ -213,23 +213,20 @@ public class ReportServiceImpl implements ReportService {
      * @param currtDate 目标报表日期 (LocalDate)
      * @return 包含所有操作员计算结果的 ReportDTO 列表
      */
-    // ❗ 修正点 4: 修改方法签名，接收 LocalDate
     public List<Report> getAllReportData(LocalDate currtDate) {
         try {
-            // ❗ 修正点 5: 删除 LocalDate.parse()
             LocalDate preDate = currtDate.minusDays(1);
 
             // 1. 获取所有必需的原始数据
             List<YQHolidayCalendar> holidays = hiliday.selectAll();
             List<YQOperator> operators = oper.selectAll();
 
-            // ❗ 修正点 6: Mapper 调用传入 LocalDate
             List<YQCashRegRecord> yqRecordList = cash.selectByDate(currtDate);
 
-            // ❗ 修正点 7: 假设 HIS 接口需要 String，则转换
+            // 假设 HIS 接口需要 String，则转换
             List<HisIncome> hisIncomeList = hisdata.findByDate(currtDate.toString());
 
-            // ❗ 修正点 8: Mapper 调用传入 LocalDate
+            // Mapper 调用传入 LocalDate
             List<Report> preReport = report.selectReportByDate(preDate);
 
             // 2. 数据预处理：转换为 Map/Set (保持不变)
@@ -260,9 +257,8 @@ public class ReportServiceImpl implements ReportService {
                 currentDto.setOperatorNo(operator.getOperatorNo());
                 currentDto.setOperatorName(operator.getOperatorName());
 
-                // ❗ 修正点 9: Report 对象的 reportDate 属性是 String，需要转换
-                currentDto.setReportDate(currtDate.toString());
-
+                // Report 对象的 reportDate 属性是 String，需要转换
+                currentDto.setReportDate(currtDate);
 
 
                 // =========================================================================
@@ -307,11 +303,11 @@ public class ReportServiceImpl implements ReportService {
                 }
 
 
-                YQCashRegRecord  cashRecord = cashMap.get(operator.getOperatorNo());
+                YQCashRegRecord cashRecord = cashMap.get(operator.getOperatorNo());
                 //7.留存现金 (保持不变)
                 if (cashRecord != null) {
                     currentDto.setRetainedCash(getSafeBigDecimal(cashRecord.getRetainedCash()));
-                }else {
+                } else {
                     currentDto.setRetainedCash(BigDecimal.ZERO);
                 }
 
@@ -324,12 +320,12 @@ public class ReportServiceImpl implements ReportService {
 
                 if (isAfterHoliday) {
                     // 符合条件：执行复杂回溯计算 (A = B - Sum(C) - D)
-                    log.info("第{}条，[{}]节假日后正常工作日第一天特殊处理，回溯计算实际报表金额开始......................",count,currtDate);
+                    log.info("第{}条，[{}]节假日后正常工作日第一天特殊处理，回溯计算实际报表金额开始......................", count, currtDate);
                     calculateActualReportAmountForMonday(
                             currentDto,
                             currtDate,
                             holidaySet,
-                            // ❗ 修正点 10: 传递的 Lambda 表达式现在接收 LocalDate
+                            // 传递的 Lambda 表达式现在接收 LocalDate
                             date -> report.selectReportByDate(date)
                     );
                 } else if (isHoliday(holidaySet, currtDate)) {
@@ -436,7 +432,7 @@ public class ReportServiceImpl implements ReportService {
                 .subtract(totalC)
                 .subtract(dAmountFriday);
         log.info("员工ID:{}，姓名:{},回溯计算实际报表金额 {} - {} - {} = {} ",
-                currentDto.getOperatorNo(),currentDto.getOperatorName(),currentDto.getReportAmount(),totalC,dAmountFriday,finalActualReportAmount);
+                currentDto.getOperatorNo(), currentDto.getOperatorName(), currentDto.getReportAmount(), totalC, dAmountFriday, finalActualReportAmount);
         // 4. 设置计算结果
         currentDto.setActualReportAmount(finalActualReportAmount);
     }

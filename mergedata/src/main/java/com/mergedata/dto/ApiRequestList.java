@@ -9,6 +9,6 @@ import lombok.Data;
 @Data
 public class ApiRequestList<T> {
     private ApiRequestHead head;
-    private ApiRequestBodyList body;
+    private ApiRequestBodyList<T> body;
 
 }

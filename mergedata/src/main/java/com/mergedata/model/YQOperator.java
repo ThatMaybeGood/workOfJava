@@ -21,7 +21,7 @@ public class YQOperator {
     //部门ID
     private String departmentId;
     //是否有效（0:无效，1：有效）
-    Boolean isValid;
+    String isValid;
     //创建人
         String creator;
     //创建时间

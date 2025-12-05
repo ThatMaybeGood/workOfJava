@@ -10,10 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -46,6 +43,12 @@ public class YQOperatorServiceImpl implements YQOperatorService {
             return new ArrayList<>();
         }
     }
+
+    @Override
+    public List<YQOperator> findByID(YQOperator operator) {
+        return Collections.emptyList();
+    }
+
 
     /**
      * 批量插入操作员数据

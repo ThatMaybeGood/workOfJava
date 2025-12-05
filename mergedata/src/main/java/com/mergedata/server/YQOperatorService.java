@@ -10,6 +10,9 @@ public interface YQOperatorService {
      */
     List<YQOperator> findAll();
 
+
+    List<YQOperator> findByID(YQOperator operator);
+
     /*
      * 单条插入操作员数据
      */

@@ -40,18 +40,21 @@ public class ReportController {
         List<Report> resultList = report.getAll(reportdate);
 
         // 4. 返回结果
-        return ApiResponse.success(resultList);
+        return ApiResponse.success(resultList,"查询报表列表成功！");
     }
 
 
     @PostMapping("batchinsert")
-    public Boolean batchInsert(@Validated(AddGroup.class) @RequestBody ApiRequestList<Report> request)  {
+    public ApiResponse batchInsert(@Validated(AddGroup.class) @RequestBody ApiRequestList<Report> request)  {
 
         List<Report> list = request.getBody().getList();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Boolean b = report.batchInsert(list); ;
-        return b;
+        Boolean b = report.batchInsert(list);
+        if (b == false) {
+            return ApiResponse.failure("批量插入报表失败！");
+        }
+        return ApiResponse.success("批量插入报表成功！");
     }
 
 

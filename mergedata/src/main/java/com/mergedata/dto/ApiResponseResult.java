@@ -20,14 +20,14 @@ public class ApiResponseResult {
     private String subMsg;
 
 
-     public  static ApiResponseResult successStatus() {
+     public  static ApiResponseResult successStatus(String msg) {
         ApiResponseResult result = new ApiResponseResult();
          result.setSignType("md5");
          result.setSign("s1tTc4F8ZYzdJ7HkNUJkZw=="); // 实际中这里应该动态生成
          result.setCode("10000");
          result.setMsg("接口调用成功，并且业务系统也处理成功");
          result.setSubCode("success");
-         result.setSubMsg("查询报表信息成功！");
+         result.setSubMsg(msg);
         return result;
     }
 

@@ -33,7 +33,6 @@ public class YQReportMapper extends AbstractSPQueryMapper implements RowMapper<R
         dto.setSerialNo(rs.getString("SERIAL_NO"));
         dto.setOperatorNo(rs.getString("EMP_ID"));
         dto.setOperatorName(rs.getString("EMP_NAME"));
-        dto.setReportDate(rs.getString("REPORT_DATE"));
         dto.setHisAdvancePayment(rs.getBigDecimal("HISADVANCEPAYMENT"));
         dto.setHisMedicalIncome(rs.getBigDecimal("HISMEDICALINCOME"));
         dto.setHisRegistrationIncome(rs.getBigDecimal("HISREGISTRATIONINCOME"));

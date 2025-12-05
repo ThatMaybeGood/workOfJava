@@ -76,7 +76,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex,
-                                                                   HttpServletRequest request) {
+                                                                HttpServletRequest request) {
         logger.warn("参数验证失败: {}", ex.getMessage());
 
         ErrorResponse errorResponse = new ErrorResponse(

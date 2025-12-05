@@ -39,7 +39,7 @@ public class HolidayController {
         List<YQHolidayCalendar> resultList = holiday.findAll();
 
         // 4. 返回结果
-        return ApiResponse.success(resultList);
+        return ApiResponse.success(resultList,"查询节假日列表成功");
     }
 
     @PostMapping("findbydate")
@@ -47,40 +47,51 @@ public class HolidayController {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         List<YQHolidayCalendar> resultList = holiday.findAll();
         // 4. 返回结果
-        return ApiResponse.success(resultList);
+        return ApiResponse.success(resultList,"查询节假日成功");
     }
 
     @PostMapping("batchinsert")
-    public Boolean batchInsert(@Validated @RequestBody ApiRequestList<YQHolidayCalendar> request)  {
+    public ApiResponse batchInsert(@Validated @RequestBody ApiRequestList<YQHolidayCalendar> request)  {
 
         List<YQHolidayCalendar> list = request.getBody().getList();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Boolean b = holiday.batchInsertList(list); ;
-        return b;
+        Boolean b = holiday.batchInsertList(list);
+        if (!b) {
+            return ApiResponse.failure("批量插入失败");
+        }
+        return ApiResponse.success(list,"批量插入成功");
     }
 
 
-    @PostMapping("singleinsert")
-    public Boolean singleInsert(@Validated @RequestBody ApiRequest<YQHolidayCalendar> request)  {
-
-        YQHolidayCalendar list = request.getBody();
-
-        // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Boolean b = holiday.batchInsert(list); ;
-        return b;
-    }
-
-
-
-    @PostMapping("delete")
-    public Boolean delete(@Validated @RequestBody ApiRequest<YQHolidayCalendar> request)  {
+    @PostMapping("insert")
+    public ApiResponse singleInsert(@Validated @RequestBody ApiRequest<YQHolidayCalendar> request)  {
 
         YQHolidayCalendar list = request.getBody();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         Boolean b = holiday.batchInsert(list);
-        return b;
+        if (!b){
+            return ApiResponse.failure("节假日插入失败");
+        }
+
+        return ApiResponse.success("节假日插入成功");
+    }
+
+
+
+    @PostMapping("update")
+    public ApiResponse update(@Validated @RequestBody ApiRequest<YQHolidayCalendar> request)  {
+
+        YQHolidayCalendar list = request.getBody();
+
+        // 2. 避免重复调用服务，并使用转换后的 LocalDate
+        Boolean b = holiday.update(list);
+        if (!b){
+            return ApiResponse.failure("节假日删除失败");
+        }
+
+        return ApiResponse.success("节假日删除成功");
     }
 
     @GetMapping("/")

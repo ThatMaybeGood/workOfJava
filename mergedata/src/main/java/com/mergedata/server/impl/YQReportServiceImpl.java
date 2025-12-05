@@ -64,7 +64,7 @@ public class YQReportServiceImpl implements ReportService {
             throw new RuntimeException("获取报表数据异常");
          }
         // 添加计算合计数据
-        results.add(calculateTotal(results, reportdate));
+        results.add(calculateTotal(results, LocalDate.parse(reportdate)));
 
         return results;
     }
@@ -147,7 +147,7 @@ public class YQReportServiceImpl implements ReportService {
     }
 
 
-    private Report calculateTotal(List<Report> dtoList, String reportdate) {
+    private Report calculateTotal(List<Report> dtoList, LocalDate reportdate) {
         // 1. 定义 BigDecimal 求和初始值 (0) 和操作符 (加法)
         final BigDecimal ZERO = BigDecimal.ZERO;
         BinaryOperator<BigDecimal> sumOperator = BigDecimal::add;
@@ -183,7 +183,7 @@ public class YQReportServiceImpl implements ReportService {
         // 5. 设置其他字段
         total.setRemarks("合计行，不展示在报表中");
         total.setReportDate(reportdate);
-        total.setCreateTime(LocalDateTime.now());
+        total.setCreateTime(LocalDate.from(LocalDateTime.now()));
 
         return total;
     }
@@ -237,7 +237,7 @@ public class YQReportServiceImpl implements ReportService {
                 currentDto.setSerialNo(pk);
                 currentDto.setOperatorNo(operator.getOperatorNo());
                 currentDto.setOperatorName(operator.getOperatorName());
-                currentDto.setReportDate(reportdate);
+                currentDto.setReportDate(currtDate);
 
 
 

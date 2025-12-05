@@ -24,6 +24,12 @@ public class OperatorServiceImpl implements YQOperatorService {
      }
 
     @Override
+    public List<YQOperator> findByID(YQOperator operator) {
+
+        return operatorMapper.selectByID(operator.getOperatorNo());
+    }
+
+    @Override
     public Boolean insert(YQOperator yqOperators) {
         int insert = operatorMapper.insert(yqOperators);
 

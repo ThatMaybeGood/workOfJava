@@ -44,7 +44,7 @@ public class YQOperatorMapper extends AbstractSPQueryMapper implements RowMapper
         dto.setOperatorName(rs.getString("OPERATOR_NAME"));
 
         // 修正 1：列名由 VALID 更改为 ISVALID
-        dto.setIsValid(rs.getBoolean("ISVALID"));
+        dto.setIsValid(rs.getString("ISVALID"));
 
         // CREATOR (匹配)
         dto.setCreator(rs.getString("CREATOR"));

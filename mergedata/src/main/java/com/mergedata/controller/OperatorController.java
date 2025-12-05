@@ -42,47 +42,56 @@ public class OperatorController {
         }
 
         // 4. 返回结果
-        return ApiResponse.success(resultList);
+        return ApiResponse.success(resultList,"查询操作员列表成功！");
     }
 
-    @PostMapping("findbydate")
+    @PostMapping("findbyid")
     public ApiResponse<YQOperator> findByDate(ApiRequest<YQOperator> res)  {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         List<YQOperator> resultList = operator.findAll();
         // 4. 返回结果
-        return ApiResponse.success(resultList);
+        return ApiResponse.success(resultList,"查询操作员信息成功");
     }
 
     @PostMapping("batchinsert")
-    public Boolean batchInsert(@RequestBody ApiRequestList<YQOperator> request)  {
+    public ApiResponse batchInsert(@RequestBody ApiRequestList<YQOperator> request)  {
 
         List<YQOperator> list = request.getBody().getList();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         Boolean b = operator.batchInsert(list);
-        return b;
+        if (!b) {
+            return ApiResponse.failure("批量插入操作员信息失败");
+        }
+        return ApiResponse.success(null,"批量插入操作员信息成功");
     }
 
 
     @PostMapping("insert")
-    public Boolean singleInsert(@RequestBody ApiRequest<YQOperator> request)  {
+    public ApiResponse singleInsert(@RequestBody ApiRequest<YQOperator> request)  {
 
         YQOperator list = request.getBody();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Boolean b = operator.insert(list); ;
-        return b;
+        Boolean b = operator.insert(list);
+        if (!b) {
+            return ApiResponse.failure("插入操作员信息失败");
+        }
+        return ApiResponse.success(null,"插入操作员信息成功");
     }
 
 
     @PostMapping("update")
-    public Boolean delete(@RequestBody ApiRequest<YQOperator> request)  {
+    public ApiResponse update(@RequestBody ApiRequest<YQOperator> request)  {
 
         YQOperator list = request.getBody();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Boolean b = operator.update(list); ;
-        return b;
+        Boolean b = operator.update(list);
+        if (!b) {
+            return ApiResponse.failure("更新操作员信息失败");
+        }
+        return ApiResponse.success("更新操作员信息成功");
     }
 
     @GetMapping("/")

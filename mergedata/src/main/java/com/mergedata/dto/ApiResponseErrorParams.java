@@ -12,4 +12,11 @@ public class ApiResponseErrorParams<T> {
         response.setResult(ApiResponseResult.failureStatus(errorMsg));
          return response;
     }
+
+    // 构造参数缺少情况
+    public static <T> ApiResponseErrorParams<T> sucsc( String errorMsg) {
+        ApiResponseErrorParams<T> response = new ApiResponseErrorParams<>();
+        response.setResult(ApiResponseResult.failureStatus(errorMsg));
+        return response;
+    }
 }
