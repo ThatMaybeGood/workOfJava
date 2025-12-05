@@ -1,0 +1,36 @@
+﻿# IDE
+.idea/
+*.iml
+*.iws
+
+# 构建输出
+target/
+build/
+out/
+bin/
+
+# 大文件
+*.zip
+*.rar
+*.7z
+*.tar.gz
+*.jar
+
+# 日志
+logs/
+*.log
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 环境变量
+.env
+*.properties
+
+# 其他
+*.class
+*.war
+*.ear
+*.bak
+*.tmp
