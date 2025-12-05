@@ -67,9 +67,7 @@ public class GlobalExceptionHandler {
             detailedMessage += " 详情: " + ex.getRootCause().getMessage();
         }
 
-        return ApiResponseErrorParams.failure(
-                detailedMessage
-        );
+        return ApiResponseErrorParams.failure();
     }
     /**
      * 处理参数验证异常

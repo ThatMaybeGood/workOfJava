@@ -54,7 +54,7 @@ public class ReportController {
         if (b == false) {
             return ApiResponse.failure("批量插入报表失败！");
         }
-        return ApiResponse.success("批量插入报表成功！");
+        return ApiResponse.failure("批量插入报表成功！");
     }
 
 

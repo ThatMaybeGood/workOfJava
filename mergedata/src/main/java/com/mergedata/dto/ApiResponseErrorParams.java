@@ -7,16 +7,10 @@ public class ApiResponseErrorParams<T> {
 
     private ApiResponseResult result;
     // 构造参数缺少情况
-    public static <T> ApiResponseErrorParams<T> failure( String errorMsg) {
+    public static <T> ApiResponseErrorParams<T> failure() {
         ApiResponseErrorParams<T> response = new ApiResponseErrorParams<>();
-        response.setResult(ApiResponseResult.failureStatus(errorMsg));
+        response.setResult(ApiResponseResult.errorParams());
          return response;
     }
 
-    // 构造参数缺少情况
-    public static <T> ApiResponseErrorParams<T> sucsc( String errorMsg) {
-        ApiResponseErrorParams<T> response = new ApiResponseErrorParams<>();
-        response.setResult(ApiResponseResult.failureStatus(errorMsg));
-        return response;
-    }
 }
