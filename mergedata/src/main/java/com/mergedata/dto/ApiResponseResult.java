@@ -47,14 +47,14 @@ public class ApiResponseResult {
         return result;
     }
 
-    public  static ApiResponseResult errorParams() {
+    public  static ApiResponseResult errorParams(String msg) {
         ApiResponseResult result = new ApiResponseResult();
         result.setSignType("md5");
         result.setSign("0TU5e1nHncMVBOaNqJjDzA==");
         result.setCode("40004");
         result.setMsg("业务处理失败");
         result.setSubCode("request_thirdparty_service_return_error");
-        result.setSubMsg("参数缺失：缺少必填参数(body)。");
+        result.setSubMsg(msg);
         return result;
     }
 

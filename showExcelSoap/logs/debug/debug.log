@@ -40,3 +40,14 @@
 2025-12-06 00:13:52.710 [http-nio-8081-exec-3] DEBUG c.m.mapper.ReportMapper.updateByDate - ==>  Preparing: UPDATE MPP_CASH_STATISTICS_MASTER SET update_time = sysdate, isvalid = '0' WHERE report_date = ? AND isvalid = '1'
 2025-12-06 00:13:52.710 [http-nio-8081-exec-3] DEBUG c.m.mapper.ReportMapper.updateByDate - ==> Parameters: 2025-11-11(LocalDate)
 2025-12-06 00:13:52.711 [http-nio-8081-exec-3] DEBUG c.m.mapper.ReportMapper.updateByDate - <==    Updates: 1
+2025-12-06 14:09:54.574 [main] DEBUG com.mergedata.MessageDataApplication - Running with Spring Boot v2.7.18, Spring v5.3.31
+2025-12-06 14:17:51.516 [main] DEBUG com.mergedata.MessageDataApplication - Running with Spring Boot v2.7.18, Spring v5.3.31
+2025-12-06 14:19:16.201 [http-nio-8081-exec-8] DEBUG c.m.m.ReportMapper.selectReportByDate - ==>  Preparing: SELECT m.serial_no AS main_serial_no, m.report_date, m.report_year, m.create_time, s.emp_id, s.emp_name, s.his_advance_payment, s.his_medical_income, s.his_registration_income, s.report_amount, s.previous_temporary_receipt, s.holiday_temporary_receipt, s.actual_report_amount, s.current_temporary_receipt, s.actual_cash_amount, s.retained_difference, s.retained_cash, s.petty_cash, s.remarks FROM MPP_CASH_STATISTICS_MASTER m LEFT JOIN mpp_cash_statistics_sub s ON m.serial_no = s.serial_no WHERE m.report_date = ? AND m.isvalid = '1'
+2025-12-06 14:19:16.367 [http-nio-8081-exec-8] DEBUG c.m.m.ReportMapper.selectReportByDate - ==> Parameters: 2025-11-11(LocalDate)
+2025-12-06 14:19:16.397 [http-nio-8081-exec-8] DEBUG c.m.m.ReportMapper.selectReportByDate - <==      Total: 45
+2025-12-06 14:20:21.442 [main] DEBUG com.mergedata.MessageDataApplication - Running with Spring Boot v2.7.18, Spring v5.3.31
+2025-12-06 14:23:42.634 [main] DEBUG com.mergedata.MessageDataApplication - Running with Spring Boot v2.7.18, Spring v5.3.31
+2025-12-06 14:32:55.392 [main] DEBUG com.mergedata.MessageDataApplication - Running with Spring Boot v2.7.18, Spring v5.3.31
+2025-12-06 14:46:51.763 [main] DEBUG com.mergedata.MessageDataApplication - Running with Spring Boot v2.7.18, Spring v5.3.31
+2025-12-06 14:48:46.724 [main] DEBUG com.mergedata.MessageDataApplication - Running with Spring Boot v2.7.18, Spring v5.3.31
+2025-12-06 14:49:27.679 [main] DEBUG com.mergedata.MessageDataApplication - Running with Spring Boot v2.7.18, Spring v5.3.31

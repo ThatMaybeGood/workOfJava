@@ -1,6 +1,7 @@
 package com.mergedata.exception;
 
-import com.mergedata.dto.ApiResponseErrorParams;
+import com.mergedata.dto.ApiResponseError;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,12 +19,6 @@ import javax.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * @author Mine
- * @version 1.0
- * 描述:
- * @date 2025/11/10 17:38
- */
 @ControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
@@ -34,184 +29,233 @@ public class GlobalExceptionHandler {
      * 处理自定义业务异常
      */
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex,
-                                                                 HttpServletRequest request) {
+    public ResponseEntity<ApiResponseError<?>> handleBusinessException(BusinessException ex,
+                                                                       HttpServletRequest request) {
         logger.warn("业务异常: {}", ex.getMessage(), ex);
 
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
+        ApiResponseError<?> errorResponse = ApiResponseError.error(
+                HttpStatus.BAD_REQUEST,
                 "业务逻辑错误",
-                ex.getMessage()
+                ex.getMessage(),  // ✅ 这里包含了具体的异常信息
+                request.getRequestURI(),
+                ex.getErrorCode()  // ✅ 包含错误码
         );
-        errorResponse.setErrorCode(ex.getErrorCode());
-        errorResponse.setPath(request.getRequestURI());
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
-
 
     /**
      * 专门处理请求体 JSON 格式错误或类型不匹配
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ApiResponseErrorParams<?> handleJsonFormatError(HttpMessageNotReadableException ex,
-                                                           HttpServletRequest request) {
-
+    public ResponseEntity<ApiResponseError<?>> handleJsonFormatError(HttpMessageNotReadableException ex,
+                                                                     HttpServletRequest request) {
         log.error("请求体格式或类型转换错误", ex);
 
-        // 假设您使用 PARAMETER_ERROR_CODE = "4000"
         String detailedMessage = "请求体JSON格式错误或字段类型不匹配。";
-
-        // 如果需要返回更具体的错误信息，可以解析 ex.getRootCause()
         if (ex.getRootCause() != null) {
             detailedMessage += " 详情: " + ex.getRootCause().getMessage();
         }
 
-        return ApiResponseErrorParams.failure();
+        ApiResponseError<?> errorResponse = ApiResponseError.error(
+                HttpStatus.BAD_REQUEST,
+                "请求格式错误",
+                detailedMessage,  // ✅ 包含详细的错误信息
+                request.getRequestURI(),
+                "4000"  // JSON格式错误码
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
+
     /**
      * 处理参数验证异常
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex,
-                                                                HttpServletRequest request) {
+    public ResponseEntity<ApiResponseError<?>> handleValidationException(MethodArgumentNotValidException ex,
+                                                                         HttpServletRequest request) {
         logger.warn("参数验证失败: {}", ex.getMessage());
 
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                "参数验证失败",
-                "请求参数不合法"
-        );
-        errorResponse.setPath(request.getRequestURI());
-
         // 提取详细的字段错误信息
-        List<ErrorResponse.FieldError> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
-                .map(error -> new ErrorResponse.FieldError(error.getField(), error.getDefaultMessage()))
+        List<FieldErrorDetail> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> new FieldErrorDetail(error.getField(), error.getDefaultMessage()))
                 .collect(Collectors.toList());
 
-        errorResponse.setFieldErrors(fieldErrors);
+        ApiResponseError<?> errorResponse = ApiResponseError.error(
+                HttpStatus.BAD_REQUEST,
+                "参数验证失败",
+                "请求参数不合法",
+                request.getRequestURI(),
+                "4001",
+                fieldErrors  // ✅ 包含字段级错误详情
+        );
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
     /**
-     * 处理约束违反异常（@Validated 方法参数验证）
+     * 处理约束违反异常
      */
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ErrorResponse> handleConstraintViolationException(ConstraintViolationException ex,
-                                                                            HttpServletRequest request) {
+    public ResponseEntity<ApiResponseError<?>> handleConstraintViolationException(ConstraintViolationException ex,
+                                                                                  HttpServletRequest request) {
         logger.warn("约束违反异常: {}", ex.getMessage());
 
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                "参数验证失败",
-                "请求参数不合法"
-        );
-        errorResponse.setPath(request.getRequestURI());
-
-        // 提取约束违反详情
-        List<ErrorResponse.FieldError> fieldErrors = ex.getConstraintViolations().stream()
+        List<FieldErrorDetail> fieldErrors = ex.getConstraintViolations().stream()
                 .map(violation -> {
                     String fieldName = violation.getPropertyPath().toString();
-                    return new ErrorResponse.FieldError(fieldName, violation.getMessage());
+                    return new FieldErrorDetail(fieldName, violation.getMessage());
                 })
                 .collect(Collectors.toList());
 
-        errorResponse.setFieldErrors(fieldErrors);
+        ApiResponseError<?> errorResponse = ApiResponseError.error(
+                HttpStatus.BAD_REQUEST,
+                "参数验证失败",
+                "请求参数不合法",
+                request.getRequestURI(),
+                "4002",
+                fieldErrors  // ✅ 包含字段级错误详情
+        );
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    /**
+     * 处理数据库连接异常
+     */
+    @ExceptionHandler(DatabaseConnectionException.class)
+    public ResponseEntity<ApiResponseError<?>> handleDatabaseConnectionException(DatabaseConnectionException ex,
+                                                                                 HttpServletRequest request) {
+        logger.error("数据库连接异常: {}", ex.getMessage(), ex);
+
+        ApiResponseError<?> errorResponse = ApiResponseError.error(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "数据库连接错误",
+                "系统正在维护或数据库连接失败：" + ex.getMessage(),  // ✅ 包含具体的数据库错误信息
+                request.getRequestURI(),
+                "5001"  // 数据库连接错误码
+        );
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+
+    /**
+     * 处理数据库访问异常
+     */
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<ApiResponseError<?>> handleDataAccessException(DataAccessException ex,
+                                                                         HttpServletRequest request) {
+        logger.error("数据库访问异常: {}", ex.getMessage(), ex);
+
+        String detailedMessage = "数据库操作失败，请检查数据权限或 SQL 语句。";
+        // 可以添加更具体的数据库错误信息
+        if (ex.getCause() != null) {
+            detailedMessage += " 原因: " + ex.getCause().getMessage();
+        }
+
+        ApiResponseError<?> errorResponse = ApiResponseError.error(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "数据库操作失败",
+                detailedMessage,  // ✅ 包含数据库操作的具体错误
+                request.getRequestURI(),
+                "5002"
+        );
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
 
     /**
      * 处理空指针异常
      */
     @ExceptionHandler(NullPointerException.class)
-    public ResponseEntity<ErrorResponse> handleNullPointerException(NullPointerException ex,
-                                                                    HttpServletRequest request) {
+    public ResponseEntity<ApiResponseError<?>> handleNullPointerException(NullPointerException ex,
+                                                                          HttpServletRequest request) {
         logger.error("空指针异常", ex);
 
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+        // 生产环境可以隐藏详细堆栈，开发环境可以显示
+        String message = "系统出现未预期的错误";
+        if (isDevelopment()) {
+            message += ": " + ex.getMessage();
+            if (ex.getStackTrace().length > 0) {
+                message += " at " + ex.getStackTrace()[0];
+            }
+        }
+
+        ApiResponseError<?> errorResponse = ApiResponseError.error(
+                HttpStatus.INTERNAL_SERVER_ERROR,
                 "系统内部错误",
-                "系统出现未预期的错误"
+                message,  // ✅ 根据环境显示不同的错误信息
+                request.getRequestURI(),
+                "5000"
         );
-        errorResponse.setPath(request.getRequestURI());
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+
+    /**
+     * 处理404资源未找到异常
+     */
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public ResponseEntity<ApiResponseError<?>> handleNoHandlerFoundException(NoHandlerFoundException ex,
+                                                                             HttpServletRequest request) {
+        logger.warn("资源未找到: {}", ex.getMessage());
+
+        ApiResponseError<?> errorResponse = ApiResponseError.error(
+                HttpStatus.NOT_FOUND,
+                "资源未找到",
+                "请求的资源不存在: " + request.getRequestURI(),  // ✅ 包含请求路径
+                request.getRequestURI(),
+                "404"
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
     /**
      * 处理所有其他未捕获的异常
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex,
-                                                                HttpServletRequest request) {
+    public ResponseEntity<ApiResponseError<?>> handleGeneralException(Exception ex,
+                                                                      HttpServletRequest request) {
         logger.error("未处理的异常: {}", ex.getMessage(), ex);
 
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+        String message = "服务器内部错误，请联系管理员";
+        // 开发环境显示更详细信息
+        if (isDevelopment() && ex.getMessage() != null) {
+            message += "。错误详情: " + ex.getMessage();
+        }
+
+        ApiResponseError<?> errorResponse = ApiResponseError.error(
+                HttpStatus.INTERNAL_SERVER_ERROR,
                 "系统错误",
-                "服务器内部错误，请联系管理员"
+                message,  // ✅ 包含异常信息
+                request.getRequestURI(),
+                "500"
         );
-        errorResponse.setPath(request.getRequestURI());
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-    }
-
-
-
-    @ExceptionHandler(NoHandlerFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNoHandlerFoundException(NoHandlerFoundException ex, HttpServletRequest request) {
-        // 注意：这个异常默认情况下需要配置 spring.mvc.throw-exception-if-no-handler-found=true 才能被捕获。
-        logger.warn("处理器未找到: {}", ex.getMessage());
-
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.NOT_FOUND.value(),
-                "资源未找到",
-                "请求的资源不存在"
-        );
-        errorResponse.setPath(request.getRequestURI());
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
     /**
-     * 处理自定义的数据库连接异常 (Connection Refused/Timeout)
+     * 内部类：字段错误详情
      */
-    @ExceptionHandler(DatabaseConnectionException.class)
-    public ResponseEntity<ErrorResponse> handleDatabaseConnectionException(DatabaseConnectionException ex,
-                                                                           HttpServletRequest request) {
-        // 🚨 修正：使用 ex.getMessage() 获取异常信息
-        logger.error("数据库连接异常（自定义）：{}", ex.getMessage(), ex);
+    @Data
+    public static class FieldErrorDetail {
+        private String field;
+        private String message;
 
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "数据库连接错误",
-                // 确保将自定义的友好消息返回给前端
-                "系统正在维护或数据库连接失败：" + ex.getMessage()
-        );
-        // 也可以设置自定义错误码，例如 5001
-        errorResponse.setErrorCode("5001");
-        errorResponse.setPath(request.getRequestURI());
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        public FieldErrorDetail(String field, String message) {
+            this.field = field;
+            this.message = message;
+        }
     }
+
     /**
-     * 处理数据库访问异常
+     * 判断是否为开发环境
      */
-    @ExceptionHandler(DataAccessException.class)
-    public ResponseEntity<ErrorResponse> handleDataAccessException(DataAccessException ex,
-                                                                   HttpServletRequest request) {
-        logger.error("数据库访问异常: {}", ex.getMessage(), ex);
-
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "数据库操作失败",
-                "数据库操作失败，请检查数据权限或 SQL 语句。"
-        );
-        errorResponse.setPath(request.getRequestURI());
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    private boolean isDevelopment() {
+        // 这里根据你的配置判断环境
+        String env = System.getProperty("spring.profiles.active", "dev");
+        return "dev".equals(env) || "development".equals(env);
     }
-
 }
