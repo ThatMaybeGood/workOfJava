@@ -3,6 +3,7 @@ package com.mergedata.mapper;
 import com.mergedata.dao.AbstractSPQueryMapper;
 import com.mergedata.dao.SPQueryDao;
 import com.mergedata.model.YQOperator;
+import com.mergedata.util.ValidStatusEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,7 +45,7 @@ public class YQOperatorMapper extends AbstractSPQueryMapper implements RowMapper
         dto.setOperatorName(rs.getString("OPERATOR_NAME"));
 
         // 修正 1：列名由 VALID 更改为 ISVALID
-        dto.setIsValid(rs.getString("ISVALID"));
+        dto.setValidStatus(ValidStatusEnum.valueOf(rs.getString("ISVALID")));
 
         // CREATOR (匹配)
         dto.setCreator(rs.getString("CREATOR"));

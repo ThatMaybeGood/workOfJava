@@ -207,7 +207,7 @@ public class SPBatchInsertDao {
 //                oper.getOperatorNo(),
 //                oper.getOperatorName(),
 //                oper.getDepartmentId(),
-//                oper.getIsValid(),
+//                oper.getValidStatus(),
 //                oper.getCreator(),
 //                oper.getCreateTime(),
 //                oper.getUpdateTime()

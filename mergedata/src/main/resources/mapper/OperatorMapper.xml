@@ -8,7 +8,7 @@
         <result column="operator_no" property="operatorNo"/>
         <result column="operator_name" property="operatorName"/>
         <result column="department_id" property="departmentId"/>
-        <result column="isvalid" property="isValid"/>
+        <result column="isvalid" property="validStatus"/>
         <result column="creator" property="creator"/>
         <result column="create_time" property="createTime"/>
         <result column=" updator" property=" updator"/>
@@ -45,11 +45,11 @@
     </select>
 
     <insert id="insert" parameterType="com.mergedata.model.YQOperator">
-        INSERT INTO MPP_CASH_REG_OPERATOR (isvalid,
+        INSERT INTO MPP_CASH_REG_OPERATOR (
         operator_no, operator_name, department_id,  creator,
           updator, update_time
         )
-        VALUES (#{isvalid , jdbcType=VARCHAR },
+        VALUES (
         #{operatorNo , jdbcType=VARCHAR },
         #{operatorName , jdbcType=VARCHAR},
         #{departmentId, jdbcType=VARCHAR}, #{creator, jdbcType=VARCHAR},
@@ -65,7 +65,7 @@
         VALUES
         <foreach collection="list" item="item" separator=",">
             (
-            #{item.operatorNo}, #{item.operatorName}, #{item.departmentId}, #{item.isValid}, #{item.creator},
+            #{item.operatorNo}, #{item.operatorName}, #{item.departmentId}, #{item.validStatus}, #{item.creator},
             #{item.createTime}, #{item. updator}, #{item.updateTime}, #{item.updateCount}
             )
         </foreach>

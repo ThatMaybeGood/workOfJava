@@ -7,9 +7,9 @@ import com.mergedata.model.YQHolidayCalendar;
 import com.mergedata.server.YQHolidayService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import javax.validation.constraints.Null;
 import java.util.List;
 
@@ -33,7 +33,7 @@ public class HolidayController {
 
 
     @PostMapping("findall")
-    public ApiResponse<YQHolidayCalendar> findALl(ApiRequest<Null> res)  {
+    public ApiResponse<YQHolidayCalendar> findALl(@Valid @RequestBody ApiRequest<Null> res)  {
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         List<YQHolidayCalendar> resultList = holiday.findAll();
@@ -43,7 +43,7 @@ public class HolidayController {
     }
 
     @PostMapping("findbydate")
-    public ApiResponse<YQHolidayCalendar> findByDate(@Validated  @RequestBody ApiRequest<YQHolidayCalendar> res)  {
+    public ApiResponse<YQHolidayCalendar> findByDate(@Valid  @RequestBody ApiRequest<YQHolidayCalendar> res)  {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         List<YQHolidayCalendar> resultList = holiday.findAll();
         // 4. 返回结果
@@ -51,7 +51,7 @@ public class HolidayController {
     }
 
     @PostMapping("batchinsert")
-    public ApiResponse batchInsert(@Validated @RequestBody ApiRequestList<YQHolidayCalendar> request)  {
+    public ApiResponse batchInsert(@Valid @RequestBody ApiRequestList<YQHolidayCalendar> request)  {
 
         List<YQHolidayCalendar> list = request.getBody().getList();
 
@@ -65,7 +65,7 @@ public class HolidayController {
 
 
     @PostMapping("insert")
-    public ApiResponse singleInsert(@Validated @RequestBody ApiRequest<YQHolidayCalendar> request)  {
+    public ApiResponse singleInsert(@Valid @RequestBody ApiRequest<YQHolidayCalendar> request)  {
 
         YQHolidayCalendar list = request.getBody();
 
@@ -81,7 +81,7 @@ public class HolidayController {
 
 
     @PostMapping("update")
-    public ApiResponse update(@Validated @RequestBody ApiRequest<YQHolidayCalendar> request)  {
+    public ApiResponse update(@Valid @RequestBody ApiRequest<YQHolidayCalendar> request)  {
 
         YQHolidayCalendar list = request.getBody();
 

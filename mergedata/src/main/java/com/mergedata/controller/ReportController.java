@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.List;
 
 
@@ -32,7 +33,7 @@ public class ReportController {
     ReportService report;
 
     @PostMapping("/all")
-    public ApiResponse<Report> findALl(@Validated @RequestBody ApiRequest<CommonRequestBody> request)  {
+    public ApiResponse<Report> findALl(@Valid @RequestBody ApiRequest<CommonRequestBody> request)  {
 
         String reportdate = request.getBody().getReportdate();
 

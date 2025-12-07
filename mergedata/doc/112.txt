@@ -183,7 +183,7 @@ create or replace procedure SP_QUERY_CASH_REG_report(
       select * from  MPP_CASH_STATISTICS_MASTER a,
       MPP_CASH_STATISTICS_SUB b 
        where a.SERIAL_NO =b.SERIAL_NO
-       and a.isvalid ='1' 
+       and a.isvalid ='1'
        and a.REPORT_DATE = v_reportDate;
 
     a_RetCode := 1;

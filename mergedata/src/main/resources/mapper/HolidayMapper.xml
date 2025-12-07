@@ -27,7 +27,7 @@
         creator, created_time, updated_time, update_count, remarks
         )
         VALUES (
-        #{serialNo}, #{holidayDate}, #{holidayName}, #{isValid}, #{holidayType}, #{year}, #{month},
+        #{serialNo}, #{holidayDate}, #{holidayName}, #{validStatus}, #{holidayType}, #{year}, #{month},
         #{description}, #{creator}, #{createdTime}, #{updatedTime}, #{updateCount}, #{remarks}
         )
     </insert>
@@ -40,7 +40,7 @@
         VALUES
         <foreach collection="list" item="item" separator=",">
             (
-            #{item.serialNo}, #{item.holidayDate}, #{item.holidayName}, #{item.isValid}, #{item.holidayType},
+            #{item.serialNo}, #{item.holidayDate}, #{item.holidayName}, #{item.validStatus}, #{item.holidayType},
             #{item.year}, #{item.month}, #{item.description}, #{item.creator}, #{item.createdTime},
             #{item.updatedTime}, #{item.updateCount}, #{item.remarks}
             )
@@ -52,7 +52,7 @@
         <set>
             <if test="holidayDate != null">holiday_date = #{holidayDate},</if>
             <if test="holidayName != null and holidayName != ''">holiday_name = #{holidayName},</if>
-            <if test="isValid != null">isvalid = #{isValid},</if>
+            <if test="validStatus != null">isvalid = #{validStatus},</if>
             <if test="holidayType != null and holidayType != ''">holiday_type = #{holidayType},</if>
             <if test="year != null">year = #{year},</if>
             <if test="month != null">month = #{month},</if>

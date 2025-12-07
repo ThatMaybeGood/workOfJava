@@ -1,6 +1,7 @@
 package com.mergedata.model;
 
 
+import com.mergedata.util.ValidStatusEnum;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
@@ -13,6 +14,7 @@ public class YQOperator {
 
     private String serialNo;
     //员工ID
+    @NotBlank(message = "员工ID不能为空")
     private String operatorNo;
 
     @NotBlank(message = "员工姓名不能为空")
@@ -21,16 +23,16 @@ public class YQOperator {
     //部门ID
     private String departmentId;
     //是否有效（0:无效，1：有效）
-    String isValid;
+    private  ValidStatusEnum validStatus;
     //创建人
-        String creator;
+    private String creator;
     //创建时间
-    LocalDate createTime;
+    private LocalDate createTime;
     //更新人
-    String updator;
+    private String updator;
     //更新时间
-    LocalDate updateTime;
+    private LocalDate updateTime;
 
-    Integer updateCount;
+    private Integer updateCount;
 
 }

@@ -2,6 +2,7 @@ package com.mergedata.model;
 
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.mergedata.util.ValidStatusEnum;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
@@ -25,7 +26,7 @@ public class YQHolidayCalendar {
 
     private String holidayName;
 
-    private Boolean isValid;
+    private ValidStatusEnum validStatus;
 
     // 节假日类型，周末，节假日，工作日 0，1，2
     private String holidayType;

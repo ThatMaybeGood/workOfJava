@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.constraints.Null;
+import javax.validation.Valid;
 import java.util.List;
 
 
@@ -32,7 +32,7 @@ public class OperatorController {
 
 
     @PostMapping("findall")
-    public ApiResponse<YQOperator> findALl(ApiRequest<Null> res)  {
+    public ApiResponse<YQOperator> findALl(@Valid @RequestBody  ApiRequest<Void> res)  {
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         List<YQOperator> resultList = operator.findAll();
@@ -46,15 +46,15 @@ public class OperatorController {
     }
 
     @PostMapping("findbyid")
-    public ApiResponse<YQOperator> findByDate(ApiRequest<YQOperator> res)  {
+    public ApiResponse<YQOperator> findByDate(@Valid @RequestBody ApiRequest<YQOperator> res)  {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        List<YQOperator> resultList = operator.findAll();
+        List<YQOperator> resultList = operator.findByID(res.getBody());
         // 4. 返回结果
         return ApiResponse.success(resultList,"查询操作员信息成功");
     }
 
     @PostMapping("batchinsert")
-    public ApiResponse batchInsert(@RequestBody ApiRequestList<YQOperator> request)  {
+    public ApiResponse batchInsert(@Valid @RequestBody ApiRequestList<YQOperator> request)  {
 
         List<YQOperator> list = request.getBody().getList();
 
@@ -68,7 +68,7 @@ public class OperatorController {
 
 
     @PostMapping("insert")
-    public ApiResponse singleInsert(@RequestBody ApiRequest<YQOperator> request)  {
+    public ApiResponse singleInsert(@Valid @RequestBody ApiRequest<YQOperator> request)  {
 
         YQOperator list = request.getBody();
 
@@ -82,7 +82,7 @@ public class OperatorController {
 
 
     @PostMapping("update")
-    public ApiResponse update(@RequestBody ApiRequest<YQOperator> request)  {
+    public ApiResponse update(@Valid @RequestBody ApiRequest<YQOperator> request)  {
 
         YQOperator list = request.getBody();
 

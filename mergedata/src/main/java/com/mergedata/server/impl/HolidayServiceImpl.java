@@ -4,6 +4,7 @@ import com.mergedata.mapper.HolidayMapper;
 import com.mergedata.model.YQHolidayCalendar;
 import com.mergedata.server.YQHolidayService;
 import com.mergedata.util.PrimaryKeyGenerator;
+import com.mergedata.util.ValidStatusEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -68,7 +69,7 @@ public class HolidayServiceImpl implements YQHolidayService {
         for (YQHolidayCalendar dto : list) {
             // 生成主键
             dto.setSerialNo(pks.generateKey());
-            dto.setIsValid(true);
+            dto.setValidStatus(ValidStatusEnum.VALID);
         }
         // 执行作废操作
         int i = holidayMapper.batchInsertList(list);
