@@ -30,6 +30,7 @@ public class Report {
     /*
     his医疗收入
      */
+
     @JsonProperty("his_medical_income")
     @NotBlank(message = "his医疗收入不能为空", groups = {AddGroup.class})
     private BigDecimal hisMedicalIncome = BigDecimal.ZERO;

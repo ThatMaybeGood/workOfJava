@@ -1,9 +1,14 @@
 package com.mergedata.controller;
 
-import com.mergedata.dto.*;
+import com.mergedata.dto.ApiRequest;
+import com.mergedata.dto.ApiRequestList;
+import com.mergedata.dto.ApiResponse;
+import com.mergedata.dto.CommonRequestBody;
 import com.mergedata.model.AddGroup;
 import com.mergedata.model.Report;
 import com.mergedata.server.ReportService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.validation.annotation.Validated;
@@ -23,12 +28,14 @@ import java.util.List;
 @RestController
 @RequestMapping("api/reports")
 @CrossOrigin(origins = "*")
+@Tag(name = "报表管理", description = "用于报表查询的接口")
 public class ReportController {
 
     @Qualifier("reportServiceImpl")
     @Autowired
     ReportService report;
 
+    @Operation(summary = "根据日期查询对应报表数据", description = "返回对应的报表数据")
     @PostMapping("/all")
     public ApiResponse<Report> findALl(@Valid @RequestBody ApiRequest<CommonRequestBody> request)  {
 
@@ -41,7 +48,7 @@ public class ReportController {
         return ApiResponse.success(resultList,"查询报表列表成功！");
     }
 
-
+    @Operation(summary = "写入报表相关数据", description = "返回对应结果")
     @PostMapping("batchinsert")
     public ApiResponse batchInsert(@Validated(AddGroup.class) @RequestBody ApiRequestList<Report> request)  {
 

@@ -10,6 +10,7 @@ public class MessageDataApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(MessageDataApplication.class, args);
+        System.out.println("swaggerUi地址：http://localhost:18081/swagger-ui/index.html");
     }
 
 }
