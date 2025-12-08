@@ -26,6 +26,10 @@ public interface YQOperatorService {
     /*
      * 作废
      */
+    Boolean delete(YQOperator yqOperator);
+    /*
+     * 作废
+     */
     Boolean update(YQOperator yqOperator);
 
 }

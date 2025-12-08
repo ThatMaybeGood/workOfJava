@@ -5,6 +5,7 @@ import com.mergedata.dto.ApiRequestList;
 import com.mergedata.dto.ApiResponse;
 import com.mergedata.model.YQHolidayCalendar;
 import com.mergedata.server.YQHolidayService;
+import com.mergedata.util.PrimaryKeyGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
@@ -53,6 +54,12 @@ public class HolidayController {
     public ApiResponse batchInsert(@Valid @RequestBody ApiRequestList<YQHolidayCalendar> request)  {
 
         List<YQHolidayCalendar> list = request.getBody().getList();
+        for (YQHolidayCalendar dto : list) {
+            PrimaryKeyGenerator pk   = new PrimaryKeyGenerator();
+            dto.setSerialNo(pk.generateKey());
+            dto.setValidStatus("1");
+        }
+
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         Boolean b = holiday.batchInsertList(list);
@@ -67,9 +74,10 @@ public class HolidayController {
     public ApiResponse singleInsert(@Valid @RequestBody ApiRequest<YQHolidayCalendar> request)  {
 
         YQHolidayCalendar list = request.getBody();
-
+        PrimaryKeyGenerator pk   = new PrimaryKeyGenerator();
+        list.setSerialNo(pk.generateKey());
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Boolean b = holiday.batchInsert(list);
+        Boolean b = holiday.insert(list);
         if (!b){
             return ApiResponse.failure("节假日插入失败");
         }
@@ -87,10 +95,10 @@ public class HolidayController {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         Boolean b = holiday.update(list);
         if (!b){
-            return ApiResponse.failure("节假日删除失败");
+            return ApiResponse.failure("节假日作废失败");
         }
 
-        return ApiResponse.success("节假日删除成功");
+        return ApiResponse.success("节假日作废成功");
     }
 
     @GetMapping("/")

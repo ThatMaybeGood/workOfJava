@@ -3,7 +3,7 @@ spring:
   application:
     name: medical-data-service
   profiles:
-    active: prod  # 默认激活开发环境
+    active: prod..  # 默认激活开发环境
   mvc:   # 确保 Spring Boot 在找不到 Handler 时抛出异常，而不是直接返回默认的 404 页面
     throw-exception-if-no-handler-found: true
   web:    # 确保 DispatcherServlet 对静态资源的处理不会影响到上面的配置

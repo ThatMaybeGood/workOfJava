@@ -71,4 +71,9 @@
         </foreach>
     </insert>
 
+
+    <insert id="delete" parameterType="com.mergedata.model.YQOperator">
+         delete from  MPP_CASH_REG_OPERATOR where operator_no =#{operatorNo}
+    </insert>
+
 </mapper>

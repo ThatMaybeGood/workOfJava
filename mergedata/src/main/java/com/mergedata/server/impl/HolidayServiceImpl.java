@@ -4,7 +4,6 @@ import com.mergedata.mapper.HolidayMapper;
 import com.mergedata.model.YQHolidayCalendar;
 import com.mergedata.server.YQHolidayService;
 import com.mergedata.util.PrimaryKeyGenerator;
-import com.mergedata.util.ValidStatusEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -34,7 +33,7 @@ public class HolidayServiceImpl implements YQHolidayService {
 
     @Override
     @Transactional
-    public Boolean batchInsert(YQHolidayCalendar holiday) {
+    public Boolean insert(YQHolidayCalendar holiday) {
 
         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
         holiday.setSerialNo(pks.generateKey());
@@ -50,9 +49,8 @@ public class HolidayServiceImpl implements YQHolidayService {
 
     @Override
     @Transactional
-    public Boolean update(YQHolidayCalendar holiday) {
-        int update = holidayMapper.update(holiday.getSerialNo());
-        return true;
+    public Boolean delete(YQHolidayCalendar holiday) {
+         return holidayMapper.delete(holiday.getSerialNo())>0?true:false;
     }
 
 
@@ -69,7 +67,7 @@ public class HolidayServiceImpl implements YQHolidayService {
         for (YQHolidayCalendar dto : list) {
             // 生成主键
             dto.setSerialNo(pks.generateKey());
-            dto.setValidStatus(ValidStatusEnum.VALID);
+            dto.setValidStatus("1");
         }
         // 执行作废操作
         int i = holidayMapper.batchInsertList(list);
@@ -78,6 +76,11 @@ public class HolidayServiceImpl implements YQHolidayService {
             throw new RuntimeException("批量写入存储过程调用失败，数据同步中断。");
         }
         return true;
+    }
+
+    @Override
+    public Boolean update(YQHolidayCalendar holiday) {
+        return holidayMapper.delete(holiday.getSerialNo())>0?true:false;
     }
 
 }

@@ -37,5 +37,8 @@ public interface HolidayMapper {
      * 更新节假日信息
      * @return 影响的行数
      */
+    int delete(String  serialNo); // 修正：返回 int
+
     int update(String  serialNo); // 修正：返回 int
+
 }

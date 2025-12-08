@@ -1,11 +1,9 @@
 package com.mergedata.model;
 
-
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.mergedata.util.ValidStatusEnum;
 import lombok.Data;
 
-import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -18,36 +16,34 @@ import java.time.LocalDateTime;
  */
 @Data
 public class YQHolidayCalendar {
-     private String serialNo;
+
+    // 默认不需要指定 JDBC Type，MyBatis-Plus/MyBatis 可以推断 VARCHAR
+    private String serialNo;
 
     @JsonFormat(pattern = "yyyy-MM-dd")
-    @NotBlank(message = "节假日日期不能为空")
+    @NotNull(message = "节假日日期不能为空")
     private LocalDate holidayDate;
 
-    private String holidayName;
-
-    private ValidStatusEnum validStatus;
+    // 增加 @TableField 显式指定 JDBC Type，防止 Oracle 插入 NULL 时报错
+    private String validStatus;
 
     // 节假日类型，周末，节假日，工作日 0，1，2
+    // 增加 @TableField 显式指定 JDBC Type，防止 Oracle 插入 NULL 时报错
     private String holidayType;
 
-    private Integer year;
+    // Integer 类型的字段，如果使用 MyBatis-Plus 自动生成 SQL，通常不需要 Type 指定
+    private Integer holidayYear;
 
-    private Integer month;
-
-
-    private String description;
+    private Integer holidayMonth;
 
     private String creator;
 
     private LocalDateTime createdTime;
 
-    private LocalDate updatedTime;
+    private LocalDate updateTime;
 
     private Integer updateCount;
 
-    private String remarks;
-
-
+    // 增加 @TableField 显式指定 JDBC Type，防止 Oracle 插入 NULL 时报错
+    private String remark;
 }
-

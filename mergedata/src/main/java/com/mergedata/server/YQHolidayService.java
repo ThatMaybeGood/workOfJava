@@ -18,7 +18,7 @@ public interface YQHolidayService {
     /*
      * 单条写入
      */
-    Boolean batchInsert(YQHolidayCalendar holiday);
+    Boolean insert(YQHolidayCalendar holiday);
 
     /*
      * 批量写入
@@ -31,5 +31,9 @@ public interface YQHolidayService {
      */
     Boolean update(YQHolidayCalendar holiday);
 
+    /*
+     * 作废
+     */
+    Boolean delete(YQHolidayCalendar holiday);
 
 }

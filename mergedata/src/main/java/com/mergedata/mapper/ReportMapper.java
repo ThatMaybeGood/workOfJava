@@ -35,4 +35,5 @@ public interface ReportMapper {
 
     /* 更新：按主键 */
     int updateByPK(String serialNo);
-}
+
+ }

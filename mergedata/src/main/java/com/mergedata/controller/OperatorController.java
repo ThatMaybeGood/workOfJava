@@ -81,13 +81,13 @@ public class OperatorController {
     }
 
 
-    @PostMapping("update")
-    public ApiResponse update(@Valid @RequestBody ApiRequest<YQOperator> request)  {
+    @PostMapping("delete")
+    public ApiResponse delete(@Valid @RequestBody ApiRequest<YQOperator> request)  {
 
         YQOperator list = request.getBody();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Boolean b = operator.update(list);
+        Boolean b = operator.delete(list);
         if (!b) {
             return ApiResponse.failure("更新操作员信息失败");
         }

@@ -39,7 +39,7 @@ public class YQHolidayServiceImpl implements YQHolidayService {
 
     @Override
     @Transactional
-    public Boolean batchInsert(YQHolidayCalendar holiday) {
+    public Boolean insert(YQHolidayCalendar holiday) {
         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
 
         Boolean b = yqHolidayMapper.insertMultParams(buildParams(pks.generateKey(), holiday, ReqConstant.SP_TYPE_INSERT));
@@ -59,6 +59,11 @@ public class YQHolidayServiceImpl implements YQHolidayService {
             throw new RuntimeException("删除调用存储过程调用失败，数据同步中断。");
         }
         return true;
+    }
+
+    @Override
+    public Boolean delete(YQHolidayCalendar holiday) {
+        return null;
     }
 
     @Transactional
@@ -101,8 +106,8 @@ public class YQHolidayServiceImpl implements YQHolidayService {
         maps.put("A_SERIALNO", pk);
         maps.put("A_REPORT_DATE", dto.getHolidayDate());
         maps.put("A_HOLIDAY_TYPE", dto.getHolidayType());
-        maps.put("A_HOLIDAY_MONTH", dto.getMonth());
-        maps.put("A_HOLIDAY_YEAR", dto.getYear());
+        maps.put("A_HOLIDAY_MONTH", dto.getHolidayMonth());
+        maps.put("A_HOLIDAY_YEAR", dto.getHolidayYear());
         // 填充操作类型
         maps.put("A_TYPE", type);
 

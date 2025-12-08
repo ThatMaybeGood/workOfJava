@@ -27,7 +27,7 @@ public interface OperatorMapper {
     int batchInsertList(List<YQOperator> yqOperators);
 
 
-    int update(String serialNo);
+    int delete(String operatorNo);
 
 
 }

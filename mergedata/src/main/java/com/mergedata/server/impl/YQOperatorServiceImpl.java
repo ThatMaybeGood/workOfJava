@@ -103,6 +103,11 @@ public class YQOperatorServiceImpl implements YQOperatorService {
     }
 
     @Override
+    public Boolean delete(YQOperator yqOperator) {
+        return null;
+    }
+
+    @Override
     @Transactional
     public Boolean update(YQOperator operator) {
         if (operator == null) {

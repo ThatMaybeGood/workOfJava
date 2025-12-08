@@ -31,6 +31,7 @@ public class OperatorServiceImpl implements YQOperatorService {
 
     @Override
     public Boolean insert(YQOperator yqOperators) {
+
         int insert = operatorMapper.insert(yqOperators);
 
         return insert > 0;
@@ -51,12 +52,17 @@ public class OperatorServiceImpl implements YQOperatorService {
     }
 
     @Override
-    public Boolean update(YQOperator yqOperator) {
+    public Boolean delete(YQOperator yqOperator) {
         //查询出id
-        if ( yqOperator.getSerialNo() == null) {
+        if ( yqOperator.getOperatorNo() == null) {
             return false;
         }
-        return operatorMapper.update(yqOperator.getSerialNo()) > 0;
+        return operatorMapper.delete(yqOperator.getOperatorNo()) > 0;
+    }
+
+    @Override
+    public Boolean update(YQOperator yqOperator) {
+        return null;
     }
 }
 
