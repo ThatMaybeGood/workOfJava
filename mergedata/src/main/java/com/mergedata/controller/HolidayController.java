@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import javax.validation.constraints.Null;
 import java.util.List;
 
 
@@ -33,7 +32,7 @@ public class HolidayController {
 
 
     @PostMapping("findall")
-    public ApiResponse<YQHolidayCalendar> findALl(@Valid @RequestBody ApiRequest<Null> res)  {
+    public ApiResponse<YQHolidayCalendar> findALl(@Valid @RequestBody ApiRequest<Void> res)  {
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         List<YQHolidayCalendar> resultList = holiday.findAll();

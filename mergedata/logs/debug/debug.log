@@ -1,3 +1,1 @@
-2025-12-03 21:47:30.120 [main] DEBUG com.mergedata.OperTests - Running with Spring Boot v2.7.18, Spring v5.3.31
-2025-12-03 21:47:32.396 [main] DEBUG com.mergedata.dao.AbstractSPQueryMapper - 调用存储过程 SP_QUERY_CASH_REG_OPER ()
-2025-12-04 09:23:56.480 [main] DEBUG com.mergedata.HisDataTests - Running with Spring Boot v2.7.18, Spring v5.3.31
+2025-12-08 09:15:53.043 [main] DEBUG com.mergedata.HisDataTests - Running with Spring Boot v2.7.18, Spring v5.3.31

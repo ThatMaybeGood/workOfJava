@@ -3,7 +3,7 @@ spring:
   application:
     name: medical-data-service
   profiles:
-    active: mine  # 默认激活开发环境
+    active: prod  # 默认激活开发环境
   mvc:   # 确保 Spring Boot 在找不到 Handler 时抛出异常，而不是直接返回默认的 404 页面
     throw-exception-if-no-handler-found: true
   web:    # 确保 DispatcherServlet 对静态资源的处理不会影响到上面的配置
@@ -11,13 +11,10 @@ spring:
       add-mappings: false
 # 服务器配置
 server:
-  port: 8081
+  port: 18081
 
 
-# Consolidated MyBatis-Plus Configuration
 mybatis-plus:
-  # CRITICAL FIX: Set this to the package containing your Entity/Model classes (e.g., YQCashRegRecord)
-  # If you have multiple, use a comma-separated list.
   type-aliases-package: com.mergedata.domain
   mapper-locations: classpath*:mapper/**/*.xml # Ensure this is present if you use XML mappers
 
@@ -66,7 +63,7 @@ logging:
 app:
   log:
     # 1. 定义日志存储路径：项目根目录下的 /logs 文件夹
-    dir: ${user.dir}/logs
+    dir: D:/logs/18081
 
     # 2. 定义单个文件的最大大小，达到此大小触发滚动
     max-file-size: 50MB

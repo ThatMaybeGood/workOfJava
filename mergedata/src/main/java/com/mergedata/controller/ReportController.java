@@ -1,9 +1,6 @@
 package com.mergedata.controller;
 
-import com.mergedata.dto.ApiRequest;
-import com.mergedata.dto.ApiRequestList;
-import com.mergedata.dto.ApiResponse;
-import com.mergedata.dto.CommonRequestBody;
+import com.mergedata.dto.*;
 import com.mergedata.model.AddGroup;
 import com.mergedata.model.Report;
 import com.mergedata.server.ReportService;

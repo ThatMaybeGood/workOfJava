@@ -96,7 +96,7 @@ public class OperatorController {
 
     @GetMapping("/")
     public Result<String> getHolidayApiInfo() {
-        return Result.success("API服务已启动，可用端点：/R /data, /insert");
+        return Result.success("API服务已启动，可用端点：/all /data, /insert");
     }
 
 }
