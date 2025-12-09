@@ -5,6 +5,8 @@ import com.mergedata.dto.ApiRequestList;
 import com.mergedata.dto.ApiResponse;
 import com.mergedata.model.YQOperator;
 import com.mergedata.server.YQOperatorService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
@@ -23,14 +25,15 @@ import java.util.List;
 @RestController
 @RequestMapping("api/operators")
 @CrossOrigin(origins = "*")
+@Tag(name = "操作员管理", description = "用于报表涉及操作员的接口")
 public class OperatorController {
  
     @Qualifier("operatorServiceImpl")
     @Autowired
-    YQOperatorService operator; 
+    YQOperatorService operator;
 
 
-
+    @Operation(summary = "查询所有的操作员数据", description = "返回操作员列表数据")
     @PostMapping("findall")
     public ApiResponse<YQOperator> findALl(@Valid @RequestBody  ApiRequest<Void> res)  {
 
@@ -45,6 +48,7 @@ public class OperatorController {
         return ApiResponse.success(resultList,"查询操作员列表成功！");
     }
 
+    @Operation(summary = "通过操作员ID的查询数据", description = "返回改对应操作员数据")
     @PostMapping("findbyid")
     public ApiResponse<YQOperator> findByDate(@Valid @RequestBody ApiRequest<YQOperator> res)  {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
@@ -53,6 +57,7 @@ public class OperatorController {
         return ApiResponse.success(resultList,"查询操作员信息成功");
     }
 
+    @Operation(summary = "批量写入操作员数据", description = "返回操作结果")
     @PostMapping("batchinsert")
     public ApiResponse batchInsert(@Valid @RequestBody ApiRequestList<YQOperator> request)  {
 
@@ -66,7 +71,7 @@ public class OperatorController {
         return ApiResponse.success(null,"批量插入操作员信息成功");
     }
 
-
+    @Operation(summary = "写入操作员数据", description = "返回操作结果")
     @PostMapping("insert")
     public ApiResponse singleInsert(@Valid @RequestBody ApiRequest<YQOperator> request)  {
 
@@ -80,7 +85,7 @@ public class OperatorController {
         return ApiResponse.success(null,"插入操作员信息成功");
     }
 
-
+    @Operation(summary = "作废删除操作员数据", description = "返回操作结果")
     @PostMapping("delete")
     public ApiResponse delete(@Valid @RequestBody ApiRequest<YQOperator> request)  {
 

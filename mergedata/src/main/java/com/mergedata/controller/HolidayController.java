@@ -6,6 +6,8 @@ import com.mergedata.dto.ApiResponse;
 import com.mergedata.model.YQHolidayCalendar;
 import com.mergedata.server.YQHolidayService;
 import com.mergedata.util.PrimaryKeyGenerator;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +26,7 @@ import java.util.List;
 @RestController
 @RequestMapping("api/holidays")
 @CrossOrigin(origins = "*")
+@Tag(name = "节假日管理", description = "用于节假日相关的接口")
 public class HolidayController {
 
     @Autowired
@@ -31,7 +34,7 @@ public class HolidayController {
     YQHolidayService holiday;
 
 
-
+    @Operation(summary = "查询所有节假日数据", description = "返回节假日的列表数据")
     @PostMapping("findall")
     public ApiResponse<YQHolidayCalendar> findALl(@Valid @RequestBody ApiRequest<Void> res)  {
 
@@ -42,6 +45,7 @@ public class HolidayController {
         return ApiResponse.success(resultList,"查询节假日列表成功");
     }
 
+    @Operation(summary = "通过日期查询节假日数据", description = "返回节假日的数据")
     @PostMapping("findbydate")
     public ApiResponse<YQHolidayCalendar> findByDate(@Valid  @RequestBody ApiRequest<YQHolidayCalendar> res)  {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
@@ -49,7 +53,7 @@ public class HolidayController {
         // 4. 返回结果
         return ApiResponse.success(resultList,"查询节假日成功");
     }
-
+    @Operation(summary = "批量写入节假日数据", description = "返回操作结果")
     @PostMapping("batchinsert")
     public ApiResponse batchInsert(@Valid @RequestBody ApiRequestList<YQHolidayCalendar> request)  {
 
@@ -69,7 +73,7 @@ public class HolidayController {
         return ApiResponse.success(list,"批量插入成功");
     }
 
-
+    @Operation(summary = "写入节假日数据", description = "返回操作结果")
     @PostMapping("insert")
     public ApiResponse singleInsert(@Valid @RequestBody ApiRequest<YQHolidayCalendar> request)  {
 
@@ -86,7 +90,7 @@ public class HolidayController {
     }
 
 
-
+    @Operation(summary = "作废删除节假日数据", description = "返回操作结果")
     @PostMapping("update")
     public ApiResponse update(@Valid @RequestBody ApiRequest<YQHolidayCalendar> request)  {
 

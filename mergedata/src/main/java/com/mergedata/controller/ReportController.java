@@ -36,7 +36,7 @@ public class ReportController {
     ReportService report;
 
     @Operation(summary = "根据日期查询对应报表数据", description = "返回对应的报表数据")
-    @PostMapping("/all")
+    @PostMapping("/findbydate")
     public ApiResponse<Report> findALl(@Valid @RequestBody ApiRequest<CommonRequestBody> request)  {
 
         String reportdate = request.getBody().getReportdate();
@@ -49,7 +49,7 @@ public class ReportController {
     }
 
     @Operation(summary = "写入报表相关数据", description = "返回对应结果")
-    @PostMapping("batchinsert")
+    @PostMapping("insert")
     public ApiResponse batchInsert(@Validated(AddGroup.class) @RequestBody ApiRequestList<Report> request)  {
 
         List<Report> list = request.getBody().getList();

@@ -3,7 +3,7 @@ spring:
   application:
     name: medical-data-service
   profiles:
-    active: mine  # 默认激活开发环境
+    active: prod  # 默认激活开发环境
   mvc:   # 确保 Spring Boot 在找不到 Handler 时抛出异常，而不是直接返回默认的 404 页面
     throw-exception-if-no-handler-found: true
   web:    # 确保 DispatcherServlet 对静态资源的处理不会影响到上面的配置
@@ -90,3 +90,18 @@ request:
     accessToken: 123456
     #用的掌医小程序-管理门户
     appId: b16ff06f5fd44ab6b56e037d7ee1a6ed
+
+# application.yml
+springdoc:
+  api-docs:
+    groups:
+      enabled: true
+  swagger-ui:
+    # 默认展开级别（设为-1可折叠所有Schemas）
+    default-model-expand-depth: -1
+    # 显示模型部分
+    display-request-duration: true
+    # 隐藏Schemas部分
+    default-models-expand-depth: -1
+    tags-sorter: alpha
+    operations-sorter: alpha
