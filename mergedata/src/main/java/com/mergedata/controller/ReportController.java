@@ -57,9 +57,9 @@ public class ReportController {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         Boolean b = report.batchInsert(list);
         if (b == false) {
-            return ApiResponse.failure("批量插入报表失败！");
+            return ApiResponse.failure("报表写入失败！");
         }
-        return ApiResponse.failure("批量插入报表成功！");
+        return ApiResponse.success("报表写入成功！");
     }
 
 

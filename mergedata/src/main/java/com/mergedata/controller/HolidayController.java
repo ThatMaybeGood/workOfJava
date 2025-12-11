@@ -45,14 +45,17 @@ public class HolidayController {
         return ApiResponse.success(resultList,"查询节假日列表成功");
     }
 
+
     @Operation(summary = "通过日期查询节假日数据", description = "返回节假日的数据")
     @PostMapping("findbydate")
     public ApiResponse<YQHolidayCalendar> findByDate(@Valid  @RequestBody ApiRequest<YQHolidayCalendar> res)  {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        List<YQHolidayCalendar> resultList = holiday.findAll();
+        List<YQHolidayCalendar> resultList = holiday.findByDate(res.getBody().getHolidayDate());
         // 4. 返回结果
         return ApiResponse.success(resultList,"查询节假日成功");
     }
+
+
     @Operation(summary = "批量写入节假日数据", description = "返回操作结果")
     @PostMapping("batchinsert")
     public ApiResponse batchInsert(@Valid @RequestBody ApiRequestList<YQHolidayCalendar> request)  {
@@ -78,8 +81,7 @@ public class HolidayController {
     public ApiResponse singleInsert(@Valid @RequestBody ApiRequest<YQHolidayCalendar> request)  {
 
         YQHolidayCalendar list = request.getBody();
-        PrimaryKeyGenerator pk   = new PrimaryKeyGenerator();
-        list.setSerialNo(pk.generateKey());
+
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         Boolean b = holiday.insert(list);
         if (!b){

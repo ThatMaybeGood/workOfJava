@@ -26,14 +26,20 @@ public class HolidayServiceImpl implements YQHolidayService {
 
 
     @Override
-    public List<YQHolidayCalendar> findByDate(String reportDate) {
-         return holidayMapper.selectByDate(LocalDate.parse(reportDate));
+    public List<YQHolidayCalendar> findByDate(LocalDate reportDate) {
+         return holidayMapper.selectByDate(reportDate);
     }
 
 
     @Override
     @Transactional
     public Boolean insert(YQHolidayCalendar holiday) {
+
+        List<YQHolidayCalendar> holidayCalendar = holidayMapper.selectByDate(holiday.getHolidayDate());
+
+        if(holidayCalendar.size() > 0 ){
+            holidayMapper.update(holiday.getHolidayDate());
+        }
 
         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
         holiday.setSerialNo(pks.generateKey());

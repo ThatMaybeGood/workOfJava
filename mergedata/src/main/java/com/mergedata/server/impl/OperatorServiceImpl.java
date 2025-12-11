@@ -3,6 +3,7 @@ package com.mergedata.server.impl;
 import com.mergedata.mapper.OperatorMapper;
 import com.mergedata.model.YQOperator;
 import com.mergedata.server.YQOperatorService;
+import com.mergedata.util.PrimaryKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,9 @@ public class OperatorServiceImpl implements YQOperatorService {
 
     @Override
     public Boolean insert(YQOperator yqOperators) {
+        PrimaryKeyGenerator pk = new PrimaryKeyGenerator();
+
+        yqOperators.setSerialNo(pk.generateKey());
 
         int insert = operatorMapper.insert(yqOperators);
 
@@ -41,6 +45,10 @@ public class OperatorServiceImpl implements YQOperatorService {
     public Boolean batchInsert(List<YQOperator> yqOperators) {
         //查询出id
         for (YQOperator yqOperator : yqOperators) {
+            PrimaryKeyGenerator pk = new PrimaryKeyGenerator();
+
+            yqOperator.setSerialNo(pk.generateKey());
+
             if (operatorMapper.selectByID(yqOperator.getOperatorNo()).size() > 0){
                 //移除这个id的
                 yqOperators.remove(yqOperator);

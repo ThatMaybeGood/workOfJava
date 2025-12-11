@@ -50,7 +50,7 @@ public class OperatorController {
 
     @Operation(summary = "通过操作员ID的查询数据", description = "返回改对应操作员数据")
     @PostMapping("findbyid")
-    public ApiResponse<YQOperator> findByDate(@Valid @RequestBody ApiRequest<YQOperator> res)  {
+    public ApiResponse<YQOperator> findByID(@Valid @RequestBody ApiRequest<YQOperator> res)  {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         List<YQOperator> resultList = operator.findByID(res.getBody());
         // 4. 返回结果

@@ -32,9 +32,9 @@ public class YQHolidayCalendar {
     private String holidayType;
 
     // Integer 类型的字段，如果使用 MyBatis-Plus 自动生成 SQL，通常不需要 Type 指定
-    private Integer holidayYear;
+    private String holidayYear;
 
-    private Integer holidayMonth;
+    private String holidayMonth;
 
     private String creator;
 
@@ -42,7 +42,7 @@ public class YQHolidayCalendar {
 
     private LocalDate updateTime;
 
-    private Integer updateCount;
+    private String updateCount;
 
     // 增加 @TableField 显式指定 JDBC Type，防止 Oracle 插入 NULL 时报错
     private String remark;

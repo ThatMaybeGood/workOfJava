@@ -2,6 +2,7 @@ package com.mergedata.server;
 
 import com.mergedata.model.YQHolidayCalendar;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface YQHolidayService {
@@ -13,7 +14,7 @@ public interface YQHolidayService {
     /*
      * 暂未编写相关过程
      */
-    List<YQHolidayCalendar> findByDate(String date);
+    List<YQHolidayCalendar> findByDate(LocalDate date);
 
     /*
      * 单条写入

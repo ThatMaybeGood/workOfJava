@@ -69,18 +69,11 @@
     </insert>
 
     <update id="update" parameterType="com.mergedata.model.YQHolidayCalendar">
-        UPDATE mpp_cash_reg_holiday
-        <set>
-            <if test="holidayDate != null">holiday_date = #{holidayDate, jdbcType=DATE},</if>
-            <if test="validStatus != null">isvalid = #{validStatus, jdbcType=VARCHAR},</if>
-            <if test="holidayType != null and holidayType != ''">holiday_type = #{holidayType, jdbcType=VARCHAR},</if>
-            <if test="holidayYear != null">holiday_year = #{holidayYear, jdbcType=NUMERIC},</if>
-            <if test="holidayMonth != null">holiday_month = #{holidayMonth, jdbcType=NUMERIC},</if>
-            <if test="remark != null">remark = #{remark, jdbcType=VARCHAR},</if>
+        UPDATE mpp_cash_reg_holiday set
             update_time = SYSDATE,
+            isvalid = '0',
             update_count = update_count + 1
-        </set>
-        WHERE serial_no = #{serialNo}
+        WHERE holiday_date = #{holidayDate}
     </update>
 
     <delete id="delete" parameterType="com.mergedata.model.YQHolidayCalendar">

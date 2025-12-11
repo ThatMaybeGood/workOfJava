@@ -19,7 +19,7 @@ public interface HolidayMapper {
      * 根据日期查询节假日信息
      * @Param 指定名称，与 XML 中的 #{holiday_date} 匹配
      */
-    List<YQHolidayCalendar> selectByDate(@Param("holiday_date") LocalDate date);
+    List<YQHolidayCalendar> selectByDate(@Param("holidayDate") LocalDate date);
 
     /*
      * 插入单条节假日信息
@@ -39,6 +39,6 @@ public interface HolidayMapper {
      */
     int delete(String  serialNo); // 修正：返回 int
 
-    int update(String  serialNo); // 修正：返回 int
+    int update(@Param("holidayDate") LocalDate date); // 修正：返回 int
 
 }
