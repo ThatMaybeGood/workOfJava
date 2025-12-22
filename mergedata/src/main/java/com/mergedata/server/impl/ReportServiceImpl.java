@@ -73,8 +73,10 @@ public class ReportServiceImpl implements ReportService {
             log.error("获取报表数据异常", e);
             throw new RuntimeException("获取报表数据异常");
         }
+
         // 添加计算合计数据
-        results.add(calculateTotal(results, LocalDate.parse(reportdate)));
+        //屏蔽计算合计金额
+//        results.add(calculateTotal(results, LocalDate.parse(reportdate)));
 
         return results;
     }
