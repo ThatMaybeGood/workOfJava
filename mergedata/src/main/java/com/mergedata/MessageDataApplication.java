@@ -7,10 +7,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @MapperScan("com.mergedata.mapper") // 替换为您 Mapper 接口的实际包路径
 @SpringBootApplication
 public class MessageDataApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(MessageDataApplication.class, args);
-        System.out.println("swaggerUi地址：http://localhost:18081/swagger-ui/index.html");
+        System.out.println("swaggerUrl地址：http://localhost:18081/swagger-ui/index.html");
     }
-
 }
