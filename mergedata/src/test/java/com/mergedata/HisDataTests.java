@@ -14,6 +14,7 @@ public class HisDataTests {
     @Test
     void contextLoads() {
 
-//        hisDataService.findByDate("2023-01-01");
+//        List<HisIncome> byDate = hisDataService.findByDate("2023-01-01");
+//        System.out.printf(byDate.toString());
     }
 }

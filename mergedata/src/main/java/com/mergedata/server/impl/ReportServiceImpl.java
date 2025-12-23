@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -83,19 +84,24 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     @Transactional
-    public Boolean batchInsert(List<Report> list) {
-        if (list == null || list.isEmpty()) {
+    public Boolean batchInsert(List<Report> reportList) {
+        if (reportList == null || reportList.isEmpty()) {
             return false;
         }
 
         // 1. 确定要作废的日期
-        LocalDate reportDate= list.get(0).getReportDate();
+        LocalDate reportDate= reportList.get(0).getReportDate();
 
 
         // 2. 作废该日期下所有的主表记录
         log.info("开始作废日期 {} 下的历史报表数据...", reportDate);
         report.updateByDate(reportDate);
         log.info("历史报表数据作废完成.");
+
+
+        //3.转换对应报表数据
+        List<Report> list = exchangeInsertReportData(reportDate, reportList);
+
 
         // =======================================================
         // 只生成一个主键，作为主表的主键和明细表的外键
@@ -129,7 +135,7 @@ public class ReportServiceImpl implements ReportService {
 
 
         main.setCreateTime(firstReport.getCreateTime() != null ? firstReport.getCreateTime() : LocalDate.now());
-        main.setUpdateTime(LocalDate.now());
+        main.setUpdateTime(LocalDateTime.now());
 
         mainList.add(main); // 主表列表中只有 1 条记录
 
@@ -206,6 +212,121 @@ public class ReportServiceImpl implements ReportService {
         return total;
     }
 
+
+    public List<Report> exchangeInsertReportData(LocalDate currtDate,List<Report> list) {
+        try {
+            // 1. 获取所有必需的原始数据
+            List<YQHolidayCalendar> holidays = hiliday.selectAll();
+
+            Set<LocalDate> holidaySet = holidays.stream()
+                    .map(YQHolidayCalendar::getHolidayDate)
+                    .collect(Collectors.toSet());
+
+            // 3. 构建结果集
+            List<Report> resultList = new ArrayList<>();
+
+            PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
+            String pk = pks.generateKey();
+
+            Integer count = 0;
+
+            // 4. 以操作员为主，遍历构建报表数据
+            for (Report rpt : list) {
+                Report currentDto = new Report();
+                count++;
+
+                currentDto.setSerialNo(pk);
+                currentDto.setOperatorNo(rpt.getOperatorNo());
+                currentDto.setOperatorName(rpt.getOperatorName());
+
+                // Report 对象的 reportDate 属性是 String，需要转换
+                currentDto.setReportDate(currtDate);
+
+
+                // =========================================================================
+                // 基础信息赋值区域
+                // =========================================================================
+
+
+                // --- 填充 HIS 收入和 ReportAmount (保持不变) ---
+                currentDto.setHisAdvancePayment(getSafeBigDecimal(rpt.getHisAdvancePayment()));
+                currentDto.setHisMedicalIncome(getSafeBigDecimal(rpt.getHisMedicalIncome()));
+                currentDto.setHisRegistrationIncome(getSafeBigDecimal(rpt.getHisRegistrationIncome()));
+
+                BigDecimal reportAmount = currentDto.getHisAdvancePayment()
+                        .add(currentDto.getHisMedicalIncome()).add(currentDto.getHisRegistrationIncome());
+                //应交报表数
+                currentDto.setReportAmount(reportAmount);
+
+                // 昨日暂收款 ---
+                currentDto.setPreviousTemporaryReceipt(getSafeBigDecimal(rpt.getPreviousTemporaryReceipt()));
+                //节假日暂收款
+                currentDto.setHolidayTemporaryReceipt(getSafeBigDecimal(rpt.getHolidayTemporaryReceipt()));
+                //当日暂收款
+                currentDto.setCurrentTemporaryReceipt(getSafeBigDecimal(rpt.getCurrentTemporaryReceipt()));
+                //7.留存现金
+                currentDto.setRetainedCash(getSafeBigDecimal(rpt.getRetainedCash()));
+                //备用金
+                currentDto.setPettyCash(getSafeBigDecimal(rpt.getPettyCash()));
+
+
+                // =========================================================================
+                // =========================================================================
+                // End of 基础信息赋值
+                // =========================================================================
+
+                // ❗当前是工作日 且 前一天是节假日/周末
+                boolean isAfterHoliday = !isHoliday(holidaySet, currtDate) && isHoliday(holidaySet, currtDate.minusDays(1));
+
+                if (isAfterHoliday) {
+                    // 符合条件：执行复杂回溯计算 (A = B - Sum(C) - D)
+                    log.info("第{}条，[{}]节假日后正常工作日第一天特殊处理，回溯计算实际报表金额开始......................", count, currtDate);
+                    calculateActualReportAmountForMonday(
+                            currentDto,
+                            currtDate,
+                            holidaySet,
+                            // 传递的 Lambda 表达式现在接收 LocalDate
+                            date -> report.selectReportByDate(date)
+                    );
+                } else if (isHoliday(holidaySet, currtDate)) {
+                    // 节假日逻辑：A = B - C (保持不变)
+                    BigDecimal actualReportAmount = currentDto.getReportAmount().subtract(currentDto.getHolidayTemporaryReceipt());
+                    currentDto.setActualReportAmount(actualReportAmount);
+
+                } else if (isHoliday(holidaySet, currtDate.plusDays(1))) {
+                    // 节假日前一天 (周五/最后一天) 逻辑 (保持不变)
+                    BigDecimal actualReportAmount = currentDto.getReportAmount()
+                            .subtract(currentDto.getPreviousTemporaryReceipt())
+                            .subtract(currentDto.getCurrentTemporaryReceipt());
+
+                    currentDto.setActualReportAmount(actualReportAmount);
+
+                } else {
+                    // 正常工作日逻辑 (保持不变)
+                    currentDto.setActualReportAmount(currentDto.getReportAmount());
+                }
+
+
+                // 5.实收现金数 5 = 3+4 (保持不变)
+                currentDto.setActualCashAmount(currentDto.getActualReportAmount().add(currentDto.getCurrentTemporaryReceipt()));
+
+                //留存数差额 6 = 7-3-8 (保持不变)
+                currentDto.setRetainedDifference(currentDto.getRetainedCash().
+                        subtract(currentDto.getPettyCash()).
+                        subtract(currentDto.getActualReportAmount()));
+
+                // 7. 加入结果集 (保持不变)
+                resultList.add(currentDto);
+            }
+
+            log.info("{}生成报表完成，共处理 {} 个操作员", currtDate.toString(), resultList.size());
+            return resultList;
+
+        } catch (Exception e) {
+            log.error("报表生成失败", e);
+            return Collections.emptyList();
+        }
+    }
 
     /**
      * 1. 从各数据源获取数据。

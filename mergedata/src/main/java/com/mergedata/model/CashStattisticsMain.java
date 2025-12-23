@@ -3,6 +3,7 @@ package com.mergedata.model;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -20,7 +21,7 @@ public class CashStattisticsMain {
     //创建时间
     private LocalDate createTime;
     //更新时间
-    private LocalDate updateTime;
+    private LocalDateTime updateTime;
     //关联的子报表列表（一对多关系）
     private List<CashStatisticsSub> subs ;
 
