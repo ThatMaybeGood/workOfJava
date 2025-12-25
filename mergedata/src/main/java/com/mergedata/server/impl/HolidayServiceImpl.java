@@ -44,6 +44,9 @@ public class HolidayServiceImpl implements YQHolidayService {
         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
         holiday.setSerialNo(pks.generateKey());
 
+        holiday.setHolidayMonth(String.valueOf(holiday.getHolidayDate().getMonthValue()));
+        holiday.setHolidayYear(String.valueOf(holiday.getHolidayDate().getYear()));
+
         int insert = holidayMapper.insert(holiday);
 
         if (insert != 1) {

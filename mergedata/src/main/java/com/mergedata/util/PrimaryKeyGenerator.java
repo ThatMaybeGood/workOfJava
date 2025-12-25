@@ -1,10 +1,10 @@
 package com.mergedata.util;
 
 
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.concurrent.ThreadLocalRandom;
-
 /**
  * 业务主键生成工具类 (包含日期信息)。
  * 优化后格式: YYYYMMddHH + 4位随机码，总长 14 位。
@@ -16,24 +16,16 @@ public class PrimaryKeyGenerator {
     private static final DateTimeFormatter DATE_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("yyyyMMddHH");
 
+
     /**
      * 生成包含日期和随机数的唯一主键。
      *
      * @return 长度为 14 位的字符串主键，如 20251130161234
      */
     public static String generateKey() {
-        // 1. 获取当前时间并格式化为 YYYYMMddHH (10位)
-        String dateTimePart = LocalDateTime.now().format(DATE_TIME_FORMATTER);
-
-        // 2. 生成 4 位随机码 (避免同一小时内冲突)
-        // 使用 ThreadLocalRandom 提高并发性能
-        // 生成 1000 到 9999 之间的随机数
-        int randomPart = ThreadLocalRandom.current().nextInt(1000, 10000);
-
-        // 3. 拼接并返回主键
-        // 主键总长: 10位 (时间) + 4位 (随机) = 14位
-        return dateTimePart + randomPart;
-    }
+        //  MyBatis-Plus，直接调用它内置的雪花算法
+        // IdWorker.getIdStr() 会返回一个 19 位的分布式唯一 ID 字符串
+        return IdWorker.getIdStr();    }
 
     /**
      * 生成包含日期和序列号的唯一主键（如果使用外部序列生成器）。
@@ -49,10 +41,4 @@ public class PrimaryKeyGenerator {
         return dateTimePart + seqSuffix;
     }
 
-    /*
-    public static void main(String[] args) {
-        System.out.println("生成主键: " + generateKey());
-        // 预期输出类似: 20251130168759
-    }
-    */
 }

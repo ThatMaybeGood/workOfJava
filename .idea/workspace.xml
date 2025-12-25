@@ -5,24 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f5e93bba-4bf8-4603-8f6b-5adf75c26676" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/data/2026/rest_days.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/holiday_output/2025_holidays.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/holiday_output/2025_holidays.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/util/ChineseHolidayManager.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/util/HolidayDataParser.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/CashStattisticsMain.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/CashStattisticsMain.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/HisIncome.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/HisIncome.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/ReportServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/ReportServiceImpl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/test/java/com/mergedata/HisDataTests.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/test/java/com/mergedata/HisDataTests.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/MessageDataApplication.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/MessageDataApplication.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/controller/HolidayController.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/controller/HolidayController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/controller/OperatorController.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/controller/OperatorController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/controller/ReportController.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/controller/ReportController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/mapper/HolidayMapper.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/mapper/HolidayMapper.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/model/CashStattisticsMain.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/model/CashStattisticsMain.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/model/HisIncome.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/model/HisIncome.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/model/YQHolidayCalendar.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/model/YQHolidayCalendar.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/YQHolidayService.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/YQHolidayService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/HolidayServiceImpl.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/HolidayServiceImpl.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/OperatorServiceImpl.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/OperatorServiceImpl.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/HolidayServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/HolidayServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/util/PrimaryKeyGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/util/PrimaryKeyGenerator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/test/java/com/mergedata/OperTests.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/test/java/com/mergedata/OperTests.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/ReportServiceImpl.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/ReportServiceImpl.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/YQHolidayServiceImpl.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/YQHolidayServiceImpl.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/util/PrimaryKeyGenerator.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/util/PrimaryKeyGenerator.class" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -93,6 +86,8 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "ASKED_ADD_EXTERNAL_FILES": "true",
+    "Application.ChineseHolidayManager.executor": "Run",
+    "Application.HolidayDataParser.executor": "Run",
     "Application.MessageDataApplication.executor": "Run",
     "Application.MessageDataServiceApplication (1).executor": "Debug",
     "Application.MessageDataServiceApplication.executor": "Run",
@@ -107,7 +102,9 @@
     "JUnit.MessageDataServiceApplicationTests.contextLoads (1).executor": "Run",
     "JUnit.MessageDataServiceApplicationTests.contextLoads.executor": "Debug",
     "JUnit.MessageDataServiceApplicationTests.executor": "Run",
+    "JUnit.OperTests.con.executor": "Run",
     "JUnit.OperTests.contextLoads.executor": "Run",
+    "JUnit.OperTests.executor": "Debug",
     "Maven.mergedata [clean].executor": "Run",
     "Maven.mergedata [compile].executor": "Run",
     "Maven.mergedata [install].executor": "Run",
@@ -166,7 +163,33 @@
       </set>
     </option>
   </component>
-  <component name="RunManager" selected="Application.MessageDataApplication">
+  <component name="RunManager" selected="JUnit.OperTests">
+    <configuration name="ChineseHolidayManager" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="com.mergedata.util.ChineseHolidayManager" />
+      <module name="mergedata" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.mergedata.util.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="HolidayDataParser" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="com.mergedata.util.HolidayDataParser" />
+      <module name="mergedata" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.mergedata.util.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="MessageDataApplication" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="com.mergedata.MessageDataApplication" />
       <module name="mergedata" />
@@ -180,7 +203,7 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="HisDataTests" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="OperTests" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="mergedata" />
       <extension name="coverage">
         <pattern>
@@ -189,13 +212,13 @@
         </pattern>
       </extension>
       <option name="PACKAGE_NAME" value="com.mergedata" />
-      <option name="MAIN_CLASS_NAME" value="com.mergedata.HisDataTests" />
+      <option name="MAIN_CLASS_NAME" value="com.mergedata.OperTests" />
       <option name="TEST_OBJECT" value="class" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="HisDataTests.contextLoads" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="OperTests.con" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="mergedata" />
       <extension name="coverage">
         <pattern>
@@ -204,39 +227,8 @@
         </pattern>
       </extension>
       <option name="PACKAGE_NAME" value="com.mergedata" />
-      <option name="MAIN_CLASS_NAME" value="com.mergedata.HisDataTests" />
-      <option name="METHOD_NAME" value="contextLoads" />
-      <option name="TEST_OBJECT" value="method" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="MessageDataApplicationTests" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="mergedata" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="com.mergedata.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="com.mergedata" />
-      <option name="MAIN_CLASS_NAME" value="com.mergedata.MessageDataApplicationTests" />
-      <option name="TEST_OBJECT" value="class" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="MessageDataApplicationTests.contextLoads" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="mergedata" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="com.mergedata.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="com.mergedata" />
-      <option name="MAIN_CLASS_NAME" value="com.mergedata.MessageDataApplicationTests" />
-      <option name="METHOD_NAME" value="contextLoads" />
+      <option name="MAIN_CLASS_NAME" value="com.mergedata.OperTests" />
+      <option name="METHOD_NAME" value="con" />
       <option name="TEST_OBJECT" value="method" />
       <method v="2">
         <option name="Make" enabled="true" />
@@ -257,19 +249,19 @@
       </method>
     </configuration>
     <list>
+      <item itemvalue="Application.ChineseHolidayManager" />
+      <item itemvalue="Application.HolidayDataParser" />
       <item itemvalue="Application.MessageDataApplication" />
-      <item itemvalue="JUnit.HisDataTests" />
-      <item itemvalue="JUnit.HisDataTests.contextLoads" />
-      <item itemvalue="JUnit.MessageDataApplicationTests" />
-      <item itemvalue="JUnit.MessageDataApplicationTests.contextLoads" />
+      <item itemvalue="JUnit.OperTests" />
+      <item itemvalue="JUnit.OperTests.con" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="JUnit.OperTests" />
+        <item itemvalue="Application.ChineseHolidayManager" />
+        <item itemvalue="JUnit.OperTests.con" />
+        <item itemvalue="Application.HolidayDataParser" />
         <item itemvalue="Application.MessageDataApplication" />
-        <item itemvalue="JUnit.HisDataTests" />
-        <item itemvalue="JUnit.MessageDataApplicationTests.contextLoads" />
-        <item itemvalue="JUnit.MessageDataApplicationTests" />
-        <item itemvalue="JUnit.HisDataTests.contextLoads" />
       </list>
     </recent_temporary>
   </component>
