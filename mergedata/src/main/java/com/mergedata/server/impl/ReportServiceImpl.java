@@ -379,6 +379,7 @@ public class ReportServiceImpl implements ReportService {
                 currentDto.setSerialNo(pk);
                 currentDto.setOperatorNo(operator.getOperatorNo());
                 currentDto.setOperatorName(operator.getOperatorName());
+                currentDto.setRowNum(operator.getRowNum());
 
                 // Report 对象的 reportDate 属性是 String，需要转换
                 currentDto.setReportDate(currtDate);

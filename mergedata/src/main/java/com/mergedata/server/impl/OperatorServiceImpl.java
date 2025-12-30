@@ -32,6 +32,10 @@ public class OperatorServiceImpl implements YQOperatorService {
 
     @Override
     public Boolean insert(YQOperator yqOperators) {
+        int size = operatorMapper.selectAll().size();
+
+        yqOperators.setRowNum(size+1);
+
         PrimaryKeyGenerator pk = new PrimaryKeyGenerator();
 
         yqOperators.setSerialNo(pk.generateKey());

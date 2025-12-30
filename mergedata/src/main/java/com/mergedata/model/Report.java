@@ -137,5 +137,11 @@ public class Report {
     @JsonProperty("create_time")
     private LocalDate createTime;
 
+    /*
+    员工序号
+     */
+    @JsonProperty("row_num")
+    private Integer rowNum;
+
 
 }

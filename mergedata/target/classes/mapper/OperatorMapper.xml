@@ -14,6 +14,9 @@
         <result column=" updator" property=" updator"/>
         <result column="update_time" property="updateTime"/>
         <result column="update_count" property="updateCount"/>
+        <result column="row_num" property="rowNum"/>
+
+
     </resultMap>
 
     <select id="selectAll" resultMap="YQOperatorMap">
@@ -31,6 +34,7 @@
         MPP_CASH_REG_OPERATOR
         WHERE
         isvalid = '1'
+        order by row_num
     </select>
 
     <select id="selectByID" resultMap="YQOperatorMap">
@@ -47,7 +51,7 @@
     <insert id="insert" parameterType="com.mergedata.model.YQOperator">
         INSERT INTO MPP_CASH_REG_OPERATOR (
         operator_no, operator_name, department_id,  creator,
-          updator, update_time,serial_no
+          updator, update_time,serial_no,row_num
         )
         VALUES (
         #{operatorNo , jdbcType=VARCHAR },
@@ -55,6 +59,7 @@
         #{departmentId, jdbcType=VARCHAR}, #{creator, jdbcType=VARCHAR},
          #{updator, jdbcType=VARCHAR}, #{updateTime, jdbcType=DATE},
         #{serialNo , jdbcType=VARCHAR }
+        #{rowNum , jdbcType=VARCHAR }
         )
     </insert>
 

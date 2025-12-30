@@ -38,4 +38,6 @@ public class YQOperator {
 
     private Integer updateCount;
 
+    private Integer rowNum;
+
 }
