@@ -152,6 +152,8 @@ public class ReportServiceImpl implements ReportService {
             sub.setSerialNo(pk);
             sub.setHisOperatorNo(report.getOperatorNo());
             sub.setHisOperatorName(report.getOperatorName());
+            sub.setRowNum(report.getRowNum());
+
             if (!report.getOperatorName().contains("合计")) {
                 subList.add(sub);
             }
@@ -238,6 +240,7 @@ public class ReportServiceImpl implements ReportService {
                 currentDto.setSerialNo(pk);
                 currentDto.setOperatorNo(rpt.getOperatorNo());
                 currentDto.setOperatorName(rpt.getOperatorName());
+                currentDto.setRowNum(rpt.getRowNum());
 
                 // Report 对象的 reportDate 属性是 String，需要转换
                 currentDto.setReportDate(currtDate);

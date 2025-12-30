@@ -29,7 +29,7 @@
         create_time,
          updator,
         update_time,
-        update_count,serial_no
+        update_count,serial_no,row_num
         FROM
         MPP_CASH_REG_OPERATOR
         WHERE
@@ -40,7 +40,7 @@
     <select id="selectByID" resultMap="YQOperatorMap">
         SELECT
         operator_no, operator_name, department_id, isvalid, creator,
-        create_time,  updator, update_time, update_count,serial_no
+        create_time,  updator, update_time, update_count,serial_no,row_num
         FROM
         MPP_CASH_REG_OPERATOR
         WHERE

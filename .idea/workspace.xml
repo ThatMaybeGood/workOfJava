@@ -7,10 +7,10 @@
     <list default="true" id="f5e93bba-4bf8-4603-8f6b-5adf75c26676" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/CashStatisticsSub.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/CashStatisticsSub.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/resources/mapper/OperatorMapper.xml" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/resources/mapper/OperatorMapper.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/ReportServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/ReportServiceImpl.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/src/main/resources/mapper/ReportMapper.xml" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/resources/mapper/ReportMapper.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/model/CashStatisticsSub.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/model/CashStatisticsSub.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/mapper/OperatorMapper.xml" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/mapper/OperatorMapper.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/ReportServiceImpl.class" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/com/mergedata/server/impl/ReportServiceImpl.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/target/classes/mapper/ReportMapper.xml" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/target/classes/mapper/ReportMapper.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

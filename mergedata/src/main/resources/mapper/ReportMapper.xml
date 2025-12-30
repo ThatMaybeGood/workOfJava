@@ -67,7 +67,7 @@
         s.emp_id, s.emp_name, s.his_advance_payment, s.his_medical_income, s.his_registration_income,
         s.report_amount, s.previous_temporary_receipt, s.holiday_temporary_receipt, s.actual_report_amount,
         s.current_temporary_receipt, s.actual_cash_amount, s.retained_difference, s.retained_cash,
-        s.petty_cash, s.remarks
+        s.petty_cash, s.remarks,s.row_num
         FROM
         MPP_CASH_STATISTICS_MASTER m
         LEFT JOIN
@@ -77,6 +77,7 @@
         WHERE
         m.serial_no = #{serialNo}
         AND m.isvalid = '1'
+        order by s.row_num
     </select>
 
     <select id="selectByDate" resultMap="MainWithSubMap">
@@ -88,7 +89,7 @@
         s.emp_id, s.emp_name, s.his_advance_payment, s.his_medical_income, s.his_registration_income,
         s.report_amount, s.previous_temporary_receipt, s.holiday_temporary_receipt, s.actual_report_amount,
         s.current_temporary_receipt, s.actual_cash_amount, s.retained_difference, s.retained_cash,
-        s.petty_cash, s.remarks
+        s.petty_cash, s.remarks,s.row_num
         FROM
         MPP_CASH_STATISTICS_MASTER m
         LEFT JOIN
@@ -98,6 +99,7 @@
         WHERE
         m.report_date = #{reportDate}
         AND m.isvalid = '1'
+        order by s.row_num
     </select>
 
 
@@ -110,7 +112,7 @@
         s.emp_id, s.emp_name, s.his_advance_payment, s.his_medical_income, s.his_registration_income,
         s.report_amount, s.previous_temporary_receipt, s.holiday_temporary_receipt, s.actual_report_amount,
         s.current_temporary_receipt, s.actual_cash_amount, s.retained_difference, s.retained_cash,
-        s.petty_cash, s.remarks
+        s.petty_cash, s.remarks,s.row_num
         FROM
         MPP_CASH_STATISTICS_MASTER m
         LEFT JOIN

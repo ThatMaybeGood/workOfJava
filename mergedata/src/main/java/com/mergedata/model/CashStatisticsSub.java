@@ -185,4 +185,12 @@ public class CashStatisticsSub {
     public void setRemarks(String remarks) {
         this.remarks = remarks;
     }
+
+    public Integer getRowNum() {
+        return rowNum;
+    }
+
+    public void setRowNum(Integer rowNum) {
+        this.rowNum = rowNum;
+    }
 }
