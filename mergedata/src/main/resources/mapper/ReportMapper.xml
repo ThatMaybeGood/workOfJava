@@ -29,6 +29,7 @@
             <result column="retained_cash" property="retainedCash"/>
             <result column="petty_cash" property="pettyCash"/>
             <result column="remarks" property="remarks"/>
+            <result column="row_num" property="rowNum"/>
         </collection>
     </resultMap>
 
@@ -54,6 +55,7 @@
         <result column="retained_cash" property="retainedCash"/>
         <result column="petty_cash" property="pettyCash"/>
         <result column="remarks" property="remarks"/>
+        <result column="row_num" property="rowNum"/>
     </resultMap>
 
     <select id="selectByPk" resultMap="ReportMap">
@@ -118,6 +120,7 @@
         WHERE
         m.report_date = #{reportDate}
         AND m.isvalid = '1'
+        order by s.row_num
     </select>
 
 
@@ -156,7 +159,7 @@
         retained_difference,
         retained_cash,
         petty_cash,
-        remarks
+        remarks,row_num
         )
         SELECT * FROM (
         <foreach collection="list" item="sub" separator="UNION ALL">
@@ -176,7 +179,8 @@
             #{sub.retainedDifference},
             #{sub.retainedCash},
             #{sub.pettyCash},
-            #{sub.remarks,jdbcType=VARCHAR}
+            #{sub.remarks,jdbcType=VARCHAR},
+            #{sub.rowNum,jdbcType=VARCHAR}
             FROM DUAL
         </foreach>
         )

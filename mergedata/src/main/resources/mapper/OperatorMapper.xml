@@ -58,7 +58,7 @@
         #{operatorName , jdbcType=VARCHAR},
         #{departmentId, jdbcType=VARCHAR}, #{creator, jdbcType=VARCHAR},
          #{updator, jdbcType=VARCHAR}, #{updateTime, jdbcType=DATE},
-        #{serialNo , jdbcType=VARCHAR }
+        #{serialNo , jdbcType=VARCHAR },
         #{rowNum , jdbcType=VARCHAR }
         )
     </insert>

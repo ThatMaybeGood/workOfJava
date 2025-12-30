@@ -36,6 +36,7 @@ public class CashStatisticsSub {
 
     private String remarks;     // 备注信息
 
+    private Integer rowNum;
 
     // 构造方法
     public CashStatisticsSub() {}
