@@ -9,6 +9,7 @@ spring:
   web:    # 确保 DispatcherServlet 对静态资源的处理不会影响到上面的配置
     resources:
       add-mappings: false
+
 # 服务器配置
 server:
   port: 18081
@@ -18,7 +19,8 @@ mybatis-plus:
   type-aliases-package: com.mergedata.domain
   mapper-locations: classpath*:mapper/**/*.xml # Ensure this is present if you use XML mappers
 
-#  configuration:
+  configuration:
+    jdbc-type-for-null: 'null' #全局配置允许mapper.xml写入null
 #    # Use only mybatis-plus config (the 'mybatis:' block is redundant)
 #    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 #    log-prefix: "[MYBATIS] "

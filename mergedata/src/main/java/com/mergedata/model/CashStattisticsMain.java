@@ -19,7 +19,7 @@ public class CashStattisticsMain {
     //创建人
     private String creator;
     //创建时间
-    private LocalDate createTime;
+    private LocalDateTime createTime;
     //更新时间
     private LocalDateTime updateTime;
     //关联的子报表列表（一对多关系）

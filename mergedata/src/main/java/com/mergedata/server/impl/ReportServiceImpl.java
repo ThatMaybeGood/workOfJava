@@ -134,7 +134,7 @@ public class ReportServiceImpl implements ReportService {
         }
 
 
-        main.setCreateTime(firstReport.getCreateTime() != null ? firstReport.getCreateTime() : LocalDate.now());
+        main.setCreateTime(firstReport.getCreateTime() != null ? firstReport.getCreateTime() : LocalDateTime.now());
         main.setUpdateTime(LocalDateTime.now());
 
         mainList.add(main); // 主表列表中只有 1 条记录
@@ -148,11 +148,15 @@ public class ReportServiceImpl implements ReportService {
 
             BeanUtils.copyProperties(report, sub);
 
-            // 关键：所有明细记录使用同一个主键作为外键
+            // 所有明细记录使用同一个主键作为外键
             sub.setSerialNo(pk);
             sub.setHisOperatorNo(report.getOperatorNo());
             sub.setHisOperatorName(report.getOperatorName());
+
+            //添加 结账序号 结账时间  2025.12.31
             sub.setRowNum(report.getRowNum());
+            sub.setAcctDate(report.getAcctDate());
+            sub.setAcctNo(report.getAcctNo());
 
             if (!report.getOperatorName().contains("合计")) {
                 subList.add(sub);
@@ -209,7 +213,7 @@ public class ReportServiceImpl implements ReportService {
 
         total.setRemarks("合计行，不展示在报表中");
         total.setReportDate(reportdate);
-        total.setCreateTime(LocalDate.now());
+        total.setCreateTime(LocalDateTime.now());
 
         return total;
     }
@@ -241,6 +245,13 @@ public class ReportServiceImpl implements ReportService {
                 currentDto.setOperatorNo(rpt.getOperatorNo());
                 currentDto.setOperatorName(rpt.getOperatorName());
                 currentDto.setRowNum(rpt.getRowNum());
+                /*
+                添加结账序号  结账时间 等 2025-13-31
+                 */
+                currentDto.setAcctDate(rpt.getAcctDate());
+                currentDto.setAcctNo(rpt.getAcctNo());
+                currentDto.setATM(rpt.getATM());
+                currentDto.setInpWindow(rpt.getInpWindow());
 
                 // Report 对象的 reportDate 属性是 String，需要转换
                 currentDto.setReportDate(currtDate);
@@ -382,7 +393,12 @@ public class ReportServiceImpl implements ReportService {
                 currentDto.setSerialNo(pk);
                 currentDto.setOperatorNo(operator.getOperatorNo());
                 currentDto.setOperatorName(operator.getOperatorName());
+                /*
+                添加 人员标识 set值等 2025.12.31
+                 */
                 currentDto.setRowNum(operator.getRowNum());
+                currentDto.setInpWindow(operator.getInpWindow());
+                currentDto.setATM(operator.getATM());
 
                 // Report 对象的 reportDate 属性是 String，需要转换
                 currentDto.setReportDate(currtDate);
@@ -403,6 +419,12 @@ public class ReportServiceImpl implements ReportService {
 
                 // --- 填充 HIS 收入和 ReportAmount (保持不变) ---
                 if (hisIncome != null) {
+                    /*
+                    添加结账序号 结账时间 2025.12.31
+                     */
+                    currentDto.setAcctNo(hisIncome.getAcctNo());
+                    currentDto.setAcctDate(hisIncome.getAcctDate());
+
                     currentDto.setHisAdvancePayment(getSafeBigDecimal(hisIncome.getHisAdvancePayment()));
                     currentDto.setHisMedicalIncome(getSafeBigDecimal(hisIncome.getHisMedicalIncome()));
                     currentDto.setHisRegistrationIncome(BigDecimal.ZERO);

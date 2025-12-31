@@ -7,6 +7,8 @@ import lombok.Data;
 import javax.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Data
 public class Report {
     @JsonProperty("serial_no")
@@ -135,7 +137,7 @@ public class Report {
      */
 //    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8") // <-- 新增此行
     @JsonProperty("create_time")
-    private LocalDate createTime;
+    private LocalDateTime createTime;
 
     /*
     员工序号
@@ -143,5 +145,15 @@ public class Report {
     @JsonProperty("row_num")
     private Integer rowNum;
 
+    @JsonProperty("acct_no")
+    private String acctNo;
 
+    @JsonProperty("acct_date")
+    private LocalDateTime acctDate;
+
+    @JsonProperty("inp_window")
+    private Integer inpWindow;
+
+    @JsonProperty("atm")
+    private Integer ATM;
 }

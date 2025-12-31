@@ -6,6 +6,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 public class HisIncome {
@@ -33,4 +34,11 @@ public class HisIncome {
     private LocalDate reportDate;
 
     // ... 其他字段也应如此
+
+    @JsonProperty("acct_no")
+    private String acctNo;
+
+    @JsonProperty("acct_date")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime acctDate;
 }

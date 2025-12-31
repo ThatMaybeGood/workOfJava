@@ -183,7 +183,7 @@ public class YQReportServiceImpl implements ReportService {
         // 5. 设置其他字段
         total.setRemarks("合计行，不展示在报表中");
         total.setReportDate(reportdate);
-        total.setCreateTime(LocalDate.from(LocalDateTime.now()));
+        total.setCreateTime(LocalDateTime.now());
 
         return total;
     }

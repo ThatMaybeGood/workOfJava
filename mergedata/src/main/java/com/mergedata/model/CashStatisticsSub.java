@@ -3,6 +3,7 @@ package com.mergedata.model;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 public class CashStatisticsSub {
@@ -36,7 +37,11 @@ public class CashStatisticsSub {
 
     private String remarks;     // 备注信息
 
-    private Integer rowNum;
+    private Integer rowNum;  //序号
+
+    private String acctNo;   //结账序号
+
+    private LocalDateTime acctDate; //结账时间
 
     // 构造方法
     public CashStatisticsSub() {}
