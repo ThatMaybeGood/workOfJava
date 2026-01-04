@@ -21,12 +21,14 @@
         SELECT *
         FROM  mpp_cash_reg_holiday
         WHERE isvalid = '1'
+        order by holiday_year,holiday_date
     </select>
 
     <select id="selectByDate" resultMap="YQHolidayCalendarMap">
         SELECT *
         FROM  mpp_cash_reg_holiday
         WHERE holiday_date = #{holidayDate} AND isvalid = '1'
+        order by holiday_year,holiday_date
     </select>
 
     <insert id="insert" parameterType="com.mergedata.model.YQHolidayCalendar">

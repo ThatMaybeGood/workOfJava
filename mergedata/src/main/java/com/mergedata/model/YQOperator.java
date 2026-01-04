@@ -40,8 +40,8 @@ public class YQOperator {
 
     private Integer rowNum;
 
-    private Integer inpWindow;
+    private Boolean inpWindow;
 
-    private Integer ATM;
+    private Boolean ATM;
 
 }
