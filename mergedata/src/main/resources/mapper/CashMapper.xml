@@ -3,8 +3,32 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.mergedata.mapper.CashMapper">
 
-    <select id="selectByDate" resultType="com.mergedata.model.YQCashRegRecord">
-        select * from
+    <resultMap id="CashMap" type="com.mergedata.model.YQCashRegRecord">
+        <id column="operator" property="operator"/>
+        <result column="operator_no" property="operatorNo"/>
+        <result column="amount" property="retainedCash"/>
+        <result column="apply_date" property="applyDate"/>
+        <result column="create_time" property="createTime"/>
+        <result column="ope_type" property="opeType"/>
+        <result column="window_no" property="windowNo"/>
+        <result column="scheduling" property=" scheduling"/>
+        <result column="save_date" property="saveDate"/>
+
+    </resultMap>
+
+
+    <select id="selectByDate" resultMap="CashMap">
+        select
+        operator,
+        operator_no,
+        amount,
+        apply_date ,
+        create_time,
+        ope_type,
+        window_no,
+        scheduling,
+        save_date
+        from
         mpp_cash_reg_record
         WHERE save_date= #{date}
     </select>

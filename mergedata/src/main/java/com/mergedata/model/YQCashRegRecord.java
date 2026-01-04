@@ -23,7 +23,7 @@ public class YQCashRegRecord {
 
     public String windowNo;
 
-    public String sechduling;
+    public String scheduling;
 
     //报表日期
     public String saveDate;

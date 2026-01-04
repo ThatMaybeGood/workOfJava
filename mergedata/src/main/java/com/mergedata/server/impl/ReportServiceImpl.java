@@ -397,8 +397,8 @@ public class ReportServiceImpl implements ReportService {
                 添加 人员标识 set值等 2025.12.31
                  */
                 currentDto.setRowNum(operator.getRowNum());
-                currentDto.setInpWindow(operator.getInpWindow()? 1:0);
-                currentDto.setATM(operator.getATM()? 1:0);
+                currentDto.setInpWindow(Boolean.TRUE.equals(operator.getInpWindow()) ? 1 : 0);
+                currentDto.setATM(Boolean.TRUE.equals(operator.getATM()) ? 1 : 0);
 
                 // Report 对象的 reportDate 属性是 String，需要转换
                 currentDto.setReportDate(currtDate);
