@@ -1,15 +1,21 @@
 package com.mergedata.model;
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
+@TableName("mpp_cash_stattics_sub") // 只要在这里指定数据库真实的表名
 public class CashStatisticsSub {
     // 关联的主表流水号
     private String serialNo;
+
+    @TableField("emp_id")
     private String hisOperatorNo;
+    @TableField("emp_name")
     private String hisOperatorName;
 
     private BigDecimal hisAdvancePayment; //his

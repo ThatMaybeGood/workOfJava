@@ -3,7 +3,7 @@ package com.mergedata.server.impl;
 import com.mergedata.dto.ApiRequest;
 import com.mergedata.dto.ApiRequestHead;
 import com.mergedata.dto.ApiResponse;
-import com.mergedata.dto.CommonRequestBody;
+import com.mergedata.dto.HisDataRequestBody;
 import com.mergedata.exception.BusinessException;
 import com.mergedata.model.HisIncome;
 import com.mergedata.server.HisDataService;
@@ -39,10 +39,10 @@ public class HisDataServiceImpl implements HisDataService {
         log.info("开始调用 HIS 收入 API (TypeRef): {}", URL_API_HISINCOME);
 
         // 1. 组装请求对象 (不变)
-        CommonRequestBody comBody = new CommonRequestBody();
+        HisDataRequestBody comBody = new HisDataRequestBody();
         comBody.setReportdate(reportdate);
 
-        ApiRequest<CommonRequestBody> apiRequest = new ApiRequest<>();
+        ApiRequest<HisDataRequestBody> apiRequest = new ApiRequest<>();
         apiRequest.setHead(headConfig);
         apiRequest.setBody(comBody);
 

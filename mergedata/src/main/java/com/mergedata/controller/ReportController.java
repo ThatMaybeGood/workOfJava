@@ -3,7 +3,7 @@ package com.mergedata.controller;
 import com.mergedata.dto.ApiRequest;
 import com.mergedata.dto.ApiRequestList;
 import com.mergedata.dto.ApiResponse;
-import com.mergedata.dto.CommonRequestBody;
+import com.mergedata.dto.ReportRequestBody;
 import com.mergedata.model.AddGroup;
 import com.mergedata.model.Report;
 import com.mergedata.server.ReportService;
@@ -37,12 +37,12 @@ public class ReportController {
 
     @Operation(summary = "根据日期查询对应报表数据", description = "返回对应的报表数据")
     @PostMapping("/findbydate")
-    public ApiResponse<Report> findALl(@Valid @RequestBody ApiRequest<CommonRequestBody> request)  {
+    public ApiResponse<Report> findALl(@Valid @RequestBody ApiRequest<ReportRequestBody> request)  {
 
-        String reportdate = request.getBody().getReportdate();
+//        LocalDate reportdate = request.getBody().getReportdate();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        List<Report> resultList = report.getAll(reportdate);
+        List<Report> resultList = report.getAll(request.getBody());
 
         // 4. 返回结果
         return ApiResponse.success(resultList,"查询报表列表成功！");

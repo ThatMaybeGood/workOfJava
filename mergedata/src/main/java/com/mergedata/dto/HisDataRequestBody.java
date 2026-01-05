@@ -5,7 +5,7 @@ import lombok.Data;
 import javax.validation.constraints.NotBlank;
 
 @Data
-public class CommonRequestBody {
+public class HisDataRequestBody {
 
     @NotBlank(message = "reportdate不能为空")
     private String reportdate;

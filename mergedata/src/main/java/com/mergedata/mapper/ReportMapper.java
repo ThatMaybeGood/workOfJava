@@ -1,7 +1,8 @@
 package com.mergedata.mapper;
 
-import com.mergedata.model.CashStattisticsMain;
+import com.mergedata.dto.ReportRequestBody;
 import com.mergedata.model.CashStatisticsSub;
+import com.mergedata.model.CashStattisticsMain;
 import com.mergedata.model.Report;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -20,11 +21,15 @@ public interface ReportMapper {
      */
     List<Report> selectReportByDate(LocalDate reportDate);
 
+    List<Report> findReport(ReportRequestBody body);
 
     /* 查询：主从嵌套报表 */
     List<CashStattisticsMain> selectByDate(LocalDate reportDate);
 
     /* 写入：批量插入主表 */
+    int insertMain(CashStattisticsMain main);
+
+    /* 写入：批量插入明细表 */
     int batchInsertList(List<CashStattisticsMain> list);
 
     /* 写入：批量插入明细表 */

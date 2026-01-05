@@ -1,6 +1,7 @@
 package com.mergedata.server.impl;
 
 import com.mergedata.constants.ReqConstant;
+import com.mergedata.dto.ReportRequestBody;
 import com.mergedata.mapper.YQReportMapper;
 import com.mergedata.model.*;
 import com.mergedata.server.*;
@@ -67,6 +68,11 @@ public class YQReportServiceImpl implements ReportService {
         results.add(calculateTotal(results, LocalDate.parse(reportdate)));
 
         return results;
+    }
+
+    @Override
+    public List<Report> getAll(ReportRequestBody body) {
+        return Collections.emptyList();
     }
 
     @Override

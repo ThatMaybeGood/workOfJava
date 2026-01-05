@@ -129,6 +129,32 @@
     </select>
 
 
+    <select id="findReport" resultMap="com.mergedata.dto.ReportRequestBody">
+        SELECT
+        m.serial_no AS main_serial_no, m.report_date,
+        m.report_year,
+        m.create_time,
+        s.emp_id, s.emp_name, s.his_advance_payment, s.his_medical_income, s.his_registration_income,
+        s.report_amount, s.previous_temporary_receipt, s.holiday_temporary_receipt, s.actual_report_amount,
+        s.current_temporary_receipt, s.actual_cash_amount, s.retained_difference, s.retained_cash,
+        s.petty_cash, s.remarks,s.acct_no,s.acct_date,s.row_num,r.inp_window,r.atm
+        FROM
+        MPP_CASH_STATISTICS_MASTER m
+        LEFT JOIN mpp_cash_statistics_sub s ON m.serial_no = s.serial_no
+        LEFT JOIN mpp_cash_reg_operator r ON r.operator_no = s.emp_id
+        WHERE
+        m.report_date = #{reportdate}
+        AND m.isvalid = '1'
+        <if test="atm != null">
+            AND inp_window = #{inpWindow}
+        </if>
+        <if test="atm != null">
+            AND atm = #{ATM}
+        </if>
+        order by s.row_num
+    </select>
+
+
     <insert id="batchInsertList">
         INSERT INTO MPP_CASH_STATISTICS_MASTER (
         serial_no, report_date, report_year,  isvalid, creator, create_time, update_time
@@ -213,5 +239,24 @@
         serial_no = #{serialNo}
         AND  isvalid = '1'
     </update>
+
+
+
+    <insert id="InsertMain" parameterType="com.mergedata.model.CashStattisticsMain">
+        INSERT INTO MPP_CASH_STATISTICS_MASTER (
+        serial_no, report_date, report_year,  isvalid, creator, create_time, update_time
+        )
+        VALUES
+            (
+            #{serialNo, jdbcType=VARCHAR},
+            #{reportDate, jdbcType=DATE},
+            #{reportYear, jdbcType=NUMERIC},
+            #{isvalid, jdbcType=VARCHAR},
+            #{creator, jdbcType=VARCHAR},
+            #{createTime, jdbcType=TIMESTAMP},
+            #{updateTime, jdbcType=TIMESTAMP}
+            )
+
+    </insert>
 
 </mapper>
