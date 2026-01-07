@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <property name="LOG_PATH" value="d:/logs/auto_demo"/>
+
+    <include resource="org/springframework/boot/logging/logback/base.xml" />
+
+    <property name="FILE_LOG_PATTERN_MY" value="%d{yyyy-MM-dd hh:mm:ss} [%thread]  %-5level %logger{50}[%L] - %msg%n"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- 對日誌進行格式化 -->
+        <encoder>
+            <pattern>%white(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] %yellow(%logger{36}:%L): %msg%n%throwable</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 时间滚动输出 level为 TRACE 日志 -->
+    <appender name="TRACE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 正在记录的日志文件的路径及文件名 -->
+        <file>${LOG_PATH}/log_trace.log</file>
+        <!--日志文件输出格式-->
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset> <!-- 此处设置字符集 -->
+        </encoder>
+        <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/trace/log-trace-%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <!--单文件最大不超过100MB-->
+            <maxFileSize>100MB</maxFileSize>
+            <!-- 警告文件保留20天, 以便后期查看. -->
+            <maxHistory>20</maxHistory>
+            <!--日志最大不超过20GB-->
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+        <!-- 此日志文件只记录warn级别的 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>trace</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <!-- 时间滚动输出 level为 INFO 日志 -->
+    <appender name="INFO_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 正在记录的日志文件的路径及文件名 -->
+        <file>${LOG_PATH}/log_info.log</file>
+        <!--日志文件输出格式-->
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN_MY}</pattern>
+            <charset>UTF-8</charset> <!-- 此处设置字符集 -->
+        </encoder>
+        <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/trace/log-info-%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <!--单文件最大不超过100MB-->
+            <maxFileSize>100MB</maxFileSize>
+            <!-- 警告文件保留20天, 以便后期查看. -->
+            <maxHistory>20</maxHistory>
+            <!--日志最大不超过20GB-->
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+        <!-- 此日志文件只记录warn级别的 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>INFO</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <!-- 时间滚动输出 level为 WARN 日志 -->
+    <appender name="WARN_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 正在记录的日志文件的路径及文件名 -->
+        <file>${LOG_PATH}/log_warn.log</file>
+        <!--日志文件输出格式-->
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset> <!-- 此处设置字符集 -->
+        </encoder>
+        <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/warn/log-warn-%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <!--单文件最大不超过100MB-->
+            <maxFileSize>100MB</maxFileSize>
+            <!-- 警告文件保留20天, 以便后期查看. -->
+            <maxHistory>20</maxHistory>
+            <!--日志最大不超过20GB-->
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+        <!-- 此日志文件只记录warn级别的 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>warn</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <!-- 时间滚动输出 level为 ERROR 日志 -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 正在记录的日志文件的路径及文件名 -->
+        <file>${LOG_PATH}/log_error.log</file>
+        <!--日志文件输出格式-->
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+        <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/error/log-error-%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <!--单文件最大不超过100MB-->
+            <maxFileSize>100MB</maxFileSize>
+            <!-- 错误文件保留60天, 以便后期查看. -->
+            <maxHistory>60</maxHistory>
+            <!--日志最大不超过20GB-->
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+        <!-- 此日志文件只记录ERROR级别的 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <!-- 最低要求, 必须开启warn级别以上的日志, INFO看情况, 生产禁止开启DEBUG-->
+    <!-- 级别由Spring 配置文件控制-->
+    <root level="INFO">
+        <appender-ref ref="FILE" />
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="WARN_FILE" />
+        <appender-ref ref="ERROR_FILE"/>
+        <appender-ref ref="TRACE_FILE"/>
+        <appender-ref ref="INFO_FILE"/>
+    </root>
+</configuration>

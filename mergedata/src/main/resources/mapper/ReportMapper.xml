@@ -146,10 +146,10 @@
         m.report_date = #{reportdate}
         AND m.isvalid = '1'
         <if test="atm != null">
-            AND inp_window = #{inpWindow}
+            AND r.inp_window = #{inpWindow}
         </if>
         <if test="atm != null">
-            AND atm = #{ATM}
+            AND r.atm = #{ATM}
         </if>
         order by s.row_num
     </select>

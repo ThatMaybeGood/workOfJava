@@ -58,6 +58,8 @@ public class ReportServiceImpl implements ReportService {
         try {
             // 使用 LocalDate 对象进行查询
             results = report.selectReportByDate(body.getReportDate());
+//            results = report.findReport(body);
+
 
             // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
             if (results.isEmpty()) {

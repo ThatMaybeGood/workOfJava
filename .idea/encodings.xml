@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Encoding" defaultCharsetForPropertiesFiles="UTF-8">
+    <file url="file://$PROJECT_DIR$/auto_demo/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/mergedata/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/showExcel/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/showExcel/src/main/resources" charset="UTF-8" />
