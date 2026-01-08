@@ -16,7 +16,7 @@
         <result column="update_count" property="updateCount"/>
         <result column="row_num" property="rowNum"/>
         <result column="inp_window" property="inpWindow"/>
-        <result column="ATM" property="ATM"/>
+        <result column="atm" property="atm"/>
 
 
     </resultMap>
@@ -63,7 +63,7 @@
         #{serialNo , jdbcType=VARCHAR },
         #{rowNum , jdbcType=VARCHAR },
         #{inpWindow , jdbcType=VARCHAR },
-        #{ATM , jdbcType=VARCHAR }
+        #{atm , jdbcType=VARCHAR }
         )
     </insert>
 

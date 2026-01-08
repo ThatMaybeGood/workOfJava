@@ -61,7 +61,7 @@
         <result column="acct_no" property="acctNo"/>
         <result column="acct_date" property="acctDate"/>
         <result column="inp_window" property="inpWindow"/>
-        <result column="atm" property="ATM"/>
+        <result column="atm" property="atm"/>
     </resultMap>
 
     <select id="selectByPk" resultMap="ReportMap">
@@ -143,14 +143,14 @@
         LEFT JOIN mpp_cash_statistics_sub s ON m.serial_no = s.serial_no
         LEFT JOIN mpp_cash_reg_operator r ON r.operator_no = s.emp_id
         WHERE
-        m.report_date = #{reportdate}
+        m.report_date = #{reportDate}
         AND m.isvalid = '1'
-        <if test="atm != null">
-            AND r.inp_window = #{inpWindow}
-        </if>
-        <if test="atm != null">
-            AND r.atm = #{ATM}
-        </if>
+<!--        <if test="inpWindow == 1">-->
+<!--            AND r.inp_window = 1-->
+<!--        </if>-->
+<!--        <if test="atm == 1">-->
+<!--            AND r.atm = 1-->
+<!--        </if>-->
         order by s.row_num
     </select>
 

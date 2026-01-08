@@ -57,8 +57,8 @@ public class ReportServiceImpl implements ReportService {
         //调用存储过程获取报表数据
         try {
             // 使用 LocalDate 对象进行查询
-            results = report.selectReportByDate(body.getReportDate());
-//            results = report.findReport(body);
+//            results = report.selectReportByDate(body.getReportDate());
+            results = report.findReport(body);
 
 
             // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
@@ -79,7 +79,14 @@ public class ReportServiceImpl implements ReportService {
         //屏蔽计算合计金额
 //        results.add(calculateTotal(results, LocalDate.parse(reportdate)));
 
-        return results;
+
+
+        // 进行筛选
+        return results.stream()
+                .filter(r -> (body.getInpWindow() == null || body.getInpWindow() != 1 || Integer.valueOf(1).equals(r.getInpWindow())))
+                .filter(r -> (body.getAtm() == null || body.getAtm() != 1 || Integer.valueOf(1).equals(r.getAtm())))
+                .collect(Collectors.toList());
+//        return results;
     }
 
     /*
@@ -320,7 +327,7 @@ public class ReportServiceImpl implements ReportService {
                  */
                 currentDto.setAcctDate(rpt.getAcctDate());
                 currentDto.setAcctNo(rpt.getAcctNo());
-                currentDto.setATM(rpt.getATM());
+                currentDto.setAtm(rpt.getAtm());
                 currentDto.setInpWindow(rpt.getInpWindow());
 
                 // Report 对象的 reportDate 属性是 String，需要转换
@@ -474,7 +481,7 @@ public class ReportServiceImpl implements ReportService {
                  */
                 currentDto.setRowNum(operator.getRowNum());
                 currentDto.setInpWindow(Boolean.TRUE.equals(operator.getInpWindow()) ? 1 : 0);
-                currentDto.setATM(Boolean.TRUE.equals(operator.getATM()) ? 1 : 0);
+                currentDto.setAtm(Boolean.TRUE.equals(operator.getAtm()) ? 1 : 0);
 
                 // Report 对象的 reportDate 属性是 String，需要转换
                 currentDto.setReportDate(currtDate);

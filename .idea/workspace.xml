@@ -5,28 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f5e93bba-4bf8-4603-8f6b-5adf75c26676" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/auto_demo/.gitattributes" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auto_demo/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auto_demo/mvnw" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auto_demo/mvnw.cmd" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auto_demo/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auto_demo/src/main/java/com/example/auto_demo/AutoDemoApplication.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auto_demo/src/main/java/com/example/auto_demo/Controller/ApiController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auto_demo/src/main/java/com/example/auto_demo/config/AppConfig.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auto_demo/src/main/java/com/example/auto_demo/config/Config.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auto_demo/src/main/java/com/example/auto_demo/logic/ApiLogic.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auto_demo/src/main/java/com/example/auto_demo/logic/WebDriverLogic.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auto_demo/src/main/java/com/example/auto_demo/util/DateUtil.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auto_demo/src/main/java/com/example/auto_demo/util/HttpUtil.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auto_demo/src/main/java/com/example/auto_demo/util/StringUtil.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auto_demo/src/main/resources/index.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auto_demo/src/main/resources/logback-spring.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/auto_demo/src/test/java/com/example/auto_demo/WebDriverTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/ReportRequestBody.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/dto/ReportRequestBody.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/CashStatisticsSub.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/CashStatisticsSub.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/CashStattisticsMain.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/CashStattisticsMain.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/Report.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/Report.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/YQOperator.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/YQOperator.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/ReportServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/ReportServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/resources/mapper/OperatorMapper.xml" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/resources/mapper/OperatorMapper.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mergedata/src/main/resources/mapper/ReportMapper.xml" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/resources/mapper/ReportMapper.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -96,69 +82,69 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_ADD_EXTERNAL_FILES": "true",
-    "Application.AutoDemoApplication.executor": "Run",
-    "Application.ChineseHolidayManager.executor": "Run",
-    "Application.HolidayDataParser.executor": "Run",
-    "Application.MessageDataApplication.executor": "Run",
-    "Application.MessageDataServiceApplication (1).executor": "Debug",
-    "Application.MessageDataServiceApplication.executor": "Run",
-    "Application.MultiFormatDateParser.executor": "Run",
-    "Application.ShowExcelApplication.executor": "Run",
-    "Application.ShowExcelSoapApplication.executor": "Run",
-    "Application.com.mergedata.MessageDataServiceApplication.executor": "Run",
-    "JUnit.HisDataTests.contextLoads.executor": "Run",
-    "JUnit.HisDataTests.executor": "Run",
-    "JUnit.MessageDataApplicationTests.contextLoads.executor": "Run",
-    "JUnit.MessageDataApplicationTests.executor": "Run",
-    "JUnit.MessageDataServiceApplicationTests.contextLoads (1).executor": "Run",
-    "JUnit.MessageDataServiceApplicationTests.contextLoads.executor": "Debug",
-    "JUnit.MessageDataServiceApplicationTests.executor": "Run",
-    "JUnit.OperTests.con.executor": "Run",
-    "JUnit.OperTests.contextLoads.executor": "Run",
-    "JUnit.OperTests.executor": "Debug",
-    "Maven.auto_demo [clean].executor": "Run",
-    "Maven.auto_demo [install].executor": "Run",
-    "Maven.mergedata [clean].executor": "Run",
-    "Maven.mergedata [compile].executor": "Run",
-    "Maven.mergedata [install].executor": "Run",
-    "Maven.mergedata [package].executor": "Run",
-    "Maven.mergedata [test].executor": "Run",
-    "Maven.message-data-service [clean].executor": "Run",
-    "Maven.message-data-service [install].executor": "Run",
-    "Maven.showExcel [clean].executor": "Run",
-    "Maven.showExcel [install].executor": "Run",
-    "Maven.showExcelSoap [clean].executor": "Run",
-    "Maven.showExcelSoap [package].executor": "Run",
-    "RequestMappingsPanelOrder0": "0",
-    "RequestMappingsPanelOrder1": "1",
-    "RequestMappingsPanelWidth0": "75",
-    "RequestMappingsPanelWidth1": "75",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "main",
-    "jdk.selected.JAVA_MODULE": "17",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "D:/JetBrains/IdeaProjects/workOfJava/mergedata/src/main/resources",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "Modules",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "MavenSettings",
-    "spring.configuration.checksum": "15a69574ef3b422007ec502eb04e3292",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;Application.AutoDemoApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Application.ChineseHolidayManager.executor&quot;: &quot;Run&quot;,
+    &quot;Application.HolidayDataParser.executor&quot;: &quot;Run&quot;,
+    &quot;Application.MessageDataApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Application.MessageDataServiceApplication (1).executor&quot;: &quot;Debug&quot;,
+    &quot;Application.MessageDataServiceApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Application.MultiFormatDateParser.executor&quot;: &quot;Run&quot;,
+    &quot;Application.ShowExcelApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Application.ShowExcelSoapApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Application.com.mergedata.MessageDataServiceApplication.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.HisDataTests.contextLoads.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.HisDataTests.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.MessageDataApplicationTests.contextLoads.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.MessageDataApplicationTests.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.MessageDataServiceApplicationTests.contextLoads (1).executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.MessageDataServiceApplicationTests.contextLoads.executor&quot;: &quot;Debug&quot;,
+    &quot;JUnit.MessageDataServiceApplicationTests.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OperTests.con.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OperTests.contextLoads.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OperTests.executor&quot;: &quot;Debug&quot;,
+    &quot;Maven.auto_demo [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.auto_demo [install].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.mergedata [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.mergedata [compile].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.mergedata [install].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.mergedata [package].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.mergedata [test].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.message-data-service [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.message-data-service [install].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.showExcel [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.showExcel [install].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.showExcelSoap [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.showExcelSoap [package].executor&quot;: &quot;Run&quot;,
+    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
+    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
+    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;jdk.selected.JAVA_MODULE&quot;: &quot;17&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/JetBrains/IdeaProjects/workOfJava/mergedata/src/main/resources&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;MavenSettings&quot;,
+    &quot;spring.configuration.checksum&quot;: &quot;15a69574ef3b422007ec502eb04e3292&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\JetBrains\IdeaProjects\workOfJava\mergedata\src\main\resources" />

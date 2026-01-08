@@ -154,6 +154,6 @@ public class Report {
     @JsonProperty("inp_window")
     private Integer inpWindow;
 
-    @JsonProperty("atm")
-    private Integer ATM;
+    @JsonProperty("amt")
+    private Integer atm;
 }

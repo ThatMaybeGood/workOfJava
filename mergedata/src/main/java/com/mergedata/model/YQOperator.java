@@ -42,6 +42,6 @@ public class YQOperator {
 
     private Boolean inpWindow;
 
-    private Boolean ATM;
+    private Boolean atm;
 
 }
