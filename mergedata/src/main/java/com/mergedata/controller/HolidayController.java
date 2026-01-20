@@ -7,12 +7,15 @@ import com.mergedata.model.YQHolidayCalendar;
 import com.mergedata.server.YQHolidayService;
 import com.mergedata.util.PrimaryKeyGenerator;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
 
 
@@ -107,9 +110,25 @@ public class HolidayController {
         return ApiResponse.success("节假日作废成功");
     }
 
-    @GetMapping("/")
-    public Result<String> getHolidayApiInfo() {
-        return Result.success("API服务已启动，可用端点：/R /data, /insert");
+    //使用路径变量
+    @Operation(summary = "查询日期的类型", description = "返回操作结果")
+    @GetMapping("/querydatetype/{holidayDate}")
+    public Integer queryDateType(
+            @Parameter(description = "查询日期，格式：yyyy-MM-dd", example = "2026-01-01")
+            @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate holidayDate) {
+
+        if (holidayDate == null) {
+            holidayDate = LocalDate.now();
+        }
+        return holiday.queryDateType(holidayDate);
     }
+//  使用 @RequestParam
+//    @Operation(summary = "查询日期的类型", description = "返回操作结果")
+//    @GetMapping("/querydatetype")
+//    public Integer queryDateType(
+//            @Parameter(description = "查询日期，格式：yyyy-MM-dd", example = "2024-01-19")
+//            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate holidayDate) {
+//        return holiday.queryDateType(holidayDate);
+//    }
 
 }

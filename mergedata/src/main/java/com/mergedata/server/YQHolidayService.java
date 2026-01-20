@@ -37,4 +37,11 @@ public interface YQHolidayService {
      */
     Boolean delete(YQHolidayCalendar holiday);
 
+
+    /*
+     * 获取日期对应的类型
+     */
+    Integer queryDateType(LocalDate  holidayDate);
+
+
 }

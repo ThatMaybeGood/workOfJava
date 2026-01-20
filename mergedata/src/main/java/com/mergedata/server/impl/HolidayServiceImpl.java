@@ -1,5 +1,6 @@
 package com.mergedata.server.impl;
 
+import com.mergedata.constants.ReqConstant;
 import com.mergedata.mapper.HolidayMapper;
 import com.mergedata.model.YQHolidayCalendar;
 import com.mergedata.server.YQHolidayService;
@@ -11,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -62,6 +65,42 @@ public class HolidayServiceImpl implements YQHolidayService {
          return holidayMapper.delete(holiday.getSerialNo())>0?true:false;
     }
 
+    @Override
+    public Integer queryDateType(LocalDate holidayDate) {
+
+        if (isHoliday( holidayDate)){
+           return ReqConstant.HOLIDAY_IS;
+        }else {
+            // ❗当前是工作日 且 前一天是节假日/周末
+            if(isHoliday(holidayDate.minusDays(1))){
+                return ReqConstant.HOLIDAY_PRE;
+            }
+            // ❗当前是工作日 且 后一天是节假日/周末
+            if(!isHoliday(holidayDate.plusDays(1))){
+                return ReqConstant.HOLIDAY_AFTER;
+            }
+        }
+
+        return ReqConstant.HOLIDAY_NOT;
+    }
+
+    /**
+     * 判断日期是否为节假日 (使用 Set 版本)
+     */
+    private boolean isHoliday(LocalDate targetDate) {
+        // 1. 获取所有必需的原始数据
+        List<YQHolidayCalendar> holidays = holidayMapper.selectAll();
+
+        Set<LocalDate> holidaySet = holidays.stream()
+                .map(YQHolidayCalendar::getHolidayDate)
+                .collect(Collectors.toSet());
+
+        if (holidaySet == null || targetDate == null) {
+            return false;
+        }
+        return holidaySet.contains(targetDate);
+
+    }
 
     @Transactional
     @Override

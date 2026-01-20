@@ -66,6 +66,11 @@ public class YQHolidayServiceImpl implements YQHolidayService {
         return null;
     }
 
+    @Override
+    public Integer queryDateType(LocalDate holidayDate) {
+        return 0;
+    }
+
     @Transactional
     @Override
     public Boolean batchInsertList(List<YQHolidayCalendar> list) {

@@ -57,4 +57,22 @@ public class ReqConstant {
      */
     public static final String SP_TYPE_DELETE = "3";
 
+    //===============节假日类型========================
+    /*
+     * 正常工作日
+     */
+    public static final Integer HOLIDAY_NOT = 0;
+    /*
+     * 节假日
+     */
+    public static final Integer HOLIDAY_IS = 1;
+    /*
+     * 节假日前一天
+     */
+    public static final Integer HOLIDAY_PRE = 2;
+    /*
+     * 节假日后第一天
+     */
+    public static final Integer HOLIDAY_AFTER = 3;
+
 }
