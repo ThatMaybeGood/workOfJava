@@ -1,6 +1,6 @@
 package com.mergedata.exception;
 
-import com.mergedata.dto.ApiResponseError;
+import com.mergedata.model.vo.ApiResponseError;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;

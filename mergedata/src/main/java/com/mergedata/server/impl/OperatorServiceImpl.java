@@ -1,7 +1,7 @@
 package com.mergedata.server.impl;
 
 import com.mergedata.mapper.OperatorMapper;
-import com.mergedata.model.YQOperator;
+import com.mergedata.model.entity.YQOperatorEntity;
 import com.mergedata.server.YQOperatorService;
 import com.mergedata.util.PrimaryKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
@@ -20,60 +20,60 @@ public class OperatorServiceImpl implements YQOperatorService {
 
 
     @Override
-    public List<YQOperator> findAll() {
+    public List<YQOperatorEntity> findAll() {
         return  operatorMapper.selectAll();
      }
 
     @Override
-    public List<YQOperator> findByID(YQOperator operator) {
+    public List<YQOperatorEntity> findByID(YQOperatorEntity operator) {
 
         return operatorMapper.selectByID(operator.getOperatorNo());
     }
 
     @Override
-    public Boolean insert(YQOperator yqOperators) {
+    public Boolean insert(YQOperatorEntity yqOperatorsEntity) {
         int size = operatorMapper.selectAll().size();
 
-        yqOperators.setRowNum(size+1);
+        yqOperatorsEntity.setRowNum(size+1);
 
         PrimaryKeyGenerator pk = new PrimaryKeyGenerator();
 
-        yqOperators.setSerialNo(pk.generateKey());
+        yqOperatorsEntity.setSerialNo(pk.generateKey());
 
-        int insert = operatorMapper.insert(yqOperators);
+        int insert = operatorMapper.insert(yqOperatorsEntity);
 
         return insert > 0;
     }
 
     @Override
-    public Boolean batchInsert(List<YQOperator> yqOperators) {
+    public Boolean batchInsert(List<YQOperatorEntity> yqOperatorEntities) {
         //查询出id
-        for (YQOperator yqOperator : yqOperators) {
+        for (YQOperatorEntity yqOperatorEntity : yqOperatorEntities) {
             PrimaryKeyGenerator pk = new PrimaryKeyGenerator();
 
-            yqOperator.setSerialNo(pk.generateKey());
+            yqOperatorEntity.setSerialNo(pk.generateKey());
 
-            if (operatorMapper.selectByID(yqOperator.getOperatorNo()).size() > 0){
+            if (operatorMapper.selectByID(yqOperatorEntity.getOperatorNo()).size() > 0){
                 //移除这个id的
-                yqOperators.remove(yqOperator);
+                yqOperatorEntities.remove(yqOperatorEntity);
             }
         }
 
-        int i = operatorMapper.batchInsertList(yqOperators);
+        int i = operatorMapper.batchInsertList(yqOperatorEntities);
         return i > 0;
     }
 
     @Override
-    public Boolean delete(YQOperator yqOperator) {
+    public Boolean delete(YQOperatorEntity yqOperatorEntity) {
         //查询出id
-        if ( yqOperator.getOperatorNo() == null) {
+        if ( yqOperatorEntity.getOperatorNo() == null) {
             return false;
         }
-        return operatorMapper.delete(yqOperator.getOperatorNo()) > 0;
+        return operatorMapper.delete(yqOperatorEntity.getOperatorNo()) > 0;
     }
 
     @Override
-    public Boolean update(YQOperator yqOperator) {
+    public Boolean update(YQOperatorEntity yqOperatorEntity) {
         return null;
     }
 }

@@ -1,4 +1,4 @@
-package com.mergedata.model;
+package com.mergedata.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
  * @LocalDate 2025/10/30 10:46
  */
 @Data
-public class YQHolidayCalendar {
+public class YQHolidayCalendarEntity {
 
     // 默认不需要指定 JDBC Type，MyBatis-Plus/MyBatis 可以推断 VARCHAR
     private String serialNo;

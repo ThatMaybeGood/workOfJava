@@ -1,6 +1,6 @@
 package com.mergedata.server;
 
-import com.mergedata.model.YQOperator;
+import com.mergedata.model.entity.YQOperatorEntity;
 
 import java.util.List;
 
@@ -8,28 +8,28 @@ public interface YQOperatorService {
     /*
      * 查询所有历史操作员数据
      */
-    List<YQOperator> findAll();
+    List<YQOperatorEntity> findAll();
 
 
-    List<YQOperator> findByID(YQOperator operator);
+    List<YQOperatorEntity> findByID(YQOperatorEntity operator);
 
     /*
      * 单条插入操作员数据
      */
-    Boolean insert(YQOperator yqOperators);
+    Boolean insert(YQOperatorEntity yqOperatorsEntity);
 
     /*
      * 批量插入操作员数据
      */
-    Boolean batchInsert(List<YQOperator> yqOperators);
+    Boolean batchInsert(List<YQOperatorEntity> yqOperatorEntities);
 
     /*
      * 作废
      */
-    Boolean delete(YQOperator yqOperator);
+    Boolean delete(YQOperatorEntity yqOperatorEntity);
     /*
      * 作废
      */
-    Boolean update(YQOperator yqOperator);
+    Boolean update(YQOperatorEntity yqOperatorEntity);
 
 }

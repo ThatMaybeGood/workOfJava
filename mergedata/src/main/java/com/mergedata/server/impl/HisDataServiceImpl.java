@@ -1,11 +1,11 @@
 package com.mergedata.server.impl;
 
-import com.mergedata.dto.ApiRequest;
-import com.mergedata.dto.ApiRequestHead;
-import com.mergedata.dto.ApiResponse;
-import com.mergedata.dto.HisDataRequestBody;
+import com.mergedata.model.dto.ApiRequest;
+import com.mergedata.model.dto.ApiRequestHead;
+import com.mergedata.model.vo.ApiResponse;
+import com.mergedata.model.dto.external.HisDataRequestBodyDTO;
 import com.mergedata.exception.BusinessException;
-import com.mergedata.model.HisIncome;
+import com.mergedata.model.dto.external.HisIncomeResponseDTO;
 import com.mergedata.server.HisDataService;
 import com.mergedata.util.RestApiUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -34,26 +34,26 @@ public class HisDataServiceImpl implements HisDataService {
 
     private RestTemplate restTemplate;
     @Override
-    public List<HisIncome> findByDate(String reportdate) {
+    public List<HisIncomeResponseDTO> findByDate(String reportdate) {
 
         log.info("开始调用 HIS 收入 API (TypeRef): {}", URL_API_HISINCOME);
 
         // 1. 组装请求对象 (不变)
-        HisDataRequestBody comBody = new HisDataRequestBody();
+        HisDataRequestBodyDTO comBody = new HisDataRequestBodyDTO();
         comBody.setReportdate(reportdate);
 
-        ApiRequest<HisDataRequestBody> apiRequest = new ApiRequest<>();
+        ApiRequest<HisDataRequestBodyDTO> apiRequest = new ApiRequest<>();
         apiRequest.setHead(headConfig);
         apiRequest.setBody(comBody);
 
         // 2. 【修正点 1】定义正确的返回类型
         // 外部 ApiResponse<HisIncomeDTO> 结构：泛型 T 应该代表 list 内部的数据类型
-        ParameterizedTypeReference<ApiResponse<HisIncome>> typeRef = new ParameterizedTypeReference<ApiResponse<HisIncome>>() {};
+        ParameterizedTypeReference<ApiResponse<HisIncomeResponseDTO>> typeRef = new ParameterizedTypeReference<ApiResponse<HisIncomeResponseDTO>>() {};
 
         try {
             // 3. 调用工具类发起请求
             // 注意：apiResponse 的类型现在是 ApiResponse<HisIncomeDTO>
-            ApiResponse<HisIncome> apiResponse = restApiUtil.postForObject(
+            ApiResponse<HisIncomeResponseDTO> apiResponse = restApiUtil.postForObject(
                     URL_API_HISINCOME,
                     apiRequest,
                     typeRef

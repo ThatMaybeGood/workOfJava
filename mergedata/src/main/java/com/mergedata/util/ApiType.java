@@ -1,24 +1,24 @@
 package com.mergedata.util;
 
-import com.mergedata.model.HisIncome;
-import com.mergedata.model.YQOperator;
-import com.mergedata.model.YQHolidayCalendar;
-import com.mergedata.model.YQCashRegRecord;
+import com.mergedata.model.dto.external.HisIncomeResponseDTO;
+import com.mergedata.model.entity.YQOperatorEntity;
+import com.mergedata.model.entity.YQHolidayCalendarEntity;
+import com.mergedata.model.entity.YQCashRegRecordEntity;
 
 /*
  * 定义一个枚举，用于标识不同类型的 API
  */
 public enum ApiType {
-    HIS_DATA("hisData", HisIncome.class),
+    HIS_DATA("hisData", HisIncomeResponseDTO.class),
     // 增加枚举值，例如 HIS_REPORT
-    HIS_REPORT("hisReport", YQOperator.class),
+    HIS_REPORT("hisReport", YQOperatorEntity.class),
     // 增加枚举值，例如 HOLIDAY_CALENDAR
-    HOLIDAY_CALENDAR("holidayCalendar", YQHolidayCalendar.class),
+    HOLIDAY_CALENDAR("holidayCalendar", YQHolidayCalendarEntity.class),
 
     // 增加新的枚举值，例如 HIS_OPERATOR
-    HIS_OPERATOR("hisOperator", YQOperator.class),
+    HIS_OPERATOR("hisOperator", YQOperatorEntity.class),
 
-    YQ_CASH_REG("yqCashReg", YQCashRegRecord.class),
+    YQ_CASH_REG("yqCashReg", YQCashRegRecordEntity.class),
         // 未知类型，用于处理外部接口返回的新增枚举值
     UNKNOWN("unknown", Object.class);
 

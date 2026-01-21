@@ -3,7 +3,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.mergedata.mapper.HolidayMapper">
 
-    <resultMap id="YQHolidayCalendarMap" type="com.mergedata.model.YQHolidayCalendar">
+    <resultMap id="YQHolidayCalendarMap" type="com.mergedata.model.entity.YQHolidayCalendarEntity">
         <id column="serial_no" property="serialNo"/>
         <result column="holiday_date" property="holidayDate"/>
         <result column="isvalid" property="validStatus"/>
@@ -31,7 +31,7 @@
         order by holiday_year,holiday_date
     </select>
 
-    <insert id="insert" parameterType="com.mergedata.model.YQHolidayCalendar">
+    <insert id="insert" parameterType="com.mergedata.model.entity.YQHolidayCalendarEntity">
         INSERT INTO mpp_cash_reg_holiday (
             serial_no, holiday_date,holiday_type, holiday_year, holiday_month,
             creator, update_time, update_count, remark
@@ -70,7 +70,7 @@
         </foreach>
     </insert>
 
-    <update id="update" parameterType="com.mergedata.model.YQHolidayCalendar">
+    <update id="update" parameterType="com.mergedata.model.entity.YQHolidayCalendarEntity">
         UPDATE mpp_cash_reg_holiday set
             update_time = SYSDATE,
             isvalid = '0',
@@ -78,7 +78,7 @@
         WHERE holiday_date = #{holidayDate}
     </update>
 
-    <delete id="delete" parameterType="com.mergedata.model.YQHolidayCalendar">
+    <delete id="delete" parameterType="com.mergedata.model.entity.YQHolidayCalendarEntity">
         DELETE FROM mpp_cash_reg_holiday
         WHERE serial_no = #{serialNo}
     </delete>

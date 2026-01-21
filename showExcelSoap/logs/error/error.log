@@ -717,8 +717,8 @@ Caused by: java.sql.SQLException: 无效的列类型: 1111
 	at jdk.proxy3/jdk.proxy3.$Proxy93.setNull(Unknown Source)
 	at org.apache.ibatis.type.BaseTypeHandler.setParameter(BaseTypeHandler.java:66)
 	... 79 common frames omitted
-2025-12-07 22:48:43.002 [http-nio-8081-exec-4] ERROR c.m.exception.GlobalExceptionHandler - 数据库访问异常: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.YQOperator'
-org.mybatis.spring.MyBatisSystemException: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.YQOperator'
+2025-12-07 22:48:43.002 [http-nio-8081-exec-4] ERROR c.m.exception.GlobalExceptionHandler - 数据库访问异常: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.entity.YQOperatorEntity'
+org.mybatis.spring.MyBatisSystemException: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.entity.YQOperatorEntity'
 	at org.mybatis.spring.MyBatisExceptionTranslator.translateExceptionIfPossible(MyBatisExceptionTranslator.java:97)
 	at org.mybatis.spring.SqlSessionTemplate$SqlSessionInterceptor.invoke(SqlSessionTemplate.java:439)
 	at jdk.proxy2/jdk.proxy2.$Proxy72.insert(Unknown Source)
@@ -782,7 +782,7 @@ org.mybatis.spring.MyBatisSystemException: nested exception is org.apache.ibatis
 	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
 	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61)
 	at java.base/java.lang.Thread.run(Thread.java:842)
-Caused by: org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.YQOperator'
+Caused by: org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.entity.YQOperatorEntity'
 	at org.apache.ibatis.reflection.Reflector.getGetInvoker(Reflector.java:385)
 	at org.apache.ibatis.reflection.MetaClass.getGetInvoker(MetaClass.java:160)
 	at org.apache.ibatis.reflection.wrapper.BeanWrapper.getBeanProperty(BeanWrapper.java:156)
@@ -803,8 +803,8 @@ Caused by: org.apache.ibatis.reflection.ReflectionException: There is no getter 
 	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
 	at org.mybatis.spring.SqlSessionTemplate$SqlSessionInterceptor.invoke(SqlSessionTemplate.java:425)
 	... 61 common frames omitted
-2025-12-07 22:49:26.994 [http-nio-8081-exec-6] ERROR c.m.exception.GlobalExceptionHandler - 数据库访问异常: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.YQOperator'
-org.mybatis.spring.MyBatisSystemException: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.YQOperator'
+2025-12-07 22:49:26.994 [http-nio-8081-exec-6] ERROR c.m.exception.GlobalExceptionHandler - 数据库访问异常: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.entity.YQOperatorEntity'
+org.mybatis.spring.MyBatisSystemException: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.entity.YQOperatorEntity'
 	at org.mybatis.spring.MyBatisExceptionTranslator.translateExceptionIfPossible(MyBatisExceptionTranslator.java:97)
 	at org.mybatis.spring.SqlSessionTemplate$SqlSessionInterceptor.invoke(SqlSessionTemplate.java:439)
 	at jdk.proxy2/jdk.proxy2.$Proxy72.insert(Unknown Source)
@@ -868,7 +868,7 @@ org.mybatis.spring.MyBatisSystemException: nested exception is org.apache.ibatis
 	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
 	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61)
 	at java.base/java.lang.Thread.run(Thread.java:842)
-Caused by: org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.YQOperator'
+Caused by: org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.entity.YQOperatorEntity'
 	at org.apache.ibatis.reflection.Reflector.getGetInvoker(Reflector.java:385)
 	at org.apache.ibatis.reflection.MetaClass.getGetInvoker(MetaClass.java:160)
 	at org.apache.ibatis.reflection.wrapper.BeanWrapper.getBeanProperty(BeanWrapper.java:156)
@@ -889,8 +889,8 @@ Caused by: org.apache.ibatis.reflection.ReflectionException: There is no getter 
 	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
 	at org.mybatis.spring.SqlSessionTemplate$SqlSessionInterceptor.invoke(SqlSessionTemplate.java:425)
 	... 61 common frames omitted
-2025-12-07 22:57:02.464 [http-nio-8081-exec-2] ERROR c.m.exception.GlobalExceptionHandler - 数据库访问异常: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.YQOperator'
-org.mybatis.spring.MyBatisSystemException: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.YQOperator'
+2025-12-07 22:57:02.464 [http-nio-8081-exec-2] ERROR c.m.exception.GlobalExceptionHandler - 数据库访问异常: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.entity.YQOperatorEntity'
+org.mybatis.spring.MyBatisSystemException: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.entity.YQOperatorEntity'
 	at org.mybatis.spring.MyBatisExceptionTranslator.translateExceptionIfPossible(MyBatisExceptionTranslator.java:97)
 	at org.mybatis.spring.SqlSessionTemplate$SqlSessionInterceptor.invoke(SqlSessionTemplate.java:439)
 	at jdk.proxy2/jdk.proxy2.$Proxy72.insert(Unknown Source)
@@ -954,7 +954,7 @@ org.mybatis.spring.MyBatisSystemException: nested exception is org.apache.ibatis
 	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
 	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61)
 	at java.base/java.lang.Thread.run(Thread.java:842)
-Caused by: org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.YQOperator'
+Caused by: org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'isvalid' in 'class com.mergedata.model.entity.YQOperatorEntity'
 	at org.apache.ibatis.reflection.Reflector.getGetInvoker(Reflector.java:385)
 	at org.apache.ibatis.reflection.MetaClass.getGetInvoker(MetaClass.java:160)
 	at org.apache.ibatis.reflection.wrapper.BeanWrapper.getBeanProperty(BeanWrapper.java:156)

@@ -1,4 +1,4 @@
-package com.mergedata.model;
+package com.mergedata.util;
 
 public interface AddGroup {
 }

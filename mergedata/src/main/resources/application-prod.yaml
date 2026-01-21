@@ -88,6 +88,6 @@ sp:
       report: "SP_INSERT_CASH_REG_REPORT"
     query:
       operator: "SP_QUERY_CASH_REG_OPER"
-      cash: "SP_QUERY_CASH_REG_RECORD01"
+
       holiday: "SP_QUERY_CASH_REG_HOLIDAY"
       report: "SP_QUERY_CASH_REG_REPORT"

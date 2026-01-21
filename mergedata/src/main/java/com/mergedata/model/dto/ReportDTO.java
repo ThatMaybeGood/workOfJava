@@ -1,7 +1,8 @@
-package com.mergedata.model;
+package com.mergedata.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.mergedata.util.AddGroup;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
@@ -10,7 +11,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
-public class Report {
+public class ReportDTO {
     @JsonProperty("serial_no")
     private String serialNo;
 

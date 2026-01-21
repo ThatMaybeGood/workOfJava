@@ -1,4 +1,4 @@
-package com.mergedata.model;
+package com.mergedata.model.entity;
 
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -10,7 +10,7 @@ import java.time.LocalDate;
 
 
 @Data
-public class YQOperator {
+public class YQOperatorEntity {
 
     @Schema(description = "流水号")
     private String serialNo;

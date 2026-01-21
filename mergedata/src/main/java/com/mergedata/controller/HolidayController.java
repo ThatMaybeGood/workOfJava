@@ -1,9 +1,9 @@
 package com.mergedata.controller;
 
-import com.mergedata.dto.ApiRequest;
-import com.mergedata.dto.ApiRequestList;
-import com.mergedata.dto.ApiResponse;
-import com.mergedata.model.YQHolidayCalendar;
+import com.mergedata.model.dto.ApiRequest;
+import com.mergedata.model.dto.ApiRequestList;
+import com.mergedata.model.vo.ApiResponse;
+import com.mergedata.model.entity.YQHolidayCalendarEntity;
 import com.mergedata.server.YQHolidayService;
 import com.mergedata.util.PrimaryKeyGenerator;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,10 +39,10 @@ public class HolidayController {
 
     @Operation(summary = "查询所有节假日数据", description = "返回节假日的列表数据")
     @PostMapping("findall")
-    public ApiResponse<YQHolidayCalendar> findALl(@Valid @RequestBody ApiRequest<Void> res)  {
+    public ApiResponse<YQHolidayCalendarEntity> findALl(@Valid @RequestBody ApiRequest<Void> res)  {
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        List<YQHolidayCalendar> resultList = holiday.findAll();
+        List<YQHolidayCalendarEntity> resultList = holiday.findAll();
 
         // 4. 返回结果
         return ApiResponse.success(resultList,"查询节假日列表成功");
@@ -51,9 +51,9 @@ public class HolidayController {
 
     @Operation(summary = "通过日期查询节假日数据", description = "返回节假日的数据")
     @PostMapping("findbydate")
-    public ApiResponse<YQHolidayCalendar> findByDate(@Valid  @RequestBody ApiRequest<YQHolidayCalendar> res)  {
+    public ApiResponse<YQHolidayCalendarEntity> findByDate(@Valid  @RequestBody ApiRequest<YQHolidayCalendarEntity> res)  {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        List<YQHolidayCalendar> resultList = holiday.findByDate(res.getBody().getHolidayDate());
+        List<YQHolidayCalendarEntity> resultList = holiday.findByDate(res.getBody().getHolidayDate());
         // 4. 返回结果
         return ApiResponse.success(resultList,"查询节假日成功");
     }
@@ -61,10 +61,10 @@ public class HolidayController {
 
     @Operation(summary = "批量写入节假日数据", description = "返回操作结果")
     @PostMapping("batchinsert")
-    public ApiResponse batchInsert(@Valid @RequestBody ApiRequestList<YQHolidayCalendar> request)  {
+    public ApiResponse batchInsert(@Valid @RequestBody ApiRequestList<YQHolidayCalendarEntity> request)  {
 
-        List<YQHolidayCalendar> list = request.getBody().getList();
-        for (YQHolidayCalendar dto : list) {
+        List<YQHolidayCalendarEntity> list = request.getBody().getList();
+        for (YQHolidayCalendarEntity dto : list) {
             PrimaryKeyGenerator pk   = new PrimaryKeyGenerator();
             dto.setSerialNo(pk.generateKey());
             dto.setValidStatus("1");
@@ -81,9 +81,9 @@ public class HolidayController {
 
     @Operation(summary = "写入节假日数据", description = "返回操作结果")
     @PostMapping("insert")
-    public ApiResponse singleInsert(@Valid @RequestBody ApiRequest<YQHolidayCalendar> request)  {
+    public ApiResponse singleInsert(@Valid @RequestBody ApiRequest<YQHolidayCalendarEntity> request)  {
 
-        YQHolidayCalendar list = request.getBody();
+        YQHolidayCalendarEntity list = request.getBody();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         Boolean b = holiday.insert(list);
@@ -97,9 +97,9 @@ public class HolidayController {
 
     @Operation(summary = "作废删除节假日数据", description = "返回操作结果")
     @PostMapping("update")
-    public ApiResponse update(@Valid @RequestBody ApiRequest<YQHolidayCalendar> request)  {
+    public ApiResponse update(@Valid @RequestBody ApiRequest<YQHolidayCalendarEntity> request)  {
 
-        YQHolidayCalendar list = request.getBody();
+        YQHolidayCalendarEntity list = request.getBody();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         Boolean b = holiday.update(list);

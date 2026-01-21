@@ -1,4 +1,4 @@
-package com.mergedata.model;
+package com.mergedata.model.entity;
 
 
 import lombok.Data;
@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 
 // 定义一个类，用于存储医院现金报表记录
 @Data
-public class YQCashRegRecord {
+public class YQCashRegRecordEntity {
     private String  operator;
     //操作员编号
     private String operatorNo;

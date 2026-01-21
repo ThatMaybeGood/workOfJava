@@ -1,7 +1,7 @@
 package com.mergedata.server.impl;
 
 import com.mergedata.mapper.CashMapper;
-import com.mergedata.model.YQCashRegRecord;
+import com.mergedata.model.entity.YQCashRegRecordEntity;
 import com.mergedata.server.YQCashService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,7 +22,7 @@ public class CashServiceImpl implements YQCashService {
      */
 
     @Override
-    public List<YQCashRegRecord> findByDate(String reportdate) {
+    public List<YQCashRegRecordEntity> findByDate(String reportdate) {
         return cashMapper.selectByDate(LocalDate.parse(reportdate));
     }
 }

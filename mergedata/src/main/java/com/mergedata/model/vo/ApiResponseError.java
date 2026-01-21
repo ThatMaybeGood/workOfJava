@@ -1,4 +1,4 @@
-package com.mergedata.dto;
+package com.mergedata.model.vo;
 
 import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonInclude;

@@ -3,7 +3,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.mergedata.mapper.ReportMapper">
 
-    <resultMap id="MainWithSubMap" type="com.mergedata.model.CashStattisticsMain">
+    <resultMap id="MainWithSubMap" type="com.mergedata.model.entity.CashStattisticsMainEntity">
         <id column="main_serial_no" property="serialNo"/>
         <result column="report_date" property="reportDate"/>
         <result column="report_year" property="reportYear"/>
@@ -12,7 +12,7 @@
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
 
-        <collection property="subs" ofType="com.mergedata.model.CashStatisticsSub">
+        <collection property="subs" ofType="com.mergedata.model.entity.CashStatisticsSubEntity">
             <result column="sub_serial_no" property="serialNo"/>
             <result column="emp_id" property="hisOperatorNo"/>
             <result column="emp_name" property="hisOperatorName"/>
@@ -35,7 +35,7 @@
         </collection>
     </resultMap>
 
-    <resultMap id="ReportMap" type="com.mergedata.model.Report">
+    <resultMap id="ReportMap" type="com.mergedata.model.dto.ReportDTO">
         <result column="main_serial_no" property="serialNo"/>
         <result column="emp_id" property="operatorNo"/>
         <result column="emp_name" property="operatorName"/>
@@ -129,7 +129,7 @@
     </select>
 
 
-    <select id="findReport" resultMap="com.mergedata.dto.ReportRequestBody">
+    <select id="findReport" resultMap="com.mergedata.model.dto.ReportRequestBody">
         SELECT
         m.serial_no AS main_serial_no, m.report_date,
         m.report_year,
@@ -242,7 +242,7 @@
 
 
 
-    <insert id="InsertMain" parameterType="com.mergedata.model.CashStattisticsMain">
+    <insert id="InsertMain" parameterType="com.mergedata.model.entity.CashStattisticsMainEntity">
         INSERT INTO MPP_CASH_STATISTICS_MASTER (
         serial_no, report_date, report_year,  isvalid, creator, create_time, update_time
         )

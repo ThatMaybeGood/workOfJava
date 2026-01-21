@@ -1,11 +1,11 @@
-package com.mergedata.dto;
+package com.mergedata.model.dto.external;
 
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
 
 @Data
-public class HisDataRequestBody {
+public class HisDataRequestBodyDTO {
 
     @NotBlank(message = "reportdate不能为空")
     private String reportdate;

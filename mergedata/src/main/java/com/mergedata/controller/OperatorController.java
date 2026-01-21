@@ -1,9 +1,9 @@
 package com.mergedata.controller;
 
-import com.mergedata.dto.ApiRequest;
-import com.mergedata.dto.ApiRequestList;
-import com.mergedata.dto.ApiResponse;
-import com.mergedata.model.YQOperator;
+import com.mergedata.model.entity.YQOperatorEntity;
+import com.mergedata.model.dto.ApiRequest;
+import com.mergedata.model.dto.ApiRequestList;
+import com.mergedata.model.vo.ApiResponse;
 import com.mergedata.server.YQOperatorService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,10 +35,10 @@ public class OperatorController {
 
     @Operation(summary = "查询所有的操作员数据", description = "返回操作员列表数据")
     @PostMapping("findall")
-    public ApiResponse<YQOperator> findALl(@Valid @RequestBody  ApiRequest<Void> res)  {
+    public ApiResponse<YQOperatorEntity> findALl(@Valid @RequestBody  ApiRequest<Void> res)  {
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        List<YQOperator> resultList = operator.findAll();
+        List<YQOperatorEntity> resultList = operator.findAll();
 
         if (resultList.isEmpty()) {
             return ApiResponse.failure("查询操作人员错误");
@@ -50,18 +50,18 @@ public class OperatorController {
 
     @Operation(summary = "通过操作员ID的查询数据", description = "返回改对应操作员数据")
     @PostMapping("findbyid")
-    public ApiResponse<YQOperator> findByID(@Valid @RequestBody ApiRequest<YQOperator> res)  {
+    public ApiResponse<YQOperatorEntity> findByID(@Valid @RequestBody ApiRequest<YQOperatorEntity> res)  {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        List<YQOperator> resultList = operator.findByID(res.getBody());
+        List<YQOperatorEntity> resultList = operator.findByID(res.getBody());
         // 4. 返回结果
         return ApiResponse.success(resultList,"查询操作员信息成功");
     }
 
     @Operation(summary = "批量写入操作员数据", description = "返回操作结果")
     @PostMapping("batchinsert")
-    public ApiResponse batchInsert(@Valid @RequestBody ApiRequestList<YQOperator> request)  {
+    public ApiResponse batchInsert(@Valid @RequestBody ApiRequestList<YQOperatorEntity> request)  {
 
-        List<YQOperator> list = request.getBody().getList();
+        List<YQOperatorEntity> list = request.getBody().getList();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         Boolean b = operator.batchInsert(list);
@@ -73,9 +73,9 @@ public class OperatorController {
 
     @Operation(summary = "写入操作员数据", description = "返回操作结果")
     @PostMapping("insert")
-    public ApiResponse singleInsert(@Valid @RequestBody ApiRequest<YQOperator> request)  {
+    public ApiResponse singleInsert(@Valid @RequestBody ApiRequest<YQOperatorEntity> request)  {
 
-        YQOperator list = request.getBody();
+        YQOperatorEntity list = request.getBody();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         Boolean b = operator.insert(list);
@@ -87,9 +87,9 @@ public class OperatorController {
 
     @Operation(summary = "作废删除操作员数据", description = "返回操作结果")
     @PostMapping("delete")
-    public ApiResponse delete(@Valid @RequestBody ApiRequest<YQOperator> request)  {
+    public ApiResponse delete(@Valid @RequestBody ApiRequest<YQOperatorEntity> request)  {
 
-        YQOperator list = request.getBody();
+        YQOperatorEntity list = request.getBody();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         Boolean b = operator.delete(list);

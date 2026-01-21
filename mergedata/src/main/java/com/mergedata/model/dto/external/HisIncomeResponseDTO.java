@@ -1,4 +1,4 @@
-package com.mergedata.model;
+package com.mergedata.model.dto.external;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
-public class HisIncome {
+public class HisIncomeResponseDTO {
 
     @JsonProperty("operator_no")
     private String  operatorNo;
