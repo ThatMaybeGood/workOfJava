@@ -1,11 +1,8 @@
 package com.mergedata.controller;
 
-import com.mergedata.model.dto.ApiRequest;
-import com.mergedata.model.dto.ApiRequestList;
+import com.mergedata.model.dto.*;
 import com.mergedata.model.vo.ApiResponse;
-import com.mergedata.model.dto.ReportRequestBody;
 import com.mergedata.util.AddGroup;
-import com.mergedata.model.dto.ReportDTO;
 import com.mergedata.server.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -60,13 +57,6 @@ public class ReportController {
             return ApiResponse.failure("报表写入失败！");
         }
         return ApiResponse.success("报表写入成功！");
-    }
-
-
-
-    @GetMapping("/")
-    public Result<String> getHolidayApiInfo() {
-        return Result.success("API服务已启动，可用端点：/R /data, /insert");
     }
 
 }

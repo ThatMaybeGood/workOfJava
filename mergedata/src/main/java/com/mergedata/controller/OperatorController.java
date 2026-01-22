@@ -1,5 +1,6 @@
 package com.mergedata.controller;
 
+import com.mergedata.model.dto.ResultDTO;
 import com.mergedata.model.entity.YQOperatorEntity;
 import com.mergedata.model.dto.ApiRequest;
 import com.mergedata.model.dto.ApiRequestList;
@@ -100,8 +101,8 @@ public class OperatorController {
     }
 
     @GetMapping("/")
-    public Result<String> getHolidayApiInfo() {
-        return Result.success("API服务已启动，可用端点：/all /data, /insert");
+    public ResultDTO<String> getHolidayApiInfo() {
+        return ResultDTO.success("API服务已启动，可用端点：/all /data, /insert");
     }
 
 }

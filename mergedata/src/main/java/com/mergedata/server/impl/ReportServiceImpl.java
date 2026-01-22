@@ -446,7 +446,7 @@ public class ReportServiceImpl implements ReportService {
             List<YQCashRegRecordEntity> yqRecordList = cash.selectByDate(currtDate);
 
             // 假设 HIS 接口需要 String，则转换
-            List<HisIncomeResponseDTO> hisIncomeResponseDTOList = hisdata.findByDate(currtDate.toString());
+            List<HisIncomeResponseDTO> hisIncomeResponseDTOList = hisdata.findByDateOutp(currtDate.toString());
 
             // Mapper 调用传入 LocalDate
             List<ReportDTO> preReportDTO = report.selectReportByDate(preDate);

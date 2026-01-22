@@ -34,7 +34,7 @@ public class HisDataServiceImpl implements HisDataService {
 
     private RestTemplate restTemplate;
     @Override
-    public List<HisIncomeResponseDTO> findByDate(String reportdate) {
+    public List<HisIncomeResponseDTO> findByDateOutp(String reportdate) {
 
         log.info("开始调用 HIS 收入 API (TypeRef): {}", URL_API_HISINCOME);
 

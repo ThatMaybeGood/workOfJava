@@ -5,18 +5,18 @@
 
     <resultMap id="YQOperatorMap" type="com.mergedata.model.entity.YQOperatorEntity">
         <id column="serial_no" property="serialNo"/>
-        <result column="operator_no" property="operatorNo"/>
-        <result column="operator_name" property="operatorName"/>
-        <result column="department_id" property="departmentId"/>
-        <result column="isvalid" property="validStatus"/>
-        <result column="creator" property="creator"/>
-        <result column="create_time" property="createTime"/>
-        <result column=" updator" property=" updator"/>
-        <result column="update_time" property="updateTime"/>
-        <result column="update_count" property="updateCount"/>
-        <result column="row_num" property="rowNum"/>
-        <result column="inp_window" property="inpWindow"/>
-        <result column="atm" property="atm"/>
+        <resultDTO column="operator_no" property="operatorNo"/>
+        <resultDTO column="operator_name" property="operatorName"/>
+        <resultDTO column="department_id" property="departmentId"/>
+        <resultDTO column="isvalid" property="validStatus"/>
+        <resultDTO column="creator" property="creator"/>
+        <resultDTO column="create_time" property="createTime"/>
+        <resultDTO column=" updator" property=" updator"/>
+        <resultDTO column="update_time" property="updateTime"/>
+        <resultDTO column="update_count" property="updateCount"/>
+        <resultDTO column="row_num" property="rowNum"/>
+        <resultDTO column="inp_window" property="inpWindow"/>
+        <resultDTO column="atm" property="atm"/>
 
 
     </resultMap>
