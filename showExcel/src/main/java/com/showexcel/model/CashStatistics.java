@@ -42,15 +42,15 @@ public class CashStatistics {
     // 计算公式的方法 - 简化版，因为null值已经在setter中处理为0.0
     public void calculateFormulas() {
         // 所有字段都已经确保不为null，直接计算
-        this.actualReportAmount = reportAmount - hisRegistrationIncome;
-//        this.currentTemporaryReceipt = actualReportAmount + currentTemporaryReceipt;
-        this.retainedDifference = retainedCash - pettyCash - actualReportAmount;
-        this.actualCashAmount = actualReportAmount + currentTemporaryReceipt;
+        this.actualReportAmount = reportAmount.subtract(hisRegistrationIncome);
+//        this.currentTemporaryReceipt = actualReportAmount.add(currentTemporaryReceipt);
+        this.retainedDifference = retainedCash.subtract(pettyCash).subtract(actualReportAmount);
+        this.actualCashAmount = actualReportAmount.add(currentTemporaryReceipt);
     }
 
     // 私有方法：统一处理BigDecimal类型的null值
     private BigDecimal safeBigDecimal(BigDecimal value) {
-        return value != null ? value : 0.00;
+        return value != null ? value : BigDecimal.ZERO;
     }
 
 

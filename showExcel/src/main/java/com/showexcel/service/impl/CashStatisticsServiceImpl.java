@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -473,13 +474,11 @@ public class CashStatisticsServiceImpl implements CashStatisticsService {
 
     private BigDecimal sumField(List<CashStatistics> data, Function<CashStatistics, BigDecimal> fieldGetter) {
         if (data == null || data.isEmpty()) {
-            return 0.0;
+                return BigDecimal.ZERO;
         }
         return data.stream()
-                .mapToBigDecimal(item -> {
-                    BigDecimal value = fieldGetter.apply(item);
-                    return value != null ? value : 0.0;
-                })
-                .sum();
+                .map(fieldGetter)
+                .filter(value -> value != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

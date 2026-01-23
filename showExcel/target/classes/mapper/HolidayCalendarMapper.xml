@@ -36,14 +36,14 @@
 
     <resultMap id="HolidayByDateMap" type="com.showexcel.model.HolidayCalendar">
         <id property="holidayDate" column="holiday_date" />
-        <result property="holidayName" column="holiday_name" />
-        <result property="isHoliday" column="is_holiday" />
-        <result property="holidayType" column="holiday_type" />
-        <result property="year" column="year" />
-        <result property="description" column="description" />
-        <result property="creator" column="creator" />
-        <result property="createdTime" column="created_time" />
-        <result property="updatedTime" column="updated_time" />
+        <resultDTO property="holidayName" column="holiday_name" />
+        <resultDTO property="isHoliday" column="is_holiday" />
+        <resultDTO property="holidayType" column="holiday_type" />
+        <resultDTO property="year" column="year" />
+        <resultDTO property="description" column="description" />
+        <resultDTO property="creator" column="creator" />
+        <resultDTO property="createdTime" column="created_time" />
+        <resultDTO property="updatedTime" column="updated_time" />
     </resultMap>
 
     <!-- 通过年查询日期所有 -->

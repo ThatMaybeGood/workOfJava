@@ -2,6 +2,8 @@ package com.showexcel.dto;
 
 import com.showexcel.model.CashStatistics;
 
+import java.math.BigDecimal;
+
 public class CashStatisticsDTO {
     private Integer id;
     private Integer type;
