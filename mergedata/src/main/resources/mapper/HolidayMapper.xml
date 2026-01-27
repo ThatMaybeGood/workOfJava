@@ -5,16 +5,16 @@
 
     <resultMap id="YQHolidayCalendarMap" type="com.mergedata.model.entity.YQHolidayCalendarEntity">
         <id column="serial_no" property="serialNo"/>
-        <resultDTO column="holiday_date" property="holidayDate"/>
-        <resultDTO column="isvalid" property="validStatus"/>
-        <resultDTO column="holiday_type" property="holidayType"/>
-        <resultDTO column="holiday_year" property="holidayYear"/>
-        <resultDTO column="holiday_month" property="holidayMonth"/>
-        <resultDTO column="creator" property="creator"/>
-        <resultDTO column="created_time" property="createdTime"/>
-        <resultDTO column="update_time" property="updateTime"/>
-        <resultDTO column="update_count" property="updateCount"/>
-        <resultDTO column="remark" property="remark"/>
+        <result column="holiday_date" property="holidayDate"/>
+        <result column="isvalid" property="validStatus"/>
+        <result column="holiday_type" property="holidayType"/>
+        <result column="holiday_year" property="holidayYear"/>
+        <result column="holiday_month" property="holidayMonth"/>
+        <result column="creator" property="creator"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="update_count" property="updateCount"/>
+        <result column="remark" property="remark"/>
     </resultMap>
 
     <select id="selectAll" resultMap="YQHolidayCalendarMap">

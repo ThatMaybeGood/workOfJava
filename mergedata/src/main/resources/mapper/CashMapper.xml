@@ -5,14 +5,14 @@
 
     <resultMap id="CashMap" type="com.mergedata.model.entity.YQCashRegRecordEntity">
         <id column="operator" property="operator"/>
-        <resultDTO column="operator_no" property="operatorNo"/>
-        <resultDTO column="amount" property="retainedCash"/>
-        <resultDTO column="apply_date" property="applyDate"/>
-        <resultDTO column="create_time" property="createTime"/>
-        <resultDTO column="ope_type" property="opeType"/>
-        <resultDTO column="window_no" property="windowNo"/>
-        <resultDTO column="scheduling" property=" scheduling"/>
-        <resultDTO column="save_date" property="saveDate"/>
+        <result column="operator_no" property="operatorNo"/>
+        <result column="amount" property="retainedCash"/>
+        <result column="apply_date" property="applyDate"/>
+        <result column="create_time" property="createTime"/>
+        <result column="ope_type" property="opeType"/>
+        <result column="window_no" property="windowNo"/>
+        <result column="scheduling" property=" scheduling"/>
+        <result column="save_date" property="saveDate"/>
 
     </resultMap>
 

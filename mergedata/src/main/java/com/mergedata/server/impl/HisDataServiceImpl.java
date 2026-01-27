@@ -12,12 +12,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -33,6 +32,8 @@ public class HisDataServiceImpl implements HisDataService {
     private RestApiUtil restApiUtil;
 
     private RestTemplate restTemplate;
+
+
     @Override
     public List<HisIncomeResponseDTO> findByDateOutp(String reportdate) {
 
@@ -80,4 +81,40 @@ public class HisDataServiceImpl implements HisDataService {
             return Collections.emptyList();
         }
     }
+
+    @Override
+    public List<HisIncomeResponseDTO> findByDateInp(String reportDate) {
+
+                RestTemplate restTemplate = new RestTemplate();
+
+                // 请求头
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+                // 请求体
+                Map<String, Object> requestBody = new HashMap<>();
+                requestBody.put("name", "John");
+                requestBody.put("age", 30);
+
+                // 创建请求实体
+                HttpEntity<Map<String, Object>> requestEntity =
+                        new HttpEntity<>(requestBody, headers);
+
+//                // 发送POST请求
+//                ResponseEntity<String> response = restTemplate.postForEntity(
+//                        URL_API_HISINCOME, requestEntity, String.class);
+
+                // 或者使用exchange方法
+                ResponseEntity<String> response = restTemplate.exchange(
+                        URL_API_HISINCOME, HttpMethod.POST, requestEntity, String.class);
+
+                System.out.println("响应状态: " + response.getStatusCode());
+                System.out.println("响应体: " + response.getBody());
+
+
+        return Collections.emptyList();
+    }
+
+
 }

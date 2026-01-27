@@ -5,63 +5,63 @@
 
     <resultMap id="MainWithSubMap" type="com.mergedata.model.entity.CashStattisticsMainEntity">
         <id column="main_serial_no" property="serialNo"/>
-        <resultDTO column="report_date" property="reportDate"/>
-        <resultDTO column="report_year" property="reportYear"/>
-        <resultDTO column="isvalid" property="isvalid"/>
-        <resultDTO column="creator" property="creator"/>
-        <resultDTO column="create_time" property="createTime"/>
-        <resultDTO column="update_time" property="updateTime"/>
+        <result column="report_date" property="reportDate"/>
+        <result column="report_year" property="reportYear"/>
+        <result column="isvalid" property="isvalid"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
 
         <collection property="subs" ofType="com.mergedata.model.entity.CashStatisticsSubEntity">
-            <resultDTO column="sub_serial_no" property="serialNo"/>
-            <resultDTO column="emp_id" property="hisOperatorNo"/>
-            <resultDTO column="emp_name" property="hisOperatorName"/>
-            <resultDTO column="his_advance_payment" property="hisAdvancePayment"/>
-            <resultDTO column="his_medical_income" property="hisMedicalIncome"/>
-            <resultDTO column="his_registration_income" property="hisRegistrationIncome"/>
-            <resultDTO column="report_amount" property="reportAmount"/>
-            <resultDTO column="previous_temporary_receipt" property="previousTemporaryReceipt"/>
-            <resultDTO column="holiday_temporary_receipt" property="holidayTemporaryReceipt"/>
-            <resultDTO column="actual_report_amount" property="actualReportAmount"/>
-            <resultDTO column="current_temporary_receipt" property="currentTemporaryReceipt"/>
-            <resultDTO column="actual_cash_amount" property="actualCashAmount"/>
-            <resultDTO column="retained_difference" property="retainedDifference"/>
-            <resultDTO column="retained_cash" property="retainedCash"/>
-            <resultDTO column="petty_cash" property="pettyCash"/>
-            <resultDTO column="remarks" property="remarks"/>
-            <resultDTO column="row_num" property="rowNum"/>
-            <resultDTO column="acct_no" property="acctNo"/>
-            <resultDTO column="acct_date" property="acctDate"/>
+            <result column="sub_serial_no" property="serialNo"/>
+            <result column="emp_id" property="hisOperatorNo"/>
+            <result column="emp_name" property="hisOperatorName"/>
+            <result column="his_advance_payment" property="hisAdvancePayment"/>
+            <result column="his_medical_income" property="hisMedicalIncome"/>
+            <result column="his_registration_income" property="hisRegistrationIncome"/>
+            <result column="report_amount" property="reportAmount"/>
+            <result column="previous_temporary_receipt" property="previousTemporaryReceipt"/>
+            <result column="holiday_temporary_receipt" property="holidayTemporaryReceipt"/>
+            <result column="actual_report_amount" property="actualReportAmount"/>
+            <result column="current_temporary_receipt" property="currentTemporaryReceipt"/>
+            <result column="actual_cash_amount" property="actualCashAmount"/>
+            <result column="retained_difference" property="retainedDifference"/>
+            <result column="retained_cash" property="retainedCash"/>
+            <result column="petty_cash" property="pettyCash"/>
+            <result column="remarks" property="remarks"/>
+            <result column="row_num" property="rowNum"/>
+            <result column="acct_no" property="acctNo"/>
+            <result column="acct_date" property="acctDate"/>
         </collection>
     </resultMap>
 
     <resultMap id="ReportMap" type="com.mergedata.model.dto.ReportDTO">
-        <resultDTO column="main_serial_no" property="serialNo"/>
-        <resultDTO column="emp_id" property="operatorNo"/>
-        <resultDTO column="emp_name" property="operatorName"/>
+        <result column="main_serial_no" property="serialNo"/>
+        <result column="emp_id" property="operatorNo"/>
+        <result column="emp_name" property="operatorName"/>
 
-        <resultDTO column="report_date" property="reportDate"/>
-        <resultDTO column="report_year" property="reportYear"/>
-        <resultDTO column="create_time" property="createTime"/>
+        <result column="report_date" property="reportDate"/>
+        <result column="report_year" property="reportYear"/>
+        <result column="create_time" property="createTime"/>
 
-        <resultDTO column="his_advance_payment" property="hisAdvancePayment"/>
-        <resultDTO column="his_medical_income" property="hisMedicalIncome"/>
-        <resultDTO column="his_registration_income" property="hisRegistrationIncome"/>
-        <resultDTO column="report_amount" property="reportAmount"/>
-        <resultDTO column="previous_temporary_receipt" property="previousTemporaryReceipt"/>
-        <resultDTO column="holiday_temporary_receipt" property="holidayTemporaryReceipt"/>
-        <resultDTO column="actual_report_amount" property="actualReportAmount"/>
-        <resultDTO column="current_temporary_receipt" property="currentTemporaryReceipt"/>
-        <resultDTO column="actual_cash_amount" property="actualCashAmount"/>
-        <resultDTO column="retained_difference" property="retainedDifference"/>
-        <resultDTO column="retained_cash" property="retainedCash"/>
-        <resultDTO column="petty_cash" property="pettyCash"/>
-        <resultDTO column="remarks" property="remarks"/>
-        <resultDTO column="row_num" property="rowNum"/>
-        <resultDTO column="acct_no" property="acctNo"/>
-        <resultDTO column="acct_date" property="acctDate"/>
-        <resultDTO column="inp_window" property="inpWindow"/>
-        <resultDTO column="atm" property="atm"/>
+        <result column="his_advance_payment" property="hisAdvancePayment"/>
+        <result column="his_medical_income" property="hisMedicalIncome"/>
+        <result column="his_registration_income" property="hisRegistrationIncome"/>
+        <result column="report_amount" property="reportAmount"/>
+        <result column="previous_temporary_receipt" property="previousTemporaryReceipt"/>
+        <result column="holiday_temporary_receipt" property="holidayTemporaryReceipt"/>
+        <result column="actual_report_amount" property="actualReportAmount"/>
+        <result column="current_temporary_receipt" property="currentTemporaryReceipt"/>
+        <result column="actual_cash_amount" property="actualCashAmount"/>
+        <result column="retained_difference" property="retainedDifference"/>
+        <result column="retained_cash" property="retainedCash"/>
+        <result column="petty_cash" property="pettyCash"/>
+        <result column="remarks" property="remarks"/>
+        <result column="row_num" property="rowNum"/>
+        <result column="acct_no" property="acctNo"/>
+        <result column="acct_date" property="acctDate"/>
+        <result column="inp_window" property="inpWindow"/>
+        <result column="atm" property="atm"/>
     </resultMap>
 
     <select id="selectByPk" resultMap="ReportMap">
