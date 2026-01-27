@@ -129,7 +129,7 @@
     </select>
 
 
-    <select id="findReport" resultMap="com.mergedata.model.dto.ReportRequestBody">
+    <select id="findReport" resultMap="ReportMap">
         SELECT
         m.serial_no AS main_serial_no, m.report_date,
         m.report_year,

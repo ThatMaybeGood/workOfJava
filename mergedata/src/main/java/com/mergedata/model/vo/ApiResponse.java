@@ -26,6 +26,20 @@ public class ApiResponse<T> {
         return response;
     }
 
+    // 构造成功的响应
+    public static <T> ApiResponse<T> success(T dataList,String msg) {
+        ApiResponse<T> response = new ApiResponse<>();
+
+
+        // 假设 ApiResponseResult 也有静态方法构造成功状态
+        response.setResult(ApiResponseResult.successStatus(msg));
+
+        ApiResponseBody<T> body = new ApiResponseBody<>();
+        body.setClassObject(dataList);
+        response.setBody(body);
+        return response;
+    }
+
     // 构造失败的响应 (如您示例所示)
     public static <T> ApiResponse<T> failure(String erorMsg) {
         ApiResponse<T> response = new ApiResponse<>();

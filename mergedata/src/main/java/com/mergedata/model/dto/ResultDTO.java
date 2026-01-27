@@ -9,7 +9,7 @@ import lombok.Data;
  * @date 2025/10/30 11:01
  */ // 统一返回结果
 @Data
-class ResultDTO<T> {
+public class ResultDTO<T> {
     private String sign_type;
     private String sign;
     private int code;

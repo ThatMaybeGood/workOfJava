@@ -2,7 +2,9 @@ package com.mergedata.server.impl;
 
 import com.mergedata.constants.ReqConstant;
 import com.mergedata.mapper.HolidayMapper;
+import com.mergedata.model.dto.HolidayRequestBody;
 import com.mergedata.model.entity.YQHolidayCalendarEntity;
+import com.mergedata.model.vo.YQHolidayCalendarVO;
 import com.mergedata.server.YQHolidayService;
 import com.mergedata.util.PrimaryKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
@@ -66,22 +68,39 @@ public class HolidayServiceImpl implements YQHolidayService {
     }
 
     @Override
-    public Integer queryDateType(LocalDate holidayDate) {
+    public YQHolidayCalendarVO queryDateType(HolidayRequestBody holidayRequestBody) {
+        LocalDate holidayDate  = holidayRequestBody.getReportDate();
+
+        YQHolidayCalendarVO yqHolidayCalendarVO = new YQHolidayCalendarVO();
+        yqHolidayCalendarVO.setHolidayDate(holidayDate);
+
+
+        // 判断是住院/门诊
+        if (holidayRequestBody.getQueryType()==ReqConstant.TYPE_OUTP){
+
+
+        }
 
         if (isHoliday( holidayDate)){
-           return ReqConstant.HOLIDAY_IS;
+            yqHolidayCalendarVO.setHolidayType(ReqConstant.HOLIDAY_IS);
+
+           return yqHolidayCalendarVO;
+
         }else {
             // ❗当前是工作日 且 前一天是节假日/周末
             if(isHoliday(holidayDate.minusDays(1))){
-                return ReqConstant.HOLIDAY_PRE;
+                yqHolidayCalendarVO.setHolidayType(ReqConstant.HOLIDAY_PRE);
+                return yqHolidayCalendarVO;
             }
             // ❗当前是工作日 且 后一天是节假日/周末
-            if(!isHoliday(holidayDate.plusDays(1))){
-                return ReqConstant.HOLIDAY_AFTER;
+            if(isHoliday(holidayDate.plusDays(1))){
+                yqHolidayCalendarVO.setHolidayType(ReqConstant.HOLIDAY_AFTER);
+                return yqHolidayCalendarVO;
             }
         }
 
-        return ReqConstant.HOLIDAY_NOT;
+        yqHolidayCalendarVO.setHolidayType(ReqConstant.HOLIDAY_NOT);
+        return yqHolidayCalendarVO;
     }
 
     /**
@@ -89,16 +108,12 @@ public class HolidayServiceImpl implements YQHolidayService {
      */
     private boolean isHoliday(LocalDate targetDate) {
         // 1. 获取所有必需的原始数据
-        List<YQHolidayCalendarEntity> holidays = holidayMapper.selectAll();
+        List<YQHolidayCalendarEntity> holidays = holidayMapper.selectByDate(targetDate);
 
-        Set<LocalDate> holidaySet = holidays.stream()
-                .map(YQHolidayCalendarEntity::getHolidayDate)
-                .collect(Collectors.toSet());
-
-        if (holidaySet == null || targetDate == null) {
-            return false;
+        if (holidays.size() > 0){
+            return true;
         }
-        return holidaySet.contains(targetDate);
+        return false;
 
     }
 

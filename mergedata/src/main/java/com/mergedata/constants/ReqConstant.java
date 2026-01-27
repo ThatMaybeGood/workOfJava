@@ -61,18 +61,28 @@ public class ReqConstant {
     /*
      * 正常工作日
      */
-    public static final Integer HOLIDAY_NOT = 0;
+    public static final String HOLIDAY_NOT = "0";
     /*
      * 节假日
      */
-    public static final Integer HOLIDAY_IS = 1;
+    public static final String HOLIDAY_IS = "1";
     /*
      * 节假日前一天
      */
-    public static final Integer HOLIDAY_PRE = 2;
+    public static final String HOLIDAY_PRE = "2";
     /*
      * 节假日后第一天
      */
-    public static final Integer HOLIDAY_AFTER = 3;
+    public static final String HOLIDAY_AFTER = "3";
+
+    //===============门诊/住院类型========================
+    /*
+     * 门诊
+     */
+    public static final String TYPE_OUTP = "0";
+    /*
+     * 住院
+     */
+    public static final String TYPE_INP = "1";
 
 }

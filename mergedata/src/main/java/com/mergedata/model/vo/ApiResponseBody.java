@@ -9,6 +9,8 @@ public class ApiResponseBody<T> {
 
     private List<T> list;
 
+    private T  classObject;
+
     // Getters and Setters
 
     // 静态方法，方便创建空的 body（例如查询失败时）

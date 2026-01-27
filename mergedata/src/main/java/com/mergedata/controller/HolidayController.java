@@ -2,8 +2,10 @@ package com.mergedata.controller;
 
 import com.mergedata.model.dto.ApiRequest;
 import com.mergedata.model.dto.ApiRequestList;
+import com.mergedata.model.dto.HolidayRequestBody;
 import com.mergedata.model.vo.ApiResponse;
 import com.mergedata.model.entity.YQHolidayCalendarEntity;
+import com.mergedata.model.vo.YQHolidayCalendarVO;
 import com.mergedata.server.YQHolidayService;
 import com.mergedata.util.PrimaryKeyGenerator;
 import io.swagger.v3.oas.annotations.Operation;
@@ -109,19 +111,28 @@ public class HolidayController {
 
         return ApiResponse.success("节假日作废成功");
     }
-
-    //使用路径变量
+    // 根据对应日期 和请求类型 判断对应日期结果
     @Operation(summary = "查询日期的类型", description = "返回操作结果")
-    @GetMapping("/querydatetype/{holidayDate}")
-    public Integer queryDateType(
-            @Parameter(description = "查询日期，格式：yyyy-MM-dd", example = "2026-01-01")
-            @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate holidayDate) {
-
-        if (holidayDate == null) {
-            holidayDate = LocalDate.now();
-        }
-        return holiday.queryDateType(holidayDate);
+    @PostMapping("querydatetype")
+    public YQHolidayCalendarVO queryType(@Valid @RequestBody ApiRequest<HolidayRequestBody> request) {
+//        List<YQHolidayCalendarVO> relist =  holiday.queryDateType(request.getBody());
+//
+//        return ApiResponse.success(relist,"节假日作废成功");
+        return     holiday.queryDateType(request.getBody());
     }
+//
+//    //使用路径变量
+//    @Operation(summary = "查询日期的类型", description = "返回操作结果")
+//    @GetMapping("/querydatetype/{holidayDate}")
+//    public Integer queryDateType(
+//            @Parameter(description = "查询日期，格式：yyyy-MM-dd", example = "2026-01-01")
+//            @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate holidayDate) {
+//
+//        if (holidayDate == null) {
+//            holidayDate = LocalDate.now();
+//        }
+//        return holiday.queryDateType(holidayDate);
+//    }
 //  使用 @RequestParam
 //    @Operation(summary = "查询日期的类型", description = "返回操作结果")
 //    @GetMapping("/querydatetype")

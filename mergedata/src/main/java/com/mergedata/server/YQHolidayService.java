@@ -1,6 +1,8 @@
 package com.mergedata.server;
 
+import com.mergedata.model.dto.HolidayRequestBody;
 import com.mergedata.model.entity.YQHolidayCalendarEntity;
+import com.mergedata.model.vo.YQHolidayCalendarVO;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -41,7 +43,7 @@ public interface YQHolidayService {
     /*
      * 获取日期对应的类型
      */
-    Integer queryDateType(LocalDate  holidayDate);
+    YQHolidayCalendarVO queryDateType(HolidayRequestBody holiday);
 
 
 }
