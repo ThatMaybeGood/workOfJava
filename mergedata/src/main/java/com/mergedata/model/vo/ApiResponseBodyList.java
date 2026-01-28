@@ -9,7 +9,7 @@ public class ApiResponseBody<T> {
 
     private List<T> list;
 
-    private T  classObject;
+    private T  obj;
 
     // Getters and Setters
 
