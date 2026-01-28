@@ -62,9 +62,8 @@ public class ReportServiceImpl implements ReportService {
 //            results = report.selectReportByDate(body.getReportDate());
             results = report.findReport(body);
 
-
             // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
-            if (results.isEmpty()) {
+            if (results.isEmpty() || body.getExtendParams1().equals("true") ) {
 
                 // 调用 getAllReportData(LocalDate)
                 results = getAllReportData(body);
@@ -548,6 +547,22 @@ public class ReportServiceImpl implements ReportService {
                 // =========================================================================
                 // End of 基础信息赋值
                 // =========================================================================
+
+//                /**
+//                 * 判断是否是当月的第一天
+//                 */
+//                public static boolean isFirstDayOfMonth(LocalDate date) {
+//                    return date.getDayOfMonth() == 1;
+//                }
+//
+//                /**
+//                 * 判断是否是当月的最后一天
+//                 */
+//                public static boolean isLastDayOfMonth(LocalDate date) {
+//                    return date.getDayOfMonth() == date.lengthOfMonth();
+//                }
+
+
 
                 // ❗当前是工作日 且 前一天是节假日/周末
                 boolean isAfterHoliday = !isHoliday(holidaySet, currtDate) && isHoliday(holidaySet, currtDate.minusDays(1));

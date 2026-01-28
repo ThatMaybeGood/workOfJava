@@ -1,17 +1,37 @@
 package com.mergedata.constants;
 
-public class ReqConstant {
 
-    //API响应状态码
+/**
+ * 响应常量类
+ */
+public class ResConstant {
+    /**
+     * API响应状态码：失败
+     */
     public static final String API_RESPONSE_FAILURE ="10001";
+    /**
+     * API响应状态码：成功
+     */
     public static final String API_RESPONSE_SUCCESS ="10000";
 
     //===============API响应信息==================================
+    /**
+     * API响应信息：失败
+     */
     public static final String API_RESPONSE_FAILURE_MESSAGE ="请求失败";
+    /**
+     * API响应信息：成功
+     */
     public static final String API_RESPONSE_SUCCESS_MESSAGE ="请求成功";
 
     //====================是否成功或失败===================================
+    /**
+     * 是否成功：成功
+     */
     public static final String SUCCESS = "1";
+    /**
+     * 是否成功：失败
+     */
     public static final String FAILURE = "0";
 
 

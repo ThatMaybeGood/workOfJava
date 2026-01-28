@@ -5,6 +5,7 @@ import com.mergedata.model.entity.YQOperatorEntity;
 import com.mergedata.model.dto.ApiRequest;
 import com.mergedata.model.dto.ApiRequestList;
 import com.mergedata.model.vo.ApiResponse;
+import com.mergedata.model.vo.ApiResponseBodyList;
 import com.mergedata.server.YQOperatorService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,7 +37,7 @@ public class OperatorController {
 
     @Operation(summary = "查询所有的操作员数据", description = "返回操作员列表数据")
     @PostMapping("findall")
-    public ApiResponse<YQOperatorEntity> findALl(@Valid @RequestBody  ApiRequest<Void> res)  {
+    public ApiResponse<ApiResponseBodyList<YQOperatorEntity>> findALl(@Valid @RequestBody  ApiRequest<Void> res)  {
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         List<YQOperatorEntity> resultList = operator.findAll();
@@ -46,16 +47,16 @@ public class OperatorController {
         }
 
         // 4. 返回结果
-        return ApiResponse.success(resultList,"查询操作员列表成功！");
+        return ApiResponse.successList(resultList,"查询操作员列表成功！");
     }
 
     @Operation(summary = "通过操作员ID的查询数据", description = "返回改对应操作员数据")
     @PostMapping("findbyid")
-    public ApiResponse<YQOperatorEntity> findByID(@Valid @RequestBody ApiRequest<YQOperatorEntity> res)  {
+    public ApiResponse<ApiResponseBodyList<YQOperatorEntity>> findByID(@Valid @RequestBody ApiRequest<YQOperatorEntity> res)  {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         List<YQOperatorEntity> resultList = operator.findByID(res.getBody());
         // 4. 返回结果
-        return ApiResponse.success(resultList,"查询操作员信息成功");
+        return ApiResponse.successList(resultList,"查询操作员信息成功");
     }
 
     @Operation(summary = "批量写入操作员数据", description = "返回操作结果")
@@ -69,7 +70,7 @@ public class OperatorController {
         if (!b) {
             return ApiResponse.failure("批量插入操作员信息失败");
         }
-        return ApiResponse.success(null,"批量插入操作员信息成功");
+        return ApiResponse.successList(null,"批量插入操作员信息成功");
     }
 
     @Operation(summary = "写入操作员数据", description = "返回操作结果")
@@ -83,7 +84,7 @@ public class OperatorController {
         if (!b) {
             return ApiResponse.failure("插入操作员信息失败");
         }
-        return ApiResponse.success(null,"插入操作员信息成功");
+        return ApiResponse.successList(null,"插入操作员信息成功");
     }
 
     @Operation(summary = "作废删除操作员数据", description = "返回操作结果")

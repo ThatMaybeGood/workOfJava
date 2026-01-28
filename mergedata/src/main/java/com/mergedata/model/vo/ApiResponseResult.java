@@ -30,12 +30,7 @@ public class ApiResponseResult {
          result.setSubMsg(msg);
         return result;
     }
-//    {"result":{"sign_type":"md5",
-//            "sign":"0TU5e1nHncMVBOaNqJjDzA==",
-//            "code":"40004","msg":"业务处理失败",
-//            "sub_code":"parammeter_missing",
-//            "sub_msg":"参数缺失：缺少必填参数(body)。" +
-//            "【YQ_1764950522142441_01】"}}
+
     public  static ApiResponseResult failureStatus(String msg) {
         ApiResponseResult result = new ApiResponseResult();
         result.setSignType("md5");

@@ -1,6 +1,6 @@
 package com.mergedata.server.impl;
 
-import com.mergedata.constants.ReqConstant;
+import com.mergedata.constants.ResConstant;
 import com.mergedata.mapper.HolidayMapper;
 import com.mergedata.model.dto.HolidayRequestBody;
 import com.mergedata.model.entity.YQHolidayCalendarEntity;
@@ -14,8 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -76,30 +74,31 @@ public class HolidayServiceImpl implements YQHolidayService {
 
 
         // 判断是住院/门诊
-        if (holidayRequestBody.getQueryType()==ReqConstant.TYPE_OUTP){
+        if (holidayRequestBody.getQueryType()== ResConstant.TYPE_OUTP){
 
 
         }
 
         if (isHoliday( holidayDate)){
-            yqHolidayCalendarVO.setHolidayType(ReqConstant.HOLIDAY_IS);
+            yqHolidayCalendarVO.setHolidayType(ResConstant.HOLIDAY_IS);
 
            return yqHolidayCalendarVO;
 
         }else {
             // ❗当前是工作日 且 前一天是节假日/周末
             if(isHoliday(holidayDate.minusDays(1))){
-                yqHolidayCalendarVO.setHolidayType(ReqConstant.HOLIDAY_PRE);
+                yqHolidayCalendarVO.setHolidayType(ResConstant.HOLIDAY_PRE);
                 return yqHolidayCalendarVO;
             }
             // ❗当前是工作日 且 后一天是节假日/周末
             if(isHoliday(holidayDate.plusDays(1))){
-                yqHolidayCalendarVO.setHolidayType(ReqConstant.HOLIDAY_AFTER);
+                yqHolidayCalendarVO.setHolidayType(ResConstant.HOLIDAY_AFTER);
                 return yqHolidayCalendarVO;
             }
         }
 
-        yqHolidayCalendarVO.setHolidayType(ReqConstant.HOLIDAY_NOT);
+
+        yqHolidayCalendarVO.setHolidayType(ResConstant.HOLIDAY_NOT);
         return yqHolidayCalendarVO;
     }
 

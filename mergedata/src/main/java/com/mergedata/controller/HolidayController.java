@@ -5,6 +5,8 @@ import com.mergedata.model.dto.ApiRequestList;
 import com.mergedata.model.dto.HolidayRequestBody;
 import com.mergedata.model.vo.ApiResponse;
 import com.mergedata.model.entity.YQHolidayCalendarEntity;
+import com.mergedata.model.vo.ApiResponseBodyList;
+import com.mergedata.model.vo.ApiResponseBodyObj;
 import com.mergedata.model.vo.YQHolidayCalendarVO;
 import com.mergedata.server.YQHolidayService;
 import com.mergedata.util.PrimaryKeyGenerator;
@@ -41,23 +43,23 @@ public class HolidayController {
 
     @Operation(summary = "查询所有节假日数据", description = "返回节假日的列表数据")
     @PostMapping("findall")
-    public ApiResponse<YQHolidayCalendarEntity> findALl(@Valid @RequestBody ApiRequest<Void> res)  {
+    public ApiResponse<ApiResponseBodyList<YQHolidayCalendarEntity>> findALl(@Valid @RequestBody ApiRequest<Void> res)  {
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         List<YQHolidayCalendarEntity> resultList = holiday.findAll();
 
         // 4. 返回结果
-        return ApiResponse.success(resultList,"查询节假日列表成功");
+        return ApiResponse.successList(resultList,"查询节假日列表成功");
     }
 
 
     @Operation(summary = "通过日期查询节假日数据", description = "返回节假日的数据")
     @PostMapping("findbydate")
-    public ApiResponse<YQHolidayCalendarEntity> findByDate(@Valid  @RequestBody ApiRequest<YQHolidayCalendarEntity> res)  {
+    public ApiResponse<ApiResponseBodyList<YQHolidayCalendarEntity>> findByDate(@Valid  @RequestBody ApiRequest<YQHolidayCalendarEntity> res)  {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         List<YQHolidayCalendarEntity> resultList = holiday.findByDate(res.getBody().getHolidayDate());
         // 4. 返回结果
-        return ApiResponse.success(resultList,"查询节假日成功");
+        return ApiResponse.successList(resultList,"查询节假日成功");
     }
 
 
@@ -78,7 +80,7 @@ public class HolidayController {
         if (!b) {
             return ApiResponse.failure("批量插入失败");
         }
-        return ApiResponse.success(list,"批量插入成功");
+        return ApiResponse.successList(list,"批量插入成功");
     }
 
     @Operation(summary = "写入节假日数据", description = "返回操作结果")
@@ -114,11 +116,9 @@ public class HolidayController {
     // 根据对应日期 和请求类型 判断对应日期结果
     @Operation(summary = "查询日期的类型", description = "返回操作结果")
     @PostMapping("querydatetype")
-    public YQHolidayCalendarVO queryType(@Valid @RequestBody ApiRequest<HolidayRequestBody> request) {
-//        List<YQHolidayCalendarVO> relist =  holiday.queryDateType(request.getBody());
-//
-//        return ApiResponse.success(relist,"节假日作废成功");
-        return     holiday.queryDateType(request.getBody());
+    public ApiResponse<ApiResponseBodyObj<YQHolidayCalendarVO>> queryType(@Valid @RequestBody ApiRequest<HolidayRequestBody> request) {
+
+        return ApiResponse.successObj(holiday.queryDateType(request.getBody()),"查询节假日类型成功");
     }
 //
 //    //使用路径变量

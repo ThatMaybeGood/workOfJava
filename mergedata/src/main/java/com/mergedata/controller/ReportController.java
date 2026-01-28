@@ -2,6 +2,7 @@ package com.mergedata.controller;
 
 import com.mergedata.model.dto.*;
 import com.mergedata.model.vo.ApiResponse;
+import com.mergedata.model.vo.ApiResponseBodyList;
 import com.mergedata.util.AddGroup;
 import com.mergedata.server.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,7 +35,7 @@ public class ReportController {
 
     @Operation(summary = "根据日期查询对应报表数据", description = "返回对应的报表数据")
     @PostMapping("/findbydate")
-    public ApiResponse<ReportDTO> findALl(@Valid @RequestBody ApiRequest<ReportRequestBody> request)  {
+    public ApiResponse<ApiResponseBodyList<ReportDTO>> findALl(@Valid @RequestBody ApiRequest<ReportRequestBody> request)  {
 
 //        LocalDate reportdate = request.getBody().getReportdate();
 
@@ -42,7 +43,7 @@ public class ReportController {
         List<ReportDTO> resultList = report.getAll(request.getBody());
 
         // 4. 返回结果
-        return ApiResponse.success(resultList,"查询报表列表成功！");
+        return ApiResponse.successList(resultList,"查询报表列表成功！");
     }
 
     @Operation(summary = "写入报表相关数据", description = "返回对应结果")

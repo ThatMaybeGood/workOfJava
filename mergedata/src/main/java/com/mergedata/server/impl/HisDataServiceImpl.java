@@ -6,6 +6,7 @@ import com.mergedata.model.vo.ApiResponse;
 import com.mergedata.model.dto.external.HisDataRequestBodyDTO;
 import com.mergedata.exception.BusinessException;
 import com.mergedata.model.dto.external.HisIncomeResponseDTO;
+import com.mergedata.model.vo.ApiResponseBodyList;
 import com.mergedata.server.HisDataService;
 import com.mergedata.util.RestApiUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -49,12 +50,12 @@ public class HisDataServiceImpl implements HisDataService {
 
         // 2. 【修正点 1】定义正确的返回类型
         // 外部 ApiResponse<HisIncomeDTO> 结构：泛型 T 应该代表 list 内部的数据类型
-        ParameterizedTypeReference<ApiResponse<HisIncomeResponseDTO>> typeRef = new ParameterizedTypeReference<ApiResponse<HisIncomeResponseDTO>>() {};
+        ParameterizedTypeReference<ApiResponse<ApiResponseBodyList<HisIncomeResponseDTO>>> typeRef = new ParameterizedTypeReference<ApiResponse<ApiResponseBodyList<HisIncomeResponseDTO>>>() {};
 
         try {
             // 3. 调用工具类发起请求
             // 注意：apiResponse 的类型现在是 ApiResponse<HisIncomeDTO>
-            ApiResponse<HisIncomeResponseDTO> apiResponse = restApiUtil.postForObject(
+            ApiResponse<ApiResponseBodyList<HisIncomeResponseDTO>> apiResponse = restApiUtil.postForObject(
                     URL_API_HISINCOME,
                     apiRequest,
                     typeRef

@@ -1,4 +1,9 @@
 package com.mergedata.model.vo;
 
-public class ApiResponseBodyObj {
+import lombok.Data;
+
+
+@Data
+public class ApiResponseBodyObj<T> {
+    private T obj;
 }

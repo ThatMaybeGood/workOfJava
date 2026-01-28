@@ -2,49 +2,48 @@ package com.mergedata.model.vo;
 
 import lombok.Data;
 
+import java.util.Collections;
 import java.util.List;
 
 @Data
 public class ApiResponse<T> {
     private ApiResponseResult result;
-    private ApiResponseBody<T> body;
+    private T body;
 
 
-    // --- 静态构造方法示例 ---
-
-    // 构造成功的响应
-    public static <T> ApiResponse<T> success(List<T> dataList,String msg) {
-        ApiResponse<T> response = new ApiResponse<>();
+    // 构建成功响应 - 列表
+    public static <T> ApiResponse<ApiResponseBodyList<T>> successList(List<T> dataList,String msg) {
+        ApiResponse<ApiResponseBodyList<T>> response = new ApiResponse<>();
 
 
         // 假设 ApiResponseResult 也有静态方法构造成功状态
         response.setResult(ApiResponseResult.successStatus(msg));
 
-        ApiResponseBody<T> body = new ApiResponseBody<>();
+        ApiResponseBodyList<T> body = new ApiResponseBodyList<>();
         body.setList(dataList);
         response.setBody(body);
         return response;
     }
 
-    // 构造成功的响应
-    public static <T> ApiResponse<T> success(T dataList,String msg) {
-        ApiResponse<T> response = new ApiResponse<>();
-
+    // 构造成功的单对象
+    public static <T> ApiResponse<ApiResponseBodyObj<T>> successObj(T obj,String msg) {
+        ApiResponse<ApiResponseBodyObj<T>> response = new ApiResponse<>();
 
         // 假设 ApiResponseResult 也有静态方法构造成功状态
         response.setResult(ApiResponseResult.successStatus(msg));
 
-        ApiResponseBody<T> body = new ApiResponseBody<>();
-        body.setClassObject(dataList);
+        ApiResponseBodyObj<T> body = new ApiResponseBodyObj<>();
+        body.setObj(obj);
         response.setBody(body);
         return response;
     }
+
 
     // 构造失败的响应 (如您示例所示)
     public static <T> ApiResponse<T> failure(String erorMsg) {
         ApiResponse<T> response = new ApiResponse<>();
         response.setResult(ApiResponseResult.failureStatus(erorMsg));
-        response.setBody(ApiResponseBody.empty()); // 失败时 body.list 为空
+//        response.setBody(ApiResponseBodyList.empty()); // 失败时 body.list 为空
         return response;
     }
 
@@ -52,7 +51,7 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> success(String erorMsg) {
         ApiResponse<T> response = new ApiResponse<>();
         response.setResult(ApiResponseResult.successStatus(erorMsg));
-        response.setBody(ApiResponseBody.empty()); // 失败时 body.list 为空
+//        response.setBody(ApiResponseBodyList.empty()); // 失败时 body.list 为空
         return response;
     }
 }

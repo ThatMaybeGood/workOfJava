@@ -4,6 +4,8 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import java.lang.reflect.Method;
+
 @MapperScan("com.mergedata.mapper") // Mapper 接口的实际包路径
 @SpringBootApplication
 public class MessageDataApplication {
