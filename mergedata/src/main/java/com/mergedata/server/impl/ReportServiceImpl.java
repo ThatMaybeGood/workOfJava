@@ -58,12 +58,15 @@ public class ReportServiceImpl implements ReportService {
     public List<ReportDTO> getAll(ReportRequestBody body) {
         //调用存储过程获取报表数据
         try {
-            // 使用 LocalDate 对象进行查询
 //            results = report.selectReportByDate(body.getReportDate());
             results = report.findReport(body);
 
+            //接收ExtendParams1为true时，即初始化报表
+            String param1 = body.getExtendParams1();
+            Boolean isInitFlag = (param1 != null && "true".equalsIgnoreCase(param1));
+
             // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
-            if (results.isEmpty() || body.getExtendParams1().equals("true") ) {
+            if (results.isEmpty() || isInitFlag ) {
 
                 // 调用 getAllReportData(LocalDate)
                 results = getAllReportData(body);
@@ -352,8 +355,10 @@ public class ReportServiceImpl implements ReportService {
 
                 // 昨日暂收款 ---
                 currentDto.setPreviousTemporaryReceipt(getSafeBigDecimal(rpt.getPreviousTemporaryReceipt()));
+
                 //节假日暂收款
                 currentDto.setHolidayTemporaryReceipt(getSafeBigDecimal(rpt.getHolidayTemporaryReceipt()));
+
                 //当日暂收款
                 currentDto.setCurrentTemporaryReceipt(getSafeBigDecimal(rpt.getCurrentTemporaryReceipt()));
                 //备用金
@@ -371,6 +376,9 @@ public class ReportServiceImpl implements ReportService {
                 // =========================================================================
                 // End of 基础信息赋值
                 // =========================================================================
+
+
+
 
                 // ❗当前是工作日 且 前一天是节假日/周末
                 boolean isAfterHoliday = !isHoliday(holidaySet, currtDate) && isHoliday(holidaySet, currtDate.minusDays(1));
@@ -390,6 +398,7 @@ public class ReportServiceImpl implements ReportService {
                     BigDecimal actualReportAmount = currentDto.getReportAmount().subtract(currentDto.getHolidayTemporaryReceipt());
                     currentDto.setActualReportAmount(actualReportAmount);
 
+
                 } else if (isHoliday(holidaySet, currtDate.plusDays(1))) {
                     // 节假日前一天 (周五/最后一天) 逻辑 (保持不变)
                     BigDecimal actualReportAmount = currentDto.getReportAmount()
@@ -403,8 +412,7 @@ public class ReportServiceImpl implements ReportService {
                     currentDto.setActualReportAmount(currentDto.getReportAmount());
                 }
 
-
-                // 5.实收现金数 5 = 3+4 (保持不变)
+                    // 5.实收现金数 5 = 3+4 (保持不变)
                 currentDto.setActualCashAmount(currentDto.getActualReportAmount().add(currentDto.getCurrentTemporaryReceipt()));
 
                 //留存数差额 6 = 7-3-8 (保持不变)
@@ -548,25 +556,13 @@ public class ReportServiceImpl implements ReportService {
                 // End of 基础信息赋值
                 // =========================================================================
 
-//                /**
-//                 * 判断是否是当月的第一天
-//                 */
-//                public static boolean isFirstDayOfMonth(LocalDate date) {
-//                    return date.getDayOfMonth() == 1;
-//                }
-//
-//                /**
-//                 * 判断是否是当月的最后一天
-//                 */
-//                public static boolean isLastDayOfMonth(LocalDate date) {
-//                    return date.getDayOfMonth() == date.lengthOfMonth();
-//                }
-
-
 
                 // ❗当前是工作日 且 前一天是节假日/周末
                 boolean isAfterHoliday = !isHoliday(holidaySet, currtDate) && isHoliday(holidaySet, currtDate.minusDays(1));
 
+                /*
+                *回溯计算实收报表
+                 */
                 if (isAfterHoliday) {
                     // 符合条件：执行复杂回溯计算 (A = B - Sum(C) - D)
                     log.info("第{}条，[{}]节假日后正常工作日第一天特殊处理，回溯计算实际报表金额开始......................", count, currtDate);
@@ -577,7 +573,7 @@ public class ReportServiceImpl implements ReportService {
                             // 传递的 Lambda 表达式现在接收 LocalDate
                             date -> report.selectReportByDate(date)
                     );
-                } else if (isHoliday(holidaySet, currtDate)) {
+                } else if (isHoliday(holidaySet, currtDate)) {  //是节假日且是当月的最后一天是否，实收报表是否 需要回溯计算
                     // 节假日逻辑：A = B - C (保持不变)
                     BigDecimal actualReportAmount = currentDto.getReportAmount().subtract(currentDto.getHolidayTemporaryReceipt());
                     currentDto.setActualReportAmount(actualReportAmount);
@@ -595,6 +591,36 @@ public class ReportServiceImpl implements ReportService {
                     currentDto.setActualReportAmount(currentDto.getReportAmount());
                 }
 
+                /*
+                 *回溯计算节假日暂收款问题 遇到回溯如果跨月问题 只能加到一号,周一的情况
+                 */
+                if (isAfterHoliday) {
+                    // 符合条件：执行复杂回溯计算 (A = B - Sum(C) - D)
+                    log.info("第{}条，[{}]节假日后正常工作日第一天特殊处理，回溯计算节假日暂收款金额开始......................", count, currtDate);
+                    calculateAHolidayTemporaryReceiptForMonday(
+                            currentDto,
+                            currtDate,
+                            holidaySet,
+                            // 传递的 Lambda 表达式现在接收 LocalDate
+                            date -> report.selectReportByDate(date)
+                    );
+                } else if (isHoliday(holidaySet, currtDate)) {
+                    // 节假日逻辑且是当月最后一天
+                    if(currtDate.getDayOfMonth() == currtDate.lengthOfMonth()){
+                        calculateAHolidayTemporaryReceiptForMonday(
+                                currentDto,
+                                currtDate,
+                                holidaySet,
+                                // 传递的 Lambda 表达式现在接收 LocalDate
+                                date -> report.selectReportByDate(date)
+                        );
+                    }
+                } else {
+                    // 正常工作日逻辑 (保持不变)
+                    currentDto.setHolidayTemporaryReceipt(BigDecimal.ZERO);
+                }
+
+
 
                 // 5.实收现金数 5 = 3+4 (保持不变)
                 currentDto.setActualCashAmount(currentDto.getActualReportAmount().add(currentDto.getCurrentTemporaryReceipt()));
@@ -607,6 +633,25 @@ public class ReportServiceImpl implements ReportService {
                 // 7. 加入结果集 (保持不变)
                 resultList.add(currentDto);
             }
+
+
+
+//                /**
+//                 * 判断是否是当月的第一天
+//                 */
+//                public static boolean isFirstDayOfMonth(LocalDate date) {
+//                    return date.getDayOfMonth() == 1;
+//                }
+//
+//                /**
+//                 * 判断是否是当月的最后一天
+//                 */
+//                public static boolean isLastDayOfMonth(LocalDate date) {
+//                    return date.getDayOfMonth() == date.lengthOfMonth();
+//                }
+
+
+
 
             log.info("{}生成报表完成，共处理 {} 个操作员", currtDate.toString(), resultList.size());
             return resultList;
@@ -633,46 +678,57 @@ public class ReportServiceImpl implements ReportService {
         BigDecimal dAmountFriday = BigDecimal.ZERO;
         LocalDate currentDate = targetDate.minusDays(1); // 从周日开始回溯
 
-        // 2. 回溯循环
-        while (true) {
 
-            // 2.1 获取当前回溯日期的历史报表数据 (通过 Mapper)
-            // ❗ 修正点 12: 调用函数时，直接传入 LocalDate 对象
-            List<ReportDTO> historicalReportDTOS = reportQueryFunction.apply(currentDate);
+        //当前传入日期为当月第一天
+        if(targetDate.getDayOfMonth() != 1) {
 
-            // 2.2 查找当前操作员在历史报表中的记录 (确保用户匹配)
-            Optional<ReportDTO> historicalDtoOpt = historicalReportDTOS.stream()
-                    .filter(r -> currentDto.getOperatorNo().equals(r.getOperatorNo()))
-                    .findFirst();
+            // 2. 回溯循环
+            while (true) {
 
-            // 提取当前的 金额 (HolidayTemporaryReceipt)
-            BigDecimal cAmount = historicalDtoOpt
-                    .map(ReportDTO::getHolidayTemporaryReceipt)
-                    .orElse(BigDecimal.ZERO); // 缺失数据默认为 0
+                // 2.1 获取当前回溯日期的历史报表数据 (通过 Mapper)
+                // ❗ 修正点 12: 调用函数时，直接传入 LocalDate 对象
+                List<ReportDTO> historicalReportDTOS = reportQueryFunction.apply(currentDate);
 
-            if (isHoliday(holidaySet, currentDate)) {
-                // 是节假日（周六、周日）：累加 C 金额 (HolidayTemporaryReceipt)
+                // 2.2 查找当前操作员在历史报表中的记录 (确保用户匹配)
+                Optional<ReportDTO> historicalDtoOpt = historicalReportDTOS.stream()
+                        .filter(r -> currentDto.getOperatorNo().equals(r.getOperatorNo()))
+                        .findFirst();
 
-                totalC = totalC.add(getSafeBigDecimal(cAmount));
-
-                currentDate = currentDate.minusDays(1); // 继续往前
-
-            } else {
-                // 找到中断点：第一个非节假日日期（即周五）
-                // ❗ 将周五的 C (HolidayTemporaryReceipt) 也累加进去
-                totalC = totalC.add(getSafeBigDecimal(cAmount));
-
-                // 提取 D 金额 (CurrentTemporaryReceipt)
-                dAmountFriday = historicalDtoOpt
-                        .map(ReportDTO::getCurrentTemporaryReceipt)
+                // 提取当前的节假日的金额 (HolidayTemporaryReceipt)
+                BigDecimal cAmount = historicalDtoOpt
+                        .map(ReportDTO::getHolidayTemporaryReceipt)
                         .orElse(BigDecimal.ZERO); // 缺失数据默认为 0
-                break; // 跳出循环
-            }
 
-            // 安全检查：防止无限循环
-            if (targetDate.toEpochDay() - currentDate.toEpochDay() > 15) {
-                log.warn("回溯查找失败，连续节假日过多，在 {} 无法找到工作日。", targetDate);
-                break;
+
+                if (isHoliday(holidaySet, currentDate)) {
+                    // 是节假日（周六、周日）：累加 C 金额 (HolidayTemporaryReceipt)
+
+                    //当前日期为当月第一天
+                    if (currentDate.getDayOfMonth() == 1) {
+                        break;
+                    }
+
+                    totalC = totalC.add(getSafeBigDecimal(cAmount));
+
+                    currentDate = currentDate.minusDays(1); // 继续往前
+
+                } else {
+                    // 找到中断点：第一个非节假日日期（即周五）
+                    // ❗ 将周五的 C (HolidayTemporaryReceipt) 也累加进去
+                    totalC = totalC.add(getSafeBigDecimal(cAmount));
+
+                    // 提取 D 金额 (CurrentTemporaryReceipt)
+                    dAmountFriday = historicalDtoOpt
+                            .map(ReportDTO::getCurrentTemporaryReceipt)
+                            .orElse(BigDecimal.ZERO); // 缺失数据默认为 0
+                    break; // 跳出循环
+                }
+
+                // 安全检查：防止无限循环
+                if (targetDate.toEpochDay() - currentDate.toEpochDay() > 15) {
+                    log.warn("回溯查找失败，连续节假日过多，在 {} 无法找到工作日。", targetDate);
+                    break;
+                }
             }
         }
 
@@ -682,8 +738,89 @@ public class ReportServiceImpl implements ReportService {
                 .subtract(dAmountFriday);
         log.info("员工ID:{}，姓名:{},回溯计算实际报表金额 {} - {} - {} = {} ",
                 currentDto.getOperatorNo(), currentDto.getOperatorName(), currentDto.getReportAmount(), totalC, dAmountFriday, finalActualReportAmount);
+
+
         // 4. 设置计算结果
         currentDto.setActualReportAmount(finalActualReportAmount);
+
+    }
+
+
+
+
+
+    /**
+     * 【核心逻辑实现】处理周一的复杂回溯计算
+     * 公式: A = B - Sum(C){周末/节假日} - D{周五}
+     * C = HolidayTemporaryReceipt (节假日暂收款), D = CurrentTemporaryReceipt (当日暂收款)
+     */
+    private void calculateAHolidayTemporaryReceiptForMonday(
+            ReportDTO currentDto,
+            LocalDate targetDate,
+            Set<LocalDate> holidaySet,
+            // ❗ 修正点 11: 将 Function 的输入类型改为 LocalDate
+            Function<LocalDate, List<ReportDTO>> reportQueryFunction) {
+
+        BigDecimal totalC = BigDecimal.ZERO;
+        BigDecimal dAmountFriday = BigDecimal.ZERO;
+        LocalDate currentDate = targetDate.minusDays(1); // 从周日开始回溯
+
+
+        //当前传入日期为当月第一天
+        if(targetDate.getDayOfMonth() != 1) {
+
+            // 2. 回溯循环
+            while (true) {
+
+                // 2.1 获取当前回溯日期的历史报表数据 (通过 Mapper)
+                // ❗ 修正点 12: 调用函数时，直接传入 LocalDate 对象
+                List<ReportDTO> historicalReportDTOS = reportQueryFunction.apply(currentDate);
+
+                // 2.2 查找当前操作员在历史报表中的记录 (确保用户匹配)
+                Optional<ReportDTO> historicalDtoOpt = historicalReportDTOS.stream()
+                        .filter(r -> currentDto.getOperatorNo().equals(r.getOperatorNo()))
+                        .findFirst();
+
+                // 提取当前的节假日的金额 (HolidayTemporaryReceipt)
+                BigDecimal cAmount = historicalDtoOpt
+                        .map(ReportDTO::getHolidayTemporaryReceipt)
+                        .orElse(BigDecimal.ZERO); // 缺失数据默认为 0
+
+
+                if (isHoliday(holidaySet, currentDate)) {
+                    // 是节假日（周六、周日）：累加 C 金额 (HolidayTemporaryReceipt)
+
+                    //当前日期为当月第一天
+                    if (currentDate.getDayOfMonth() == 1) {
+                        break;
+                    }
+
+                    totalC = totalC.add(getSafeBigDecimal(cAmount));
+
+                    currentDate = currentDate.minusDays(1); // 继续往前
+
+                } else {
+                    // 找到中断点：第一个非节假日日期（即周五）
+                    // ❗ 将周五的 C (HolidayTemporaryReceipt) 也累加进去
+                    totalC = totalC.add(getSafeBigDecimal(cAmount));
+                    break; // 跳出循环
+                }
+
+                // 安全检查：防止无限循环
+                if (targetDate.toEpochDay() - currentDate.toEpochDay() > 15) {
+                    log.warn("回溯查找失败，连续节假日过多，在 {} 无法找到工作日。", targetDate);
+                    break;
+                }
+            }
+        }
+
+
+        log.info("员工ID:{}，姓名:{},回溯计算节假日站收款金额 {} - {} - {} = {} ",
+                currentDto.getOperatorNo(), currentDto.getOperatorName(), currentDto.getReportAmount(), totalC, dAmountFriday, totalC);
+
+        //节假日站收款
+        currentDto.setHolidayTemporaryReceipt(totalC);
+
     }
 
 

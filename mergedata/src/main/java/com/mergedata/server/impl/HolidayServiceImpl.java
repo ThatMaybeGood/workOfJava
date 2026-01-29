@@ -102,6 +102,26 @@ public class HolidayServiceImpl implements YQHolidayService {
         return yqHolidayCalendarVO;
     }
 
+    @Override
+    public String getDateType(LocalDate holidayDate) {
+
+        if (isHoliday( holidayDate)){
+            return ResConstant.HOLIDAY_IS;
+        }else {
+            // ❗当前是工作日 且 前一天是节假日/周末
+            if(isHoliday(holidayDate.minusDays(1))){
+                 return ResConstant.HOLIDAY_PRE;
+            }
+            // ❗当前是工作日 且 后一天是节假日/周末
+            if(isHoliday(holidayDate.plusDays(1))){
+                 return ResConstant.HOLIDAY_AFTER;
+            }
+        }
+
+
+        return ResConstant.HOLIDAY_NOT;
+    }
+
     /**
      * 判断日期是否为节假日 (使用 Set 版本)
      */

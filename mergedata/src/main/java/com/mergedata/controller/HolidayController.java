@@ -120,19 +120,22 @@ public class HolidayController {
 
         return ApiResponse.successObj(holiday.queryDateType(request.getBody()),"查询节假日类型成功");
     }
-//
-//    //使用路径变量
-//    @Operation(summary = "查询日期的类型", description = "返回操作结果")
-//    @GetMapping("/querydatetype/{holidayDate}")
-//    public Integer queryDateType(
-//            @Parameter(description = "查询日期，格式：yyyy-MM-dd", example = "2026-01-01")
-//            @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate holidayDate) {
-//
-//        if (holidayDate == null) {
-//            holidayDate = LocalDate.now();
-//        }
-//        return holiday.queryDateType(holidayDate);
-//    }
+
+
+
+
+    //使用路径变量
+    @Operation(summary = "查询日期的类型", description = "返回操作结果")
+    @GetMapping("/querydatetype/{holidayDate}")
+    public String queryDateType(
+            @Parameter(description = "查询日期，格式：yyyy-MM-dd", example = "2026-01-01")
+            @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate holidayDate) {
+
+        if (holidayDate == null) {
+            holidayDate = LocalDate.now();
+        }
+        return holiday.getDateType(holidayDate);
+    }
 //  使用 @RequestParam
 //    @Operation(summary = "查询日期的类型", description = "返回操作结果")
 //    @GetMapping("/querydatetype")
