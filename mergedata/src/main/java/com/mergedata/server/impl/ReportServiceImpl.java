@@ -98,6 +98,14 @@ public class ReportServiceImpl implements ReportService {
      */
     @Transactional(rollbackFor = Exception.class) // 保证主从要么全成功，要么全失败
     public void isInitInsert(List<ReportDTO> list, LocalDate date) {
+
+        // 2. 作废该日期下所有的主表记录
+        if(!report.selectReportByDate(date).isEmpty()) {
+            report.updateByDate(date);
+        }
+        log.info("历史报表数据作废完成.");
+
+
         // =======================================================
         // 只生成一个主键，作为主表的主键和明细表的外键
         // =======================================================
