@@ -1,7 +1,6 @@
 package com.mergedata.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.mergedata.model.entity.CashStatisticsSubEntity;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -10,7 +9,7 @@ import java.util.List;
 
 @Data
 @TableName("mpp_cash_statistics_master") // 只要在这里指定数据库真实的表名
-public class CashStattisticsMainEntity {
+public class OutpCashStattisticsMainEntity {
     //流水号
     private String serialNo;
     //报表日期
@@ -26,7 +25,7 @@ public class CashStattisticsMainEntity {
     //更新时间
     private LocalDateTime updateTime;
     //关联的子报表列表（一对多关系）
-    private List<CashStatisticsSubEntity> subs ;
+    private List<OutpCashStatisticsSubEntity> subs ;
 
 
 }

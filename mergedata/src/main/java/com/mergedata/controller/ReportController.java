@@ -3,6 +3,7 @@ package com.mergedata.controller;
 import com.mergedata.model.dto.*;
 import com.mergedata.model.vo.ApiResponse;
 import com.mergedata.model.vo.ApiResponseBodyList;
+import com.mergedata.model.vo.OutpReportVO;
 import com.mergedata.util.AddGroup;
 import com.mergedata.server.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,12 +36,12 @@ public class ReportController {
 
     @Operation(summary = "根据日期查询对应报表数据", description = "返回对应的报表数据")
     @PostMapping("/findbydate")
-    public ApiResponse<ApiResponseBodyList<ReportDTO>> findALl(@Valid @RequestBody ApiRequest<ReportRequestBody> request)  {
+    public ApiResponse<ApiResponseBodyList<OutpReportVO>> findALl(@Valid @RequestBody ApiRequest<ReportRequestBody> request)  {
 
 //        LocalDate reportdate = request.getBody().getReportdate();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        List<ReportDTO> resultList = report.getAll(request.getBody());
+        List<OutpReportVO> resultList = report.getAll(request.getBody());
 
         // 4. 返回结果
         return ApiResponse.successList(resultList,"查询报表列表成功！");
@@ -48,9 +49,9 @@ public class ReportController {
 
     @Operation(summary = "写入报表相关数据", description = "返回对应结果")
     @PostMapping("insert")
-    public ApiResponse batchInsert(@Validated(AddGroup.class) @RequestBody ApiRequestList<ReportDTO> request)  {
+    public ApiResponse batchInsert(@Validated(AddGroup.class) @RequestBody ApiRequestList<OutpReportVO> request)  {
 
-        List<ReportDTO> list = request.getBody().getList();
+        List<OutpReportVO> list = request.getBody().getList();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         Boolean b = report.batchInsert(list);

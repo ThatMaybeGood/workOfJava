@@ -87,13 +87,13 @@ public class ResConstant {
      */
     public static final String HOLIDAY_IS = "1";
     /*
-     * 节假日前一天
-     */
-    public static final String HOLIDAY_PRE = "2";
-    /*
      * 节假日后第一天
      */
-    public static final String HOLIDAY_AFTER = "3";
+    public static final String HOLIDAY_AFTER = "2";
+    /*
+     * 节假日前一天
+     */
+    public static final String  HOLIDAY_PRE= "3";
 
     //===============门诊/住院类型========================
     /*

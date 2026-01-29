@@ -1,4 +1,4 @@
-package com.mergedata.model.dto;
+package com.mergedata.model.vo;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -11,7 +11,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
-public class ReportDTO {
+public class OutpReportVO {
     @JsonProperty("serial_no")
     private String serialNo;
 

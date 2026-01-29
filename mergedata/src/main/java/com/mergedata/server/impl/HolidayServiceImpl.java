@@ -87,12 +87,12 @@ public class HolidayServiceImpl implements YQHolidayService {
         }else {
             // ❗当前是工作日 且 前一天是节假日/周末
             if(isHoliday(holidayDate.minusDays(1))){
-                yqHolidayCalendarVO.setHolidayType(ResConstant.HOLIDAY_PRE);
+                yqHolidayCalendarVO.setHolidayType(ResConstant.HOLIDAY_AFTER);
                 return yqHolidayCalendarVO;
             }
             // ❗当前是工作日 且 后一天是节假日/周末
             if(isHoliday(holidayDate.plusDays(1))){
-                yqHolidayCalendarVO.setHolidayType(ResConstant.HOLIDAY_AFTER);
+                yqHolidayCalendarVO.setHolidayType(ResConstant.HOLIDAY_PRE);
                 return yqHolidayCalendarVO;
             }
         }

@@ -26,15 +26,12 @@ public class ApiResponse<T> {
     }
 
     // 构造成功的单对象
-    public static <T> ApiResponse<ApiResponseBodyObj<T>> successObj(T obj,String msg) {
-        ApiResponse<ApiResponseBodyObj<T>> response = new ApiResponse<>();
+    public static <T> ApiResponse<T> successObj(T obj,String msg) {
+        ApiResponse<T> response = new ApiResponse<>();
 
         // 假设 ApiResponseResult 也有静态方法构造成功状态
         response.setResult(ApiResponseResult.successStatus(msg));
-
-        ApiResponseBodyObj<T> body = new ApiResponseBodyObj<>();
-        body.setObj(obj);
-        response.setBody(body);
+        response.setBody(obj);
         return response;
     }
 

@@ -31,7 +31,7 @@ import java.util.List;
  */
 
 @RestController
-@RequestMapping("api/holidays")
+@RequestMapping("api")
 @CrossOrigin(origins = "*")
 @Tag(name = "节假日管理", description = "用于节假日相关的接口")
 public class HolidayController {
@@ -115,8 +115,8 @@ public class HolidayController {
     }
     // 根据对应日期 和请求类型 判断对应日期结果
     @Operation(summary = "查询日期的类型", description = "返回操作结果")
-    @PostMapping("querydatetype")
-    public ApiResponse<ApiResponseBodyObj<YQHolidayCalendarVO>> queryType(@Valid @RequestBody ApiRequest<HolidayRequestBody> request) {
+    @PostMapping("querydatetype/holidayDate")
+    public ApiResponse<YQHolidayCalendarVO> queryType(@Valid @RequestBody ApiRequest<HolidayRequestBody> request) {
 
         return ApiResponse.successObj(holiday.queryDateType(request.getBody()),"查询节假日类型成功");
     }

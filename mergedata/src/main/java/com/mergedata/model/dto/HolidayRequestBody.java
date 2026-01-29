@@ -12,7 +12,7 @@ public class HolidayRequestBody {
 
     @NotNull(message = "reportdate不能为空")
     @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
-    @JsonProperty("report_date")
+    @JsonProperty("reportdate")
     private LocalDate reportDate;
 
     @NotNull(message = "query_type不能为空")

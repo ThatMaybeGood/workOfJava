@@ -2,7 +2,7 @@ package com.mergedata.server.impl;
 
 import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.mergedata.model.dto.external.HisIncomeResponseDTO;
-import com.mergedata.model.dto.ReportDTO;
+import com.mergedata.model.vo.OutpReportVO;
 import com.mergedata.model.dto.ReportRequestBody;
 import com.mergedata.mapper.CashMapper;
 import com.mergedata.mapper.HolidayMapper;
@@ -46,16 +46,16 @@ public class ReportServiceImpl implements ReportService {
     ReportMapper report;
 
 
-    List<ReportDTO> results = new ArrayList<>();
+    List<OutpReportVO> results = new ArrayList<>();
 
 
     @Override
-    public List<ReportDTO> getAll(String reportDate) {
+    public List<OutpReportVO> getAll(String reportDate) {
         return Collections.emptyList();
     }
 
     @Override
-    public List<ReportDTO> getAll(ReportRequestBody body) {
+    public List<OutpReportVO> getAll(ReportRequestBody body) {
         //调用存储过程获取报表数据
         try {
 //            results = report.selectReportByDate(body.getReportDate());
@@ -97,7 +97,7 @@ public class ReportServiceImpl implements ReportService {
     对应日期报表无数据时候，是否初始化写入数据
      */
     @Transactional(rollbackFor = Exception.class) // 保证主从要么全成功，要么全失败
-    public void isInitInsert(List<ReportDTO> list, LocalDate date) {
+    public void isInitInsert(List<OutpReportVO> list, LocalDate date) {
 
         // 2. 作废该日期下所有的主表记录
         if(!report.selectReportByDate(date).isEmpty()) {
@@ -112,12 +112,12 @@ public class ReportServiceImpl implements ReportService {
         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
         String pk = pks.generateKey();
 
-        List<CashStatisticsSubEntity> subList = new ArrayList<>();
+        List<OutpCashStatisticsSubEntity> subList = new ArrayList<>();
 
         // ------------------------------------------
         //  只创建 1 条 CashStattisticsMain (主表) 记录
         // ------------------------------------------
-        CashStattisticsMainEntity main = new CashStattisticsMainEntity();
+        OutpCashStattisticsMainEntity main = new OutpCashStattisticsMainEntity();
 
         main.setSerialNo(pk); // 唯一主键
         main.setIsvalid(true);
@@ -129,22 +129,22 @@ public class ReportServiceImpl implements ReportService {
         // ------------------------------------------
         // 遍历 Report 列表，创建 N 条 CashStatisticsSub (明细表) 记录
         // ------------------------------------------
-        for (ReportDTO reportDTO : list) {
-            CashStatisticsSubEntity sub = new CashStatisticsSubEntity();
+        for (OutpReportVO outpReportVO : list) {
+            OutpCashStatisticsSubEntity sub = new OutpCashStatisticsSubEntity();
 
-            BeanUtils.copyProperties(reportDTO, sub);
+            BeanUtils.copyProperties(outpReportVO, sub);
 
             // 所有明细记录使用同一个主键作为外键
             sub.setSerialNo(pk);
-            sub.setHisOperatorNo(reportDTO.getOperatorNo());
-            sub.setHisOperatorName(reportDTO.getOperatorName());
+            sub.setHisOperatorNo(outpReportVO.getOperatorNo());
+            sub.setHisOperatorName(outpReportVO.getOperatorName());
 
             //添加 结账序号 结账时间  2025.12.31
-            sub.setRowNum(reportDTO.getRowNum());
-            sub.setAcctDate(reportDTO.getAcctDate());
-            sub.setAcctNo(reportDTO.getAcctNo());
+            sub.setRowNum(outpReportVO.getRowNum());
+            sub.setAcctDate(outpReportVO.getAcctDate());
+            sub.setAcctNo(outpReportVO.getAcctNo());
 
-            if (!reportDTO.getOperatorName().contains("合计")) {
+            if (!outpReportVO.getOperatorName().contains("合计")) {
                 subList.add(sub);
             }
         }
@@ -164,13 +164,13 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     @Transactional
-    public Boolean batchInsert(List<ReportDTO> reportDTOList) {
-        if (reportDTOList == null || reportDTOList.isEmpty()) {
+    public Boolean batchInsert(List<OutpReportVO> outpReportVOList) {
+        if (outpReportVOList == null || outpReportVOList.isEmpty()) {
             return false;
         }
 
         // 1. 确定要作废的日期
-        LocalDate reportDate= reportDTOList.get(0).getReportDate();
+        LocalDate reportDate= outpReportVOList.get(0).getReportDate();
 
         // 2. 作废该日期下所有的主表记录
         log.info("开始作废日期 {} 下的历史报表数据...", reportDate);
@@ -181,7 +181,7 @@ public class ReportServiceImpl implements ReportService {
 
 
         //3.转换对应报表数据
-        List<ReportDTO> list = exchangeInsertReportData(reportDate, reportDTOList);
+        List<OutpReportVO> list = exchangeInsertReportData(reportDate, outpReportVOList);
 
 
         // =======================================================
@@ -190,32 +190,32 @@ public class ReportServiceImpl implements ReportService {
         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
         String pk = pks.generateKey();
 
-        List<CashStattisticsMainEntity> mainList = new ArrayList<>();
-        List<CashStatisticsSubEntity> subList = new ArrayList<>();
+        List<OutpCashStattisticsMainEntity> mainList = new ArrayList<>();
+        List<OutpCashStatisticsSubEntity> subList = new ArrayList<>();
 
         // ------------------------------------------
         //  只创建 1 条 CashStattisticsMain (主表) 记录
         // ------------------------------------------
-        CashStattisticsMainEntity main = new CashStattisticsMainEntity();
-        ReportDTO firstReportDTO = list.get(0); // 随便取一条 Report 来获取通用的主表信息
+        OutpCashStattisticsMainEntity main = new OutpCashStattisticsMainEntity();
+        OutpReportVO firstOutpReportVO = list.get(0); // 随便取一条 Report 来获取通用的主表信息
 
         main.setSerialNo(pk); // 唯一主键
         main.setIsvalid(true);
 
         // 复制通用的日期/年份信息
-        if (firstReportDTO.getReportDate() != null) {
+        if (firstOutpReportVO.getReportDate() != null) {
             try {
-                main.setReportDate(firstReportDTO.getReportDate());
+                main.setReportDate(firstOutpReportVO.getReportDate());
             } catch (Exception e) {
-                throw new RuntimeException("日期格式错误: " + firstReportDTO.getReportDate());
+                throw new RuntimeException("日期格式错误: " + firstOutpReportVO.getReportDate());
             }
         }
-        if (firstReportDTO.getReportYear() != null) {
-            main.setReportYear(Integer.valueOf(firstReportDTO.getReportYear()));
+        if (firstOutpReportVO.getReportYear() != null) {
+            main.setReportYear(Integer.valueOf(firstOutpReportVO.getReportYear()));
         }
 
 
-        main.setCreateTime(firstReportDTO.getCreateTime() != null ? firstReportDTO.getCreateTime() : LocalDateTime.now());
+        main.setCreateTime(firstOutpReportVO.getCreateTime() != null ? firstOutpReportVO.getCreateTime() : LocalDateTime.now());
         main.setUpdateTime(LocalDateTime.now());
 
         mainList.add(main); // 主表列表中只有 1 条记录
@@ -224,22 +224,22 @@ public class ReportServiceImpl implements ReportService {
         // ------------------------------------------
         // 遍历 Report 列表，创建 N 条 CashStatisticsSub (明细表) 记录
         // ------------------------------------------
-        for (ReportDTO reportDTO : list) {
-            CashStatisticsSubEntity sub = new CashStatisticsSubEntity();
+        for (OutpReportVO outpReportVO : list) {
+            OutpCashStatisticsSubEntity sub = new OutpCashStatisticsSubEntity();
 
-            BeanUtils.copyProperties(reportDTO, sub);
+            BeanUtils.copyProperties(outpReportVO, sub);
 
             // 所有明细记录使用同一个主键作为外键
             sub.setSerialNo(pk);
-            sub.setHisOperatorNo(reportDTO.getOperatorNo());
-            sub.setHisOperatorName(reportDTO.getOperatorName());
+            sub.setHisOperatorNo(outpReportVO.getOperatorNo());
+            sub.setHisOperatorName(outpReportVO.getOperatorName());
 
             //添加 结账序号 结账时间  2025.12.31
-            sub.setRowNum(reportDTO.getRowNum());
-            sub.setAcctDate(reportDTO.getAcctDate());
-            sub.setAcctNo(reportDTO.getAcctNo());
+            sub.setRowNum(outpReportVO.getRowNum());
+            sub.setAcctDate(outpReportVO.getAcctDate());
+            sub.setAcctNo(outpReportVO.getAcctNo());
 
-            if (!reportDTO.getOperatorName().contains("合计")) {
+            if (!outpReportVO.getOperatorName().contains("合计")) {
                 subList.add(sub);
             }
         }
@@ -264,33 +264,33 @@ public class ReportServiceImpl implements ReportService {
     }
 
 
-    private ReportDTO calculateTotal(List<ReportDTO> dtoList, LocalDate reportdate) {
+    private OutpReportVO calculateTotal(List<OutpReportVO> dtoList, LocalDate reportdate) {
         // ... (方法内部逻辑不变)
         final BigDecimal ZERO = BigDecimal.ZERO;
         BinaryOperator<BigDecimal> sumOperator = BigDecimal::add;
 
-        ReportDTO total = new ReportDTO();
+        OutpReportVO total = new OutpReportVO();
         total.setOperatorNo("sum_total");
         total.setOperatorName("合计");
 
-        Function<Function<ReportDTO, BigDecimal>, BigDecimal> sumByField =
+        Function<Function<OutpReportVO, BigDecimal>, BigDecimal> sumByField =
                 getter -> dtoList.stream()
                         .map(getter)
                         .filter(Objects::nonNull)
                         .reduce(ZERO, sumOperator);
 
-        total.setHisAdvancePayment(sumByField.apply(ReportDTO::getHisAdvancePayment));
-        total.setHisMedicalIncome(sumByField.apply(ReportDTO::getHisMedicalIncome));
-        total.setHisRegistrationIncome(sumByField.apply(ReportDTO::getHisRegistrationIncome));
-        total.setRetainedCash(sumByField.apply(ReportDTO::getRetainedCash));
-        total.setReportAmount(sumByField.apply(ReportDTO::getReportAmount));
-        total.setPreviousTemporaryReceipt(sumByField.apply(ReportDTO::getPreviousTemporaryReceipt));
-        total.setHolidayTemporaryReceipt(sumByField.apply(ReportDTO::getHolidayTemporaryReceipt));
+        total.setHisAdvancePayment(sumByField.apply(OutpReportVO::getHisAdvancePayment));
+        total.setHisMedicalIncome(sumByField.apply(OutpReportVO::getHisMedicalIncome));
+        total.setHisRegistrationIncome(sumByField.apply(OutpReportVO::getHisRegistrationIncome));
+        total.setRetainedCash(sumByField.apply(OutpReportVO::getRetainedCash));
+        total.setReportAmount(sumByField.apply(OutpReportVO::getReportAmount));
+        total.setPreviousTemporaryReceipt(sumByField.apply(OutpReportVO::getPreviousTemporaryReceipt));
+        total.setHolidayTemporaryReceipt(sumByField.apply(OutpReportVO::getHolidayTemporaryReceipt));
 
-        total.setActualCashAmount(sumByField.apply(ReportDTO::getActualCashAmount));
-        total.setCurrentTemporaryReceipt(sumByField.apply(ReportDTO::getCurrentTemporaryReceipt));
-        total.setRetainedDifference(sumByField.apply(ReportDTO::getRetainedDifference));
-        total.setPettyCash(sumByField.apply(ReportDTO::getPettyCash));
+        total.setActualCashAmount(sumByField.apply(OutpReportVO::getActualCashAmount));
+        total.setCurrentTemporaryReceipt(sumByField.apply(OutpReportVO::getCurrentTemporaryReceipt));
+        total.setRetainedDifference(sumByField.apply(OutpReportVO::getRetainedDifference));
+        total.setPettyCash(sumByField.apply(OutpReportVO::getPettyCash));
 
         total.setRemarks("合计行，不展示在报表中");
         total.setReportDate(reportdate);
@@ -302,7 +302,7 @@ public class ReportServiceImpl implements ReportService {
     /*
     转换对应存储的报表数据
      */
-    public List<ReportDTO> exchangeInsertReportData(LocalDate currtDate, List<ReportDTO> list) {
+    public List<OutpReportVO> exchangeInsertReportData(LocalDate currtDate, List<OutpReportVO> list) {
         try {
             // 1. 获取所有必需的原始数据
             List<YQHolidayCalendarEntity> holidays = hiliday.selectAll();
@@ -318,7 +318,7 @@ public class ReportServiceImpl implements ReportService {
 
 
             // 3. 构建结果集
-            List<ReportDTO> resultList = new ArrayList<>();
+            List<OutpReportVO> resultList = new ArrayList<>();
 
             PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
             String pk = pks.generateKey();
@@ -326,8 +326,8 @@ public class ReportServiceImpl implements ReportService {
             Integer count = 0;
 
             // 4. 以操作员为主，遍历构建报表数据
-            for (ReportDTO rpt : list) {
-                ReportDTO currentDto = new ReportDTO();
+            for (OutpReportVO rpt : list) {
+                OutpReportVO currentDto = new OutpReportVO();
                 count++;
 
                 currentDto.setSerialNo(pk);
@@ -449,7 +449,7 @@ public class ReportServiceImpl implements ReportService {
      * @param body 目标报表日期 (LocalDate)
      * @return 包含所有操作员计算结果的 ReportDTO 列表
      */
-    public List<ReportDTO> getAllReportData(ReportRequestBody body ) {
+    public List<OutpReportVO> getAllReportData(ReportRequestBody body ) {
         LocalDate currtDate = body.getReportDate();
         try {
             LocalDate preDate = currtDate.minusDays(1);
@@ -464,7 +464,7 @@ public class ReportServiceImpl implements ReportService {
             List<HisIncomeResponseDTO> hisIncomeResponseDTOList = hisdata.findByDateOutp(currtDate.toString());
 
             // Mapper 调用传入 LocalDate
-            List<ReportDTO> preReportDTO = report.selectReportByDate(preDate);
+            List<OutpReportVO> preOutpReportVO = report.selectReportByDate(preDate);
 
             // 2. 数据预处理：转换为 Map/Set (保持不变)
             Map<String, HisIncomeResponseDTO> hisDataMap = hisIncomeResponseDTOList.stream()
@@ -478,7 +478,7 @@ public class ReportServiceImpl implements ReportService {
                     .collect(Collectors.toSet());
 
             // 3. 构建结果集
-            List<ReportDTO> resultList = new ArrayList<>();
+            List<OutpReportVO> resultList = new ArrayList<>();
 
             PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
             String pk = pks.generateKey();
@@ -487,7 +487,7 @@ public class ReportServiceImpl implements ReportService {
 
             // 4. 以操作员为主，遍历构建报表数据
             for (YQOperatorEntity operator : operators) {
-                ReportDTO currentDto = new ReportDTO();
+                OutpReportVO currentDto = new OutpReportVO();
                 count++;
 
                 currentDto.setSerialNo(pk);
@@ -512,7 +512,7 @@ public class ReportServiceImpl implements ReportService {
                 HisIncomeResponseDTO hisIncomeResponseDTO = hisDataMap.get(operator.getOperatorNo());
 
                 // 2. 从昨日数据 (preReport) 查找操作员的记录 (保持不变)
-                ReportDTO yesterdayReportDTO = preReportDTO.stream()
+                OutpReportVO yesterdayOutpReportVO = preOutpReportVO.stream()
                         .filter(r -> operator.getOperatorNo().equals(r.getOperatorNo()))
                         .findFirst()
                         .orElse(null);
@@ -543,9 +543,9 @@ public class ReportServiceImpl implements ReportService {
 
 
                 // --- 填充 昨日留存和暂收款 (保持不变) ---
-                if (yesterdayReportDTO != null) {
+                if (yesterdayOutpReportVO != null) {
 
-                    currentDto.setPreviousTemporaryReceipt(getSafeBigDecimal(yesterdayReportDTO.getCurrentTemporaryReceipt()));
+                    currentDto.setPreviousTemporaryReceipt(getSafeBigDecimal(yesterdayOutpReportVO.getCurrentTemporaryReceipt()));
 
                 } else {
                     currentDto.setPreviousTemporaryReceipt(BigDecimal.ZERO);
@@ -676,11 +676,11 @@ public class ReportServiceImpl implements ReportService {
      * C = HolidayTemporaryReceipt (节假日暂收款), D = CurrentTemporaryReceipt (当日暂收款)
      */
     private void calculateActualReportAmountForMonday(
-            ReportDTO currentDto,
+            OutpReportVO currentDto,
             LocalDate targetDate,
             Set<LocalDate> holidaySet,
             // ❗ 修正点 11: 将 Function 的输入类型改为 LocalDate
-            Function<LocalDate, List<ReportDTO>> reportQueryFunction) {
+            Function<LocalDate, List<OutpReportVO>> reportQueryFunction) {
 
         BigDecimal totalC = BigDecimal.ZERO;
         BigDecimal dAmountFriday = BigDecimal.ZERO;
@@ -695,16 +695,16 @@ public class ReportServiceImpl implements ReportService {
 
                 // 2.1 获取当前回溯日期的历史报表数据 (通过 Mapper)
                 // ❗ 修正点 12: 调用函数时，直接传入 LocalDate 对象
-                List<ReportDTO> historicalReportDTOS = reportQueryFunction.apply(currentDate);
+                List<OutpReportVO> historicalOutpReportVOS = reportQueryFunction.apply(currentDate);
 
                 // 2.2 查找当前操作员在历史报表中的记录 (确保用户匹配)
-                Optional<ReportDTO> historicalDtoOpt = historicalReportDTOS.stream()
+                Optional<OutpReportVO> historicalDtoOpt = historicalOutpReportVOS.stream()
                         .filter(r -> currentDto.getOperatorNo().equals(r.getOperatorNo()))
                         .findFirst();
 
                 // 提取当前的节假日的金额 (HolidayTemporaryReceipt)
                 BigDecimal cAmount = historicalDtoOpt
-                        .map(ReportDTO::getHolidayTemporaryReceipt)
+                        .map(OutpReportVO::getHolidayTemporaryReceipt)
                         .orElse(BigDecimal.ZERO); // 缺失数据默认为 0
 
 
@@ -727,7 +727,7 @@ public class ReportServiceImpl implements ReportService {
 
                     // 提取 D 金额 (CurrentTemporaryReceipt)
                     dAmountFriday = historicalDtoOpt
-                            .map(ReportDTO::getCurrentTemporaryReceipt)
+                            .map(OutpReportVO::getCurrentTemporaryReceipt)
                             .orElse(BigDecimal.ZERO); // 缺失数据默认为 0
                     break; // 跳出循环
                 }
@@ -763,11 +763,11 @@ public class ReportServiceImpl implements ReportService {
      * C = HolidayTemporaryReceipt (节假日暂收款), D = CurrentTemporaryReceipt (当日暂收款)
      */
     private void calculateAHolidayTemporaryReceiptForMonday(
-            ReportDTO currentDto,
+            OutpReportVO currentDto,
             LocalDate targetDate,
             Set<LocalDate> holidaySet,
             // ❗ 修正点 11: 将 Function 的输入类型改为 LocalDate
-            Function<LocalDate, List<ReportDTO>> reportQueryFunction) {
+            Function<LocalDate, List<OutpReportVO>> reportQueryFunction) {
 
         BigDecimal totalC = BigDecimal.ZERO;
         BigDecimal dAmountFriday = BigDecimal.ZERO;
@@ -782,16 +782,16 @@ public class ReportServiceImpl implements ReportService {
 
                 // 2.1 获取当前回溯日期的历史报表数据 (通过 Mapper)
                 // ❗ 修正点 12: 调用函数时，直接传入 LocalDate 对象
-                List<ReportDTO> historicalReportDTOS = reportQueryFunction.apply(currentDate);
+                List<OutpReportVO> historicalOutpReportVOS = reportQueryFunction.apply(currentDate);
 
                 // 2.2 查找当前操作员在历史报表中的记录 (确保用户匹配)
-                Optional<ReportDTO> historicalDtoOpt = historicalReportDTOS.stream()
+                Optional<OutpReportVO> historicalDtoOpt = historicalOutpReportVOS.stream()
                         .filter(r -> currentDto.getOperatorNo().equals(r.getOperatorNo()))
                         .findFirst();
 
                 // 提取当前的节假日的金额 (HolidayTemporaryReceipt)
                 BigDecimal cAmount = historicalDtoOpt
-                        .map(ReportDTO::getHolidayTemporaryReceipt)
+                        .map(OutpReportVO::getHolidayTemporaryReceipt)
                         .orElse(BigDecimal.ZERO); // 缺失数据默认为 0
 
 
