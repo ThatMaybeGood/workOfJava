@@ -1,13 +1,15 @@
 package com.mergedata.server.impl;
 
 import com.baomidou.mybatisplus.extension.toolkit.Db;
-import com.mergedata.model.dto.external.HisIncomeResponseDTO;
+import com.mergedata.model.dto.InpReportRequestBody;
+import com.mergedata.model.dto.external.HisOutpIncomeResponseDTO;
+import com.mergedata.model.vo.InpReportVO;
 import com.mergedata.model.vo.OutpReportVO;
-import com.mergedata.model.dto.ReportRequestBody;
+import com.mergedata.model.dto.OutpReportRequestBody;
 import com.mergedata.mapper.CashMapper;
 import com.mergedata.mapper.HolidayMapper;
 import com.mergedata.mapper.OperatorMapper;
-import com.mergedata.mapper.ReportMapper;
+import com.mergedata.mapper.OutpReportMapper;
 import com.mergedata.model.entity.*;
 import com.mergedata.server.HisDataService;
 import com.mergedata.server.ReportService;
@@ -43,36 +45,32 @@ public class ReportServiceImpl implements ReportService {
     HolidayMapper hiliday;
 
     @Autowired
-    ReportMapper report;
+    OutpReportMapper report;
 
+    List<OutpReportVO> outpResults = new ArrayList<>();
 
-    List<OutpReportVO> results = new ArrayList<>();
+    List<InpReportVO> inpResults = new ArrayList<>();
 
 
     @Override
-    public List<OutpReportVO> getAll(String reportDate) {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public List<OutpReportVO> getAll(ReportRequestBody body) {
+    public List<OutpReportVO> getOutpReport(OutpReportRequestBody body) {
         //调用存储过程获取报表数据
         try {
 //            results = report.selectReportByDate(body.getReportDate());
-            results = report.findReport(body);
+            outpResults = report.findReport(body);
 
             //接收ExtendParams1为true时，即初始化报表
             String param1 = body.getExtendParams1();
             Boolean isInitFlag = (param1 != null && "true".equalsIgnoreCase(param1));
 
             // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
-            if (results.isEmpty() || isInitFlag ) {
+            if (outpResults.isEmpty() || isInitFlag ) {
 
                 // 调用 getAllReportData(LocalDate)
-                results = getAllReportData(body);
+                outpResults = getAllReportData(body);
 
                 //查询时候数据库没有相关的数据，插入数据库，此处调用 firstInsert 方法批量插入数据
-                isInitInsert(results,body.getReportDate());
+                isInitInsert(outpResults,body.getReportDate());
             }
         } catch (Exception e) {
             log.error("获取报表数据异常", e);
@@ -86,12 +84,21 @@ public class ReportServiceImpl implements ReportService {
 
 
         // 进行筛选
-        return results.stream()
+        return outpResults.stream()
                 .filter(r -> (body.getInpWindow() == null || body.getInpWindow() != 1 || Integer.valueOf(1).equals(r.getInpWindow())))
                 .filter(r -> (body.getAtm() == null || body.getAtm() != 1 || Integer.valueOf(1).equals(r.getAtm())))
                 .collect(Collectors.toList());
 //        return results;
     }
+
+    @Override
+    public List<InpReportVO> getInpReport(InpReportRequestBody body) {
+        return Collections.emptyList();
+    }
+
+
+
+
 
     /*
     对应日期报表无数据时候，是否初始化写入数据
@@ -164,7 +171,7 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     @Transactional
-    public Boolean batchInsert(List<OutpReportVO> outpReportVOList) {
+    public Boolean insertOutpReport(List<OutpReportVO> outpReportVOList) {
         if (outpReportVOList == null || outpReportVOList.isEmpty()) {
             return false;
         }
@@ -449,7 +456,7 @@ public class ReportServiceImpl implements ReportService {
      * @param body 目标报表日期 (LocalDate)
      * @return 包含所有操作员计算结果的 ReportDTO 列表
      */
-    public List<OutpReportVO> getAllReportData(ReportRequestBody body ) {
+    public List<OutpReportVO> getAllReportData(OutpReportRequestBody body ) {
         LocalDate currtDate = body.getReportDate();
         try {
             LocalDate preDate = currtDate.minusDays(1);
@@ -461,14 +468,14 @@ public class ReportServiceImpl implements ReportService {
             List<YQCashRegRecordEntity> yqRecordList = cash.selectByDate(currtDate);
 
             // 假设 HIS 接口需要 String，则转换
-            List<HisIncomeResponseDTO> hisIncomeResponseDTOList = hisdata.findByDateOutp(currtDate.toString());
+            List<HisOutpIncomeResponseDTO> hisOutpIncomeResponseDTOList = hisdata.findByDateOutp(currtDate.toString());
 
             // Mapper 调用传入 LocalDate
             List<OutpReportVO> preOutpReportVO = report.selectReportByDate(preDate);
 
             // 2. 数据预处理：转换为 Map/Set (保持不变)
-            Map<String, HisIncomeResponseDTO> hisDataMap = hisIncomeResponseDTOList.stream()
-                    .collect(Collectors.toMap(HisIncomeResponseDTO::getOperatorNo, Function.identity(), (v1, v2) -> v1));
+            Map<String, HisOutpIncomeResponseDTO> hisDataMap = hisOutpIncomeResponseDTOList.stream()
+                    .collect(Collectors.toMap(HisOutpIncomeResponseDTO::getOperatorNo, Function.identity(), (v1, v2) -> v1));
 
             Map<String, YQCashRegRecordEntity> cashMap = yqRecordList.stream()
                     .collect(Collectors.toMap(YQCashRegRecordEntity::getOperatorNo, Function.identity(), (v1, v2) -> v1));
@@ -509,7 +516,7 @@ public class ReportServiceImpl implements ReportService {
                 // =========================================================================
 
                 // 1. 获取当前操作员的 HIS 收入数据 (保持不变)
-                HisIncomeResponseDTO hisIncomeResponseDTO = hisDataMap.get(operator.getOperatorNo());
+                HisOutpIncomeResponseDTO hisOutpIncomeResponseDTO = hisDataMap.get(operator.getOperatorNo());
 
                 // 2. 从昨日数据 (preReport) 查找操作员的记录 (保持不变)
                 OutpReportVO yesterdayOutpReportVO = preOutpReportVO.stream()
@@ -518,15 +525,15 @@ public class ReportServiceImpl implements ReportService {
                         .orElse(null);
 
                 // --- 填充 HIS 收入和 ReportAmount (保持不变) ---
-                if (hisIncomeResponseDTO != null) {
+                if (hisOutpIncomeResponseDTO != null) {
                     /*
                     添加结账序号 结账时间 2025.12.31
                      */
-                    currentDto.setAcctNo(hisIncomeResponseDTO.getAcctNo());
-                    currentDto.setAcctDate(hisIncomeResponseDTO.getAcctDate());
+                    currentDto.setAcctNo(hisOutpIncomeResponseDTO.getAcctNo());
+                    currentDto.setAcctDate(hisOutpIncomeResponseDTO.getAcctDate());
 
-                    currentDto.setHisAdvancePayment(getSafeBigDecimal(hisIncomeResponseDTO.getHisAdvancePayment()));
-                    currentDto.setHisMedicalIncome(getSafeBigDecimal(hisIncomeResponseDTO.getHisMedicalIncome()));
+                    currentDto.setHisAdvancePayment(getSafeBigDecimal(hisOutpIncomeResponseDTO.getHisAdvancePayment()));
+                    currentDto.setHisMedicalIncome(getSafeBigDecimal(hisOutpIncomeResponseDTO.getHisMedicalIncome()));
                     currentDto.setHisRegistrationIncome(BigDecimal.ZERO);
 
                     BigDecimal reportAmount = currentDto.getHisAdvancePayment()

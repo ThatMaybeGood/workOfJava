@@ -1,6 +1,8 @@
 package com.mergedata.server;
 
-import com.mergedata.model.dto.ReportRequestBody;
+import com.mergedata.model.dto.InpReportRequestBody;
+import com.mergedata.model.dto.OutpReportRequestBody;
+import com.mergedata.model.vo.InpReportVO;
 import com.mergedata.model.vo.OutpReportVO;
 
 import java.util.List;
@@ -8,19 +10,20 @@ import java.util.List;
 public interface ReportService {
 
     /*
-     * 根据日期查询所有报表数据
+     * 根据日期查询门诊报表数据
      */
-    List<OutpReportVO> getAll(String reportDate)  ;
+    List<OutpReportVO> getOutpReport(OutpReportRequestBody body)  ;
+
+
+    /**
+     * 根据日期查询住院报表数据
+     */
+    List<InpReportVO> getInpReport(InpReportRequestBody body)  ;
 
     /*
-     * 组装请求类型获取
+     * 批量插入门诊报表数据
      */
-    List<OutpReportVO> getAll(ReportRequestBody body)  ;
-
-    /*
-     * 根据日期插入报表数据
-     */
-    Boolean batchInsert(List<OutpReportVO> list);
+    Boolean insertOutpReport(List<OutpReportVO> list);
 
 
 }

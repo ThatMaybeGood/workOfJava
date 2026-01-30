@@ -7,8 +7,11 @@ import lombok.Data;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 
+/**
+ * 入参：根据日期查询门诊报表数据
+ */
 @Data
-public class ReportRequestBody {
+public class OutpReportRequestBody {
 
     @NotNull(message = "reportdate不能为空")
     @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")

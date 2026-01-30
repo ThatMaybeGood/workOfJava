@@ -105,4 +105,23 @@ public class ResConstant {
      */
     public static final String TYPE_INP = "1";
 
+    //==============方法名=====================
+    /*
+     * 门诊现金报表收入方法名
+     */
+    public static final String HIS_METHOD_OUTP = "orgine.powermsp.service.overt.extend.SP_GetHisIncome_938";
+    /*
+     * 住院现金报表收入方法名
+     */
+    public static final String HIS_METHOD_INP = "orgine.powermsp.service.overt.extend.queryInpCashReport";
+
+    //===============接口名称========================
+    /*
+     * 门诊现金报表接口名称
+     */
+    public static final String REPORT_NAME_OUTP = "门诊现金报表";
+    /*
+     * 住院现金报表接口名称
+     */
+    public static final String REPORT_NAME_INP = "住院现金报表";
 }

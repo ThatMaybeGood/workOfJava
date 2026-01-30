@@ -5,5 +5,5 @@ import com.mergedata.model.entity.OutpCashStatisticsSubEntity;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface CashStatisticsSubMapper extends BaseMapper<OutpCashStatisticsSubEntity> {
+public interface InpCashStatisticsSubMapper extends BaseMapper<OutpCashStatisticsSubEntity> {
 }

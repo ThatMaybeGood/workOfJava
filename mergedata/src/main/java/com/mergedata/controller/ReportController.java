@@ -3,6 +3,7 @@ package com.mergedata.controller;
 import com.mergedata.model.dto.*;
 import com.mergedata.model.vo.ApiResponse;
 import com.mergedata.model.vo.ApiResponseBodyList;
+import com.mergedata.model.vo.InpReportVO;
 import com.mergedata.model.vo.OutpReportVO;
 import com.mergedata.util.AddGroup;
 import com.mergedata.server.ReportService;
@@ -34,31 +35,39 @@ public class ReportController {
     @Autowired
     ReportService report;
 
-    @Operation(summary = "根据日期查询对应报表数据", description = "返回对应的报表数据")
+    @Operation(summary = "根据日期查询门诊报表数据", description = "返回门诊报表数据")
     @PostMapping("/findbydate")
-    public ApiResponse<ApiResponseBodyList<OutpReportVO>> findALl(@Valid @RequestBody ApiRequest<ReportRequestBody> request)  {
-
-//        LocalDate reportdate = request.getBody().getReportdate();
+    public ApiResponse<ApiResponseBodyList<OutpReportVO>> getOutpReport(@Valid @RequestBody ApiRequest<OutpReportRequestBody> request)  {
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        List<OutpReportVO> resultList = report.getAll(request.getBody());
+        List<OutpReportVO> resultList = report.getOutpReport(request.getBody());
 
         // 4. 返回结果
         return ApiResponse.successList(resultList,"查询报表列表成功！");
     }
 
-    @Operation(summary = "写入报表相关数据", description = "返回对应结果")
-    @PostMapping("insert")
-    public ApiResponse batchInsert(@Validated(AddGroup.class) @RequestBody ApiRequestList<OutpReportVO> request)  {
+    @Operation(summary = "批量插入门诊报表数据", description = "返回对应结果")
+    @PostMapping("/insert")
+    public ApiResponse insertOutpReport(@Validated(AddGroup.class) @RequestBody ApiRequestList<OutpReportVO> request)  {
 
         List<OutpReportVO> list = request.getBody().getList();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Boolean b = report.batchInsert(list);
+        Boolean b = report.insertOutpReport(list);
         if (b == false) {
             return ApiResponse.failure("报表写入失败！");
         }
         return ApiResponse.success("报表写入成功！");
     }
 
+    @Operation(summary = "根据日期查询对应住院报表数据", description = "返回对应的住院报表数据")
+    @PostMapping("/findbydate_inp")
+    public ApiResponse<ApiResponseBodyList<InpReportVO>> getInpReport(@Valid @RequestBody ApiRequest<InpReportRequestBody> request)  {
+
+        // 2. 避免重复调用服务，并使用转换后的 LocalDate
+        List<InpReportVO> resultList = report.getInpReport(request.getBody());
+
+        // 4. 返回结果
+        return ApiResponse.successList(resultList,"查询报表列表成功！");
+    }
 }

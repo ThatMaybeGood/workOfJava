@@ -1,11 +1,13 @@
 package com.mergedata.server.impl;
 
+import com.mergedata.constants.ResConstant;
 import com.mergedata.model.dto.ApiRequest;
 import com.mergedata.model.dto.ApiRequestHead;
+import com.mergedata.model.dto.external.HisInpCashReportResponseDTO;
 import com.mergedata.model.vo.ApiResponse;
 import com.mergedata.model.dto.external.HisDataRequestBodyDTO;
 import com.mergedata.exception.BusinessException;
-import com.mergedata.model.dto.external.HisIncomeResponseDTO;
+import com.mergedata.model.dto.external.HisOutpIncomeResponseDTO;
 import com.mergedata.model.vo.ApiResponseBodyList;
 import com.mergedata.server.HisDataService;
 import com.mergedata.util.RestApiUtil;
@@ -36,86 +38,78 @@ public class HisDataServiceImpl implements HisDataService {
 
 
     @Override
-    public List<HisIncomeResponseDTO> findByDateOutp(String reportdate) {
+    public List<HisOutpIncomeResponseDTO> findByDateOutp(String reportdate) {
 
-        log.info("开始调用 HIS 收入 API (TypeRef): {}", URL_API_HISINCOME);
+        log.info("开始调用 HIS 门诊现金报表收入 API: {}", URL_API_HISINCOME);
 
-        // 1. 组装请求对象 (不变)
-        HisDataRequestBodyDTO comBody = new HisDataRequestBodyDTO();
-        comBody.setReportdate(reportdate);
+        return callHisIncomeApi(reportdate,
+                ResConstant.HIS_METHOD_OUTP,
+                new ParameterizedTypeReference<ApiResponse<ApiResponseBodyList<HisOutpIncomeResponseDTO>>>() {},
+                ResConstant.REPORT_NAME_OUTP);
+    }
+    @Override
+    public List<HisInpCashReportResponseDTO> findByDateInp(String reportdate) {
 
-        ApiRequest<HisDataRequestBodyDTO> apiRequest = new ApiRequest<>();
-        apiRequest.setHead(headConfig);
-        apiRequest.setBody(comBody);
+        log.info("开始调用 HIS 住院现金报表收入 API: {}", URL_API_HISINCOME);
 
-        // 2. 【修正点 1】定义正确的返回类型
-        // 外部 ApiResponse<HisIncomeDTO> 结构：泛型 T 应该代表 list 内部的数据类型
-        ParameterizedTypeReference<ApiResponse<ApiResponseBodyList<HisIncomeResponseDTO>>> typeRef = new ParameterizedTypeReference<ApiResponse<ApiResponseBodyList<HisIncomeResponseDTO>>>() {};
+        return callHisIncomeApi(reportdate,
+                ResConstant.HIS_METHOD_INP,
+                new ParameterizedTypeReference<ApiResponse<ApiResponseBodyList<HisInpCashReportResponseDTO>>>() {},
+                ResConstant.REPORT_NAME_INP);
+    }
+
+    /**
+     * 通用的 HIS 收入 API 调用方法
+     * @param reportdate 报表日期
+     * @param method HIS 方法类型
+     * @param typeRef 返回类型引用
+     * @param apiType API 类型描述（用于日志和错误信息）
+     * @return 数据列表
+     * @param <T> 具体的 DTO 类型
+     */
+    private <T> List<T> callHisIncomeApi(String reportdate,
+                                         String method,
+                                         ParameterizedTypeReference<ApiResponse<ApiResponseBodyList<T>>> typeRef,
+                                         String apiType) {
 
         try {
-            // 3. 调用工具类发起请求
-            // 注意：apiResponse 的类型现在是 ApiResponse<HisIncomeDTO>
-            ApiResponse<ApiResponseBodyList<HisIncomeResponseDTO>> apiResponse = restApiUtil.postForObject(
+            // 1. 组装请求对象
+            HisDataRequestBodyDTO comBody = new HisDataRequestBodyDTO();
+            comBody.setReportDate(reportdate);
+
+            ApiRequest<HisDataRequestBodyDTO> apiRequest = new ApiRequest<>();
+            headConfig.setMethod(method);
+            apiRequest.setHead(headConfig);
+            apiRequest.setBody(comBody);
+
+            // 2. 调用 API
+            log.debug("调用 {} HIS {}现金报表 API", apiType, method);
+            ApiResponse<ApiResponseBodyList<T>> apiResponse = restApiUtil.postForObject(
                     URL_API_HISINCOME,
                     apiRequest,
                     typeRef
             );
 
-            // 4. 检查业务状态码 (核心判断逻辑)
+            // 3. 检查业务状态码
             if (apiResponse.getResult().isSuccess()) {
-                log.info("调用成功，业务处理成功。");
-                // 得到的是 ApiResponseBody<HisIncomeDTO> 对象
-                // 然后调用 getList() 才能获取到 List<HisIncomeDTO>
+                log.info("{} HIS API 调用成功，业务处理成功。", apiType);
                 return Optional.ofNullable(apiResponse.getBody())
-                        .map(b -> b.getList()) // <-- 正确获取 List<HisIncomeDTO>
+                        .map(ApiResponseBodyList::getList)
                         .orElse(Collections.emptyList());
             } else {
-                // ... (错误处理逻辑不变)
-                String errMsg = String.format("HIS接口业务失败。Code: %s, Msg: %s",
-                        apiResponse.getResult().getCode(),apiResponse.getResult().getMsg());
+                String errMsg = String.format("%s HIS API 业务失败。Code: %s, Msg: %s",
+                        apiType, apiResponse.getResult().getCode(), apiResponse.getResult().getMsg());
                 log.error(errMsg);
                 throw new BusinessException(errMsg);
             }
 
         } catch (BusinessException e) {
-            log.error("HIS 收入 API 调用失败: {}", e.getMessage());
+            log.error("{} HIS API 调用失败: {}", apiType, e.getMessage());
+            // 根据业务需求，可以选择抛异常或返回空列表
+            return Collections.emptyList();
+        } catch (Exception e) {
+            log.error("{} HIS API 调用发生未知异常: {}", apiType, e.getMessage(), e);
             return Collections.emptyList();
         }
     }
-
-    @Override
-    public List<HisIncomeResponseDTO> findByDateInp(String reportDate) {
-
-                RestTemplate restTemplate = new RestTemplate();
-
-                // 请求头
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_JSON);
-                headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-
-                // 请求体
-                Map<String, Object> requestBody = new HashMap<>();
-                requestBody.put("name", "John");
-                requestBody.put("age", 30);
-
-                // 创建请求实体
-                HttpEntity<Map<String, Object>> requestEntity =
-                        new HttpEntity<>(requestBody, headers);
-
-//                // 发送POST请求
-//                ResponseEntity<String> response = restTemplate.postForEntity(
-//                        URL_API_HISINCOME, requestEntity, String.class);
-
-                // 或者使用exchange方法
-                ResponseEntity<String> response = restTemplate.exchange(
-                        URL_API_HISINCOME, HttpMethod.POST, requestEntity, String.class);
-
-                System.out.println("响应状态: " + response.getStatusCode());
-                System.out.println("响应体: " + response.getBody());
-
-
-        return Collections.emptyList();
-    }
-
-
 }

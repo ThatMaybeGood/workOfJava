@@ -1,9 +1,12 @@
 package com.mergedata.model.vo;
 
+import lombok.Data;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 // 数据库映射实体类 - 对应整张表
+@Data
 public class InpReportVO {
 
     // 基础信息
@@ -16,9 +19,9 @@ public class InpReportVO {
 
     // 上午统计报表现金数据字段
     private BigDecimal previousDayAdvanceReceipt;    // 前日暂收款
-    private BigDecimal todayAdvancePayment;          // 今日预交金数
-    private BigDecimal todaySettlementIncome;        // 今日结账收入
-    private BigDecimal todayPreHospitalIncome;       // 今日院前收入
+    private BigDecimal hisTodayAdvancePayment;          // his今日预交金数
+    private BigDecimal hisTodaySettlementIncome;        // his今日结账收入
+    private BigDecimal hisTodayPreHospitalIncome;       // his今日院前收入
     private BigDecimal trafficAssistanceFund;        // 交通救助金
     private BigDecimal bloodDonationCompensation;    // 无偿献血补偿金
     private BigDecimal receivablePayable;            // 应收款/应付款
@@ -41,9 +44,4 @@ public class InpReportVO {
     private BigDecimal difference;                   // 差额
     private String remarks;                      // 备注
 
-    // 创建时间和更新时间
-    private LocalDateTime createTime;
-    private LocalDateTime updateTime;
-
-    // getter和setter...
 }

@@ -7,59 +7,48 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * 住院现金统计子表实体类
+ */
 @Data
-@TableName("mpp_cash_statistics_sub") // 只要在这里指定数据库真实的表名
+@TableName("mpp_cash_statistics_inp_sub") // 只要在这里指定数据库真实的表名
 public class InpCashStatisticsSubEntity {
-    // 关联的主表流水号
-    private String serialNo;
-
+    // 基础信息
+    private String serialNo;// 主键ID
     @TableField("emp_id")
-    private String hisOperatorNo;
+    private String hisOperatorNo; // 收费员ID
     @TableField("emp_name")
-    private String hisOperatorName;
-
-    private BigDecimal hisAdvancePayment; //his
-    private BigDecimal hisMedicalIncome; //his
-    private BigDecimal hisRegistrationIncome; //his
+    private String hisOperatorName; // 收费员姓名
 
 
-    private BigDecimal reportAmount;    // LocalDate
+    // 上午统计报表现金数据字段
+    private BigDecimal previousDayAdvanceReceipt;    // 前日暂收款
+    private BigDecimal todayAdvancePayment;          // 今日预交金数
+    private BigDecimal todaySettlementIncome;        // 今日结账收入
+    private BigDecimal todayPreHospitalIncome;       // 今日院前收入
+    private BigDecimal trafficAssistanceFund;        // 交通救助金
+    private BigDecimal bloodDonationCompensation;    // 无偿献血补偿金
+    private BigDecimal receivablePayable;            // 应收款/应付款
+    private BigDecimal todayReportTotal;             // 今日报表数合计
+    private BigDecimal previousDayIOU;               // 前日欠条
+    private BigDecimal todayOutpatientIOU;           // 今日门诊借条
+    private BigDecimal todayReportReceivablePayable; // 今日报表应收/应付
 
-    private BigDecimal previousTemporaryReceipt;    // 前日暂收款
+    // 下午收取现金数据字段
+    private BigDecimal todayAdvanceReceipt;          // 今日暂收款
+    private BigDecimal todayReportCashReceived;      // 今日报表实收
+    private BigDecimal todayCashReceivedTotal;       // 今日实收现金合计
+    private BigDecimal balance;                      // 余额
+    private BigDecimal adjustment;                   // 调整
+    private BigDecimal todayIOU;                     // 今日欠条
+    private BigDecimal holidayPayment;               // 节假日交款
 
-    private BigDecimal holidayTemporaryReceipt;  //节假日暂收款
+    // 收费员留存字段
+    private BigDecimal cashOnHand;                   // 库存现金
+    private BigDecimal difference;                   // 差额
+    private String remarks;                      // 备注
 
-    private BigDecimal actualReportAmount;    // 实交报表数 = LocalDate - 前日暂收款
 
-    private BigDecimal currentTemporaryReceipt;    // 当日暂收款
-
-    private BigDecimal actualCashAmount;     // 实收现金数 = 实交报表数 + 当日暂收款
-
-    private BigDecimal retainedDifference;    // 留存数差额 = 留存现金数 - 实交报表数 - 备用金
-
-    private BigDecimal retainedCash;     // 留存现金数
-
-    private BigDecimal pettyCash;    // 备用金
-
-    private String remarks;     // 备注信息
-
-    private Integer rowNum;  //序号
-
-    private String acctNo;   //结账序号
-
-    private LocalDateTime acctDate; //结账时间
-
-    // 构造方法
-    public InpCashStatisticsSubEntity() {}
-
-//    // 计算公式的方法 - 简化版，因为null值已经在setter中处理为0.0
-//    public void calculateFormulas() {
-//        // 所有字段都已经确保不为null，直接计算
-//        this.actualReportAmount = reportAmount - hisRegistrationIncome;
-////        this.currentTemporaryReceipt = actualReportAmount + currentTemporaryReceipt;
-//        this.retainedDifference = retainedCash - pettyCash - actualReportAmount;
-//        this.actualCashAmount = actualReportAmount + currentTemporaryReceipt;
-//    }
 
     // 私有方法：统一处理BigDecimal类型的null值
     private BigDecimal safeBigDecimal(BigDecimal value) {
@@ -93,115 +82,4 @@ public class InpCashStatisticsSubEntity {
         this.hisOperatorName = hisOperatorName;
     }
 
-    public BigDecimal getHisAdvancePayment() {
-        return safeBigDecimal(hisAdvancePayment);
-    }
-
-    public void setHisAdvancePayment(BigDecimal hisAdvancePayment) {
-        this.hisAdvancePayment = hisAdvancePayment;
-    }
-
-    public BigDecimal getHisMedicalIncome() {
-        return safeBigDecimal(hisMedicalIncome);
-    }
-
-    public void setHisMedicalIncome(BigDecimal hisMedicalIncome) {
-        this.hisMedicalIncome = hisMedicalIncome;
-    }
-
-    public BigDecimal getHisRegistrationIncome() {
-        return safeBigDecimal(hisRegistrationIncome);
-    }
-
-    public void setHisRegistrationIncome(BigDecimal hisRegistrationIncome) {
-        this.hisRegistrationIncome = hisRegistrationIncome;
-    }
-
-    public BigDecimal getReportAmount() {
-        return safeBigDecimal(reportAmount);
-    }
-
-    public void setReportAmount(BigDecimal reportAmount) {
-        this.reportAmount = reportAmount;
-    }
-
-    public BigDecimal getPreviousTemporaryReceipt() {
-        return safeBigDecimal(previousTemporaryReceipt);
-    }
-
-    public void setPreviousTemporaryReceipt(BigDecimal previousTemporaryReceipt) {
-        this.previousTemporaryReceipt = previousTemporaryReceipt;
-    }
-
-    public BigDecimal getHolidayTemporaryReceipt() {
-        return safeBigDecimal(holidayTemporaryReceipt);
-    }
-
-    public void setHolidayTemporaryReceipt(BigDecimal holidayTemporaryReceipt) {
-        this.holidayTemporaryReceipt = holidayTemporaryReceipt;
-    }
-
-    public BigDecimal getActualReportAmount() {
-        return safeBigDecimal(actualReportAmount);
-    }
-
-    public void setActualReportAmount(BigDecimal actualReportAmount) {
-        this.actualReportAmount = actualReportAmount;
-    }
-
-    public BigDecimal getCurrentTemporaryReceipt() {
-        return safeBigDecimal(currentTemporaryReceipt);
-    }
-
-    public void setCurrentTemporaryReceipt(BigDecimal currentTemporaryReceipt) {
-        this.currentTemporaryReceipt = currentTemporaryReceipt;
-    }
-
-    public BigDecimal getActualCashAmount() {
-        return safeBigDecimal(actualCashAmount);
-    }
-
-    public void setActualCashAmount(BigDecimal actualCashAmount) {
-        this.actualCashAmount = actualCashAmount;
-    }
-
-    public BigDecimal getRetainedDifference() {
-        return safeBigDecimal(retainedDifference);
-    }
-
-    public void setRetainedDifference(BigDecimal retainedDifference) {
-        this.retainedDifference = retainedDifference;
-    }
-
-    public BigDecimal getRetainedCash() {
-        return safeBigDecimal(retainedCash);
-    }
-
-    public void setRetainedCash(BigDecimal retainedCash) {
-        this.retainedCash = retainedCash;
-    }
-
-    public BigDecimal getPettyCash() {
-        return safeBigDecimal(pettyCash);
-    }
-
-    public void setPettyCash(BigDecimal pettyCash) {
-        this.pettyCash = pettyCash;
-    }
-
-    public String getRemarks() {
-        return remarks;
-    }
-
-    public void setRemarks(String remarks) {
-        this.remarks = remarks;
-    }
-
-    public Integer getRowNum() {
-        return rowNum;
-    }
-
-    public void setRowNum(Integer rowNum) {
-        this.rowNum = rowNum;
-    }
 }
