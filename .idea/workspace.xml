@@ -5,29 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="073e51cf-a6b6-4365-b6ff-fe139e2704b9" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/vo/InpReportListVO.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/doc/sql/inp_sub.sql" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/doc/sql/inp_sub.sql" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/controller/ReportController.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/controller/ReportController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/mapper/InpCashStatisticsSubMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/mapper/InpCashSubMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/mapper/InpCashStattisticsMainMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/mapper/InpCashMainMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/mapper/InpReportMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/mapper/InpReportMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/mapper/OutpCashStatisticsSubMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/mapper/OutpCashSubMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/mapper/OutpCashStattisticsMainMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/mapper/OutpCashMainMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/mapper/OutpReportMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/mapper/OutpReportMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/dto/external/HisInpCashReportResponseDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/dto/external/HisInpIncomeResponseDTO.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/entity/InpCashStatisticsSubEntity.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/entity/InpCashSubEntity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/entity/InpCashStattisticsMainEntity.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/entity/InpCashMainEntity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/entity/OutpCashStatisticsSubEntity.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/entity/OutpCashSubEntity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/entity/OutpCashStattisticsMainEntity.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/entity/OutpCashMainEntity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/vo/InpReportVO.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/model/vo/InpReportVO.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/HisDataService.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/HisDataService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/ReportService.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/ReportService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/HisDataServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/HisDataServiceImpl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/ReportServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/ReportServiceImpl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/resources/mapper/InpReportMapper.xml" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/resources/mapper/InpReportMapper.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/main/resources/mapper/OutpReportMapper.xml" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/resources/mapper/OutpReportMapper.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mergedata/src/test/java/com/mergedata/HisDataTests.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/test/java/com/mergedata/HisDataTests.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/test/java/com/mergedata/OracleTest.java" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -87,6 +65,9 @@
         <option name="userSettingsFile" value="C:\Users\86156\.m2\settings.xml" />
       </MavenGeneralSettings>
     </option>
+  </component>
+  <component name="MavenRunner">
+    <option name="skipTests" value="true" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 3
