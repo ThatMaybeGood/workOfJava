@@ -76,14 +76,10 @@ public class ReportController {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         Integer result = report.insertInpReport(request.getBody());
 
-        if (result == 0) {
-            return ApiResponse.failure("住院报表写入失败！");
-        }else if (result == 1) {
-            return ApiResponse.success("住院报表明细写入成功！");
-        }else if (result > 1) {
+        if (result == 1) {
             return ApiResponse.success("住院报表明细写入成功！");
         }
 
-        return ApiResponse.success("住院报表写入成功！");
+        return ApiResponse.failure("住院报表写入失败！");
     }
 }

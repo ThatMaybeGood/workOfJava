@@ -5,7 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="073e51cf-a6b6-4365-b6ff-fe139e2704b9" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/mergedata/src/test/java/com/mergedata/OracleTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/ReportServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/ReportServiceImpl.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -264,7 +265,7 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="java-method">
           <url>file://$PROJECT_DIR$/mergedata/src/main/java/com/mergedata/server/impl/ReportServiceImpl.java</url>
-          <line>1040</line>
+          <line>1066</line>
           <properties class="com.mergedata.server.impl.ReportServiceImpl" method="calculateActualReportAmountForMonday">
             <option name="EMULATED" value="true" />
             <option name="WATCH_EXIT" value="false" />

@@ -114,7 +114,7 @@ public class ReportServiceImpl implements ReportService {
                 vo = getInpReportData(body);
 
                 //查询时候数据库没有相关的数据，插入数据库，此处调用 firstInsert 方法批量插入数据
-                isInitInsertOutp(outpResults, body.getReportDate());
+                insertInpReport(vo);
 
             } else {
                 // 3. 将数据组装到 VO 中
@@ -600,37 +600,51 @@ public class ReportServiceImpl implements ReportService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Integer insertInpReport(InpReportVO inpReportVO) {
+        PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
+        String pk = pks.generateKey();
 
         InpCashMainEntity main = new InpCashMainEntity();
         BeanUtils.copyProperties(inpReportVO, main);
 
-        int result = 0;
+        // 设置新记录的初始状态为生效（1）
+        main.setValidFlag(1);
+        main.setCreateTime(LocalDateTime.now());
+        main.setSerialNo(pk); // 唯一主键
+
         try {
+
+            /*
+             * 作废旧数据
+             * 根据 report_date 将之前已生效的报表全部改为作废(0)
+             */
+            Db.lambdaUpdate(InpCashMainEntity.class)
+                    .eq(InpCashMainEntity::getReportDate, inpReportVO.getReportDate())
+                    .eq(InpCashMainEntity::getValidFlag, 1) // 只作废当前有效的
+                    .set(InpCashMainEntity::getValidFlag, 0)
+                    .set(InpCashMainEntity::getUpdateTime, LocalDateTime.now())
+                    .update();
+            /*
+             * 插入主表数据
+             */
+            boolean saveMain = Db.save(main);
 
             /*
              * 插入子表数据
              */
-            if (!inpReportVO.getSubs().isEmpty()) {
+            if (saveMain && !inpReportVO.getSubs().isEmpty()) {
+                // 确保子表的关联字段和主表一致
+                inpReportVO.getSubs().forEach(sub -> {
+                    sub.setSerialNo(main.getSerialNo());
+                    // 如果子表也有创建时间等字段，建议在此补充
+                });
                 boolean savedBatch = Db.saveBatch(inpReportVO.getSubs());
-                if (savedBatch) {
-                    result++;
-                }
             }
 
-            /*
-             * 插入主表数据
-             */
-            boolean save = Db.save(main);
-
-             if (save) {
-                result++;
-             }
-
+            return 1;
         } catch (Exception e) {
-            log.error("批量插入住院报表数据失败", e);
-            throw new RuntimeException("批量插入住院报表数据失败");
+            log.error("批量插入住院报表数据失败，日期：{}", inpReportVO.getReportDate(), e);
+            throw new RuntimeException("批量插入住院报表数据失败" + e.getMessage());
         }
-        return result;
      }
 
 
