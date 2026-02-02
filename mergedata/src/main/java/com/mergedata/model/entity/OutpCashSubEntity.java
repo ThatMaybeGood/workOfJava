@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 @Data
 @TableName("mpp_cash_statistics_sub") // 只要在这里指定数据库真实的表名
-public class OutpCashStatisticsSubEntity {
+public class OutpCashSubEntity {
     // 关联的主表流水号
     private String serialNo;
 
@@ -50,7 +50,7 @@ public class OutpCashStatisticsSubEntity {
     private LocalDateTime acctDate; //结账时间
 
     // 构造方法
-    public OutpCashStatisticsSubEntity() {}
+    public OutpCashSubEntity() {}
 
 //    // 计算公式的方法 - 简化版，因为null值已经在setter中处理为0.0
 //    public void calculateFormulas() {

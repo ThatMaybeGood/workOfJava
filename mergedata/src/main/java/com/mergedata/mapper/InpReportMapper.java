@@ -1,8 +1,8 @@
 package com.mergedata.mapper;
 
 import com.mergedata.model.dto.OutpReportRequestBody;
-import com.mergedata.model.entity.OutpCashStatisticsSubEntity;
-import com.mergedata.model.entity.OutpCashStattisticsMainEntity;
+import com.mergedata.model.entity.OutpCashSubEntity;
+import com.mergedata.model.entity.OutpCashMainEntity;
 import com.mergedata.model.vo.OutpReportVO;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -27,13 +27,13 @@ public interface InpReportMapper {
     List<OutpReportVO> findReport(OutpReportRequestBody body);
 
     /* 查询：主从嵌套报表 */
-    List<OutpCashStattisticsMainEntity> selectByDate(LocalDate reportDate);
+    List<OutpCashMainEntity> selectByDate(LocalDate reportDate);
 
     /* 写入：批量插入明细表 */
-    int batchInsertList(List<OutpCashStattisticsMainEntity> list);
+    int batchInsertList(List<OutpCashMainEntity> list);
 
     /* 写入：批量插入明细表 */
-    int batchInsertSubList(List<OutpCashStatisticsSubEntity> list);
+    int batchInsertSubList(List<OutpCashSubEntity> list);
 
     /* 更新：按日期 */
     int updateByDate(LocalDate reportDate);

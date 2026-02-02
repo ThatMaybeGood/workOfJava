@@ -1,47 +1,29 @@
 package com.mergedata.model.vo;
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.mergedata.model.entity.InpCashSubEntity;
 import lombok.Data;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.util.List;
 
-// 数据库映射实体类 - 对应整张表
+/**
+ * 住院现金统计主表实体类
+ */
 @Data
 public class InpReportVO {
 
-    // 基础信息
-    private Long id;                            // 主键ID
-    private String reportDate;                  // 报表日期
-    private String registrationTime;            // 登记时间
-    private String sheetType;                   // 表类型：平时/节假日
-    private String cashier;                     // 收费员姓名
-    private Integer serialNumber;               // 序号
+    @TableId(value = "serial_no")
+    private String serialNo;              // 流水号
 
-    // 上午统计报表现金数据字段
-    private BigDecimal previousDayAdvanceReceipt;    // 前日暂收款
-    private BigDecimal hisTodayAdvancePayment;          // his今日预交金数
-    private BigDecimal hisTodaySettlementIncome;        // his今日结账收入
-    private BigDecimal hisTodayPreHospitalIncome;       // his今日院前收入
-    private BigDecimal trafficAssistanceFund;        // 交通救助金
-    private BigDecimal bloodDonationCompensation;    // 无偿献血补偿金
-    private BigDecimal receivablePayable;            // 应收款/应付款
-    private BigDecimal todayReportTotal;             // 今日报表数合计
-    private BigDecimal previousDayIOU;               // 前日欠条
-    private BigDecimal todayOutpatientIOU;           // 今日门诊借条
-    private BigDecimal todayReportReceivablePayable; // 今日报表应收/应付
+    @TableField(value = "report_date")
+    private LocalDate reportDate;         // 报表日期
+    @TableField(value = "report_year")
+    private Integer reportYear;           // 报表年份
 
-    // 下午收取现金数据字段
-    private BigDecimal todayAdvanceReceipt;          // 今日暂收款
-    private BigDecimal todayReportCashReceived;      // 今日报表实收
-    private BigDecimal todayCashReceivedTotal;       // 今日实收现金合计
-    private BigDecimal balance;                      // 余额
-    private BigDecimal adjustment;                   // 调整
-    private BigDecimal todayIOU;                     // 今日欠条
-    private BigDecimal holidayPayment;               // 节假日交款
-
-    // 收费员留存字段
-    private BigDecimal cashOnHand;                   // 库存现金
-    private BigDecimal difference;                   // 差额
-    private String remarks;                      // 备注
+    // 关联的子报表列表（一对多关系）
+    @TableField(exist = false)
+    private List<InpCashSubEntity> subs;
 
 }

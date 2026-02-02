@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+import nonapi.io.github.classgraph.json.Id;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -14,25 +14,29 @@ import java.util.List;
  * 住院现金统计主表实体类
  */
 @Data
-@TableName("mpp_cash_statistics_inp_master")
-public class InpCashStattisticsMainEntity {
-    @TableId
+@TableName("mpp_cash_inp_master")
+public class InpCashMainEntity {
+    @Id
+    @TableId(value = "serial_no")
     private String serialNo;              // 流水号
 
+    @TableField(value = "report_date")
     private LocalDate reportDate;         // 报表日期
+    @TableField(value = "report_year")
     private Integer reportYear;           // 报表年份
 
-    private Integer reportStatus;            // 报表状态  0：未生效 1：已生效
+    @TableField(value = "valid_flag")
+    private Integer validFlag;            // 报表状态  0：未生效 1：已生效
 
+    @TableField(value = "creator")
     private String creator;               // 创建人
+    @TableField(value = "create_time")
     private LocalDateTime createTime;     // 创建时间
+    @TableField(value = "update_time")
     private LocalDateTime updateTime;     // 更新时间
+
     // 关联的子报表列表（一对多关系）
     @TableField(exist = false)
-    private List<InpCashStatisticsSubEntity> subs;
+    private List<InpCashSubEntity> subs;
 
-//    // 可以添加其他业务字段
-//    private String reportType;           // 报表类型
-//    private String reportStatus;         // 报表状态
-//    private BigDecimal totalAmount;      // 总金额
 }

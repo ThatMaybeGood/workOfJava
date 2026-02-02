@@ -1,6 +1,6 @@
 package com.mergedata.server;
 
-import com.mergedata.model.dto.external.HisInpCashReportResponseDTO;
+import com.mergedata.model.dto.external.HisInpIncomeResponseDTO;
 import com.mergedata.model.dto.external.HisOutpIncomeResponseDTO;
 
 import java.util.List;
@@ -15,6 +15,6 @@ public interface HisDataService {
     /*
      * 根据日期查询his住院结算数据
      */
-    List<HisInpCashReportResponseDTO> findByDateInp(String reportDate);
+    List<HisInpIncomeResponseDTO> findByDateInp(String reportDate);
 
 }

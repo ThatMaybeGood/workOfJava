@@ -9,7 +9,7 @@ import java.util.List;
 
 @Data
 @TableName("mpp_cash_statistics_master") // 只要在这里指定数据库真实的表名
-public class OutpCashStattisticsMainEntity {
+public class OutpCashMainEntity {
     //流水号
     private String serialNo;
     //报表日期
@@ -25,7 +25,7 @@ public class OutpCashStattisticsMainEntity {
     //更新时间
     private LocalDateTime updateTime;
     //关联的子报表列表（一对多关系）
-    private List<OutpCashStatisticsSubEntity> subs ;
+    private List<OutpCashSubEntity> subs ;
 
 
 }

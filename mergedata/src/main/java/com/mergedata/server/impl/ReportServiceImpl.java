@@ -2,8 +2,10 @@ package com.mergedata.server.impl;
 
 import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.mergedata.model.dto.InpReportRequestBody;
+import com.mergedata.model.dto.external.HisInpIncomeResponseDTO;
 import com.mergedata.model.dto.external.HisOutpIncomeResponseDTO;
 import com.mergedata.model.vo.InpReportVO;
+import com.mergedata.model.vo.InpReportListVO;
 import com.mergedata.model.vo.OutpReportVO;
 import com.mergedata.model.dto.OutpReportRequestBody;
 import com.mergedata.mapper.CashMapper;
@@ -49,14 +51,15 @@ public class ReportServiceImpl implements ReportService {
 
     List<OutpReportVO> outpResults = new ArrayList<>();
 
-    List<InpReportVO> inpResults = new ArrayList<>();
+    List<InpReportListVO> inpResults = new ArrayList<>();
 
-
+    /**
+     * 获取门诊报表数据
+     */
     @Override
     public List<OutpReportVO> getOutpReport(OutpReportRequestBody body) {
         //调用存储过程获取报表数据
         try {
-//            results = report.selectReportByDate(body.getReportDate());
             outpResults = report.findReport(body);
 
             //接收ExtendParams1为true时，即初始化报表
@@ -64,13 +67,12 @@ public class ReportServiceImpl implements ReportService {
             Boolean isInitFlag = (param1 != null && "true".equalsIgnoreCase(param1));
 
             // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
-            if (outpResults.isEmpty() || isInitFlag ) {
+            if (outpResults.isEmpty() || isInitFlag) {
 
-                // 调用 getAllReportData(LocalDate)
-                outpResults = getAllReportData(body);
+                outpResults = getOutpReportData(body);
 
                 //查询时候数据库没有相关的数据，插入数据库，此处调用 firstInsert 方法批量插入数据
-                isInitInsert(outpResults,body.getReportDate());
+                isInitInsertOutp(outpResults, body.getReportDate());
             }
         } catch (Exception e) {
             log.error("获取报表数据异常", e);
@@ -82,32 +84,350 @@ public class ReportServiceImpl implements ReportService {
 //        results.add(calculateTotal(results, LocalDate.parse(reportdate)));
 
 
-
         // 进行筛选
         return outpResults.stream()
                 .filter(r -> (body.getInpWindow() == null || body.getInpWindow() != 1 || Integer.valueOf(1).equals(r.getInpWindow())))
                 .filter(r -> (body.getAtm() == null || body.getAtm() != 1 || Integer.valueOf(1).equals(r.getAtm())))
                 .collect(Collectors.toList());
-//        return results;
     }
 
+    /**
+     * 获取住院报表数据
+     */
     @Override
-    public List<InpReportVO> getInpReport(InpReportRequestBody body) {
-        return Collections.emptyList();
+    public InpReportVO getInpReport(InpReportRequestBody body) {
+
+        InpReportVO vo = new InpReportVO();
+
+        //调用存储过程获取报表数据
+        try {
+
+            // 1. 查主表单条
+            InpCashMainEntity inpResult = queryInpReportByDate(body.getReportDate());
+
+            //接收ExtendParams1为true时，即初始化报表
+            String param1 = body.getExtendParams1();
+            Boolean isInitFlag = (param1 != null && "true".equalsIgnoreCase(param1));
+
+            if (inpResult == null) {
+
+                vo = getInpReportData(body);
+
+                //查询时候数据库没有相关的数据，插入数据库，此处调用 firstInsert 方法批量插入数据
+                isInitInsertOutp(outpResults, body.getReportDate());
+
+            } else {
+                // 3. 将数据组装到 VO 中
+                vo.setSerialNo(inpResult.getSerialNo());
+                vo.setReportDate(inpResult.getReportDate());
+                vo.setReportYear(inpResult.getReportYear());
+                // 4. 设置子表列表
+                vo.setSubs(inpResult.getSubs());
+            }
+
+        } catch (Exception e) {
+            log.error("获取住院报表数据异常", e);
+            throw new RuntimeException("获取住院报表数据异常");
+        }
+
+
+        return vo;
+
+    }
+
+    public InpCashMainEntity queryInpReportByDate(LocalDate date) {
+        // 1. 查主表单条
+        InpCashMainEntity main = Db.lambdaQuery(InpCashMainEntity.class)
+                .eq(InpCashMainEntity::getReportDate, date)
+                .one();
+
+        if (main == null) {
+            return null;
+        }
+
+        // 2. 查从表列表
+        List<InpCashSubEntity> subs = Db.lambdaQuery(InpCashSubEntity.class)
+                .eq(InpCashSubEntity::getSerialNo, main.getSerialNo())
+                .list();
+        // 4. 设置子表列表
+        main.setSubs(subs);
+
+        return main;
     }
 
 
+    /**
+     * 1. 从各数据源获取数据。
+     * 2. 以操作员为基准进行匹配和计算。
+     * 3. 对周一进行特殊的回溯计算 (A = B - Sum(C) - D)。
+     *
+     * @param body 目标报表日期 (LocalDate)
+     * @return 包含所有操作员计算结果的 ReportDTO 列表
+     */
+    public InpReportVO getInpReportData(InpReportRequestBody body) {
+        LocalDate currtDate = body.getReportDate();
+        try {
+            LocalDate preDate = currtDate.minusDays(1);
 
+            // 1. 获取所有必需的原始数据
+            List<YQHolidayCalendarEntity> holidays = hiliday.selectAll();
+            List<YQOperatorEntity> operators = oper.selectAll();
+
+            List<YQCashRegRecordEntity> yqRecordList = cash.selectByDate(currtDate);
+
+            // 假设 HIS 接口需要 String，则转换
+            List<HisInpIncomeResponseDTO> hisInpIncomeResponseDTOList = hisdata.findByDateInp(currtDate.toString());
+
+            // Mapper 调用传入 LocalDate
+            List<InpCashSubEntity> preInpReportSub = queryInpReportByDate(preDate).getSubs();
+
+            // 2. 数据预处理：转换为 Map/Set (保持不变)
+            Map<String, HisInpIncomeResponseDTO> hisDataMap = hisInpIncomeResponseDTOList.stream()
+                    .collect(Collectors.toMap(HisInpIncomeResponseDTO::getOperatorNo, Function.identity(), (v1, v2) -> v1));
+
+            Map<String, YQCashRegRecordEntity> cashMap = yqRecordList.stream()
+                    .collect(Collectors.toMap(YQCashRegRecordEntity::getOperatorNo, Function.identity(), (v1, v2) -> v1));
+
+            Set<LocalDate> holidaySet = holidays.stream()
+                    .map(YQHolidayCalendarEntity::getHolidayDate)
+                    .collect(Collectors.toSet());
+
+            // 3. 构建结果集
+            InpReportVO resultVo = new InpReportVO();
+            List<InpCashSubEntity> inpCashSubList = new ArrayList<>();
+
+            PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
+            String pk = pks.generateKey();
+
+            int count = 0;
+            // 4. 以操作员为主，遍历构建报表数据
+            for (YQOperatorEntity operator : operators) {
+                InpCashSubEntity inpCashSub = new InpCashSubEntity();
+
+                count++;
+
+                inpCashSub.setSerialNo(pk);
+                inpCashSub.setOperatorNo(operator.getOperatorNo());
+                inpCashSub.setOperatorName(operator.getOperatorName());
+
+                // =========================================================================
+                // 基础信息赋值区域
+                // =========================================================================
+
+                // 1. 获取当前操作员的 HIS 收入数据 (保持不变)
+                HisInpIncomeResponseDTO hisInpIncomeResponseDTO = hisDataMap.get(operator.getOperatorNo());
+
+                // 2. 从昨日数据 (preReport) 查找操作员的记录 (保持不变)
+                InpCashSubEntity yesterdayOutpReportVO = preInpReportSub.stream()
+                        .filter(r -> operator.getOperatorNo().equals(r.getOperatorNo()))
+                        .findFirst()
+                        .orElse(null);
+
+                // --- 填充 HIS 收入和 ReportAmount (保持不变) ---
+                if (hisInpIncomeResponseDTO != null) {
+                    inpCashSub.setTodayAdvancePayment(getSafeBigDecimal(hisInpIncomeResponseDTO.getHisAdvancePayment()));
+                    inpCashSub.setTodaySettlementIncome(getSafeBigDecimal(hisInpIncomeResponseDTO.getHisSettlementIncome()));
+                    inpCashSub.setTodayPreHospitalIncome(getSafeBigDecimal(hisInpIncomeResponseDTO.getHisPreHospitalIncome()));
+                }
+
+                // --- 提取前日暂收款
+                if (yesterdayOutpReportVO != null) {
+                    inpCashSub.setPreviousDayAdvanceReceipt(getSafeBigDecimal(yesterdayOutpReportVO.getPreviousDayAdvanceReceipt()));
+                }
+
+                YQCashRegRecordEntity cashRecord = cashMap.get(operator.getOperatorNo());
+
+                //获取小程序数据源
+                if (cashRecord != null) {
+                    inpCashSub.setCashOnHand(getSafeBigDecimal(cashRecord.getRetainedCash()));
+//                    inpCashSub.setRemarks(cashRecord.getRemarks());
+                }
+
+                // =========================================================================
+                // End of 基础信息赋值
+                // =========================================================================
+                // ❗当前是工作日 且 前一天是节假日/周末
+                boolean isAfterHoliday = !isHoliday(holidaySet, currtDate) && isHoliday(holidaySet, currtDate.minusDays(1));
+
+                /*
+                 *回溯计算实收报表
+                 */
+                if (isAfterHoliday) {
+                    //住院如果是周一，即（1）数据为周五（12）的数据
+
+
+                    log.info("第{}条，[{}]节假日后正常工作日第一天特殊处理，回溯计算实际报表金额开始......................", count, currtDate);
+                    inpCalculateForMonday(
+                            inpCashSub,
+                            currtDate,
+                            holidaySet,
+                            // 传递的 Lambda 表达式现在接收 LocalDate
+                            date -> queryInpReportByDate(date).getSubs()
+                    );
+                } else if (isHoliday(holidaySet, currtDate)) {  //是节假日且是当月的最后一天是否，实收报表是否 需要回溯计算
+                    // 节假日逻辑：A = B - C (保持不变)
+//                    BigDecimal actualReportAmount = inpCashSub.getReportAmount().subtract(inpCashSub.getHolidayTemporaryReceipt());
+//                    inpCashSub.setPreviousDayAdvanceReceipt(actualReportAmount);
+
+                } else if (isHoliday(holidaySet, currtDate.plusDays(1))) {
+                    // 节假日前一天 (周五/最后一天) 逻辑 (保持不变)
+//                    BigDecimal actualReportAmount = inpCashSub.getReportAmount()
+//                            .subtract(inpCashSub.getPreviousTemporaryReceipt())
+//                            .subtract(inpCashSub.getCurrentTemporaryReceipt());
+//
+//                    inpCashSub.setActualReportAmount(actualReportAmount);
+
+                } else {
+                    // 正常工作日逻辑 (保持不变)
+//                    inpCashSub.setActualReportAmount(inpCashSub.getReportAmount());
+                }
+
+
+                // 8 =（2）-（1）+（3）+（4）+（5）+(6)+(7) 今日报表数合计
+                inpCashSub.setTodayReportTotal(
+                        inpCashSub.getTodayAdvancePayment()
+                                .subtract(inpCashSub.getPreviousDayAdvanceReceipt())
+                                .add(inpCashSub.getTodaySettlementIncome())
+                                .add(inpCashSub.getTodayPreHospitalIncome())
+                                .add(inpCashSub.getTrafficAssistanceFund())
+                                .add(inpCashSub.getBloodDonationCompensation()
+                                        .add(inpCashSub.getReceivablePayable())));
+
+                //（11）=（8）+（9）+（10）-（18） 今日报表应收/应付
+                inpCashSub.setTodayReportReceivablePayable(
+                        inpCashSub.getTodayReportTotal()
+                                .add(inpCashSub.getPreviousDayIOU()
+                                        .add(inpCashSub.getTodayIOU()
+                                                .add(inpCashSub.getTodayOutpatientIOU()
+                                                        .subtract(inpCashSub.getHolidayPayment()))))
+                );
+
+                //（14）=（12）+（13） 今日实收现金合计
+                inpCashSub.setTodayCashReceivedTotal(
+                        inpCashSub.getTodayAdvanceReceipt()
+                                .add(inpCashSub.getTodayReportCashReceived()));
+
+                //（15）=（13）-（11）余额
+                inpCashSub.setBalance(
+                        inpCashSub.getTodayReportCashReceived()
+                                .subtract(inpCashSub.getTodayReportReceivablePayable()));
+
+                //（17）=（16）-（15）今日欠条
+                inpCashSub.setTodayIOU(inpCashSub.getAdjustment()
+                        .subtract(inpCashSub.getBalance()));
+
+                //（20）=（19）-（11）  差额
+                inpCashSub.setDifference(inpCashSub.getCashOnHand()
+                        .subtract(inpCashSub.getTodayReportReceivablePayable()));
+
+                // 加入结果集
+                inpCashSubList.add(inpCashSub);
+            }
+
+            resultVo.setSerialNo(pk);
+            resultVo.setReportDate(currtDate);
+            resultVo.setReportYear(currtDate.getYear());
+            resultVo.setSubs(inpCashSubList);
+
+            log.info("{}生成报表完成，共处理 {} 个操作员", currtDate.toString());
+            return resultVo;
+
+        } catch (Exception e) {
+            log.error("报表生成失败", e);
+            return null;
+        }
+    }
+
+    /**
+     * 住院如果是周一，即（1）数据为周五（12）的数据
+     */
+    private void inpCalculateForMonday(
+            InpCashSubEntity currentDto,
+            LocalDate targetDate,
+            Set<LocalDate> holidaySet,
+            // ❗ 修正点 11: 将 Function 的输入类型改为 LocalDate
+            Function<LocalDate, List<InpCashSubEntity>> reportQueryFunction) {
+
+        BigDecimal totalC = BigDecimal.ZERO;
+        BigDecimal dAmountFriday = BigDecimal.ZERO;
+        LocalDate currentDate = targetDate.minusDays(1); // 从周日开始回溯
+
+
+        //当前传入日期为当月第一天
+        if (targetDate.getDayOfMonth() != 1) {
+
+            // 2. 回溯循环
+            while (true) {
+
+                // 2.1 获取当前回溯日期的历史报表数据 (通过 Mapper)
+                // 直接传入 LocalDate 对象
+                List<InpCashSubEntity> historicalInpCashSubEntityS = reportQueryFunction.apply(currentDate);
+
+                // 2.2 查找当前操作员在历史报表中的记录 (确保用户匹配)
+                Optional<InpCashSubEntity> historicalDtoOpt = historicalInpCashSubEntityS.stream()
+                        .filter(r -> currentDto.getOperatorNo().equals(r.getOperatorNo()))
+                        .findFirst();
+
+//                // 提取当前的节假日的金额 (HolidayTemporaryReceipt)
+//                BigDecimal cAmount = historicalDtoOpt
+//                        .map(InpCashSubEntity::getHolidayTemporaryReceipt)
+//                        .orElse(BigDecimal.ZERO); // 缺失数据默认为 0
+
+
+                if (isHoliday(holidaySet, currentDate)) {
+                    // 是节假日（周六、周日）：累加 C 金额 (HolidayTemporaryReceipt)
+
+                    //当前日期为当月第一天
+                    if (currentDate.getDayOfMonth() == 1) {
+                        break;
+                    }
+
+//                    totalC = totalC.add(getSafeBigDecimal(cAmount));
+
+                    currentDate = currentDate.minusDays(1); // 继续往前
+
+                } else {
+                    // 找到中断点：第一个非节假日日期（即周五）
+                    // 周五的 C (HolidayTemporaryReceipt) 也累加进去
+//                    totalC = totalC.add(getSafeBigDecimal(cAmount));
+
+                    // 提取周五金额 (今日暂收款)
+                    dAmountFriday = historicalDtoOpt
+                            .map(InpCashSubEntity::getPreviousDayAdvanceReceipt)
+                            .orElse(BigDecimal.ZERO); // 缺失数据默认为 0
+                    break; // 跳出循环
+                }
+
+                // 安全检查：防止无限循环
+                if (targetDate.toEpochDay() - currentDate.toEpochDay() > 15) {
+                    log.warn("回溯查找失败，连续节假日过多，在 {} 无法找到工作日。", targetDate);
+                    break;
+                }
+            }
+        }
+
+//        // 3. 应用公式：A = B - Sum(C) - D
+//        BigDecimal finalActualReportAmount = currentDto.getReportAmount()
+//                .subtract(totalC)
+//                .subtract(dAmountFriday);
+//        log.info("员工ID:{}，姓名:{},回溯计算实际报表金额 {} - {} - {} = {} ",
+//                currentDto.getOperatorNo(), currentDto.getOperatorName(), currentDto.getReportAmount(), totalC, dAmountFriday, finalActualReportAmount);
+
+
+        // 4. 设置计算结果
+        currentDto.setPreviousDayAdvanceReceipt(dAmountFriday);
+
+    }
 
 
     /*
-    对应日期报表无数据时候，是否初始化写入数据
+    对应门诊日期报表无数据时候，是否初始化写入数据
      */
     @Transactional(rollbackFor = Exception.class) // 保证主从要么全成功，要么全失败
-    public void isInitInsert(List<OutpReportVO> list, LocalDate date) {
+    public void isInitInsertOutp(List<OutpReportVO> list, LocalDate date) {
 
         // 2. 作废该日期下所有的主表记录
-        if(!report.selectReportByDate(date).isEmpty()) {
+        if (!report.selectReportByDate(date).isEmpty()) {
             report.updateByDate(date);
         }
         log.info("历史报表数据作废完成.");
@@ -119,12 +439,12 @@ public class ReportServiceImpl implements ReportService {
         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
         String pk = pks.generateKey();
 
-        List<OutpCashStatisticsSubEntity> subList = new ArrayList<>();
+        List<OutpCashSubEntity> subList = new ArrayList<>();
 
         // ------------------------------------------
         //  只创建 1 条 CashStattisticsMain (主表) 记录
         // ------------------------------------------
-        OutpCashStattisticsMainEntity main = new OutpCashStattisticsMainEntity();
+        OutpCashMainEntity main = new OutpCashMainEntity();
 
         main.setSerialNo(pk); // 唯一主键
         main.setIsvalid(true);
@@ -137,7 +457,7 @@ public class ReportServiceImpl implements ReportService {
         // 遍历 Report 列表，创建 N 条 CashStatisticsSub (明细表) 记录
         // ------------------------------------------
         for (OutpReportVO outpReportVO : list) {
-            OutpCashStatisticsSubEntity sub = new OutpCashStatisticsSubEntity();
+            OutpCashSubEntity sub = new OutpCashSubEntity();
 
             BeanUtils.copyProperties(outpReportVO, sub);
 
@@ -169,6 +489,9 @@ public class ReportServiceImpl implements ReportService {
 
     }
 
+    /**
+     * 批量插入门诊报表数据
+     */
     @Override
     @Transactional
     public Boolean insertOutpReport(List<OutpReportVO> outpReportVOList) {
@@ -177,11 +500,11 @@ public class ReportServiceImpl implements ReportService {
         }
 
         // 1. 确定要作废的日期
-        LocalDate reportDate= outpReportVOList.get(0).getReportDate();
+        LocalDate reportDate = outpReportVOList.get(0).getReportDate();
 
         // 2. 作废该日期下所有的主表记录
         log.info("开始作废日期 {} 下的历史报表数据...", reportDate);
-        if(!report.selectReportByDate(reportDate).isEmpty()) {
+        if (!report.selectReportByDate(reportDate).isEmpty()) {
             report.updateByDate(reportDate);
         }
         log.info("历史报表数据作废完成.");
@@ -197,13 +520,13 @@ public class ReportServiceImpl implements ReportService {
         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
         String pk = pks.generateKey();
 
-        List<OutpCashStattisticsMainEntity> mainList = new ArrayList<>();
-        List<OutpCashStatisticsSubEntity> subList = new ArrayList<>();
+        List<OutpCashMainEntity> mainList = new ArrayList<>();
+        List<OutpCashSubEntity> subList = new ArrayList<>();
 
         // ------------------------------------------
         //  只创建 1 条 CashStattisticsMain (主表) 记录
         // ------------------------------------------
-        OutpCashStattisticsMainEntity main = new OutpCashStattisticsMainEntity();
+        OutpCashMainEntity main = new OutpCashMainEntity();
         OutpReportVO firstOutpReportVO = list.get(0); // 随便取一条 Report 来获取通用的主表信息
 
         main.setSerialNo(pk); // 唯一主键
@@ -232,7 +555,7 @@ public class ReportServiceImpl implements ReportService {
         // 遍历 Report 列表，创建 N 条 CashStatisticsSub (明细表) 记录
         // ------------------------------------------
         for (OutpReportVO outpReportVO : list) {
-            OutpCashStatisticsSubEntity sub = new OutpCashStatisticsSubEntity();
+            OutpCashSubEntity sub = new OutpCashSubEntity();
 
             BeanUtils.copyProperties(outpReportVO, sub);
 
@@ -269,6 +592,46 @@ public class ReportServiceImpl implements ReportService {
 
         return true;
     }
+
+
+    /**
+     * 批量插入住院报表数据
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Integer insertInpReport(InpReportVO inpReportVO) {
+
+        InpCashMainEntity main = new InpCashMainEntity();
+        BeanUtils.copyProperties(inpReportVO, main);
+
+        int result = 0;
+        try {
+
+            /*
+             * 插入子表数据
+             */
+            if (!inpReportVO.getSubs().isEmpty()) {
+                boolean savedBatch = Db.saveBatch(inpReportVO.getSubs());
+                if (savedBatch) {
+                    result++;
+                }
+            }
+
+            /*
+             * 插入主表数据
+             */
+            boolean save = Db.save(main);
+
+             if (save) {
+                result++;
+             }
+
+        } catch (Exception e) {
+            log.error("批量插入住院报表数据失败", e);
+            throw new RuntimeException("批量插入住院报表数据失败");
+        }
+        return result;
+     }
 
 
     private OutpReportVO calculateTotal(List<OutpReportVO> dtoList, LocalDate reportdate) {
@@ -321,7 +684,6 @@ public class ReportServiceImpl implements ReportService {
             List<YQCashRegRecordEntity> yqRecordList = cash.selectByDate(currtDate);
             Map<String, YQCashRegRecordEntity> cashMap = yqRecordList.stream()
                     .collect(Collectors.toMap(YQCashRegRecordEntity::getOperatorNo, Function.identity(), (v1, v2) -> v1));
-
 
 
             // 3. 构建结果集
@@ -393,8 +755,6 @@ public class ReportServiceImpl implements ReportService {
                 // =========================================================================
 
 
-
-
                 // ❗当前是工作日 且 前一天是节假日/周末
                 boolean isAfterHoliday = !isHoliday(holidaySet, currtDate) && isHoliday(holidaySet, currtDate.minusDays(1));
 
@@ -427,7 +787,7 @@ public class ReportServiceImpl implements ReportService {
                     currentDto.setActualReportAmount(currentDto.getReportAmount());
                 }
 
-                    // 5.实收现金数 5 = 3+4 (保持不变)
+                // 5.实收现金数 5 = 3+4 (保持不变)
                 currentDto.setActualCashAmount(currentDto.getActualReportAmount().add(currentDto.getCurrentTemporaryReceipt()));
 
                 //留存数差额 6 = 7-3-8 (保持不变)
@@ -456,7 +816,7 @@ public class ReportServiceImpl implements ReportService {
      * @param body 目标报表日期 (LocalDate)
      * @return 包含所有操作员计算结果的 ReportDTO 列表
      */
-    public List<OutpReportVO> getAllReportData(OutpReportRequestBody body ) {
+    public List<OutpReportVO> getOutpReportData(OutpReportRequestBody body) {
         LocalDate currtDate = body.getReportDate();
         try {
             LocalDate preDate = currtDate.minusDays(1);
@@ -576,7 +936,7 @@ public class ReportServiceImpl implements ReportService {
                 boolean isAfterHoliday = !isHoliday(holidaySet, currtDate) && isHoliday(holidaySet, currtDate.minusDays(1));
 
                 /*
-                *回溯计算实收报表
+                 *回溯计算实收报表
                  */
                 if (isAfterHoliday) {
                     // 符合条件：执行复杂回溯计算 (A = B - Sum(C) - D)
@@ -621,7 +981,7 @@ public class ReportServiceImpl implements ReportService {
                     );
                 } else if (isHoliday(holidaySet, currtDate)) {
                     // 节假日逻辑且是当月最后一天
-                    if(currtDate.getDayOfMonth() == currtDate.lengthOfMonth()){
+                    if (currtDate.getDayOfMonth() == currtDate.lengthOfMonth()) {
                         calculateAHolidayTemporaryReceiptForMonday(
                                 currentDto,
                                 currtDate,
@@ -634,7 +994,6 @@ public class ReportServiceImpl implements ReportService {
                     // 正常工作日逻辑 (保持不变)
                     currentDto.setHolidayTemporaryReceipt(BigDecimal.ZERO);
                 }
-
 
 
                 // 5.实收现金数 5 = 3+4 (保持不变)
@@ -650,7 +1009,6 @@ public class ReportServiceImpl implements ReportService {
             }
 
 
-
 //                /**
 //                 * 判断是否是当月的第一天
 //                 */
@@ -664,8 +1022,6 @@ public class ReportServiceImpl implements ReportService {
 //                public static boolean isLastDayOfMonth(LocalDate date) {
 //                    return date.getDayOfMonth() == date.lengthOfMonth();
 //                }
-
-
 
 
             log.info("{}生成报表完成，共处理 {} 个操作员", currtDate.toString(), resultList.size());
@@ -695,7 +1051,7 @@ public class ReportServiceImpl implements ReportService {
 
 
         //当前传入日期为当月第一天
-        if(targetDate.getDayOfMonth() != 1) {
+        if (targetDate.getDayOfMonth() != 1) {
 
             // 2. 回溯循环
             while (true) {
@@ -761,9 +1117,6 @@ public class ReportServiceImpl implements ReportService {
     }
 
 
-
-
-
     /**
      * 【核心逻辑实现】处理周一的复杂回溯计算
      * 公式: A = B - Sum(C){周末/节假日} - D{周五}
@@ -782,7 +1135,7 @@ public class ReportServiceImpl implements ReportService {
 
 
         //当前传入日期为当月第一天
-        if(targetDate.getDayOfMonth() != 1) {
+        if (targetDate.getDayOfMonth() != 1) {
 
             // 2. 回溯循环
             while (true) {
@@ -855,10 +1208,6 @@ public class ReportServiceImpl implements ReportService {
     private BigDecimal getSafeBigDecimal(BigDecimal value) {
         return value != null ? value : BigDecimal.ZERO;
     }
-
-
-
-
 
 
 }

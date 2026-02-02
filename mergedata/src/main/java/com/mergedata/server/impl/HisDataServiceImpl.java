@@ -3,7 +3,7 @@ package com.mergedata.server.impl;
 import com.mergedata.constants.ResConstant;
 import com.mergedata.model.dto.ApiRequest;
 import com.mergedata.model.dto.ApiRequestHead;
-import com.mergedata.model.dto.external.HisInpCashReportResponseDTO;
+import com.mergedata.model.dto.external.HisInpIncomeResponseDTO;
 import com.mergedata.model.vo.ApiResponse;
 import com.mergedata.model.dto.external.HisDataRequestBodyDTO;
 import com.mergedata.exception.BusinessException;
@@ -15,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -48,13 +47,13 @@ public class HisDataServiceImpl implements HisDataService {
                 ResConstant.REPORT_NAME_OUTP);
     }
     @Override
-    public List<HisInpCashReportResponseDTO> findByDateInp(String reportdate) {
+    public List<HisInpIncomeResponseDTO> findByDateInp(String reportdate) {
 
         log.info("开始调用 HIS 住院现金报表收入 API: {}", URL_API_HISINCOME);
 
         return callHisIncomeApi(reportdate,
                 ResConstant.HIS_METHOD_INP,
-                new ParameterizedTypeReference<ApiResponse<ApiResponseBodyList<HisInpCashReportResponseDTO>>>() {},
+                new ParameterizedTypeReference<ApiResponse<ApiResponseBodyList<HisInpIncomeResponseDTO>>>() {},
                 ResConstant.REPORT_NAME_INP);
     }
 

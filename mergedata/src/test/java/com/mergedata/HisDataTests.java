@@ -1,9 +1,8 @@
 package com.mergedata;
 
-import com.mergedata.model.dto.external.HisInpCashReportResponseDTO;
+import com.mergedata.model.dto.external.HisInpIncomeResponseDTO;
 import com.mergedata.model.dto.external.HisOutpIncomeResponseDTO;
 import com.mergedata.server.HisDataService;
-import com.mergedata.util.JsonPrinter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,7 +19,7 @@ public class HisDataTests {
     void contextLoads() {
         List<HisOutpIncomeResponseDTO> outpData = hisDataService.findByDateOutp("2025-11-02");
 
-        List<HisInpCashReportResponseDTO> inpData = hisDataService.findByDateInp("2025-11-02");
+        List<HisInpIncomeResponseDTO> inpData = hisDataService.findByDateInp("2025-11-02");
 
          System.out.println("门诊数据");
          System.out.println(inpData.toString());

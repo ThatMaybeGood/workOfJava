@@ -6,13 +6,12 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 /*
  * 住院现金报表接收
  */
 @Data
-public class HisInpCashReportResponseDTO {
+public class HisInpIncomeResponseDTO {
     /*
     操作员编号
      */
