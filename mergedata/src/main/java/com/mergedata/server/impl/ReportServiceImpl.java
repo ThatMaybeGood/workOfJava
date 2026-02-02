@@ -150,7 +150,7 @@ public class ReportServiceImpl implements ReportService {
                 .eq(InpCashSubEntity::getSerialNo, main.getSerialNo())
                 .list();
         // 4. 设置子表列表
-        main.setSubs(subs);
+        main.setSubs(subs != null ? subs : new ArrayList<>());
 
         return main;
     }
@@ -178,8 +178,17 @@ public class ReportServiceImpl implements ReportService {
             // 假设 HIS 接口需要 String，则转换
             List<HisInpIncomeResponseDTO> hisInpIncomeResponseDTOList = hisdata.findByDateInp(currtDate.toString());
 
-            // Mapper 调用传入 LocalDate
-            List<InpCashSubEntity> preInpReportSub = queryInpReportByDate(preDate).getSubs();
+            // 1. 获取前一天对象
+            InpCashMainEntity preInpResult = queryInpReportByDate(preDate);
+            List<InpCashSubEntity> preInpReportSub;
+            if (preInpResult != null) {
+                // 2. 如果存在，正常取子表
+                preInpReportSub = preInpResult.getSubs();
+            } else {
+                log.warn("前一天 {} 的数据不存在，初始化为空列表", preDate);
+                preInpReportSub = new ArrayList<>();
+            }
+
 
             // 2. 数据预处理：转换为 Map/Set (保持不变)
             Map<String, HisInpIncomeResponseDTO> hisDataMap = hisInpIncomeResponseDTOList.stream()
@@ -257,13 +266,24 @@ public class ReportServiceImpl implements ReportService {
 
 
                     log.info("第{}条，[{}]节假日后正常工作日第一天特殊处理，回溯计算实际报表金额开始......................", count, currtDate);
+//                    inpCalculateForMonday(
+//                            inpCashSub,
+//                            currtDate,
+//                            holidaySet,
+//                            // 传递的 Lambda 表达式现在接收 LocalDate
+//                            date -> queryInpReportByDate(date).getSubs()
+//                    );
                     inpCalculateForMonday(
                             inpCashSub,
                             currtDate,
                             holidaySet,
-                            // 传递的 Lambda 表达式现在接收 LocalDate
-                            date -> queryInpReportByDate(date).getSubs()
+                            date -> {
+                                InpCashMainEntity main = queryInpReportByDate(date);
+                                // 增加判空：如果主表不存在或子表为 null，返回空列表而不是抛异常
+                                return (main != null && main.getSubs() != null) ? main.getSubs() : new ArrayList<>();
+                            }
                     );
+
                 } else if (isHoliday(holidaySet, currtDate)) {  //是节假日且是当月的最后一天是否，实收报表是否 需要回溯计算
                     // 节假日逻辑：A = B - C (保持不变)
 //                    BigDecimal actualReportAmount = inpCashSub.getReportAmount().subtract(inpCashSub.getHolidayTemporaryReceipt());
@@ -359,13 +379,14 @@ public class ReportServiceImpl implements ReportService {
             // 2. 回溯循环
             while (true) {
 
-                // 2.1 获取当前回溯日期的历史报表数据 (通过 Mapper)
-                // 直接传入 LocalDate 对象
+                // 2.1 获取历史报表数据
+                // 这里调用的是上面 Lambda 定义的 apply。
+                // 只要按上面的方案修改了 Lambda，这里 historicalInpCashSubEntityS 就永远不会是 null。
                 List<InpCashSubEntity> historicalInpCashSubEntityS = reportQueryFunction.apply(currentDate);
 
-                // 2.2 查找当前操作员在历史报表中的记录 (确保用户匹配)
+                // 2.2 查找当前操作员记录
                 Optional<InpCashSubEntity> historicalDtoOpt = historicalInpCashSubEntityS.stream()
-                        .filter(r -> currentDto.getOperatorNo().equals(r.getOperatorNo()))
+                        .filter(r -> r.getOperatorNo() != null && r.getOperatorNo().equals(currentDto.getOperatorNo()))
                         .findFirst();
 
 //                // 提取当前的节假日的金额 (HolidayTemporaryReceipt)

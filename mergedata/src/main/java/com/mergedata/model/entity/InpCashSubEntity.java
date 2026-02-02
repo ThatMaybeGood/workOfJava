@@ -77,7 +77,7 @@ public class InpCashSubEntity {
     private BigDecimal todayReportReceivablePayable; //（11）=（8）+（9）+（10）-（18） 今日报表应收/应付
 
     @Getter(AccessLevel.NONE)
-    @TableField("TODAY_REPORT_CASH_PAY")
+    @TableField("TODAY_ADV_RECEIPT")
     private BigDecimal todayAdvanceReceipt;       //（12）=（8）-（11） 今日暂收款
 
     @Getter(AccessLevel.NONE)

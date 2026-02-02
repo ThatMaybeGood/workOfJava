@@ -63,6 +63,9 @@ public class RestTemplateConfig {
         supportedMediaTypes.add(MediaType.APPLICATION_XML); // 保持对 XML 的支持
         supportedMediaTypes.add(new MediaType("application", "xml", StandardCharsets.UTF_8));
 
+        // 添加这一行，让 Jackson 转换器也负责处理被标为 text/html 的数据
+        supportedMediaTypes.add(MediaType.TEXT_HTML);
+
         jsonConverter.setSupportedMediaTypes(supportedMediaTypes);
         converters.add(jsonConverter); // 【优先添加 JSON 转换器】
 
