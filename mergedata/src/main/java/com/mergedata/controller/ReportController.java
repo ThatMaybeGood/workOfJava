@@ -57,7 +57,7 @@ public class ReportController {
         return ApiResponse.success("报表写入成功！");
     }
 
-    @Operation(summary = "根据日期查询对应住院报表数据", description = "返回对应的住院报表数据")
+    @Operation(summary = "根据日期查询住院报表数据", description = "返回对应的住院报表数据")
     @PostMapping("/inp_findbydate")
     public ApiResponse<InpReportVO> getInpReport(@Valid @RequestBody ApiRequest<InpReportRequestBody> request)  {
 
@@ -69,7 +69,7 @@ public class ReportController {
     }
 
 
-    @Operation(summary = "批量插住院表数据", description = "返回对应结果")
+    @Operation(summary = "批量插入住院表数据", description = "返回对应结果")
     @PostMapping("/inp_insert")
     public ApiResponse insertInpReport(@RequestBody ApiRequest<InpReportVO> request)  {
 
