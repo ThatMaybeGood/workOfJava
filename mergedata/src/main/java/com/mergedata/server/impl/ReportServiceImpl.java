@@ -98,12 +98,13 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public InpCashMainEntity getInpReport(InpReportRequestBody body) {
 
+        LocalDate reportDate = body.getReportDate();
         InpCashMainEntity main = new InpCashMainEntity();
         List<InpCashMainEntity> mainList = new ArrayList<>();
 
         try {
             //查询日期类型
-            String holidayType = holidayService.queryDateType(body.getReportDate(), Constant.TYPE_INP);
+            String holidayType = holidayService.queryDateType(reportDate, Constant.TYPE_INP);
 
             //是否节假日汇总
             if(body.getHolidayTotalFlag().equals(Constant.FLAG_YES))
@@ -112,25 +113,27 @@ public class ReportServiceImpl implements ReportService {
                     //开始汇总计算
                     while (true){
 
-                        LocalDate localDate = body.getReportDate().minusDays(1);  //日期倒减
+                        reportDate = reportDate.minusDays(1);  //日期倒减
 
                         // 1. 查主表单条
-                        InpCashMainEntity inpResult = queryInpReportByDate(localDate, body.getHolidayTotalFlag());
-                        if (inpResult == null){
+                        main = queryInpReportByDate(reportDate, Constant.FLAG_NO);
+                        if (main == null){
                             //获取初始化的数据
-                            inpResult = getInpReportData(body,holidayType);
+                            main = getInpReportData(reportDate,holidayType, Constant.FLAG_NO);
                             //方法批量插入数据
                             insertInpReport(main, Constant.FLAG_YES);
                         }
 
-                        mainList.add(inpResult);
+                        mainList.add(main);
 
-                        if(holidayService.queryDateType(localDate, Constant.TYPE_INP).equals(Constant.HOLIDAY_PRE)){
+                        if(holidayService.queryDateType(reportDate, Constant.TYPE_INP).equals(Constant.HOLIDAY_PRE)){
                             break;
                         }
 
                     }
                     // 2. 对主表进行节假日汇总
+                    //汇总的数据插入数据
+                    insertInpReport(inpHolidayTotal(mainList,body.getReportDate()), Constant.FLAG_YES);
                     return inpHolidayTotal(mainList,body.getReportDate());
                 }
 
@@ -138,7 +141,7 @@ public class ReportServiceImpl implements ReportService {
             }
 
             // 1. 查主表单条
-            InpCashMainEntity inpResult = queryInpReportByDate(body.getReportDate(), body.getHolidayTotalFlag());
+            InpCashMainEntity inpResult = queryInpReportByDate(reportDate, body.getHolidayTotalFlag());
 
             //接收initFlag为1时，即初始化报表
             String initFlag = body.getInitFlag();
@@ -146,7 +149,7 @@ public class ReportServiceImpl implements ReportService {
 
             if (inpResult == null || isInitFlag) {
                 //获取初始化的数据
-                main = getInpReportData(body,holidayType);
+                main = getInpReportData(reportDate,holidayType, Constant.FLAG_NO);
 
                 //查询时候数据库没有相关的数据，插入数据库，此处调用插入数据
                 insertInpReport(main, Constant.FLAG_YES);
@@ -216,6 +219,7 @@ public class ReportServiceImpl implements ReportService {
         summary.setSubs(summarySubs);
 
         log.info("住院现金统计-节假日汇总，报表日期：{}", reportDate);
+
         return summary;
     }
 
@@ -248,11 +252,12 @@ public class ReportServiceImpl implements ReportService {
      * 2. 以操作员为基准进行匹配和计算。
      * 3. 对周一进行特殊的回溯计算 (A = B - Sum(C) - D)。
      *
-     * @param body 目标报表日期 (LocalDate)
+     * @param  currtDate 报表日期
+     * @param holidayType 节假日类型
+     * @param holidayTotalFlag 节假日汇总标志 0：非节假日汇总 1：节假日汇总
      * @return 包含所有操作员计算结果的 ReportDTO 列表
      */
-    public InpCashMainEntity getInpReportData(InpReportRequestBody body,String holidayType) {
-        LocalDate currtDate = body.getReportDate();
+    public InpCashMainEntity getInpReportData(LocalDate currtDate,String holidayType, String holidayTotalFlag) {
         try {
             LocalDate preDate = currtDate.minusDays(1);
 
@@ -266,7 +271,7 @@ public class ReportServiceImpl implements ReportService {
             List<HisInpIncomeResponseDTO> hisInpIncomeResponseDTOList = hisdata.findByDateInp(currtDate.toString());
 
             // 1. 获取前一天对象
-            InpCashMainEntity preInpResult = queryInpReportByDate(preDate, body.getHolidayTotalFlag());
+            InpCashMainEntity preInpResult = queryInpReportByDate(preDate, holidayTotalFlag);
             List<InpCashSubEntity> preInpReportSub;
             if (preInpResult != null) {
                 // 2. 如果存在，正常取子表
@@ -366,7 +371,7 @@ public class ReportServiceImpl implements ReportService {
                             currtDate,
                             holidaySet,
                             date -> {
-                                InpCashMainEntity main = queryInpReportByDate(date, body.getHolidayTotalFlag());
+                                InpCashMainEntity main = queryInpReportByDate(date, holidayTotalFlag);
                                 // 增加判空：如果主表不存在或子表为 null，返回空列表而不是抛异常
                                 return (main != null && main.getSubs() != null) ? main.getSubs() : new ArrayList<>();
                             }
