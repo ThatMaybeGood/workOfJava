@@ -1,11 +1,14 @@
 package com.mergedata.controller;
 
 import com.mergedata.model.dto.*;
+import com.mergedata.model.entity.InpCashMainEntity;
 import com.mergedata.model.vo.*;
 import com.mergedata.util.AddGroup;
 import com.mergedata.server.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.validation.annotation.Validated;
@@ -61,8 +64,12 @@ public class ReportController {
     @PostMapping("/inp_findbydate")
     public ApiResponse<InpReportVO> getInpReport(@Valid @RequestBody ApiRequest<InpReportRequestBody> request)  {
 
+        InpReportVO resultList = new InpReportVO();
+
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        InpReportVO resultList = report.getInpReport(request.getBody());
+        InpCashMainEntity main = report.getInpReport(request.getBody());
+
+        BeanUtils.copyProperties(main,resultList );
 
         // 4. 返回结果
         return ApiResponse.successObj(resultList,"查询报表列表成功！");
@@ -73,8 +80,12 @@ public class ReportController {
     @PostMapping("/inp_insert")
     public ApiResponse insertInpReport(@RequestBody ApiRequest<InpReportVO> request)  {
 
+        InpReportVO vo = request.getBody();
+        InpCashMainEntity main = new InpCashMainEntity();
+        BeanUtils.copyProperties(vo, main);
+
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Integer result = report.insertInpReport(request.getBody());
+        Integer result = report.insertInpReport(main);
 
         if (result == 1) {
             return ApiResponse.success("住院报表明细写入成功！");

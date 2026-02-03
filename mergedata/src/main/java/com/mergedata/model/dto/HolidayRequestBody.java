@@ -17,7 +17,7 @@ public class HolidayRequestBody {
 
     @NotNull(message = "query_type不能为空")
     @JsonProperty("query_type")
-    private String queryType;
+    private String queryType; //0门诊 1 住院
 
     private String extendParams1;
     private String extendParams2;

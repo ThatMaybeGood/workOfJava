@@ -66,61 +66,28 @@ public class HolidayServiceImpl implements YQHolidayService {
     }
 
     @Override
-    public YQHolidayCalendarVO queryDateType(HolidayRequestBody holidayRequestBody) {
-        LocalDate holidayDate  = holidayRequestBody.getReportDate();
-
-        YQHolidayCalendarVO yqHolidayCalendarVO = new YQHolidayCalendarVO();
-        yqHolidayCalendarVO.setHolidayDate(holidayDate);
-
+    public String queryDateType(LocalDate holidayDate,String queryType) {
 
         // 判断是住院/门诊
-        if (holidayRequestBody.getQueryType()== ResConstant.TYPE_OUTP){
-
+        if (queryType== ResConstant.TYPE_OUTP){
 
         }
 
         if (isHoliday( holidayDate)){
-            yqHolidayCalendarVO.setHolidayType(ResConstant.HOLIDAY_IS);
-
-           return yqHolidayCalendarVO;
-
+           return ResConstant.HOLIDAY_IS;
         }else {
             // ❗当前是工作日 且 前一天是节假日/周末
             if(isHoliday(holidayDate.minusDays(1))){
-                yqHolidayCalendarVO.setHolidayType(ResConstant.HOLIDAY_AFTER);
-                return yqHolidayCalendarVO;
-            }
-            // ❗当前是工作日 且 后一天是节假日/周末
-            if(isHoliday(holidayDate.plusDays(1))){
-                yqHolidayCalendarVO.setHolidayType(ResConstant.HOLIDAY_PRE);
-                return yqHolidayCalendarVO;
-            }
-        }
-
-
-        yqHolidayCalendarVO.setHolidayType(ResConstant.HOLIDAY_NOT);
-        return yqHolidayCalendarVO;
-    }
-
-    @Override
-    public String getDateType(LocalDate holidayDate) {
-
-        if (isHoliday( holidayDate)){
-            return ResConstant.HOLIDAY_IS;
-        }else {
-            // ❗当前是工作日 且 前一天是节假日/周末
-            if(isHoliday(holidayDate.minusDays(1))){
-                 return ResConstant.HOLIDAY_PRE;
-            }
-            // ❗当前是工作日 且 后一天是节假日/周末
-            if(isHoliday(holidayDate.plusDays(1))){
                  return ResConstant.HOLIDAY_AFTER;
             }
+            // ❗当前是工作日 且 后一天是节假日/周末
+            if(isHoliday(holidayDate.plusDays(1))){
+                return ResConstant.HOLIDAY_PRE;
+            }
         }
-
-
         return ResConstant.HOLIDAY_NOT;
     }
+
 
     /**
      * 判断日期是否为节假日 (使用 Set 版本)

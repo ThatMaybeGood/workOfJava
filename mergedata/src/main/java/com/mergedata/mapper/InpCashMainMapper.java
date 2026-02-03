@@ -7,5 +7,4 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface InpCashMainMapper extends BaseMapper<InpCashMainEntity> {
-    // 这里继承了 BaseMapper，就自动拥有了增删改查能力
 }

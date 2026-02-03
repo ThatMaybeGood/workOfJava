@@ -43,11 +43,6 @@ public interface YQHolidayService {
     /*
      * 获取日期对应的类型
      */
-    YQHolidayCalendarVO queryDateType(HolidayRequestBody holiday);
-
-    /*
-     * 获取日期对应的类型
-     */
-    String getDateType(LocalDate date);
+    String queryDateType(LocalDate holidayDate,String queryType);
 
 }

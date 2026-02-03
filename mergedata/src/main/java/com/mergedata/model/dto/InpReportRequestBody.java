@@ -18,6 +18,10 @@ public class InpReportRequestBody {
     @JsonProperty("reportdate")
     private LocalDate reportDate;
 
+    private String initFlag; //初始化标志 0 正常 1 初始化
+
+    private String holidayTotalFlag; //节假日汇总标志 0正常 1汇总
+
     private String extendParams1;
     private String extendParams2;
     private String extendParams3;

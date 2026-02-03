@@ -1,6 +1,7 @@
 package com.mergedata.server.impl;
 
 import com.baomidou.mybatisplus.extension.toolkit.Db;
+import com.mergedata.constants.ResConstant;
 import com.mergedata.model.dto.InpReportRequestBody;
 import com.mergedata.model.dto.external.HisInpIncomeResponseDTO;
 import com.mergedata.model.dto.external.HisOutpIncomeResponseDTO;
@@ -15,6 +16,7 @@ import com.mergedata.mapper.OutpReportMapper;
 import com.mergedata.model.entity.*;
 import com.mergedata.server.HisDataService;
 import com.mergedata.server.ReportService;
+import com.mergedata.server.YQHolidayService;
 import com.mergedata.util.PrimaryKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -49,9 +51,10 @@ public class ReportServiceImpl implements ReportService {
     @Autowired
     OutpReportMapper report;
 
-    List<OutpReportVO> outpResults = new ArrayList<>();
+    @Autowired
+    YQHolidayService holidayService;
 
-    List<InpReportListVO> inpResults = new ArrayList<>();
+    List<OutpReportVO> outpResults = new ArrayList<>();
 
     /**
      * 获取门诊报表数据
@@ -95,34 +98,60 @@ public class ReportServiceImpl implements ReportService {
      * 获取住院报表数据
      */
     @Override
-    public InpReportVO getInpReport(InpReportRequestBody body) {
+    public InpCashMainEntity getInpReport(InpReportRequestBody body) {
 
-        InpReportVO vo = new InpReportVO();
+        InpCashMainEntity main = new InpCashMainEntity();
+        List<InpCashMainEntity> mainList = new ArrayList<>();
 
-        //调用存储过程获取报表数据
         try {
+            String holidayType = holidayService.queryDateType(body.getReportDate(),ResConstant.TYPE_INP);
+
+            //是否节假日汇总
+            if(body.getHolidayTotalFlag().equals("1"))
+            {
+                if (holidayType.equals(ResConstant.HOLIDAY_AFTER)){
+                    //开始汇总计算
+                    while (true){
+
+                        LocalDate localDate = body.getReportDate().minusDays(1);  //日期倒减
+
+                        // 1. 查主表单条
+                        InpCashMainEntity inpResult = queryInpReportByDate(localDate);
+                        if (inpResult == null){
+                            //获取初始化的数据
+                            inpResult = getInpReportData(body,holidayType);
+                            //查询时候数据库没有相关的数据，插入数据库，此处调用 firstInsert 方法批量插入数据
+                            insertInpReport(main);
+                        }
+
+                        mainList.add(inpResult);
+
+                        if(holidayService.queryDateType(localDate,ResConstant.TYPE_INP).equals(ResConstant.HOLIDAY_PRE)){
+                            break;
+                        }
+
+                    }
+                    // 2. 对主表进行节假日汇总
+                    return inpHolidayTotal(mainList,body.getReportDate());
+                }
+
+                return main;
+            }
 
             // 1. 查主表单条
             InpCashMainEntity inpResult = queryInpReportByDate(body.getReportDate());
 
-            //接收ExtendParams1为true时，即初始化报表
-            String param1 = body.getExtendParams1();
-            Boolean isInitFlag = (param1 != null && "true".equalsIgnoreCase(param1));
+            //接收initFlag为1时，即初始化报表
+            String initFlag = body.getInitFlag();
+            Boolean isInitFlag = (initFlag != null && "1".equalsIgnoreCase(initFlag));
 
-            if (inpResult == null) {
+            if (inpResult == null || isInitFlag) {
+                //获取初始化的数据
+                main = getInpReportData(body,holidayType);
 
-                vo = getInpReportData(body);
+                //查询时候数据库没有相关的数据，插入数据库，此处调用插入数据
+                insertInpReport(main);
 
-                //查询时候数据库没有相关的数据，插入数据库，此处调用 firstInsert 方法批量插入数据
-                insertInpReport(vo);
-
-            } else {
-                // 3. 将数据组装到 VO 中
-                vo.setSerialNo(inpResult.getSerialNo());
-                vo.setReportDate(inpResult.getReportDate());
-                vo.setReportYear(inpResult.getReportYear());
-                // 4. 设置子表列表
-                vo.setSubs(inpResult.getSubs());
             }
 
         } catch (Exception e) {
@@ -131,9 +160,65 @@ public class ReportServiceImpl implements ReportService {
         }
 
 
-        return vo;
+        return main;
 
     }
+
+    /**
+     * 对住院现金统计主表实体类进行节假日汇总
+     */
+    public InpCashMainEntity inpHolidayTotal(List<InpCashMainEntity> allMains, LocalDate reportDate) {
+        // 1. 创建一个汇总对象（合计行）
+        InpCashMainEntity summary = new InpCashMainEntity();
+        InpCashSubEntity summarySub = new InpCashSubEntity();
+        List<InpCashSubEntity> summarySubs = new ArrayList<>();
+
+        if (allMains == null || allMains.isEmpty()) {
+            return summary;
+        }
+
+        List<InpCashSubEntity> allSubs = allMains.stream()
+                .map(InpCashMainEntity::getSubs)
+                .flatMap(List::stream)
+                .collect(Collectors.toList());
+
+        // 2. 遍历 List 直接相加
+        for (InpCashSubEntity item : allSubs) {
+            // 利用你重写的 Getter，这里 get...() 拿到的绝对不是 null
+            summarySub.setPreviousDayAdvanceReceipt(summarySub.getPreviousDayAdvanceReceipt().add(item.getPreviousDayAdvanceReceipt()));
+            summarySub.setTodayAdvancePayment(summarySub.getTodayAdvancePayment().add(item.getTodayAdvancePayment()));
+            summarySub.setTodaySettlementIncome(summarySub.getTodaySettlementIncome().add(item.getTodaySettlementIncome()));
+            summarySub.setTodayPreHospitalIncome(summarySub.getTodayPreHospitalIncome().add(item.getTodayPreHospitalIncome()));
+            summarySub.setTrafficAssistanceFund(summarySub.getTrafficAssistanceFund().add(item.getTrafficAssistanceFund()));
+            summarySub.setBloodDonationCompensation(summarySub.getBloodDonationCompensation().add(item.getBloodDonationCompensation()));
+            summarySub.setReceivablePayable(summarySub.getReceivablePayable().add(item.getReceivablePayable()));
+
+            // 汇总计算出来的合计项（第8项、第11项等）
+            summarySub.setTodayReportTotal(summarySub.getTodayReportTotal().add(item.getTodayReportTotal()));
+            summarySub.setTodayReportReceivablePayable(summarySub.getTodayReportReceivablePayable().add(item.getTodayReportReceivablePayable()));
+
+            // 下午及留存部分
+            summarySub.setTodayAdvanceReceipt(summarySub.getTodayAdvanceReceipt().add(item.getTodayAdvanceReceipt()));
+            summarySub.setTodayReportCashReceived(summarySub.getTodayReportCashReceived().add(item.getTodayReportCashReceived()));
+            summarySub.setTodayCashReceivedTotal(summarySub.getTodayCashReceivedTotal().add(item.getTodayCashReceivedTotal()));
+            summarySub.setBalance(summarySub.getBalance().add(item.getBalance()));
+            summarySub.setAdjustment(summarySub.getAdjustment().add(item.getAdjustment()));
+            summarySub.setTodayIOU(summarySub.getTodayIOU().add(item.getTodayIOU()));
+            summarySub.setCashOnHand(summarySub.getCashOnHand().add(item.getCashOnHand()));
+            summarySub.setDifference(summarySub.getDifference().add(item.getDifference()));
+            summarySubs.add(summarySub);
+        }
+
+        summary.setSerialNo(PrimaryKeyGenerator.generateKey());
+        summary.setHolidayTotalFlag(ResConstant.FLAG_YES);
+        summary.setReportDate(reportDate);
+        summary.setReportYear(reportDate.getYear());
+        summary.setCreateTime(LocalDateTime.now());
+        summary.setSubs(summarySubs);
+
+        return summary;
+    }
+
 
     public InpCashMainEntity queryInpReportByDate(LocalDate date) {
         // 1. 查主表单条
@@ -164,7 +249,7 @@ public class ReportServiceImpl implements ReportService {
      * @param body 目标报表日期 (LocalDate)
      * @return 包含所有操作员计算结果的 ReportDTO 列表
      */
-    public InpReportVO getInpReportData(InpReportRequestBody body) {
+    public InpCashMainEntity getInpReportData(InpReportRequestBody body,String holidayType) {
         LocalDate currtDate = body.getReportDate();
         try {
             LocalDate preDate = currtDate.minusDays(1);
@@ -202,7 +287,7 @@ public class ReportServiceImpl implements ReportService {
                     .collect(Collectors.toSet());
 
             // 3. 构建结果集
-            InpReportVO resultVo = new InpReportVO();
+            InpCashMainEntity resultVo = new InpCashMainEntity();
             List<InpCashSubEntity> inpCashSubList = new ArrayList<>();
 
             PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
@@ -255,13 +340,13 @@ public class ReportServiceImpl implements ReportService {
                 // =========================================================================
                 // End of 基础信息赋值
                 // =========================================================================
-                // ❗当前是工作日 且 前一天是节假日/周末
-                boolean isAfterHoliday = !isHoliday(holidaySet, currtDate) && isHoliday(holidaySet, currtDate.minusDays(1));
+                // 判断当前是工作日是什么类型
+
 
                 /*
                  *回溯计算实收报表
                  */
-                if (isAfterHoliday) {
+                if (holidayType.equals(ResConstant.HOLIDAY_AFTER)) {
                     //住院如果是周一，即（1）数据为周五（12）的数据
 
 
@@ -283,19 +368,6 @@ public class ReportServiceImpl implements ReportService {
                                 return (main != null && main.getSubs() != null) ? main.getSubs() : new ArrayList<>();
                             }
                     );
-
-                } else if (isHoliday(holidaySet, currtDate)) {  //是节假日且是当月的最后一天是否，实收报表是否 需要回溯计算
-                    // 节假日逻辑：A = B - C (保持不变)
-//                    BigDecimal actualReportAmount = inpCashSub.getReportAmount().subtract(inpCashSub.getHolidayTemporaryReceipt());
-//                    inpCashSub.setPreviousDayAdvanceReceipt(actualReportAmount);
-
-                } else if (isHoliday(holidaySet, currtDate.plusDays(1))) {
-                    // 节假日前一天 (周五/最后一天) 逻辑 (保持不变)
-//                    BigDecimal actualReportAmount = inpCashSub.getReportAmount()
-//                            .subtract(inpCashSub.getPreviousTemporaryReceipt())
-//                            .subtract(inpCashSub.getCurrentTemporaryReceipt());
-//
-//                    inpCashSub.setActualReportAmount(actualReportAmount);
 
                 } else {
                     // 正常工作日逻辑 (保持不变)
@@ -620,12 +692,9 @@ public class ReportServiceImpl implements ReportService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Integer insertInpReport(InpReportVO inpReportVO) {
+    public Integer insertInpReport(InpCashMainEntity main) {
         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
         String pk = pks.generateKey();
-
-        InpCashMainEntity main = new InpCashMainEntity();
-        BeanUtils.copyProperties(inpReportVO, main);
 
         // 设置新记录的初始状态为生效（1）
         main.setValidFlag(1);
@@ -639,8 +708,9 @@ public class ReportServiceImpl implements ReportService {
              * 根据 report_date 将之前已生效的报表全部改为作废(0)
              */
             Db.lambdaUpdate(InpCashMainEntity.class)
-                    .eq(InpCashMainEntity::getReportDate, inpReportVO.getReportDate())
+                    .eq(InpCashMainEntity::getReportDate, main.getReportDate())
                     .eq(InpCashMainEntity::getValidFlag, 1) // 只作废当前有效的
+                    .eq(InpCashMainEntity::getHolidayTotalFlag,main.getHolidayTotalFlag())  //对应节假日汇总类型
                     .set(InpCashMainEntity::getValidFlag, 0)
                     .set(InpCashMainEntity::getUpdateTime, LocalDateTime.now())
                     .update();
@@ -652,18 +722,18 @@ public class ReportServiceImpl implements ReportService {
             /*
              * 插入子表数据
              */
-            if (saveMain && !inpReportVO.getSubs().isEmpty()) {
+            if (saveMain && !main.getSubs().isEmpty()) {
                 // 确保子表的关联字段和主表一致
-                inpReportVO.getSubs().forEach(sub -> {
+                main.getSubs().forEach(sub -> {
                     sub.setSerialNo(main.getSerialNo());
                     // 如果子表也有创建时间等字段，建议在此补充
                 });
-                boolean savedBatch = Db.saveBatch(inpReportVO.getSubs());
+                boolean savedBatch = Db.saveBatch(main.getSubs());
             }
 
             return 1;
         } catch (Exception e) {
-            log.error("批量插入住院报表数据失败，日期：{}", inpReportVO.getReportDate(), e);
+            log.error("批量插入住院报表数据失败，日期：{}", main.getReportDate(), e);
             throw new RuntimeException("批量插入住院报表数据失败" + e.getMessage());
         }
      }
@@ -1236,6 +1306,9 @@ public class ReportServiceImpl implements ReportService {
         }
         return holidaySet.contains(targetDate);
     }
+
+
+
 
     /**
      * 安全获取 BigDecimal 值，如果为 null 则返回 BigDecimal.ZERO

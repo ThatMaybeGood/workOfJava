@@ -15,4 +15,6 @@ public class YQHolidayCalendarVO {
 
     // 节假日类型，周末，节假日，工作日 0，1，2
     private String holidayType;
+
+    private String queryType; //0 门诊 1住院
 }

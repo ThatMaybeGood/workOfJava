@@ -3,6 +3,7 @@ package com.mergedata.model.entity;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.mergedata.constants.ResConstant;
 import lombok.Data;
 import nonapi.io.github.classgraph.json.Id;
 
@@ -35,6 +36,8 @@ public class InpCashMainEntity {
     @TableField(value = "update_time")
     private LocalDateTime updateTime;     // 更新时间
 
+    @TableField(value = "holiday_tatol_flag")
+    private String holidayTotalFlag = ResConstant.FLAG_NO; //节假日汇总标志
     // 关联的子报表列表（一对多关系）
     @TableField(exist = false)
     private List<InpCashSubEntity> subs;

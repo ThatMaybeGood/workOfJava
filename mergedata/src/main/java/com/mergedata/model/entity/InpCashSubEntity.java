@@ -31,7 +31,7 @@ public class InpCashSubEntity {
     // 上午统计报表现金数据字段  金额字段 (禁用 Lombok 默认 Getter，手动重写
     @Getter(AccessLevel.NONE)
     @TableField("PREV_DAY_ADV_RECEIPT")
-    private BigDecimal previousDayAdvanceReceipt;    //1 前日暂收款
+    private BigDecimal previousDayAdvanceReceipt;    //1 前日暂收款   正常工作日 获取前一天12的值，节假日获取 12的节假日前一天值
 
     @Getter(AccessLevel.NONE)
     @NotBlank(message = "his今日预交金数不能为空", groups = {AddGroup.class})

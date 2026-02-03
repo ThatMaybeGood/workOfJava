@@ -2,6 +2,7 @@ package com.mergedata.server;
 
 import com.mergedata.model.dto.InpReportRequestBody;
 import com.mergedata.model.dto.OutpReportRequestBody;
+import com.mergedata.model.entity.InpCashMainEntity;
 import com.mergedata.model.vo.InpReportVO;
 import com.mergedata.model.vo.OutpReportVO;
 
@@ -18,7 +19,7 @@ public interface ReportService {
     /**
      * 根据日期查询住院报表数据
      */
-    InpReportVO getInpReport(InpReportRequestBody body)  ;
+    InpCashMainEntity getInpReport(InpReportRequestBody body)  ;
 
     /*
      * 批量插入门诊报表数据
@@ -28,6 +29,6 @@ public interface ReportService {
     /*
      * 批量插入住院报表数据
      */
-    Integer insertInpReport(InpReportVO inpReportVO);
+    Integer insertInpReport(InpCashMainEntity main);
 
 }
