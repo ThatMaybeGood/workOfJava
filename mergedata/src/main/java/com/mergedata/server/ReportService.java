@@ -29,6 +29,6 @@ public interface ReportService {
     /*
      * 批量插入住院报表数据
      */
-    Integer insertInpReport(InpCashMainEntity main);
+    Integer insertInpReport(InpCashMainEntity main,String isInitFlag);
 
 }

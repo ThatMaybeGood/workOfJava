@@ -4,7 +4,7 @@ package com.mergedata.constants;
 /**
  * 响应常量类
  */
-public class ResConstant {
+public class Constant {
     /**
      * API响应状态码：失败
      */

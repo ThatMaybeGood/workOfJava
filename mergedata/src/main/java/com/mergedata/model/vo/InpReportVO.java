@@ -2,7 +2,7 @@ package com.mergedata.model.vo;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
-import com.mergedata.constants.ResConstant;
+import com.mergedata.constants.Constant;
 import com.mergedata.model.entity.InpCashSubEntity;
 import lombok.Data;
 
@@ -24,10 +24,10 @@ public class InpReportVO {
     private Integer reportYear;           // 报表年份
 
     @TableField(value = "report_type")
-    private String reportType = ResConstant.TYPE_INP;            // 报表类型 0：门诊 1：住院
+    private String reportType = Constant.TYPE_INP;            // 报表类型 0：门诊 1：住院
 
     @TableField(value = "holiday_tatol_flag")
-    private String holidayTotalFlag =ResConstant.FLAG_NO; //节假日汇总标志
+    private String holidayTotalFlag = Constant.FLAG_NO; //节假日汇总标志
 
     // 关联的子报表列表（一对多关系）
     @TableField(exist = false)

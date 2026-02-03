@@ -1,5 +1,6 @@
 package com.mergedata.controller;
 
+import com.mergedata.constants.Constant;
 import com.mergedata.model.dto.*;
 import com.mergedata.model.entity.InpCashMainEntity;
 import com.mergedata.model.vo.*;
@@ -7,7 +8,6 @@ import com.mergedata.util.AddGroup;
 import com.mergedata.server.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -85,7 +85,7 @@ public class ReportController {
         BeanUtils.copyProperties(vo, main);
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Integer result = report.insertInpReport(main);
+        Integer result = report.insertInpReport(main, Constant.FLAG_NO);
 
         if (result == 1) {
             return ApiResponse.success("住院报表明细写入成功！");

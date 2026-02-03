@@ -3,7 +3,7 @@ package com.mergedata.model.entity;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.mergedata.constants.ResConstant;
+import com.mergedata.constants.Constant;
 import lombok.Data;
 import nonapi.io.github.classgraph.json.Id;
 
@@ -27,7 +27,7 @@ public class InpCashMainEntity {
     private Integer reportYear;           // 报表年份
 
     @TableField(value = "valid_flag")
-    private Integer validFlag;            // 报表状态  0：未生效 1：已生效
+    private String validFlag;            // 报表状态  0：未生效 1：已生效
 
     @TableField(value = "creator")
     private String creator;               // 创建人
@@ -37,7 +37,7 @@ public class InpCashMainEntity {
     private LocalDateTime updateTime;     // 更新时间
 
     @TableField(value = "holiday_tatol_flag")
-    private String holidayTotalFlag = ResConstant.FLAG_NO; //节假日汇总标志
+    private String holidayTotalFlag = Constant.FLAG_NO; //节假日汇总标志
     // 关联的子报表列表（一对多关系）
     @TableField(exist = false)
     private List<InpCashSubEntity> subs;

@@ -1,6 +1,6 @@
 package com.mergedata.server.impl;
 
-import com.mergedata.constants.ResConstant;
+import com.mergedata.constants.Constant;
 import com.mergedata.model.dto.ApiRequest;
 import com.mergedata.model.dto.ApiRequestHead;
 import com.mergedata.model.dto.external.HisInpIncomeResponseDTO;
@@ -42,9 +42,9 @@ public class HisDataServiceImpl implements HisDataService {
         log.info("开始调用 HIS 门诊现金报表收入 API: {}", URL_API_HISINCOME);
 
         return callHisIncomeApi(reportdate,
-                ResConstant.HIS_METHOD_OUTP,
+                Constant.HIS_METHOD_OUTP,
                 new ParameterizedTypeReference<ApiResponse<ApiResponseBodyList<HisOutpIncomeResponseDTO>>>() {},
-                ResConstant.REPORT_NAME_OUTP);
+                Constant.REPORT_NAME_OUTP);
     }
     @Override
     public List<HisInpIncomeResponseDTO> findByDateInp(String reportdate) {
@@ -52,9 +52,9 @@ public class HisDataServiceImpl implements HisDataService {
         log.info("开始调用 HIS 住院现金报表收入 API: {}", URL_API_HISINCOME);
 
         return callHisIncomeApi(reportdate,
-                ResConstant.HIS_METHOD_INP,
+                Constant.HIS_METHOD_INP,
                 new ParameterizedTypeReference<ApiResponse<ApiResponseBodyList<HisInpIncomeResponseDTO>>>() {},
-                ResConstant.REPORT_NAME_INP);
+                Constant.REPORT_NAME_INP);
     }
 
     /**

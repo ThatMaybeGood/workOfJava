@@ -1,10 +1,8 @@
 package com.mergedata.server.impl;
 
-import com.mergedata.constants.ResConstant;
+import com.mergedata.constants.Constant;
 import com.mergedata.mapper.HolidayMapper;
-import com.mergedata.model.dto.HolidayRequestBody;
 import com.mergedata.model.entity.YQHolidayCalendarEntity;
-import com.mergedata.model.vo.YQHolidayCalendarVO;
 import com.mergedata.server.YQHolidayService;
 import com.mergedata.util.PrimaryKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
@@ -69,23 +67,23 @@ public class HolidayServiceImpl implements YQHolidayService {
     public String queryDateType(LocalDate holidayDate,String queryType) {
 
         // 判断是住院/门诊
-        if (queryType== ResConstant.TYPE_OUTP){
+        if (queryType== Constant.TYPE_OUTP){
 
         }
 
         if (isHoliday( holidayDate)){
-           return ResConstant.HOLIDAY_IS;
+           return Constant.HOLIDAY_IS;
         }else {
             // ❗当前是工作日 且 前一天是节假日/周末
             if(isHoliday(holidayDate.minusDays(1))){
-                 return ResConstant.HOLIDAY_AFTER;
+                 return Constant.HOLIDAY_AFTER;
             }
             // ❗当前是工作日 且 后一天是节假日/周末
             if(isHoliday(holidayDate.plusDays(1))){
-                return ResConstant.HOLIDAY_PRE;
+                return Constant.HOLIDAY_PRE;
             }
         }
-        return ResConstant.HOLIDAY_NOT;
+        return Constant.HOLIDAY_NOT;
     }
 
 
