@@ -36,7 +36,7 @@ public class InpCashMainEntity {
     @TableField(value = "update_time")
     private LocalDateTime updateTime;     // 更新时间
 
-    @TableField(value = "holiday_tatol_flag")
+    @TableField(value = "holiday_total_flag")
     private String holidayTotalFlag = Constant.FLAG_NO; //节假日汇总标志
     // 关联的子报表列表（一对多关系）
     @TableField(exist = false)

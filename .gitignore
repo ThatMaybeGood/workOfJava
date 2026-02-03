@@ -34,3 +34,6 @@ Thumbs.db
 *.ear
 *.bak
 *.tmp
+
+
+.idea/
