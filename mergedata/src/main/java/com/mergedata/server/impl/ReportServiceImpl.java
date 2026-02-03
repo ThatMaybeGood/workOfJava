@@ -102,10 +102,11 @@ public class ReportServiceImpl implements ReportService {
         List<InpCashMainEntity> mainList = new ArrayList<>();
 
         try {
+            //查询日期类型
             String holidayType = holidayService.queryDateType(body.getReportDate(), Constant.TYPE_INP);
 
             //是否节假日汇总
-            if(body.getHolidayTotalFlag().equals("1"))
+            if(body.getHolidayTotalFlag().equals(Constant.FLAG_YES))
             {
                 if (holidayType.equals(Constant.HOLIDAY_AFTER)){
                     //开始汇总计算
@@ -214,6 +215,7 @@ public class ReportServiceImpl implements ReportService {
         summary.setCreateTime(LocalDateTime.now());
         summary.setSubs(summarySubs);
 
+        log.info("住院现金统计-节假日汇总，报表日期：{}", reportDate);
         return summary;
     }
 
@@ -303,6 +305,7 @@ public class ReportServiceImpl implements ReportService {
                 inpCashSub.setSerialNo(pk);
                 inpCashSub.setOperatorNo(operator.getOperatorNo());
                 inpCashSub.setOperatorName(operator.getOperatorName());
+                inpCashSub.setCreatedTime(LocalDateTime.now());
 
                 // =========================================================================
                 // 基础信息赋值区域
@@ -689,6 +692,9 @@ public class ReportServiceImpl implements ReportService {
 
     /**
      * 批量插入住院报表数据
+     * @param main 住院现金主表实体
+     * @param isInitFlag 是否初次写入标志 ，默认值为"1"，表示初次写入
+     * @return 插入成功的记录数
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
