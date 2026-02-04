@@ -17,14 +17,17 @@ import java.util.Collections;
 /**
  * 通用 RestTemplate 调用工具类，负责封装请求、发起调用、处理HTTP错误和捕获业务异常。
  */
+@Component
 @Slf4j
-@RequiredArgsConstructor
 public class RestApiUtil {
 
     @Autowired
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
 
-
+    @Autowired
+    public RestApiUtil(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
     /**
      * 使用 ParameterizedTypeReference 发起通用的 POST 请求。
      * 适用于返回结构（ApiResponse<T> 中的 T）是复杂泛型（如 List<HisIncomeDTO>）的情况。

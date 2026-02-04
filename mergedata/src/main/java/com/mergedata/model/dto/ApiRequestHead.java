@@ -7,9 +7,10 @@ import org.springframework.stereotype.Component;
 /**
  * 请求头
  */
+@Component
+@ConfigurationProperties(prefix = "request.head")
 @Data
 public class ApiRequestHead {
-
     private String charset;
     private String encryptType;
     private String enterpriseId;

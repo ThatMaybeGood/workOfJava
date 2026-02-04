@@ -12,6 +12,7 @@ import com.mergedata.model.vo.ApiResponseBodyList;
 import com.mergedata.server.HisDataService;
 import com.mergedata.util.RestApiUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -27,11 +28,11 @@ public class HisDataServiceImpl implements HisDataService {
     @Value("${api.urls.hisincome}")
     private String URL_API_HISINCOME;
 
-    private ApiRequestHead headConfig;
+     @Autowired
+     private RestApiUtil restApiUtil;
 
-    private RestApiUtil restApiUtil;
-
-    private RestTemplate restTemplate;
+     @Autowired
+     private ApiRequestHead apiRequestHead;
 
     /**
      * 根据日期查询门诊现金报表收入记录
@@ -85,12 +86,17 @@ public class HisDataServiceImpl implements HisDataService {
             comBody.setReportDate(reportdate);
 
             ApiRequest<HisDataRequestBodyDTO> apiRequest = new ApiRequest<>();
+            // 1.1 复制基础请求头配置
+            ApiRequestHead headConfig = new ApiRequestHead();
+            BeanUtils.copyProperties(apiRequestHead, headConfig);
+
             headConfig.setMethod(method);
             apiRequest.setHead(headConfig);
             apiRequest.setBody(comBody);
 
             // 2. 调用 API
             log.debug("调用 {} HIS {}现金报表 API", apiType, method);
+
             ApiResponse<ApiResponseBodyList<T>> apiResponse = restApiUtil.postForObject(
                     URL_API_HISINCOME,
                     apiRequest,
