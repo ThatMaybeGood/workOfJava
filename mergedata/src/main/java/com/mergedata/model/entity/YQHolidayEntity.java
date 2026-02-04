@@ -1,5 +1,6 @@
 package com.mergedata.model.entity;
 
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
@@ -19,6 +20,7 @@ import java.time.LocalDateTime;
  * 节假日实体类
  */
 @Data
+@TableName("mpp_cash_reg_holiday")
 public class YQHolidayEntity {
     /**
      * 流水号

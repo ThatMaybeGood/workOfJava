@@ -3,7 +3,7 @@ spring:
   application:
     name: medical-data-service
   profiles:
-    active: prod  # 默认激活开发环境
+    active: mine  # 默认激活开发环境
   mvc:   # 确保 Spring Boot 在找不到 Handler 时抛出异常，而不是直接返回默认的 404 页面
     throw-exception-if-no-handler-found: true
   web:    # 确保 DispatcherServlet 对静态资源的处理不会影响到上面的配置
@@ -21,46 +21,32 @@ mybatis-plus:
 
   configuration:
     jdbc-type-for-null: 'null' #全局配置允许mapper.xml写入null
-#    # Use only mybatis-plus config (the 'mybatis:' block is redundant)
-#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-#    log-prefix: "[MYBATIS] "
+    map-underscore-to-camel-case: true #开启下划线转驼峰
 
   global-config:
     banner: false
     db-config:
       id-type: auto
 
-## --- Logback 相关的属性配置 ---
-#logging:
-#  # 日志文件存储路径 (请根据您的环境调整)
-#  log-dir: logs
-#
-#  # 日志级别
-#  level:
-#    root: INFO
-#    com.alibaba.druid: WARN
-#    com.zaxxer.hikari: WARN
-#    oracle.jdbc: WARN
-#    com.mergedata.config: DEBUG
 
-# application.yml
 
 logging:
   level:
     # 保持 MyBatis-Plus 的 INFO 或 DEBUG 级别（如果需要查看框架内部信息）
-    com.baomidou.mybatisplus: debug
+    com.baomidou.mybatisplus: info
 
-    # ❗ 关键修正 1: 将您的 Mapper 接口所在包设置为 INFO
+    # 将您的 Mapper 接口所在包设置为 INFO
     # INFO 级别会打印 SQL 和参数，但不会打印 Row 数据
-    com.mergedata.mapper: debug
+    com.mergedata.mapper: info
 
-    # 关键修正 2: 确保 MyBatis 的执行器日志也设置为 INFO (如果仅设置 Mapper 包无效)
-    org.apache.ibatis.executor: debug
-  file:
-    name:
+    # 确保 MyBatis 的执行器日志也设置为 INFO (如果仅设置 Mapper 包无效)
+    org.apache.ibatis.executor: info
 
-  # ❗ 告诉 Spring Boot 使用自定义的 Logback 配置文件
+#    com.mergedata.util: info
+
+  #  告诉 Spring Boot 使用自定义的 Logback 配置文件
   config: classpath:logback-spring.xml
+
 
 app:
   log:

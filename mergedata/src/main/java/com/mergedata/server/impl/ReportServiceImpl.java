@@ -103,99 +103,100 @@ public class ReportServiceImpl implements ReportService {
     @Override
     @Transactional
     public Integer insertOutpReport(List<OutpReportVO> outpReportVOList) {
-        if (outpReportVOList == null || outpReportVOList.isEmpty()) {
-            return Constant.FAILURE;
-        }
+       try {
 
-        // 1. 确定要作废的日期
-        LocalDate reportDate = outpReportVOList.get(0).getReportDate();
+           if (outpReportVOList == null || outpReportVOList.isEmpty()) {
+               return Constant.FAILURE;
+           }
 
-        // 2. 作废该日期下所有的主表记录
-        if (!report.selectReportByDate(reportDate).isEmpty()) {
-            report.updateByDate(reportDate);
-        }
-        log.info("{} {} 历史报表数据作废完成 !", reportDate, Constant.REPORT_NAME_OUTP);
+           // 1. 确定要作废的日期
+           LocalDate reportDate = outpReportVOList.get(0).getReportDate();
 
-        //3.转换对应门诊报表数据
-        List<OutpReportVO> list = exchangeOutpReportData(reportDate, outpReportVOList);
+           // 2. 作废该日期下所有的主表记录
+           if (!report.selectReportByDate(reportDate).isEmpty()) {
+               report.updateByDate(reportDate);
+           }
+           log.info("{} {} 历史报表数据作废完成 !", reportDate, Constant.REPORT_NAME_OUTP);
 
-
-        // =======================================================
-        // 只生成一个主键，作为主表的主键和明细表的外键
-        // =======================================================
-        PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
-        String pk = pks.generateKey();
-
-        List<OutpCashMainEntity> mainList = new ArrayList<>();
-        List<OutpCashSubEntity> subList = new ArrayList<>();
-
-        // ------------------------------------------
-        //  只创建 1 条 CashStattisticsMain (主表) 记录
-        // ------------------------------------------
-        OutpCashMainEntity main = new OutpCashMainEntity();
-        OutpReportVO firstOutpReportVO = list.get(0); // 随便取一条 Report 来获取通用的主表信息
-
-        main.setSerialNo(pk); // 唯一主键
-        main.setIsvalid(true);
-
-        // 复制通用的日期/年份信息
-        if (firstOutpReportVO.getReportDate() != null) {
-            try {
-                main.setReportDate(firstOutpReportVO.getReportDate());
-            } catch (Exception e) {
-                throw new RuntimeException("日期格式错误: " + firstOutpReportVO.getReportDate());
-            }
-        }
-        if (firstOutpReportVO.getReportYear() != null) {
-            main.setReportYear(Integer.valueOf(firstOutpReportVO.getReportYear()));
-        }
+           //3.转换对应门诊报表数据
+           List<OutpReportVO> list = exchangeOutpReportData(reportDate, outpReportVOList);
 
 
-        main.setCreateTime(firstOutpReportVO.getCreateTime() != null ? firstOutpReportVO.getCreateTime() : LocalDateTime.now());
-        main.setUpdateTime(LocalDateTime.now());
+           // =======================================================
+           // 只生成一个主键，作为主表的主键和明细表的外键
+           // =======================================================
+           PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
+           String pk = pks.generateKey();
 
-        mainList.add(main); // 主表列表中只有 1 条记录
+           List<OutpCashMainEntity> mainList = new ArrayList<>();
+           List<OutpCashSubEntity> subList = new ArrayList<>();
+
+           // ------------------------------------------
+           //  只创建 1 条 CashStattisticsMain (主表) 记录
+           // ------------------------------------------
+           OutpCashMainEntity main = new OutpCashMainEntity();
+           OutpReportVO firstOutpReportVO = list.get(0); // 随便取一条 Report 来获取通用的主表信息
+
+           main.setSerialNo(pk); // 唯一主键
+           main.setIsvalid(true);
+
+           // 复制通用的日期/年份信息
+           if (firstOutpReportVO.getReportDate() != null) {
+               try {
+                   main.setReportDate(firstOutpReportVO.getReportDate());
+               } catch (Exception e) {
+                   throw new RuntimeException("日期格式错误: " + firstOutpReportVO.getReportDate());
+               }
+           }
+           if (firstOutpReportVO.getReportYear() != null) {
+               main.setReportYear(Integer.valueOf(firstOutpReportVO.getReportYear()));
+           }
 
 
-        // ------------------------------------------
-        // 遍历 Report 列表，创建 N 条 CashStatisticsSub (明细表) 记录
-        // ------------------------------------------
-        for (OutpReportVO outpReportVO : list) {
-            OutpCashSubEntity sub = new OutpCashSubEntity();
+           main.setCreateTime(firstOutpReportVO.getCreateTime() != null ? firstOutpReportVO.getCreateTime() : LocalDateTime.now());
+           main.setUpdateTime(LocalDateTime.now());
 
-            BeanUtils.copyProperties(outpReportVO, sub);
+           mainList.add(main); // 主表列表中只有 1 条记录
 
-            // 所有明细记录使用同一个主键作为外键
-            sub.setSerialNo(pk);
-            sub.setHisOperatorNo(outpReportVO.getOperatorNo());
-            sub.setHisOperatorName(outpReportVO.getOperatorName());
 
-            //添加 结账序号 结账时间  2025.12.31
-            sub.setRowNum(outpReportVO.getRowNum());
-            sub.setAcctDate(outpReportVO.getAcctDate());
-            sub.setAcctNo(outpReportVO.getAcctNo());
+           // ------------------------------------------
+           // 遍历 Report 列表，创建 N 条 CashStatisticsSub (明细表) 记录
+           // ------------------------------------------
+           for (OutpReportVO outpReportVO : list) {
+               OutpCashSubEntity sub = new OutpCashSubEntity();
 
-            if (!outpReportVO.getOperatorName().contains("合计")) {
-                subList.add(sub);
-            }
-        }
+               BeanUtils.copyProperties(outpReportVO, sub);
 
-        // --- 3. 批量插入操作（事务生效） ---
-        // 此时 mainList 只有 1 条记录
-        int mainCount = report.batchInsertList(mainList);
+               // 所有明细记录使用同一个主键作为外键
+               sub.setSerialNo(pk);
+               sub.setHisOperatorNo(outpReportVO.getOperatorNo());
+               sub.setHisOperatorName(outpReportVO.getOperatorName());
 
-        int subCount = 0;
-        if (!subList.isEmpty()) {
-            subCount = report.batchInsertSubList(subList);
-        }
+               //添加 结账序号 结账时间  2025.12.31
+               sub.setRowNum(outpReportVO.getRowNum());
+               sub.setAcctDate(outpReportVO.getAcctDate());
+               sub.setAcctNo(outpReportVO.getAcctNo());
 
-//        // 验证插入数量：主表插入 1 条，明细表插入 list.size() 条
-//        if (mainCount != 1 || subCount != list.size()) {
-//            log.error("插入数据数量不一致，主表插入：{}，明细表插入：{}", mainCount, subCount);
-//            throw new RuntimeException("插入数据不一致");
-//        }
+               if (!outpReportVO.getOperatorName().contains("合计")) {
+                   subList.add(sub);
+               }
+           }
 
-        return Constant.SUCCESS;
+           // --- 3. 批量插入操作（事务生效） ---
+           // 此时 mainList 只有 1 条记录
+           int mainCount = report.batchInsertList(mainList);
+
+           int subCount = 0;
+           if (!subList.isEmpty()) {
+               subCount = report.batchInsertSubList(subList);
+           }
+
+
+           return Constant.SUCCESS;
+       } catch (Exception e) {
+           log.error("插入门诊报表数据异常", e);
+           throw new RuntimeException("插入门诊报表数据异常");
+       }
     }
 
 
@@ -643,67 +644,72 @@ public class ReportServiceImpl implements ReportService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void isInitInsertOutp(List<OutpReportVO> list, LocalDate date) {
+        try {
+            {
 
-        // 2. 作废该日期下所有的主表记录
-        if (!report.selectReportByDate(date).isEmpty()) {
-            report.updateByDate(date);
-        }
-        log.info("历史报表数据作废完成.");
-
-
-        // =======================================================
-        // 只生成一个主键，作为主表的主键和明细表的外键
-        // =======================================================
-        PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
-        String pk = pks.generateKey();
-
-        List<OutpCashSubEntity> subList = new ArrayList<>();
-
-        // ------------------------------------------
-        //  只创建 1 条 CashStattisticsMain (主表) 记录
-        // ------------------------------------------
-        OutpCashMainEntity main = new OutpCashMainEntity();
-
-        main.setSerialNo(pk); // 唯一主键
-        main.setIsvalid(true);
-        main.setReportDate(date);
-        main.setReportYear(date.getYear());
-        main.setCreateTime(LocalDateTime.now());
-
-
-        // ------------------------------------------
-        // 遍历 Report 列表，创建 N 条 CashStatisticsSub (明细表) 记录
-        // ------------------------------------------
-        for (OutpReportVO outpReportVO : list) {
-            OutpCashSubEntity sub = new OutpCashSubEntity();
-
-            BeanUtils.copyProperties(outpReportVO, sub);
-
-            // 所有明细记录使用同一个主键作为外键
-            sub.setSerialNo(pk);
-            sub.setHisOperatorNo(outpReportVO.getOperatorNo());
-            sub.setHisOperatorName(outpReportVO.getOperatorName());
-
-            //添加 结账序号 结账时间  2025.12.31
-            sub.setRowNum(outpReportVO.getRowNum());
-            sub.setAcctDate(outpReportVO.getAcctDate());
-            sub.setAcctNo(outpReportVO.getAcctNo());
-
-            if (!outpReportVO.getOperatorName().contains("合计")) {
-                subList.add(sub);
             }
+            // 2. 作废该日期下所有的主表记录
+            if (!report.selectReportByDate(date).isEmpty()) {
+                report.updateByDate(date);
+            }
+            log.info("历史报表数据作废完成.");
+
+
+            // =======================================================
+            // 只生成一个主键，作为主表的主键和明细表的外键
+            // =======================================================
+            PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
+            String pk = pks.generateKey();
+
+            List<OutpCashSubEntity> subList = new ArrayList<>();
+
+            // ------------------------------------------
+            //  只创建 1 条 CashStattisticsMain (主表) 记录
+            // ------------------------------------------
+            OutpCashMainEntity main = new OutpCashMainEntity();
+
+            main.setSerialNo(pk); // 唯一主键
+            main.setIsvalid(true);
+            main.setReportDate(date);
+            main.setReportYear(date.getYear());
+            main.setCreateTime(LocalDateTime.now());
+
+
+            // ------------------------------------------
+            // 遍历 Report 列表，创建 N 条 CashStatisticsSub (明细表) 记录
+            // ------------------------------------------
+            for (OutpReportVO outpReportVO : list) {
+                OutpCashSubEntity sub = new OutpCashSubEntity();
+
+                BeanUtils.copyProperties(outpReportVO, sub);
+
+                // 所有明细记录使用同一个主键作为外键
+                sub.setSerialNo(pk);
+                sub.setHisOperatorNo(outpReportVO.getOperatorNo());
+                sub.setHisOperatorName(outpReportVO.getOperatorName());
+
+                //添加 结账序号 结账时间  2025.12.31
+                sub.setRowNum(outpReportVO.getRowNum());
+                sub.setAcctDate(outpReportVO.getAcctDate());
+                sub.setAcctNo(outpReportVO.getAcctNo());
+
+                if (!outpReportVO.getOperatorName().contains("合计")) {
+                    subList.add(sub);
+                }
+            }
+
+
+            // 2. 写入主表
+            Db.save(main);
+
+            // 3. 批量写入子表
+            if (!subList.isEmpty()) {
+                Db.saveBatch(subList);
+            }
+        } catch (Exception e) {
+            log.error("初始化插入门诊现金主表数据失败，日期：{}", date, e);
+            throw new RuntimeException("初始化插入门诊现金主表数据失败" + e.getMessage());
         }
-
-
-
-        // 2. 写入主表
-        Db.save(main);
-
-        // 3. 批量写入子表
-        if (!subList.isEmpty()) {
-            Db.saveBatch(subList);
-        }
-
     }
 
 
@@ -766,11 +772,10 @@ public class ReportServiceImpl implements ReportService {
 
                 }
             }
-
             return 1;
         } catch (Exception e) {
-            log.error("批量插入住院报表数据失败，日期：{}", main.getReportDate(), e);
-            throw new RuntimeException("批量插入住院报表数据失败" + e.getMessage());
+            log.error("插入住院报表数据失败，日期：{}", main.getReportDate(), e);
+            throw new RuntimeException("插入住院报表数据失败" + e.getMessage());
         }
     }
 

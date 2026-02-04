@@ -25,7 +25,7 @@ import java.util.Scanner;
 
         public static void main(String[] args) {
             // 抓取 2026 年数据
-            int year = 2027;
+            int year = 2025;
             List<String> results = getOrFetchHolidays(year);
 
             verify(results, "2026-01-01", "元旦节");
@@ -123,6 +123,66 @@ import java.util.Scanner;
             // 3. 保存到本地
             saveToLocal(yearFile, finalData);
             return finalData;
+        }
+
+
+        public static List<LocalDate> getHolidaysByYear(int year) {
+
+            // 2. 联网获取并处理
+            String json = fetchFromApi(API_URL_PREFIX + year);
+            List<LocalDate> finalData = new ArrayList<>();
+
+            if (json == null || !json.contains("\"code\":0")) {
+                System.err.println("无法从 API 获取有效数据，请检查网络。");
+                return new ArrayList<>();
+            }
+
+            LocalDate date = LocalDate.of(year, 1, 1);
+            while (date.getYear() == year) {
+                LocalDate dStr = date;
+                DayOfWeek dw = date.getDayOfWeek();
+                boolean isWeekend = (dw == DayOfWeek.SATURDAY || dw == DayOfWeek.SUNDAY);
+
+                // 0: 未定义, 1: 放假(true), 2: 补班(false)
+                int apiStatus = 0;
+                if (json.contains("\"" + dStr + "\"")) {
+                    int dateIdx = json.indexOf("\"" + dStr + "\"");
+                    // 截取该日期对象范围内的 JSON 字符串
+                    String segment = json.substring(dateIdx, Math.min(dateIdx + 150, json.length()));
+
+                    // 严谨判断：寻找日期后的第一个 holiday 字段
+                    if (segment.contains("\"holiday\":true")) {
+                        apiStatus = 1;
+                    } else if (segment.contains("\"holiday\":false")) {
+                        apiStatus = 2;
+                    }
+                }
+
+                String category = null;
+                String code = "";
+
+                // --- 判定优先级排序 ---
+                if (apiStatus == 1) {
+                    // API 明确说休息
+                    category = "法定节假日";
+                    code = "1";
+                } else if (apiStatus == 2) {
+                    // API 明确说补班：即便这天是周末，category 依然为 null，从而被剔除
+                    category = null;
+                } else if (isWeekend) {
+                    // API 没提到这天，且它是周末：正常休息
+                    category = "正常周末";
+                    code = "0";
+                }
+
+                if (category != null) {
+                    finalData.add(dStr);
+                }
+                date = date.plusDays(1);
+            }
+
+            // 3. 保存到本地
+             return finalData;
         }
 
         private static String fetchFromApi(String urlStr) {

@@ -1,5 +1,6 @@
 package com.mergedata.mapper;
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.mergedata.model.entity.YQHolidayEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -8,7 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Mapper
-public interface HolidayMapper {
+public interface HolidayMapper extends BaseMapper<YQHolidayEntity> {
 
     /*
      * 查询所有节假日

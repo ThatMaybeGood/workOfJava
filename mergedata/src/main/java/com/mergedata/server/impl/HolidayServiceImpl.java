@@ -1,12 +1,16 @@
 package com.mergedata.server.impl;
 
+import com.alibaba.druid.sql.dialect.db2.visitor.DB2ASTVisitor;
+import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.mergedata.constants.Constant;
 import com.mergedata.mapper.HolidayMapper;
 import com.mergedata.model.entity.YQHolidayEntity;
 import com.mergedata.server.YQHolidayService;
+import com.mergedata.util.OracleBatchUtil;
 import com.mergedata.util.PrimaryKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +23,9 @@ public class HolidayServiceImpl implements YQHolidayService {
 
     @Autowired
     HolidayMapper holidayMapper;
+
+    @Autowired
+    JdbcTemplate jdbcTemplate;
 
     @Override
     public List<YQHolidayEntity> findAll() {
@@ -114,25 +121,14 @@ public class HolidayServiceImpl implements YQHolidayService {
     @Transactional
     @Override
     public Boolean batchInsertList(List<YQHolidayEntity> list) {
-        PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
-
-        if (list == null || list.isEmpty()) {
-            // 如果列表为空，直接返回
-            return false;
+        try {
+            Db.saveBatch(list);
+//            OracleBatchUtil.fastBatchInsert(jdbcTemplate, list, "mpp_cash_reg_holiday", 2000,true);
+            return true ;
+        } catch (Exception e) {
+            log.error("保存节假日信息失败：", e);
+            throw new RuntimeException("保存节假日信息失败：" + e.getMessage());
         }
-
-        for (YQHolidayEntity dto : list) {
-            // 生成主键
-            dto.setSerialNo(pks.generateKey());
-            dto.setValidStatus("1");
-        }
-        // 执行作废操作
-        int i = holidayMapper.batchInsertList(list);
-
-        if (i != list.size()) {
-            throw new RuntimeException("批量写入存储过程调用失败，数据同步中断。");
-        }
-        return true;
     }
 
     /**

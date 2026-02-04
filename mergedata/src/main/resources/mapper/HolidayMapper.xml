@@ -42,7 +42,7 @@
     <insert id="insert" parameterType="com.mergedata.model.entity.YQHolidayEntity">
         INSERT INTO mpp_cash_reg_holiday (
             serial_no, holiday_date,holiday_type, holiday_year, holiday_month,
-            creator, update_time, update_count, remark
+            creator, update_time, update_count, remark, category
         )
         VALUES (
                    #{serialNo, jdbcType=VARCHAR},
@@ -54,6 +54,7 @@
                    #{updateTime, jdbcType=DATE},
                    #{updateCount, jdbcType=NUMERIC},
                    #{remark, jdbcType=VARCHAR}
+                   ,#{category, jdbcType=VARCHAR}
                )
     </insert>
 
