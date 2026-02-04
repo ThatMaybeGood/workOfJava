@@ -36,6 +36,11 @@ public class HisDataServiceImpl implements HisDataService {
     private RestTemplate restTemplate;
 
 
+    /**
+     * 根据日期查询门诊现金报表收入记录
+     * @param reportdate 日期
+     * @return 门诊现金报表收入记录列表
+     */
     @Override
     public List<HisOutpIncomeResponseDTO> findByDateOutp(String reportdate) {
 
@@ -46,6 +51,12 @@ public class HisDataServiceImpl implements HisDataService {
                 new ParameterizedTypeReference<ApiResponse<ApiResponseBodyList<HisOutpIncomeResponseDTO>>>() {},
                 Constant.REPORT_NAME_OUTP);
     }
+
+    /**
+     * 根据日期查询住院现金报表收入记录
+     * @param reportdate 日期
+     * @return 住院现金报表收入记录列表
+     */
     @Override
     public List<HisInpIncomeResponseDTO> findByDateInp(String reportdate) {
 

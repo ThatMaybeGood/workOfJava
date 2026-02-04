@@ -10,7 +10,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * 住院现金统计主表实体类
+ * 住院现金统计主表VO
  */
 @Data
 public class InpReportVO {

@@ -11,7 +11,6 @@ import java.util.List;
  * 描述:
  * @date 2025/11/10 17:46
  */ // 自定义错误响应体
-// 具体的错误响应类，不要定义为抽象类
 public class ErrorResponse {
     private String timestamp;
     private int status;

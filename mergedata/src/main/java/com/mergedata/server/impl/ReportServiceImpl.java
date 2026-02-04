@@ -54,9 +54,11 @@ public class ReportServiceImpl implements ReportService {
 
     List<OutpReportVO> outpResults = new ArrayList<>();
 
-    /**
-     * 获取门诊报表数据
-     */
+     /**
+      * 获取门诊报表数据
+      * @param body 门诊报表请求体
+      * @return 门诊报表数据列表
+      */
     @Override
     public List<OutpReportVO> getOutpReport(OutpReportRequestBody body) {
         //调用存储过程获取报表数据
@@ -92,8 +94,115 @@ public class ReportServiceImpl implements ReportService {
                 .collect(Collectors.toList());
     }
 
+
+    /**
+     * 批量插入门诊报表数据
+     * @param outpReportVOList 门诊报表数据列表
+     * @return 是否成功
+     */
+    @Override
+    @Transactional
+    public Integer insertOutpReport(List<OutpReportVO> outpReportVOList) {
+        if (outpReportVOList == null || outpReportVOList.isEmpty()) {
+            return Constant.FAILURE;
+        }
+
+        // 1. 确定要作废的日期
+        LocalDate reportDate = outpReportVOList.get(0).getReportDate();
+
+        // 2. 作废该日期下所有的主表记录
+        if (!report.selectReportByDate(reportDate).isEmpty()) {
+            report.updateByDate(reportDate);
+        }
+        log.info("{} {} 历史报表数据作废完成 !", reportDate, Constant.REPORT_NAME_OUTP);
+
+        //3.转换对应门诊报表数据
+        List<OutpReportVO> list = exchangeOutpReportData(reportDate, outpReportVOList);
+
+
+        // =======================================================
+        // 只生成一个主键，作为主表的主键和明细表的外键
+        // =======================================================
+        PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
+        String pk = pks.generateKey();
+
+        List<OutpCashMainEntity> mainList = new ArrayList<>();
+        List<OutpCashSubEntity> subList = new ArrayList<>();
+
+        // ------------------------------------------
+        //  只创建 1 条 CashStattisticsMain (主表) 记录
+        // ------------------------------------------
+        OutpCashMainEntity main = new OutpCashMainEntity();
+        OutpReportVO firstOutpReportVO = list.get(0); // 随便取一条 Report 来获取通用的主表信息
+
+        main.setSerialNo(pk); // 唯一主键
+        main.setIsvalid(true);
+
+        // 复制通用的日期/年份信息
+        if (firstOutpReportVO.getReportDate() != null) {
+            try {
+                main.setReportDate(firstOutpReportVO.getReportDate());
+            } catch (Exception e) {
+                throw new RuntimeException("日期格式错误: " + firstOutpReportVO.getReportDate());
+            }
+        }
+        if (firstOutpReportVO.getReportYear() != null) {
+            main.setReportYear(Integer.valueOf(firstOutpReportVO.getReportYear()));
+        }
+
+
+        main.setCreateTime(firstOutpReportVO.getCreateTime() != null ? firstOutpReportVO.getCreateTime() : LocalDateTime.now());
+        main.setUpdateTime(LocalDateTime.now());
+
+        mainList.add(main); // 主表列表中只有 1 条记录
+
+
+        // ------------------------------------------
+        // 遍历 Report 列表，创建 N 条 CashStatisticsSub (明细表) 记录
+        // ------------------------------------------
+        for (OutpReportVO outpReportVO : list) {
+            OutpCashSubEntity sub = new OutpCashSubEntity();
+
+            BeanUtils.copyProperties(outpReportVO, sub);
+
+            // 所有明细记录使用同一个主键作为外键
+            sub.setSerialNo(pk);
+            sub.setHisOperatorNo(outpReportVO.getOperatorNo());
+            sub.setHisOperatorName(outpReportVO.getOperatorName());
+
+            //添加 结账序号 结账时间  2025.12.31
+            sub.setRowNum(outpReportVO.getRowNum());
+            sub.setAcctDate(outpReportVO.getAcctDate());
+            sub.setAcctNo(outpReportVO.getAcctNo());
+
+            if (!outpReportVO.getOperatorName().contains("合计")) {
+                subList.add(sub);
+            }
+        }
+
+        // --- 3. 批量插入操作（事务生效） ---
+        // 此时 mainList 只有 1 条记录
+        int mainCount = report.batchInsertList(mainList);
+
+        int subCount = 0;
+        if (!subList.isEmpty()) {
+            subCount = report.batchInsertSubList(subList);
+        }
+
+//        // 验证插入数量：主表插入 1 条，明细表插入 list.size() 条
+//        if (mainCount != 1 || subCount != list.size()) {
+//            log.error("插入数据数量不一致，主表插入：{}，明细表插入：{}", mainCount, subCount);
+//            throw new RuntimeException("插入数据不一致");
+//        }
+
+        return Constant.SUCCESS;
+    }
+
+
     /**
      * 获取住院报表数据
+     * @param body 住院报表请求体
+     * @return 住院报表数据
      */
     @Override
     public InpCashMainEntity getInpReport(InpReportRequestBody body) {
@@ -136,6 +245,12 @@ public class ReportServiceImpl implements ReportService {
                             break;
                         }
 
+                        // 防止无限循环
+                        if (currentDate.toEpochDay() - startDate.toEpochDay() > 30) {
+                            log.warn("回溯查找失败，连续节假日超过30天，从{}开始，在 {} 无法找到正常工作日。", currentDate, startDate);
+                            break;
+                        }
+
                     }
                     // 2. 对主表进行节假日汇总
                     //汇总的数据插入数据库
@@ -167,7 +282,20 @@ public class ReportServiceImpl implements ReportService {
     }
 
     /**
+     * 插入住院现金表数据
+     */
+    @Override
+    public Integer insertInpReport(InpCashMainEntity main) {
+        return isInitInsertInp(main, Constant.NO);
+    }
+
+
+
+    /**
      * 对住院现金统计主表实体类进行节假日汇总
+     * @param allMains 所有住院现金统计主表实体类列表
+     * @param reportDate 报表日期
+     * @return 汇总后的住院现金统计主表实体类
      */
     public InpCashMainEntity inpHolidayTotal(List<InpCashMainEntity> allMains, LocalDate reportDate) {
         // 1. 创建一个汇总对象（合计行）
@@ -224,7 +352,12 @@ public class ReportServiceImpl implements ReportService {
         return summary;
     }
 
-
+    /**
+     * 根据日期查询住院现金统计主表
+     * @param date 日期
+     * @param holidayTotalFlag 节假日汇总标志 0：非节假日汇总 1：节假日汇总
+     * @return 住院现金统计主表
+     */
     public InpCashMainEntity queryInpReportByDate(LocalDate date, String holidayTotalFlag) {
         // 1. 查主表单条
         InpCashMainEntity main = Db.lambdaQuery(InpCashMainEntity.class)
@@ -251,12 +384,11 @@ public class ReportServiceImpl implements ReportService {
     /**
      * 1. 从各数据源获取数据。
      * 2. 以操作员为基准进行匹配和计算。
-     * 3. 对周一进行特殊的回溯计算 (A = B - Sum(C) - D)。
-     *
+     * 3. 各种公式的计算和 暂收款的取值
      * @param currtDate        报表日期
      * @param holidayType      节假日类型
      * @param holidayTotalFlag 节假日汇总标志 0：非节假日汇总 1：节假日汇总
-     * @return 包含所有操作员计算结果的 ReportDTO 列表
+     * @return 住院现金统计
      */
     public InpCashMainEntity getInpReportData(LocalDate currtDate, String holidayType, String holidayTotalFlag) {
         try {
@@ -505,9 +637,11 @@ public class ReportServiceImpl implements ReportService {
 
 
     /*
-    对应门诊日期报表无数据时候，是否初始化写入数据
+     * 对应门诊日期报表无数据时候，是否初始化写入数据
+     * @param list 门诊报表数据列表
+     * @param date 日期
      */
-    @Transactional(rollbackFor = Exception.class) // 保证主从要么全成功，要么全失败
+    @Transactional(rollbackFor = Exception.class)
     public void isInitInsertOutp(List<OutpReportVO> list, LocalDate date) {
 
         // 2. 作废该日期下所有的主表记录
@@ -561,126 +695,22 @@ public class ReportServiceImpl implements ReportService {
         }
 
 
-        // ================== 核心写入逻辑 ==================
 
-        // 2. 写入主表 (this 指向当前主表 Service)
+        // 2. 写入主表
         Db.save(main);
 
-        // 3. 批量写入子表 (调用 subService)
+        // 3. 批量写入子表
         if (!subList.isEmpty()) {
             Db.saveBatch(subList);
         }
 
     }
 
-    /**
-     * 批量插入门诊报表数据
-     */
-    @Override
-    @Transactional
-    public Boolean insertOutpReport(List<OutpReportVO> outpReportVOList) {
-        if (outpReportVOList == null || outpReportVOList.isEmpty()) {
-            return false;
-        }
-
-        // 1. 确定要作废的日期
-        LocalDate reportDate = outpReportVOList.get(0).getReportDate();
-
-        // 2. 作废该日期下所有的主表记录
-        log.info("开始作废日期 {} 下的历史报表数据...", reportDate);
-        if (!report.selectReportByDate(reportDate).isEmpty()) {
-            report.updateByDate(reportDate);
-        }
-        log.info("历史报表数据作废完成.");
-
-
-        //3.转换对应门诊报表数据
-        List<OutpReportVO> list = exchangeOutpReportData(reportDate, outpReportVOList);
-
-
-        // =======================================================
-        // 只生成一个主键，作为主表的主键和明细表的外键
-        // =======================================================
-        PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
-        String pk = pks.generateKey();
-
-        List<OutpCashMainEntity> mainList = new ArrayList<>();
-        List<OutpCashSubEntity> subList = new ArrayList<>();
-
-        // ------------------------------------------
-        //  只创建 1 条 CashStattisticsMain (主表) 记录
-        // ------------------------------------------
-        OutpCashMainEntity main = new OutpCashMainEntity();
-        OutpReportVO firstOutpReportVO = list.get(0); // 随便取一条 Report 来获取通用的主表信息
-
-        main.setSerialNo(pk); // 唯一主键
-        main.setIsvalid(true);
-
-        // 复制通用的日期/年份信息
-        if (firstOutpReportVO.getReportDate() != null) {
-            try {
-                main.setReportDate(firstOutpReportVO.getReportDate());
-            } catch (Exception e) {
-                throw new RuntimeException("日期格式错误: " + firstOutpReportVO.getReportDate());
-            }
-        }
-        if (firstOutpReportVO.getReportYear() != null) {
-            main.setReportYear(Integer.valueOf(firstOutpReportVO.getReportYear()));
-        }
-
-
-        main.setCreateTime(firstOutpReportVO.getCreateTime() != null ? firstOutpReportVO.getCreateTime() : LocalDateTime.now());
-        main.setUpdateTime(LocalDateTime.now());
-
-        mainList.add(main); // 主表列表中只有 1 条记录
-
-
-        // ------------------------------------------
-        // 遍历 Report 列表，创建 N 条 CashStatisticsSub (明细表) 记录
-        // ------------------------------------------
-        for (OutpReportVO outpReportVO : list) {
-            OutpCashSubEntity sub = new OutpCashSubEntity();
-
-            BeanUtils.copyProperties(outpReportVO, sub);
-
-            // 所有明细记录使用同一个主键作为外键
-            sub.setSerialNo(pk);
-            sub.setHisOperatorNo(outpReportVO.getOperatorNo());
-            sub.setHisOperatorName(outpReportVO.getOperatorName());
-
-            //添加 结账序号 结账时间  2025.12.31
-            sub.setRowNum(outpReportVO.getRowNum());
-            sub.setAcctDate(outpReportVO.getAcctDate());
-            sub.setAcctNo(outpReportVO.getAcctNo());
-
-            if (!outpReportVO.getOperatorName().contains("合计")) {
-                subList.add(sub);
-            }
-        }
-
-        // --- 3. 批量插入操作（事务生效） ---
-        // 此时 mainList 只有 1 条记录
-        int mainCount = report.batchInsertList(mainList);
-
-        int subCount = 0;
-        if (!subList.isEmpty()) {
-            // subList 有 N 条记录（例如 45 条）
-            subCount = report.batchInsertSubList(subList);
-        }
-
-//        // 验证插入数量：主表插入 1 条，明细表插入 list.size() 条
-//        if (mainCount != 1 || subCount != list.size()) {
-//            log.error("插入数据数量不一致，主表插入：{}，明细表插入：{}", mainCount, subCount);
-//            throw new RuntimeException("插入数据不一致");
-//        }
-
-        return true;
-    }
 
 
 
     /**
-     *    初始化插入住院现金主表数据
+     *   初始化插入住院现金主表数据
      * @param main       住院现金主表实体
      * @param isInitFlag 是否初次写入标志 ，默认值为"1"，表示初次写入
      * @return 插入成功的记录数
@@ -714,6 +744,7 @@ public class ReportServiceImpl implements ReportService {
                     .set(InpCashMainEntity::getValidFlag, Constant.NO)
                     .set(InpCashMainEntity::getUpdateTime, LocalDateTime.now())
                     .update();
+            log.info("{} {}  历史报表数据作废完成", Constant.REPORT_NAME_INP,main.getReportDate());
 
             if (!main.getSubs().isEmpty()) {
 
@@ -744,20 +775,10 @@ public class ReportServiceImpl implements ReportService {
     }
 
 
-    /**
-     * 批量插入住院报表数据
-     *
-     * @param main       住院现金主表实体
-     * @return 插入成功的记录数
-     */
-    @Override
-    public Integer insertInpReport(InpCashMainEntity main) {
-        return isInitInsertInp(main, Constant.NO);
-    }
+
 
 
     private OutpReportVO calculateTotal(List<OutpReportVO> dtoList, LocalDate reportdate) {
-        // ... (方法内部逻辑不变)
         final BigDecimal ZERO = BigDecimal.ZERO;
         BinaryOperator<BigDecimal> sumOperator = BigDecimal::add;
 
@@ -794,6 +815,8 @@ public class ReportServiceImpl implements ReportService {
 
     /**
      * 住院前端界面保存数据时候，也需要做对应计算
+     * @param allSubs 所有子表数据
+     * @return 处理后的住院子表数据列表
      */
     public List<InpCashSubEntity> exchangeInpReportData(List<InpCashSubEntity> allSubs) {
 
@@ -860,6 +883,9 @@ public class ReportServiceImpl implements ReportService {
 
     /*
      * 转换对应存储的门诊报表数据
+     * @param currtDate 当前日期
+     * @param list 门诊报表数据列表
+     * @return 处理后的门诊报表数据列表
      */
     public List<OutpReportVO> exchangeOutpReportData(LocalDate currtDate, List<OutpReportVO> list) {
         try {
@@ -1001,7 +1027,7 @@ public class ReportServiceImpl implements ReportService {
      * 1. 从各数据源获取数据。
      * 2. 以操作员为基准进行匹配和计算。
      * 3. 对周一进行特殊的回溯计算 (A = B - Sum(C) - D)。
-     *
+     * 4. 对其他工作日进行正常计算 (A = B - C - D)。
      * @param body 目标报表日期 (LocalDate)
      * @return 包含所有操作员计算结果的 ReportDTO 列表
      */
@@ -1197,27 +1223,11 @@ public class ReportServiceImpl implements ReportService {
                 resultList.add(currentDto);
             }
 
-
-//                /**
-//                 * 判断是否是当月的第一天
-//                 */
-//                public static boolean isFirstDayOfMonth(LocalDate date) {
-//                    return date.getDayOfMonth() == 1;
-//                }
-//
-//                /**
-//                 * 判断是否是当月的最后一天
-//                 */
-//                public static boolean isLastDayOfMonth(LocalDate date) {
-//                    return date.getDayOfMonth() == date.lengthOfMonth();
-//                }
-
-
-            log.info("{}生成报表完成，共处理 {} 个操作员", currtDate.toString(), resultList.size());
+            log.info("{} {} 生成报表完成，共处理 {} 个操作员", currtDate,Constant.REPORT_NAME_OUTP, resultList.size());
             return resultList;
 
         } catch (Exception e) {
-            log.error("报表生成失败", e);
+            log.error("{} {} 报表生成失败", currtDate,Constant.REPORT_NAME_OUTP, e);
             return Collections.emptyList();
         }
     }
@@ -1226,6 +1236,10 @@ public class ReportServiceImpl implements ReportService {
      * 【核心逻辑实现】处理周一的复杂回溯计算
      * 公式: A = B - Sum(C){周末/节假日} - D{周五}
      * C = HolidayTemporaryReceipt (节假日暂收款), D = CurrentTemporaryReceipt (当日暂收款)
+     * @param currentDto 当前操作员的报表数据
+     * @param targetDate 目标日期 (周一)
+     * @param holidaySet 节假日集合
+     * @param reportQueryFunction 用于查询历史报表数据的函数 (接收 LocalDate 参数)
      */
     private void calculateActualReportAmountForMonday(
             OutpReportVO currentDto,
@@ -1246,7 +1260,6 @@ public class ReportServiceImpl implements ReportService {
             while (true) {
 
                 // 2.1 获取当前回溯日期的历史报表数据 (通过 Mapper)
-                // ❗ 修正点 12: 调用函数时，直接传入 LocalDate 对象
                 List<OutpReportVO> historicalOutpReportVOS = reportQueryFunction.apply(currentDate);
 
                 // 2.2 查找当前操作员在历史报表中的记录 (确保用户匹配)
@@ -1274,7 +1287,7 @@ public class ReportServiceImpl implements ReportService {
 
                 } else {
                     // 找到中断点：第一个非节假日日期（即周五）
-                    // ❗ 将周五的 C (HolidayTemporaryReceipt) 也累加进去
+                    // 周五的 C (HolidayTemporaryReceipt) 也累加进去
                     totalC = totalC.add(getSafeBigDecimal(cAmount));
 
                     // 提取 D 金额 (CurrentTemporaryReceipt)
@@ -1284,9 +1297,9 @@ public class ReportServiceImpl implements ReportService {
                     break; // 跳出循环
                 }
 
-                // 安全检查：防止无限循环
-                if (targetDate.toEpochDay() - currentDate.toEpochDay() > 15) {
-                    log.warn("回溯查找失败，连续节假日过多，在 {} 无法找到工作日。", targetDate);
+                // 防止无限循环
+                if (targetDate.toEpochDay() - currentDate.toEpochDay() > 30) {
+                    log.warn("回溯查找失败，连续节假日超过30天，从{}开始，到 {} 之间无法找到正常工作日。", currentDate, targetDate);
                     break;
                 }
             }
@@ -1315,7 +1328,7 @@ public class ReportServiceImpl implements ReportService {
             OutpReportVO currentDto,
             LocalDate targetDate,
             Set<LocalDate> holidaySet,
-            // ❗ 修正点 11: 将 Function 的输入类型改为 LocalDate
+            // 将 Function 的输入类型改为 LocalDate
             Function<LocalDate, List<OutpReportVO>> reportQueryFunction) {
 
         BigDecimal totalC = BigDecimal.ZERO;
@@ -1330,7 +1343,6 @@ public class ReportServiceImpl implements ReportService {
             while (true) {
 
                 // 2.1 获取当前回溯日期的历史报表数据 (通过 Mapper)
-                // ❗ 修正点 12: 调用函数时，直接传入 LocalDate 对象
                 List<OutpReportVO> historicalOutpReportVOS = reportQueryFunction.apply(currentDate);
 
                 // 2.2 查找当前操作员在历史报表中的记录 (确保用户匹配)
@@ -1358,14 +1370,14 @@ public class ReportServiceImpl implements ReportService {
 
                 } else {
                     // 找到中断点：第一个非节假日日期（即周五）
-                    // ❗ 将周五的 C (HolidayTemporaryReceipt) 也累加进去
+                    // 将周五的 C (HolidayTemporaryReceipt) 也累加进去
                     totalC = totalC.add(getSafeBigDecimal(cAmount));
                     break; // 跳出循环
                 }
 
                 // 安全检查：防止无限循环
-                if (targetDate.toEpochDay() - currentDate.toEpochDay() > 15) {
-                    log.warn("回溯查找失败，连续节假日过多，在 {} 无法找到工作日。", targetDate);
+                if (targetDate.toEpochDay() - currentDate.toEpochDay() > 30) {
+                    log.warn("回溯查找失败，连续节假日超过30天，从{}开始，到 {} 之间无法找到正常工作日。", currentDate, targetDate);
                     break;
                 }
             }

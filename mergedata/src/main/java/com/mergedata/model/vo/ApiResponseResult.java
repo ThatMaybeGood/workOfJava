@@ -6,17 +6,13 @@ import lombok.Data;
 
 
 @Data
-@JsonIgnoreProperties(ignoreUnknown = true) // <--- 关键修改
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ApiResponseResult {
-    @JsonProperty("sign_type")
     private String signType;
     private String sign;
-    // 业务码，10000 表示成功
-    private String code;
+    private String code;     // 业务码，10000 表示成功
     private Object msg;
-    @JsonProperty("sub_code")
     private String subCode;
-    @JsonProperty("sub_msg")
     private String subMsg;
 
 

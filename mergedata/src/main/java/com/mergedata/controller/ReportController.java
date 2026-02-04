@@ -43,7 +43,7 @@ public class ReportController {
         List<OutpReportVO> resultList = report.getOutpReport(request.getBody());
 
         // 4. 返回结果
-        return ApiResponse.successList(resultList,"查询报表列表成功！");
+        return ApiResponse.successList(resultList,"查询门诊报表列表成功！");
     }
 
     @Operation(summary = "批量插入门诊报表数据", description = "返回对应结果")
@@ -53,11 +53,12 @@ public class ReportController {
         List<OutpReportVO> list = request.getBody().getList();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Boolean b = report.insertOutpReport(list);
-        if (b == false) {
-            return ApiResponse.failure("报表写入失败！");
+        Integer b = report.insertOutpReport(list);
+
+        if (Constant.SUCCESS.equals(b)) {
+            return ApiResponse.failure("门诊报表写入失败！");
         }
-        return ApiResponse.success("报表写入成功！");
+        return ApiResponse.success("门诊报表写入成功！");
     }
 
     @Operation(summary = "根据日期查询住院报表数据", description = "返回对应的住院报表数据")
@@ -72,7 +73,7 @@ public class ReportController {
         BeanUtils.copyProperties(main,resultList );
 
         // 4. 返回结果
-        return ApiResponse.successObj(resultList,"查询报表列表成功！");
+        return ApiResponse.successObj(resultList,"查询住院报表列表成功！");
     }
 
 

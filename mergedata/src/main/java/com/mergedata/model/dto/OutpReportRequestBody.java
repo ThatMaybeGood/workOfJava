@@ -18,9 +18,15 @@ public class OutpReportRequestBody {
     @JsonProperty("reportdate")
     private LocalDate reportDate;
 
+    /**
+     * 入参：窗口号
+     */
     @JsonProperty("inp_window")
     private Integer inpWindow;
 
+    /**
+     * 入参：ATM号
+     */
     @JsonProperty("atm")
     private Integer atm;
 

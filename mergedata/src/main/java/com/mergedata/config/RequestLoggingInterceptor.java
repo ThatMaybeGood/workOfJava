@@ -24,8 +24,8 @@ public class RequestLoggingInterceptor implements ClientHttpRequestInterceptor {
         logRequest(request, body);
 
         // 2. 执行请求
-        // 注意：由于 RestTemplateConfig 中使用了 BufferingClientHttpRequestFactory，
-        // 这里的 response 已经是缓存过的，可以重复读取。
+        // 使用 BufferingClientHttpRequestFactory，
+        // response 已经是缓存过的，可以重复读取。
         ClientHttpResponse response = execution.execute(request, body);
 
         // 3. 打印响应报文

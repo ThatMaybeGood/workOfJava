@@ -7,6 +7,7 @@ import com.mergedata.util.PrimaryKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -30,6 +31,11 @@ public class OperatorServiceImpl implements YQOperatorService {
         return operatorMapper.selectByID(operator.getOperatorNo());
     }
 
+     /**
+      * 插入单条员工信息
+      * @param yqOperatorsEntity 员工实体
+      * @return 是否成功
+      */
     @Override
     public Boolean insert(YQOperatorEntity yqOperatorsEntity) {
         int size = operatorMapper.selectAll().size();
@@ -45,7 +51,13 @@ public class OperatorServiceImpl implements YQOperatorService {
         return insert > 0;
     }
 
+     /**
+      * 批量插入员工信息
+      * @param yqOperatorEntities 员工实体列表
+      * @return 是否成功
+      */
     @Override
+    @Transactional
     public Boolean batchInsert(List<YQOperatorEntity> yqOperatorEntities) {
         //查询出id
         for (YQOperatorEntity yqOperatorEntity : yqOperatorEntities) {
@@ -62,7 +74,11 @@ public class OperatorServiceImpl implements YQOperatorService {
         int i = operatorMapper.batchInsertList(yqOperatorEntities);
         return i > 0;
     }
-
+     /**
+      * 删除员工信息
+      * @param yqOperatorEntity 员工实体
+      * @return 是否成功
+      */
     @Override
     public Boolean delete(YQOperatorEntity yqOperatorEntity) {
         //查询出id
@@ -71,7 +87,11 @@ public class OperatorServiceImpl implements YQOperatorService {
         }
         return operatorMapper.delete(yqOperatorEntity.getOperatorNo()) > 0;
     }
-
+     /**
+      * 更新员工信息
+      * @param yqOperatorEntity 员工实体
+      * @return 是否成功
+      */
     @Override
     public Boolean update(YQOperatorEntity yqOperatorEntity) {
         return null;

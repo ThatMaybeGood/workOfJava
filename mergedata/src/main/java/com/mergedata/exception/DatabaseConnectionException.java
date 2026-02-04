@@ -6,12 +6,12 @@ package com.mergedata.exception;
  */
 public class DatabaseConnectionException extends RuntimeException {
 
-    // 推荐的构造函数 1: 仅包含消息
+    //  1: 仅包含消息
     public DatabaseConnectionException(String message) {
         super(message);
     }
 
-    // 推荐的构造函数 2: 包含消息和导致该异常的原始Throwable（如底层的SQLException或TimeoutException）
+    // 2: 包含消息和导致该异常的原始Throwable（如底层的SQLException或TimeoutException）
     public DatabaseConnectionException(String message, Throwable cause) {
         super(message, cause);
     }

@@ -2,7 +2,7 @@ package com.mergedata.constants;
 
 
 /**
- * 响应常量类
+ * 常量类
  */
 public class Constant {
     /**
@@ -28,11 +28,11 @@ public class Constant {
     /**
      * 是否成功：成功
      */
-    public static final String SUCCESS = "1";
+    public static final Integer SUCCESS = 1;
     /**
      * 是否成功：失败
      */
-    public static final String FAILURE = "0";
+    public static final Integer FAILURE = 0;
     /*
      *  是否标识：肯定
      */

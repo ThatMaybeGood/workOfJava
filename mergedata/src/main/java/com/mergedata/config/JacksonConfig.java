@@ -32,7 +32,7 @@ public class JacksonConfig {
     public Jackson2ObjectMapperBuilderCustomizer customizer() {
         return builder -> {
 
-            // 方案 A: 允许 JSON 数字前导零
+            // 允许 JSON 数字前导零
             builder.featuresToEnable(JsonParser.Feature.ALLOW_NUMERIC_LEADING_ZEROS);
 
             // 允许解析单引号
@@ -40,10 +40,10 @@ public class JacksonConfig {
             // 允许解析非引号的字段名
             builder.featuresToEnable(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES);
 
-            // 1. 设置驼峰转下划线命名策略 (如: createTime -> create_time)
+            // 设置驼峰转下划线命名策略 (如: createTime -> create_time)
             builder.propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
 
-            // 2. 配置 Java 8 时间模块 (处理 LocalDateTime 的 T 问题)
+            // 配置 Java 8 时间模块 (处理 LocalDateTime 的 T 问题)
             JavaTimeModule javaTimeModule = new JavaTimeModule();
 
             // 序列化与反序列化 LocalDateTime
@@ -56,15 +56,15 @@ public class JacksonConfig {
             javaTimeModule.addSerializer(LocalDate.class, new LocalDateSerializer(dateFormatter));
             javaTimeModule.addDeserializer(LocalDate.class, new LocalDateDeserializer(dateFormatter));
 
-            // 3. 配置自定义业务模块 (如 BigDecimal 处理)
+            // 配置自定义业务模块 (如 BigDecimal 处理)
             SimpleModule customModule = new SimpleModule();
             customModule.addDeserializer(BigDecimal.class, new JsonStringToBigDecimalDeserializer());
 
-            // 4. 统一注册模块
-            // 注意：JavaTimeModule 必须显式注册，否则它会使用默认的 ISO-8601 格式输出 T
+            // 统一注册模块
+            // JavaTimeModule 显式注册，否则它会使用默认的 ISO-8601 格式输出 T
             builder.modules(javaTimeModule, customModule);
 
-            // 5. 禁用“日期转时间戳”功能，确保输出的是字符串而不是一串数字
+            // 禁用“日期转时间戳”功能，确保输出的是字符串而不是一串数字
             builder.featuresToDisable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         };
     }

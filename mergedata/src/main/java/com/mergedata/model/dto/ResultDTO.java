@@ -7,7 +7,11 @@ import lombok.Data;
  * @version 1.0
  * 描述:
  * @date 2025/10/30 11:01
- */ // 统一返回结果
+ */
+
+/**
+ * 统一返回结果
+ */
 @Data
 public class ResultDTO<T> {
     private String sign_type;
@@ -18,6 +22,9 @@ public class ResultDTO<T> {
     private String sub_msg;
     private T list;
 
+    /**
+     * 成功返回结果
+     */
     public static <T> ResultDTO<T> success(T data) {
         ResultDTO<T> resultDTO = new ResultDTO<>();
         resultDTO.setSign_type("md5");
@@ -30,6 +37,9 @@ public class ResultDTO<T> {
         return resultDTO;
     }
 
+    /**
+     * 失败返回结果
+     */
     public static <T> ResultDTO<T> error(String message) {
         ResultDTO<T> resultDTO = new ResultDTO<>();
         resultDTO.setSign_type("md5");

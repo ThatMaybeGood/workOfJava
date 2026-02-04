@@ -15,16 +15,15 @@ public interface ReportService {
      */
     List<OutpReportVO> getOutpReport(OutpReportRequestBody body)  ;
 
+    /*
+     * 批量插入门诊报表数据
+     */
+    Integer insertOutpReport(List<OutpReportVO> list);
 
     /**
      * 根据日期查询住院报表数据
      */
     InpCashMainEntity getInpReport(InpReportRequestBody body)  ;
-
-    /*
-     * 批量插入门诊报表数据
-     */
-    Boolean insertOutpReport(List<OutpReportVO> list);
 
     /*
      * 批量插入住院报表数据

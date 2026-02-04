@@ -13,7 +13,7 @@ public class GlobalCorsFilter {
         CorsConfiguration config = new CorsConfiguration();
 
         // 1. 允许哪些域名访问
-        // 内网建议用 allowedOriginPatterns("*")，它比 allowedOrigins("*") 更强大
+        // 内网用 allowedOriginPatterns("*")，比 allowedOrigins("*") 更强大
         // 且兼容 allowCredentials(true)
         config.addAllowedOriginPattern("*");
 

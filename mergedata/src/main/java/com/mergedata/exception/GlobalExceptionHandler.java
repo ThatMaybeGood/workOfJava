@@ -254,7 +254,6 @@ public class GlobalExceptionHandler {
      * 判断是否为开发环境
      */
     private boolean isDevelopment() {
-        // 这里根据你的配置判断环境
         String env = System.getProperty("spring.profiles.active", "dev");
         return "dev".equals(env) || "development".equals(env);
     }

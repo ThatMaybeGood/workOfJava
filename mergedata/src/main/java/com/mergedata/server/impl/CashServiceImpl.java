@@ -19,8 +19,9 @@ public class CashServiceImpl implements YQCashService {
 
     /**
      * 根据日期查询资金记录
+     * @param reportdate 日期
+     * @return 资金记录列表
      */
-
     @Override
     public List<YQCashRegRecordEntity> findByDate(String reportdate) {
         return cashMapper.selectByDate(LocalDate.parse(reportdate));

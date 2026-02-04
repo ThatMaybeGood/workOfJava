@@ -8,25 +8,44 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 门诊结账主表实体类
+ */
 @Data
-@TableName("mpp_cash_statistics_master") // 只要在这里指定数据库真实的表名
+@TableName("mpp_cash_statistics_master")
 public class OutpCashMainEntity {
-    //流水号
+    /**
+     * 主键：流水号
+     */
     @TableId("serial_no")
     private String serialNo;
-    //报表日期
+    /**
+     * 报表日期
+     */
     private LocalDate reportDate;
-    //报表年份
+    /**
+     * 报表年份
+     */
     private Integer reportYear;
-    //是否有效 (0,1 默认1)
+    /**
+     * 是否有效 (0,1 默认1)
+     */
     private Boolean isvalid;
-    //创建人
+    /**
+     * 创建人
+     */
     private String creator;
-    //创建时间
+    /**
+     * 创建时间
+     */
     private LocalDateTime createTime;
-    //更新时间
+    /**
+     * 更新时间
+     */
     private LocalDateTime updateTime;
-    //关联的子报表列表（一对多关系）
+    /**
+     * 关联的子报表列表（一对多关系）
+     */
     private List<OutpCashSubEntity> subs ;
 
 

@@ -17,32 +17,49 @@ import java.util.List;
 @Data
 @TableName("mpp_cash_inp_master")
 public class InpCashMainEntity {
-
+    /**
+     * 主键：流水号
+     */
     @TableId(value = "serial_no")
-    private String serialNo;              // 流水号
-
+    private String serialNo;
+    /**
+     * 报表日期
+     */
     @TableField(value = "report_date")
-    private LocalDate reportDate;         // 报表日期
-
+    private LocalDate reportDate;
+    /**
+     * 报表年份
+     */
     @TableField(value = "report_year")
-    private Integer reportYear;           // 报表年份
-
+    private Integer reportYear;
+    /**
+     * 报表状态  0：未生效 1：已生效
+     */
     @TableField(value = "valid_flag")
-    private String validFlag;            // 报表状态  0：未生效 1：已生效
-
+    private String validFlag = Constant.NO;
+    /**
+     * 创建人
+     */
     @TableField(value = "creator")
-    private String creator;               // 创建人
-
+    private String creator;
+    /**
+     * 创建时间
+     */
     @TableField(value = "create_time")
-    private LocalDateTime createTime;     // 创建时间
-
+    private LocalDateTime createTime;
+    /**
+     * 更新时间
+     */
     @TableField(value = "update_time")
-    private LocalDateTime updateTime;     // 更新时间
-
+    private LocalDateTime updateTime;
+    /**
+     * 节假日汇总标志  0：否 1：是
+     */
     @TableField(value = "holiday_total_flag")
-    private String holidayTotalFlag = Constant.NO; //节假日汇总标志
-
-    // 关联的子报表列表（一对多关系）
+    private String holidayTotalFlag = Constant.NO;
+    /**
+     * 子报表列表（一对多关系）
+     */
     @TableField(exist = false)
     private List<InpCashSubEntity> subs;
 

@@ -31,7 +31,11 @@ public class HolidayServiceImpl implements YQHolidayService {
          return holidayMapper.selectByDate(reportDate);
     }
 
-
+    /**
+     * 插入或更新节假日信息
+     * @param holiday 节假日实体
+     * @return 是否成功
+     */
     @Override
     @Transactional
     public Boolean insert(YQHolidayEntity holiday) {
@@ -56,7 +60,12 @@ public class HolidayServiceImpl implements YQHolidayService {
         return true;
     }
 
-
+    /**
+     * 查询日期类型
+     * @param holidayDate 日期
+     * @param queryType 查询类型
+     * @return 日期类型
+     */
     @Override
     public String queryDateType(LocalDate holidayDate,String queryType) {
 
@@ -82,7 +91,9 @@ public class HolidayServiceImpl implements YQHolidayService {
 
 
     /**
-     * 判断日期是否为节假日 (使用 Set 版本)
+     * 判断日期是否为 节假日
+     * @param targetDate 日期
+     * @return 是否为节假日
      */
     private boolean isHoliday(LocalDate targetDate) {
         // 1. 获取所有必需的原始数据
@@ -95,6 +106,11 @@ public class HolidayServiceImpl implements YQHolidayService {
 
     }
 
+    /**
+     * 批量写入节假日信息
+     * @param list 节假日实体列表
+     * @return 是否成功
+     */
     @Transactional
     @Override
     public Boolean batchInsertList(List<YQHolidayEntity> list) {
@@ -119,7 +135,13 @@ public class HolidayServiceImpl implements YQHolidayService {
         return true;
     }
 
+    /**
+     * 作废节假日信息
+     * @param holiday 节假日实体
+     * @return 是否成功
+     */
     @Override
+    @Transactional
     public Boolean update(YQHolidayEntity holiday) {
         return holidayMapper.delete(holiday.getSerialNo())>0?true:false;
     }

@@ -10,6 +10,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * 门诊现金统计主表VO
+ */
 @Data
 public class OutpReportVO {
     @JsonProperty("serial_no")
@@ -29,20 +32,18 @@ public class OutpReportVO {
     @NotBlank(message = "his预交金不能为空", groups = {AddGroup.class})
     @JsonProperty("his_advance_payment")
     private BigDecimal hisAdvancePayment = BigDecimal.ZERO;
-
     /*
     his医疗收入
      */
-
     @JsonProperty("his_medical_income")
     @NotBlank(message = "his医疗收入不能为空", groups = {AddGroup.class})
     private BigDecimal hisMedicalIncome = BigDecimal.ZERO;
-
     /*
     his挂号收入  暂时默认0
     */
     @JsonProperty("his_registration_income")
     private BigDecimal hisRegistrationIncome = BigDecimal.ZERO;
+
 
     // YQCashRegRecord 相关字段
     /*
@@ -136,7 +137,6 @@ public class OutpReportVO {
     /*
     报表创建时间
      */
-//    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8") // <-- 新增此行
     @JsonProperty("create_time")
     private LocalDateTime createTime;
 
@@ -145,16 +145,24 @@ public class OutpReportVO {
      */
     @JsonProperty("row_num")
     private Integer rowNum;
-
+    /*
+    会计账号
+     */
     @JsonProperty("acct_no")
     private String acctNo;
-
+    /*
+    会计日期
+     */
     @JsonProperty("acct_date")
     private LocalDateTime acctDate;
-
+    /*
+     窗口号
+     */
     @JsonProperty("inp_window")
     private Integer inpWindow;
-
+    /*
+     * 金额
+     */
     @JsonProperty("amt")
     private Integer atm;
 }

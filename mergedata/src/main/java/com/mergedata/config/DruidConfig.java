@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 增强版 Druid 配置类
+ *  Druid 配置类
  */
 @Configuration
 @EnableAspectJAutoProxy(proxyTargetClass = true)

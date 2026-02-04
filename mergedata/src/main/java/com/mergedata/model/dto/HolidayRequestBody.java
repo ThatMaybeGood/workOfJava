@@ -7,6 +7,9 @@ import lombok.Data;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 
+/**
+ * 节假日请求体
+ */
 @Data
 public class HolidayRequestBody {
 
