@@ -27,7 +27,7 @@ public class InpReportVO {
     private String reportType = Constant.TYPE_INP;            // 报表类型 0：门诊 1：住院
 
     @TableField(value = "holiday_tatol_flag")
-    private String holidayTotalFlag = Constant.FLAG_NO; //节假日汇总标志
+    private String holidayTotalFlag = Constant.NO; //节假日汇总标志
 
     // 关联的子报表列表（一对多关系）
     @TableField(exist = false)

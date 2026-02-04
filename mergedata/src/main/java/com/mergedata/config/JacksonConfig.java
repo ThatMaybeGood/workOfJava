@@ -1,5 +1,6 @@
 package com.mergedata.config;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -12,11 +13,12 @@ import com.mergedata.util.JsonStringToBigDecimalDeserializer;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import com.fasterxml.jackson.core.JsonParser;
 
 @Configuration
 public class JacksonConfig {
@@ -29,6 +31,14 @@ public class JacksonConfig {
     @Bean
     public Jackson2ObjectMapperBuilderCustomizer customizer() {
         return builder -> {
+
+            // 方案 A: 允许 JSON 数字前导零
+            builder.featuresToEnable(JsonParser.Feature.ALLOW_NUMERIC_LEADING_ZEROS);
+
+            // 允许解析单引号
+            builder.featuresToEnable(JsonParser.Feature.ALLOW_SINGLE_QUOTES);
+            // 允许解析非引号的字段名
+            builder.featuresToEnable(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES);
 
             // 1. 设置驼峰转下划线命名策略 (如: createTime -> create_time)
             builder.propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);

@@ -1,5 +1,6 @@
 package com.mergedata.model.entity;
 
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
@@ -11,6 +12,7 @@ import java.util.List;
 @TableName("mpp_cash_statistics_master") // 只要在这里指定数据库真实的表名
 public class OutpCashMainEntity {
     //流水号
+    @TableId("serial_no")
     private String serialNo;
     //报表日期
     private LocalDate reportDate;

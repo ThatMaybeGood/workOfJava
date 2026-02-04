@@ -107,7 +107,7 @@ public class ReportServiceImpl implements ReportService {
             String holidayType = holidayService.queryDateType(reportDate, Constant.TYPE_INP);
 
             //是否节假日汇总
-            if(body.getHolidayTotalFlag().equals(Constant.FLAG_YES))
+            if(body.getHolidayTotalFlag().equals(Constant.YES))
             {
                 if (holidayType.equals(Constant.HOLIDAY_AFTER)){
                     //开始汇总计算
@@ -116,12 +116,12 @@ public class ReportServiceImpl implements ReportService {
                         reportDate = reportDate.minusDays(1);  //日期倒减
 
                         // 1. 查主表单条
-                        main = queryInpReportByDate(reportDate, Constant.FLAG_NO);
+                        main = queryInpReportByDate(reportDate, Constant.NO);
                         if (main == null){
                             //获取初始化的数据
-                            main = getInpReportData(reportDate,holidayType, Constant.FLAG_NO);
+                            main = getInpReportData(reportDate,holidayType, Constant.NO);
                             //方法批量插入数据
-                            insertInpReport(main, Constant.FLAG_YES);
+                            insertInpReport(main, Constant.YES);
                         }
 
                         mainList.add(main);
@@ -133,7 +133,7 @@ public class ReportServiceImpl implements ReportService {
                     }
                     // 2. 对主表进行节假日汇总
                     //汇总的数据插入数据
-                    insertInpReport(inpHolidayTotal(mainList,body.getReportDate()), Constant.FLAG_YES);
+                    insertInpReport(inpHolidayTotal(mainList,body.getReportDate()), Constant.YES);
                     return inpHolidayTotal(mainList,body.getReportDate());
                 }
 
@@ -149,10 +149,10 @@ public class ReportServiceImpl implements ReportService {
 
             if (inpResult == null || isInitFlag) {
                 //获取初始化的数据
-                main = getInpReportData(reportDate,holidayType, Constant.FLAG_NO);
+                main = getInpReportData(reportDate,holidayType, Constant.NO);
 
                 //查询时候数据库没有相关的数据，插入数据库，此处调用插入数据
-                insertInpReport(main, Constant.FLAG_YES);
+                insertInpReport(main, Constant.YES);
 
             }
 
@@ -212,7 +212,7 @@ public class ReportServiceImpl implements ReportService {
         }
 
         summary.setSerialNo(PrimaryKeyGenerator.generateKey());
-        summary.setHolidayTotalFlag(Constant.FLAG_YES);
+        summary.setHolidayTotalFlag(Constant.YES);
         summary.setReportDate(reportDate);
         summary.setReportYear(reportDate.getYear());
         summary.setCreateTime(LocalDateTime.now());
@@ -228,7 +228,7 @@ public class ReportServiceImpl implements ReportService {
         // 1. 查主表单条
         InpCashMainEntity main = Db.lambdaQuery(InpCashMainEntity.class)
                 .eq(InpCashMainEntity::getReportDate, date)
-                .eq(InpCashMainEntity::getValidFlag, Constant.FLAG_YES)
+                .eq(InpCashMainEntity::getValidFlag, Constant.YES)
                 .eq(InpCashMainEntity::getHolidayTotalFlag, holidayTotalFlag)
                 .one();
 
@@ -708,13 +708,13 @@ public class ReportServiceImpl implements ReportService {
         String pk = pks.generateKey();
 
         //界面手工录入修改时候，保存数据重新计算明细的公式
-        if (isInitFlag.equals(Constant.FLAG_NO)) {
+        if (isInitFlag.equals(Constant.NO)) {
             main.setSubs(exchangeInpMainEntity(main.getSubs()));
         }
 
 
         // 设置新记录的初始状态为生效（1）
-        main.setValidFlag(Constant.FLAG_YES);
+        main.setValidFlag(Constant.YES);
         main.setCreateTime(LocalDateTime.now());
         main.setSerialNo(pk); // 唯一主键
 
@@ -726,9 +726,9 @@ public class ReportServiceImpl implements ReportService {
              */
             Db.lambdaUpdate(InpCashMainEntity.class)
                     .eq(InpCashMainEntity::getReportDate, main.getReportDate())
-                    .eq(InpCashMainEntity::getValidFlag, Constant.FLAG_YES) // 只作废当前有效的
+                    .eq(InpCashMainEntity::getValidFlag, Constant.YES) // 只作废当前有效的
                     .eq(InpCashMainEntity::getHolidayTotalFlag,main.getHolidayTotalFlag())  //对应节假日汇总类型
-                    .set(InpCashMainEntity::getValidFlag, Constant.FLAG_NO)
+                    .set(InpCashMainEntity::getValidFlag, Constant.NO)
                     .set(InpCashMainEntity::getUpdateTime, LocalDateTime.now())
                     .update();
             /*

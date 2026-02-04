@@ -17,7 +17,7 @@ import java.util.List;
 @Data
 @TableName("mpp_cash_inp_master")
 public class InpCashMainEntity {
-    @Id
+
     @TableId(value = "serial_no")
     private String serialNo;              // 流水号
 
@@ -37,7 +37,7 @@ public class InpCashMainEntity {
     private LocalDateTime updateTime;     // 更新时间
 
     @TableField(value = "holiday_total_flag")
-    private String holidayTotalFlag = Constant.FLAG_NO; //节假日汇总标志
+    private String holidayTotalFlag = Constant.NO; //节假日汇总标志
     // 关联的子报表列表（一对多关系）
     @TableField(exist = false)
     private List<InpCashSubEntity> subs;

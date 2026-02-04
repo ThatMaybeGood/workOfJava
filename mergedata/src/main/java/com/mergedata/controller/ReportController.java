@@ -85,10 +85,10 @@ public class ReportController {
         BeanUtils.copyProperties(vo, main);
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Integer result = report.insertInpReport(main, Constant.FLAG_NO);
+        Integer result = report.insertInpReport(main, Constant.NO);
 
         if (result == 1) {
-            return ApiResponse.success("住院报表明细写入成功！");
+            return ApiResponse.success("住院报表写入成功！");
         }
 
         return ApiResponse.failure("住院报表写入失败！");

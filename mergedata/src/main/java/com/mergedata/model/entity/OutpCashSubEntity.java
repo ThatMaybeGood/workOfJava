@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @TableName("mpp_cash_statistics_sub") // 只要在这里指定数据库真实的表名
 public class OutpCashSubEntity {
     // 关联的主表流水号
+    @TableField("serial_no")
     private String serialNo;
 
     @TableField("emp_id")

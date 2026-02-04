@@ -36,12 +36,12 @@ public class Constant {
     /*
      *  是否标识：肯定
      */
-    public static final String FLAG_YES = "1";
+    public static final String YES = "1";
 
     /*
      *  是否标识：否定
      */
-    public static final String FLAG_NO = "0";
+    public static final String NO = "0";
 
 
     //===================存储过程出参状态码和信息 游标=======================
