@@ -7,6 +7,7 @@
         <id column="serial_no" property="serialNo"/>
         <result column="operator_no" property="operatorNo"/>
         <result column="operator_name" property="operatorName"/>
+        <result column="category" property="category"/>
         <result column="department_id" property="departmentId"/>
         <result column="isvalid" property="validStatus"/>
         <result column="creator" property="creator"/>
@@ -31,7 +32,7 @@
         create_time,
          updator,
         update_time,
-        update_count,serial_no,row_num,inp_window,atm
+        update_count,serial_no,row_num,inp_window,atm,category
         FROM
         MPP_CASH_REG_OPERATOR
         WHERE
@@ -39,10 +40,21 @@
         order by row_num
     </select>
 
+    <select id="selectByCategory" resultMap="YQOperatorMap">
+        SELECT
+        operator_no, operator_name, department_id, isvalid, creator,
+        create_time,  updator, update_time, update_count,serial_no,row_num,inp_window,atm,category
+        FROM
+        MPP_CASH_REG_OPERATOR
+        WHERE isvalid = '1'
+        AND category = #{category}
+    </select>
+
+
     <select id="selectByID" resultMap="YQOperatorMap">
         SELECT
         operator_no, operator_name, department_id, isvalid, creator,
-        create_time,  updator, update_time, update_count,serial_no,row_num,inp_window,atm
+        create_time,  updator, update_time, update_count,serial_no,row_num,inp_window,atm,category
         FROM
         MPP_CASH_REG_OPERATOR
         WHERE
@@ -52,13 +64,14 @@
 
     <insert id="insert" parameterType="com.mergedata.model.entity.YQOperatorEntity">
         INSERT INTO MPP_CASH_REG_OPERATOR (
-        operator_no, operator_name, department_id,  creator,
+        operator_no, operator_name, department_id,  creator,category,
           updator, update_time,serial_no,row_num,inp_window,atm
         )
         VALUES (
         #{operatorNo , jdbcType=VARCHAR },
         #{operatorName , jdbcType=VARCHAR},
         #{departmentId, jdbcType=VARCHAR}, #{creator, jdbcType=VARCHAR},
+        #{category, jdbcType=VARCHAR},
          #{updator, jdbcType=VARCHAR}, #{updateTime, jdbcType=DATE},
         #{serialNo , jdbcType=VARCHAR },
         #{rowNum , jdbcType=VARCHAR },

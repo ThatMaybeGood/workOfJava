@@ -1,6 +1,6 @@
 package com.mergedata.util;
 
-import com.mergedata.model.entity.YQHolidayCalendarEntity;
+import com.mergedata.model.entity.YQHolidayEntity;
 
 import java.io.BufferedReader;
 import java.nio.charset.StandardCharsets;
@@ -13,8 +13,8 @@ import java.util.List;
     public class HolidayDataParser {
 
 
-        public static List<YQHolidayCalendarEntity> parseHolidayFile(String filePath, String year) {
-            List<YQHolidayCalendarEntity> list = new ArrayList<>();
+        public static List<YQHolidayEntity> parseHolidayFile(String filePath, String year) {
+            List<YQHolidayEntity> list = new ArrayList<>();
             try (BufferedReader br = Files.newBufferedReader(Paths.get(filePath), StandardCharsets.UTF_8)) {
                 String line;
                 while ((line = br.readLine()) != null) {
@@ -25,7 +25,7 @@ import java.util.List;
                     if (parts.length == 3) {
                         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
 
-                        YQHolidayCalendarEntity item = new YQHolidayCalendarEntity();
+                        YQHolidayEntity item = new YQHolidayEntity();
                         item.setHolidayYear(year);
                         item.setHolidayDate(LocalDate.parse(parts[0]));
                         item.setHolidayType(parts[2]);

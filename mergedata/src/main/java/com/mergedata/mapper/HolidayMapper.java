@@ -1,6 +1,6 @@
 package com.mergedata.mapper;
 
-import com.mergedata.model.entity.YQHolidayCalendarEntity;
+import com.mergedata.model.entity.YQHolidayEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -13,25 +13,31 @@ public interface HolidayMapper {
     /*
      * 查询所有节假日
      */
-    List<YQHolidayCalendarEntity> selectAll();
+    List<YQHolidayEntity> selectAll();
+
+    /*
+     * 根据年份查询节假日信息
+     */
+    List<YQHolidayEntity> selectByYear(@Param("holidayYear") Integer year);
+
 
     /*
      * 根据日期查询节假日信息
      * @Param 指定名称，与 XML 中的 #{holiday_date} 匹配
      */
-    List<YQHolidayCalendarEntity> selectByDate(@Param("holidayDate") LocalDate date);
+    List<YQHolidayEntity> selectByDate(@Param("holidayDate") LocalDate date);
 
     /*
      * 插入单条节假日信息
      * @return 影响的行数
      */
-    int insert(YQHolidayCalendarEntity holiday); // 修正：改为 insert，返回 int
+    int insert(YQHolidayEntity holiday); // 修正：改为 insert，返回 int
 
     /*
      * 批量插入节假日列表
      * @return 影响的行数
      */
-    int batchInsertList(List<YQHolidayCalendarEntity> holidays); // 修正：返回 int
+    int batchInsertList(List<YQHolidayEntity> holidays); // 修正：返回 int
 
     /*
      * 更新节假日信息

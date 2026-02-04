@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
  * @LocalDate 2025/10/30 10:46
  */
 @Data
-public class YQHolidayCalendarEntity {
+public class YQHolidayEntity {
 
     private String serialNo;
 
@@ -41,4 +41,6 @@ public class YQHolidayCalendarEntity {
     private String updateCount;
 
     private String remark;
+
+    private String category; // 节假日分类 门诊/住院/通用 0/1/2
 }

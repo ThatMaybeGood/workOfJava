@@ -9,7 +9,19 @@ import java.util.List;
 @Mapper
 public interface OperatorMapper {
 
+    /**
+     * 查询所有员工信息
+     * @return 所有员工列表
+     */
     List<YQOperatorEntity> selectAll();
+
+
+    /**
+     * 根据类型查询员工列表
+     * @param type 员工类型 门诊/住院 0/1
+     * @return 符合条件的员工列表
+     */
+    List<YQOperatorEntity> selectByCategory(@Param("category") String type);
 
     /*
      * 根据员工ID查询员工信息

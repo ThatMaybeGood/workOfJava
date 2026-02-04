@@ -15,14 +15,16 @@ public class YQOperatorEntity {
     @Schema(description = "流水号")
     private String serialNo;
     //员工ID
-    @Schema(description = "员工ID")
     @NotBlank(message = "员工ID不能为空")
     private String operatorNo;
 
     @NotBlank(message = "员工姓名不能为空")
-    @Schema(description = "员工姓名")
     @Size(min = 2, max = 50, message = "员工姓名长度必须在2-50字符之间")
     private String operatorName;
+
+    //员工类型 门诊/住院 0/1
+    private String category;
+
     //部门ID
     private String departmentId;
     //是否有效（0:无效，1：有效）

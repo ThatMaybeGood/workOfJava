@@ -2,7 +2,7 @@ package com.mergedata.util;
 
 import com.mergedata.model.dto.external.HisOutpIncomeResponseDTO;
 import com.mergedata.model.entity.YQOperatorEntity;
-import com.mergedata.model.entity.YQHolidayCalendarEntity;
+import com.mergedata.model.entity.YQHolidayEntity;
 import com.mergedata.model.entity.YQCashRegRecordEntity;
 
 /*
@@ -13,7 +13,7 @@ public enum ApiType {
     // 增加枚举值，例如 HIS_REPORT
     HIS_REPORT("hisReport", YQOperatorEntity.class),
     // 增加枚举值，例如 HOLIDAY_CALENDAR
-    HOLIDAY_CALENDAR("holidayCalendar", YQHolidayCalendarEntity.class),
+    HOLIDAY_CALENDAR("holidayCalendar", YQHolidayEntity.class),
 
     // 增加新的枚举值，例如 HIS_OPERATOR
     HIS_OPERATOR("hisOperator", YQOperatorEntity.class),

@@ -2,7 +2,7 @@ package com.mergedata.server.impl;
 
 import com.mergedata.constants.Constant;
 import com.mergedata.mapper.HolidayMapper;
-import com.mergedata.model.entity.YQHolidayCalendarEntity;
+import com.mergedata.model.entity.YQHolidayEntity;
 import com.mergedata.server.YQHolidayService;
 import com.mergedata.util.PrimaryKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
@@ -21,22 +21,22 @@ public class HolidayServiceImpl implements YQHolidayService {
     HolidayMapper holidayMapper;
 
     @Override
-    public List<YQHolidayCalendarEntity> findAll() {
+    public List<YQHolidayEntity> findAll() {
         return holidayMapper.selectAll();
     }
 
 
     @Override
-    public List<YQHolidayCalendarEntity> findByDate(LocalDate reportDate) {
+    public List<YQHolidayEntity> findByDate(LocalDate reportDate) {
          return holidayMapper.selectByDate(reportDate);
     }
 
 
     @Override
     @Transactional
-    public Boolean insert(YQHolidayCalendarEntity holiday) {
+    public Boolean insert(YQHolidayEntity holiday) {
 
-        List<YQHolidayCalendarEntity> holidayCalendar = holidayMapper.selectByDate(holiday.getHolidayDate());
+        List<YQHolidayEntity> holidayCalendar = holidayMapper.selectByDate(holiday.getHolidayDate());
 
         if(holidayCalendar.size() > 0 ){
             holidayMapper.update(holiday.getHolidayDate());
@@ -59,7 +59,7 @@ public class HolidayServiceImpl implements YQHolidayService {
 
     @Override
     @Transactional
-    public Boolean delete(YQHolidayCalendarEntity holiday) {
+    public Boolean delete(YQHolidayEntity holiday) {
          return holidayMapper.delete(holiday.getSerialNo())>0?true:false;
     }
 
@@ -92,7 +92,7 @@ public class HolidayServiceImpl implements YQHolidayService {
      */
     private boolean isHoliday(LocalDate targetDate) {
         // 1. 获取所有必需的原始数据
-        List<YQHolidayCalendarEntity> holidays = holidayMapper.selectByDate(targetDate);
+        List<YQHolidayEntity> holidays = holidayMapper.selectByDate(targetDate);
 
         if (holidays.size() > 0){
             return true;
@@ -103,7 +103,7 @@ public class HolidayServiceImpl implements YQHolidayService {
 
     @Transactional
     @Override
-    public Boolean batchInsertList(List<YQHolidayCalendarEntity> list) {
+    public Boolean batchInsertList(List<YQHolidayEntity> list) {
         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
 
         if (list == null || list.isEmpty()) {
@@ -111,7 +111,7 @@ public class HolidayServiceImpl implements YQHolidayService {
             return false;
         }
 
-        for (YQHolidayCalendarEntity dto : list) {
+        for (YQHolidayEntity dto : list) {
             // 生成主键
             dto.setSerialNo(pks.generateKey());
             dto.setValidStatus("1");
@@ -126,7 +126,7 @@ public class HolidayServiceImpl implements YQHolidayService {
     }
 
     @Override
-    public Boolean update(YQHolidayCalendarEntity holiday) {
+    public Boolean update(YQHolidayEntity holiday) {
         return holidayMapper.delete(holiday.getSerialNo())>0?true:false;
     }
 
