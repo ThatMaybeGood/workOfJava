@@ -58,12 +58,6 @@ public class HolidayServiceImpl implements YQHolidayService {
 
 
     @Override
-    @Transactional
-    public Boolean delete(YQHolidayEntity holiday) {
-         return holidayMapper.delete(holiday.getSerialNo())>0?true:false;
-    }
-
-    @Override
     public String queryDateType(LocalDate holidayDate,String queryType) {
 
         // 判断是住院/门诊

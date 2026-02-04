@@ -101,9 +101,4 @@ public class OperatorController {
         return ApiResponse.success("更新操作员信息成功");
     }
 
-    @GetMapping("/")
-    public ResultDTO<String> getHolidayApiInfo() {
-        return ResultDTO.success("API服务已启动，可用端点：/all /data, /insert");
-    }
-
 }

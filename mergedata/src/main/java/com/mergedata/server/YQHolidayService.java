@@ -26,17 +26,10 @@ public interface YQHolidayService {
      */
     Boolean batchInsertList(List<YQHolidayEntity> holidays);
 
-
     /*
      * 作废
      */
     Boolean update(YQHolidayEntity holiday);
-
-    /*
-     * 作废
-     */
-    Boolean delete(YQHolidayEntity holiday);
-
 
     /*
      * 获取日期对应的类型
