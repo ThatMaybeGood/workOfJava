@@ -17,7 +17,6 @@ import java.util.Collections;
 /**
  * 通用 RestTemplate 调用工具类，负责封装请求、发起调用、处理HTTP错误和捕获业务异常。
  */
-@Component
 @Slf4j
 @RequiredArgsConstructor
 public class RestApiUtil {

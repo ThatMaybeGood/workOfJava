@@ -27,14 +27,11 @@ public class HisDataServiceImpl implements HisDataService {
     @Value("${api.urls.hisincome}")
     private String URL_API_HISINCOME;
 
-    @Autowired
     private ApiRequestHead headConfig;
 
-    @Autowired
     private RestApiUtil restApiUtil;
 
     private RestTemplate restTemplate;
-
 
     /**
      * 根据日期查询门诊现金报表收入记录
