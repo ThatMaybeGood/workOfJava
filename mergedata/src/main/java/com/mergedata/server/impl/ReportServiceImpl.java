@@ -107,8 +107,6 @@ public class ReportServiceImpl implements ReportService {
         InpCashMainEntity inpResult = new InpCashMainEntity();
         List<InpCashMainEntity> mainList = new ArrayList<>();
 
-
-
         try {
             //查询日期类型
             String holidayType = holidayService.queryDateType(currentDate, Constant.TYPE_INP);
@@ -129,7 +127,7 @@ public class ReportServiceImpl implements ReportService {
                             //获取初始化的数据
                             inpResult = getInpReportData(startDate, holidayType, Constant.NO);
                             //方法批量插入数据
-                            insertInpReport(inpResult, Constant.YES);
+                            isInitInsertInp(inpResult, Constant.YES);
                         }
 
                         mainList.add(inpResult);
@@ -143,7 +141,7 @@ public class ReportServiceImpl implements ReportService {
                     //汇总的数据插入数据库
                     inpResult = inpHolidayTotal(mainList, currentDate);
 
-                    insertInpReport(inpResult, Constant.YES);
+                    isInitInsertInp(inpResult, Constant.YES);
                     log.info("住院现金统计-节假日汇总写入成功，报表日期{}", currentDate);
                 }
 
@@ -156,7 +154,7 @@ public class ReportServiceImpl implements ReportService {
                     //获取初始化的数据
                     inpResult = getInpReportData(currentDate, holidayType, Constant.NO);
                     //查询时候数据库没有相关的数据，插入数据库，此处调用插入数据
-                    insertInpReport(inpResult, Constant.YES);
+                    isInitInsertInp(inpResult, Constant.YES);
 
                 }
             }
@@ -186,9 +184,8 @@ public class ReportServiceImpl implements ReportService {
                 .flatMap(List::stream)
                 .collect(Collectors.toList());
 
-        // 2. 遍历 List 直接相加
         for (InpCashSubEntity item : allSubs) {
-            // 利用你重写的 Getter，这里 get...() 拿到的绝对不是 null
+            // 上午部分
             summarySub.setPreviousDayAdvanceReceipt(summarySub.getPreviousDayAdvanceReceipt().add(item.getPreviousDayAdvanceReceipt()));
             summarySub.setTodayAdvancePayment(summarySub.getTodayAdvancePayment().add(item.getTodayAdvancePayment()));
             summarySub.setTodaySettlementIncome(summarySub.getTodaySettlementIncome().add(item.getTodaySettlementIncome()));
@@ -196,9 +193,9 @@ public class ReportServiceImpl implements ReportService {
             summarySub.setTrafficAssistanceFund(summarySub.getTrafficAssistanceFund().add(item.getTrafficAssistanceFund()));
             summarySub.setBloodDonationCompensation(summarySub.getBloodDonationCompensation().add(item.getBloodDonationCompensation()));
             summarySub.setReceivablePayable(summarySub.getReceivablePayable().add(item.getReceivablePayable()));
-
-            // 汇总计算出来的合计项（第8项、第11项等）
             summarySub.setTodayReportTotal(summarySub.getTodayReportTotal().add(item.getTodayReportTotal()));
+            summarySub.setPreviousDayIOU(summarySub.getPreviousDayIOU().add(item.getPreviousDayIOU()));
+            summarySub.setTodayOutpatientIOU(summarySub.getTodayOutpatientIOU().add(item.getTodayOutpatientIOU()));
             summarySub.setTodayReportReceivablePayable(summarySub.getTodayReportReceivablePayable().add(item.getTodayReportReceivablePayable()));
 
             // 下午及留存部分
@@ -208,16 +205,18 @@ public class ReportServiceImpl implements ReportService {
             summarySub.setBalance(summarySub.getBalance().add(item.getBalance()));
             summarySub.setAdjustment(summarySub.getAdjustment().add(item.getAdjustment()));
             summarySub.setTodayIOU(summarySub.getTodayIOU().add(item.getTodayIOU()));
+            summarySub.setHolidayPayment(summarySub.getHolidayPayment().add(item.getHolidayPayment()));
+
+            // 收费员留存部分
             summarySub.setCashOnHand(summarySub.getCashOnHand().add(item.getCashOnHand()));
             summarySub.setDifference(summarySub.getDifference().add(item.getDifference()));
+
             summarySubs.add(summarySub);
         }
 
-        summary.setSerialNo(PrimaryKeyGenerator.generateKey());
         summary.setHolidayTotalFlag(Constant.YES);
         summary.setReportDate(reportDate);
         summary.setReportYear(reportDate.getYear());
-        summary.setCreateTime(LocalDateTime.now());
         summary.setSubs(summarySubs);
 
         log.info("住院现金统计-节假日汇总计算，报表日期：{}", reportDate);
@@ -409,7 +408,6 @@ public class ReportServiceImpl implements ReportService {
                 inpCashSubList.add(inpCashSub);
             }
 
-            resultVo.setSerialNo(pk);
             resultVo.setReportDate(currtDate);
             resultVo.setReportYear(currtDate.getYear());
             resultVo.setSubs(inpCashSubList);
@@ -680,16 +678,15 @@ public class ReportServiceImpl implements ReportService {
     }
 
 
+
     /**
-     * 批量插入住院报表数据
-     *
+     *    初始化插入住院现金主表数据
      * @param main       住院现金主表实体
      * @param isInitFlag 是否初次写入标志 ，默认值为"1"，表示初次写入
      * @return 插入成功的记录数
      */
-    @Override
     @Transactional(rollbackFor = Exception.class)
-    public Integer insertInpReport(InpCashMainEntity main, String isInitFlag) {
+    public Integer isInitInsertInp(InpCashMainEntity main, String isInitFlag) {
         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
         String pk = pks.generateKey();
 
@@ -699,7 +696,7 @@ public class ReportServiceImpl implements ReportService {
         }
 
 
-        // 设置新记录的初始状态为生效（1）
+        // 通用设置这些公共属性
         main.setValidFlag(Constant.YES);
         main.setCreateTime(LocalDateTime.now());
         main.setSerialNo(pk); // 唯一主键
@@ -717,21 +714,26 @@ public class ReportServiceImpl implements ReportService {
                     .set(InpCashMainEntity::getValidFlag, Constant.NO)
                     .set(InpCashMainEntity::getUpdateTime, LocalDateTime.now())
                     .update();
-            /*
-             * 插入主表数据
-             */
-            boolean saveMain = Db.save(main);
 
-            /*
-             * 插入子表数据
-             */
-            if (saveMain && !main.getSubs().isEmpty()) {
+            if (!main.getSubs().isEmpty()) {
+
+                /*
+                 * 插入子表数据
+                 */
                 // 确保子表的关联字段和主表一致
                 main.getSubs().forEach(sub -> {
                     sub.setSerialNo(main.getSerialNo());
                     // 如果子表也有创建时间等字段，建议在此补充
                 });
                 boolean savedBatch = Db.saveBatch(main.getSubs());
+
+                if (savedBatch) {
+                    /*
+                     * 插入主表数据
+                     */
+                    boolean saveMain = Db.save(main);
+
+                }
             }
 
             return 1;
@@ -739,6 +741,18 @@ public class ReportServiceImpl implements ReportService {
             log.error("批量插入住院报表数据失败，日期：{}", main.getReportDate(), e);
             throw new RuntimeException("批量插入住院报表数据失败" + e.getMessage());
         }
+    }
+
+
+    /**
+     * 批量插入住院报表数据
+     *
+     * @param main       住院现金主表实体
+     * @return 插入成功的记录数
+     */
+    @Override
+    public Integer insertInpReport(InpCashMainEntity main) {
+        return isInitInsertInp(main, Constant.NO);
     }
 
 

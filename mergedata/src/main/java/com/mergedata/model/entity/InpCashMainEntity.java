@@ -23,6 +23,7 @@ public class InpCashMainEntity {
 
     @TableField(value = "report_date")
     private LocalDate reportDate;         // 报表日期
+
     @TableField(value = "report_year")
     private Integer reportYear;           // 报表年份
 
@@ -31,13 +32,16 @@ public class InpCashMainEntity {
 
     @TableField(value = "creator")
     private String creator;               // 创建人
+
     @TableField(value = "create_time")
     private LocalDateTime createTime;     // 创建时间
+
     @TableField(value = "update_time")
     private LocalDateTime updateTime;     // 更新时间
 
     @TableField(value = "holiday_total_flag")
     private String holidayTotalFlag = Constant.NO; //节假日汇总标志
+
     // 关联的子报表列表（一对多关系）
     @TableField(exist = false)
     private List<InpCashSubEntity> subs;
