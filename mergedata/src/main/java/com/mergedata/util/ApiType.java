@@ -49,7 +49,6 @@ public enum ApiType {
                 return type;
             }
         }
-        // 如果外部接口返回了新的未知类型，避免抛异常，返回 UNKNOWN
         return UNKNOWN;
     }
 }

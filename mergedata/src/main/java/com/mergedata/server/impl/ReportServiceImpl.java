@@ -63,6 +63,7 @@ public class ReportServiceImpl implements ReportService {
     public List<OutpReportVO> getOutpReport(OutpReportRequestBody body) {
         //调用存储过程获取报表数据
         try {
+            LocalDate currentDate = body.getReportDate();
             outpResults = report.findReport(body);
 
             //接收ExtendParams1为true时，即初始化报表
@@ -71,11 +72,9 @@ public class ReportServiceImpl implements ReportService {
 
             // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
             if (outpResults.isEmpty() || isInitFlag) {
-
-                outpResults = getOutpReportData(body);
-
+                outpResults = getOutpReportData(currentDate);
                 //查询时候数据库没有相关的数据，插入数据库，此处调用 firstInsert 方法批量插入数据
-                isInitInsertOutp(outpResults, body.getReportDate());
+                isInitInsertOutp(outpResults, currentDate);
             }
         } catch (Exception e) {
             log.error("获取报表数据异常", e);
@@ -894,6 +893,9 @@ public class ReportServiceImpl implements ReportService {
      */
     public List<OutpReportVO> exchangeOutpReportData(LocalDate currtDate, List<OutpReportVO> list) {
         try {
+            //查询日期类型
+            String holidayType = holidayService.queryDateType(currtDate, Constant.TYPE_OUTP);
+
             // 1. 获取所有必需的原始数据
             List<YQHolidayEntity> holidays = hiliday.selectByYear(currtDate.getYear());
 
@@ -975,10 +977,8 @@ public class ReportServiceImpl implements ReportService {
                 // =========================================================================
 
 
-                // ❗当前是工作日 且 前一天是节假日/周末
-                boolean isAfterHoliday = !isHoliday(holidaySet, currtDate) && isHoliday(holidaySet, currtDate.minusDays(1));
 
-                if (isAfterHoliday) {
+                if (Constant.HOLIDAY_AFTER.equals(holidayType)) {
                     // 符合条件：执行复杂回溯计算 (A = B - Sum(C) - D)
                     log.info("第{}条，[{}]节假日后正常工作日第一天特殊处理，回溯计算实际报表金额开始......................", count, currtDate);
                     calculateActualReportAmountForMonday(
@@ -988,13 +988,13 @@ public class ReportServiceImpl implements ReportService {
                             // 传递的 Lambda 表达式现在接收 LocalDate
                             date -> report.selectReportByDate(date)
                     );
-                } else if (isHoliday(holidaySet, currtDate)) {
+                } else if (Constant.HOLIDAY_IS.equals(holidayType)) {
                     // 节假日逻辑：A = B - C (保持不变)
                     BigDecimal actualReportAmount = currentDto.getReportAmount().subtract(currentDto.getHolidayTemporaryReceipt());
                     currentDto.setActualReportAmount(actualReportAmount);
 
 
-                } else if (isHoliday(holidaySet, currtDate.plusDays(1))) {
+                } else if (Constant.HOLIDAY_PRE.equals(holidays)) {
                     // 节假日前一天 (周五/最后一天) 逻辑 (保持不变)
                     BigDecimal actualReportAmount = currentDto.getReportAmount()
                             .subtract(currentDto.getPreviousTemporaryReceipt())
@@ -1033,12 +1033,14 @@ public class ReportServiceImpl implements ReportService {
      * 2. 以操作员为基准进行匹配和计算。
      * 3. 对周一进行特殊的回溯计算 (A = B - Sum(C) - D)。
      * 4. 对其他工作日进行正常计算 (A = B - C - D)。
-     * @param body 目标报表日期 (LocalDate)
+     *
      * @return 包含所有操作员计算结果的 ReportDTO 列表
      */
-    public List<OutpReportVO> getOutpReportData(OutpReportRequestBody body) {
-        LocalDate currtDate = body.getReportDate();
+    public List<OutpReportVO> getOutpReportData(LocalDate currtDate) {
         try {
+            //查询日期类型
+            String holidayType = holidayService.queryDateType(currtDate, Constant.TYPE_OUTP);
+
             LocalDate preDate = currtDate.minusDays(1);
 
             // 1. 获取所有必需的原始数据
@@ -1158,7 +1160,7 @@ public class ReportServiceImpl implements ReportService {
                 /*
                  *回溯计算实收报表
                  */
-                if (isAfterHoliday) {
+                if (Constant.HOLIDAY_AFTER.equals(holidayType)) {
                     // 符合条件：执行复杂回溯计算 (A = B - Sum(C) - D)
                     log.info("第{}条，[{}]节假日后正常工作日第一天特殊处理，回溯计算实际报表金额开始......................", count, currtDate);
                     calculateActualReportAmountForMonday(
@@ -1168,12 +1170,12 @@ public class ReportServiceImpl implements ReportService {
                             // 传递的 Lambda 表达式现在接收 LocalDate
                             date -> report.selectReportByDate(date)
                     );
-                } else if (isHoliday(holidaySet, currtDate)) {  //是节假日且是当月的最后一天是否，实收报表是否 需要回溯计算
+                } else if (Constant.HOLIDAY_IS.equals(holidayType)) {  //是节假日且是当月的最后一天是否，实收报表是否 需要回溯计算
                     // 节假日逻辑：A = B - C (保持不变)
                     BigDecimal actualReportAmount = currentDto.getReportAmount().subtract(currentDto.getHolidayTemporaryReceipt());
                     currentDto.setActualReportAmount(actualReportAmount);
 
-                } else if (isHoliday(holidaySet, currtDate.plusDays(1))) {
+                } else if (Constant.HOLIDAY_PRE.equals(holidayType)) {
                     // 节假日前一天 (周五/最后一天) 逻辑 (保持不变)
                     BigDecimal actualReportAmount = currentDto.getReportAmount()
                             .subtract(currentDto.getPreviousTemporaryReceipt())
@@ -1189,7 +1191,7 @@ public class ReportServiceImpl implements ReportService {
                 /*
                  *回溯计算节假日暂收款问题 遇到回溯如果跨月问题 只能加到一号,周一的情况
                  */
-                if (isAfterHoliday) {
+                if (Constant.HOLIDAY_AFTER.equals(holidayType)) {
                     // 符合条件：执行复杂回溯计算 (A = B - Sum(C) - D)
                     log.info("第{}条，[{}]节假日后正常工作日第一天特殊处理，回溯计算节假日暂收款金额开始......................", count, currtDate);
                     calculateAHolidayTemporaryReceiptForMonday(
@@ -1199,7 +1201,7 @@ public class ReportServiceImpl implements ReportService {
                             // 传递的 Lambda 表达式现在接收 LocalDate
                             date -> report.selectReportByDate(date)
                     );
-                } else if (isHoliday(holidaySet, currtDate)) {
+                } else if (Constant.HOLIDAY_IS.equals(holidayType)) {
                     // 节假日逻辑且是当月最后一天
                     if (currtDate.getDayOfMonth() == currtDate.lengthOfMonth()) {
                         calculateAHolidayTemporaryReceiptForMonday(

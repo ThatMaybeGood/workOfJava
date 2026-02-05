@@ -76,10 +76,10 @@ public class HolidayServiceImpl implements YQHolidayService {
     @Override
     public String queryDateType(LocalDate holidayDate,String queryType) {
 
-        // 判断是住院/门诊
-        if (queryType== Constant.TYPE_OUTP){
-
-        }
+//        // 判断是住院/门诊
+//        if (queryType== Constant.TYPE_OUTP){
+//
+//        }
 
         if (isHoliday( holidayDate)){
            return Constant.HOLIDAY_IS;

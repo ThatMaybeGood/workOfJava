@@ -96,11 +96,11 @@ public class Constant {
      */
     public static final String HOLIDAY_IS = "1";
     /*
-     * 节假日后第一天
+     * 节假日后第一天 周一
      */
     public static final String HOLIDAY_AFTER = "2";
     /*
-     * 节假日前一天
+     * 节假日前一天 周五
      */
     public static final String  HOLIDAY_PRE= "3";
 
