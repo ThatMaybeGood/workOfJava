@@ -749,28 +749,29 @@ public class ReportServiceImpl implements ReportService {
                     .set(InpCashMainEntity::getValidFlag, Constant.NO)
                     .set(InpCashMainEntity::getUpdateTime, LocalDateTime.now())
                     .update();
+
             log.info("{} {}  历史报表数据作废完成", Constant.REPORT_NAME_INP,main.getReportDate());
 
             if (!main.getSubs().isEmpty()) {
-
                 /*
                  * 插入子表数据
                  */
                 // 确保子表的关联字段和主表一致
                 main.getSubs().forEach(sub -> {
                     sub.setSerialNo(main.getSerialNo());
-                    // 如果子表也有创建时间等字段，建议在此补充
                 });
+
+                //不能用savedBatch 作为判断情况
                 boolean savedBatch = Db.saveBatch(main.getSubs());
 
-                if (savedBatch) {
-                    /*
-                     * 插入主表数据
-                     */
-                    boolean saveMain = Db.save(main);
+                /*
+                 * 插入主表数据
+                 */
+                boolean saveMain = Db.save(main);
 
-                }
             }
+
+            log.info("{} {}  报表数据保存成功！", Constant.REPORT_NAME_INP,main.getReportDate());
             return 1;
         } catch (Exception e) {
             log.error("插入住院报表数据失败，日期：{}", main.getReportDate(), e);
