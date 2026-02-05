@@ -68,10 +68,11 @@ public class YQOperatorEntity {
     /**
      * 是否在窗内（0:否，1：是）
      */
-    private Boolean inpWindow;
+    private Integer inpWindow;
     /**
      * 是否在ATM机内（0:否，1：是）
      */
-    private Boolean atm;
+    private Integer atm;
 
 }
+

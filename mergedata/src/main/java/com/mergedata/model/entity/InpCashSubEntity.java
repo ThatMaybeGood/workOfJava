@@ -120,7 +120,6 @@ public class InpCashSubEntity {
     @TableField("difference")
     private BigDecimal difference;                   //（20）=（19）-（11）  差额
 
-    @Getter(AccessLevel.NONE)
     @TableField("remarks")
     private String remarks;                      //21  备注
 
