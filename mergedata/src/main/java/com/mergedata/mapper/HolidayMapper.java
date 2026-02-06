@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.mergedata.model.entity.YQHolidayEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -18,7 +19,11 @@ public interface HolidayMapper extends BaseMapper<YQHolidayEntity> {
 
     /*
      * 根据年份查询节假日信息
+     * @param year 节假日年份
+     * @return 符合条件的节假日列表
+     * 缓存策略：根据年份查询节假日信息，缓存到 "holidays" 缓存中，缓存键为 year 参数值
      */
+    @Cacheable(value = "holidays", key = "#year")
     List<YQHolidayEntity> selectByYear(@Param("holidayYear") Integer year);
 
 

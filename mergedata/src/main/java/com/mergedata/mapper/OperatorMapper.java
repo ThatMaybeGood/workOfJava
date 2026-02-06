@@ -3,6 +3,7 @@ package com.mergedata.mapper;
 import com.mergedata.model.entity.YQOperatorEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.util.List;
 
@@ -20,7 +21,9 @@ public interface OperatorMapper {
      * 根据类型查询员工列表
      * @param type 员工类型 门诊/住院 0/1
      * @return 符合条件的员工列表
+     * 缓存策略：根据类型查询员工列表，缓存到 "operators" 缓存中，缓存键为 type 参数值
      */
+    @Cacheable(value = "operators", key = "#type")
     List<YQOperatorEntity> selectByCategory(@Param("category") String type);
 
     /*
