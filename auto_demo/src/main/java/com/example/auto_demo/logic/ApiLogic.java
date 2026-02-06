@@ -3,15 +3,18 @@ package com.example.auto_demo.logic;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.example.auto_demo.config.AppConfig;
+import com.example.auto_demo.util.ExcelDownloadService;
 import com.example.auto_demo.util.HttpUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -44,6 +47,10 @@ public class ApiLogic {
         while (true){
 
             String  result = getBillDetail(sessionId,fixmedinsCode,billDate,insutype,pageNum,pageSize, type);
+
+            //----------------------------增加调用文件导出-----------------------------------------
+//            getBillDetailExport(sessionId,fixmedinsCode,billDate,insutype,pageNum,pageSize, type);
+
             JSONObject jsonObject = JSONObject.parseObject(result);
             JSONObject data = jsonObject.getJSONObject("data");
             JSONObject pageBean = data.getJSONObject("pageBean");
@@ -107,12 +114,15 @@ public class ApiLogic {
         newJsonObject.put("insutype",insutype);
         newJsonObject.put("medins_setl_id",jsonObject.getString("medinsSetlId"));
         newJsonObject.put("msgid",jsonObject.getString("medinsSetlId"));
+        newJsonObject.put("med_type",jsonObject.getString("medType"));
+        newJsonObject.put("certno",jsonObject.getString("certno"));
+
 
         return newJsonObject;
     }
 
     public String getBillDetail(String sessionId, String fixmedinsCode,String billDate,String insutype,
-                                   int pageNum,int pageSize,String type) {
+                                int pageNum,int pageSize,String type) {
         Map<String, Object> map = new HashMap<>();
 
         map.put("fixmedinsCode", fixmedinsCode);
@@ -144,5 +154,46 @@ public class ApiLogic {
         log.info(sessionId + "调两定接口["+insutype+"]出参:" +  result);
 
         return result;
+    }
+
+    public void getBillDetailExport(String sessionId, String fixmedinsCode,String billDate,String insutype,
+                                    int pageNum,int pageSize,String type) {
+        Map<String, Object> map = new HashMap<>();
+
+        map.put("fixmedinsCode", fixmedinsCode);
+//        map.put("billDate", billDate);
+//        map.put("pageNum", pageNum);
+        map.put("setlTime",billDate);
+        map.put("insutype",insutype);
+//        map.put("pageSize",pageSize);
+        map.put("_modulePartId_","");
+        String frontUrl = config.getFrontUrl();
+        map.put("frontUrl",frontUrl);
+
+        String url = config.getBillUrl();
+        String token = config.getToken();
+        String session = config.getSession();
+
+        Map<String, String> headerMap = new HashMap<>();
+        headerMap.put("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        headerMap.put("X-XSRF-TOKEN", token);
+        headerMap.put("Cookie", "XSRF-TOKEN=" + token + ";SESSION=" + session);
+
+        log.info(sessionId + "调两定接口["+insutype+"]入参:" +  map.toString());
+
+        List<Map<Integer,String>> result ;
+        ExcelDownloadService downloadService = new ExcelDownloadService();
+
+        result =  downloadService.postExport(url, map, headerMap);
+
+//        for (Map<Integer,String> row : result){
+//            row.forEach((cloumnIndex,cellValue)->{
+//                System.out.printf("第" + cloumnIndex +"列的内容是: " + cellValue);
+//                });
+//            System.out.printf("-----------------分割线-----------------");
+//        }
+
+        log.info(sessionId + "调两定接口["+insutype+"]出参:" +  result);
+
     }
 }
