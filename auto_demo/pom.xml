@@ -121,6 +121,11 @@ scope: provided 的意思是：这个依赖只在编译和测试阶段有效，�
             <artifactId>testng</artifactId>
             <version>7.10.2</version>
         </dependency>-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
 

@@ -1,12 +1,12 @@
 package com.example.auto_demo.config;
 
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 
-@Configuration
+@Component
 public class AppConfig {
 
     @Value("${browser.port}")
@@ -36,106 +36,61 @@ public class AppConfig {
     @Value("${yb.fixmedinsCode}")
     private String fixmedinsCode;
 
-    public String getBrowserPort() {
-        return browserPort;
+    // 注入是否开启调用导出接口（直接注入字符串）
+    @Value("${isOpenExportInterface}")
+    private boolean isOpenExportInterface;
+
+    public AppConfig() {
+        System.out.println("AppConfig 构造函数执行...");
     }
 
-    public void setBrowserPort(String browserPort) {
-        this.browserPort = browserPort;
+    @PostConstruct
+    public void init() {
+        System.out.println("配置初始化完成，insuType: " + insuType);
+     }
+
+
+
+    // Getter 方法
+    public String getBrowserPort() {
+        return browserPort;
     }
 
     public String getInsuType() {
         return insuType;
     }
 
-    public void setInsuType(String insuType) {
-        this.insuType = insuType;
-    }
-
     public String getInsuTypeCn() {
         return insuTypeCn;
-    }
-
-    public void setInsuTypeCn(String insuTypeCn) {
-        this.insuTypeCn = insuTypeCn;
     }
 
     public String getBillUrl() {
         return billUrl;
     }
 
-    public void setBillUrl(String billUrl) {
-        this.billUrl = billUrl;
-    }
-
     public String getToken() {
         return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
     }
 
     public String getSession() {
         return session;
     }
 
-    public void setSession(String session) {
-        this.session = session;
-    }
-
     public String getPageSize() {
         return pageSize;
-    }
-
-    public void setPageSize(String pageSize) {
-        this.pageSize = pageSize;
     }
 
     public String getFrontUrl() {
         return frontUrl;
     }
 
-    public void setFrontUrl(String frontUrl) {
-        this.frontUrl = frontUrl;
-    }
-
     public String getFixmedinsCode() {
-		return fixmedinsCode;
-	}
-    public String setFixmedinsCode(String fixmedinsCode) {
-		this.fixmedinsCode = fixmedinsCode;
-		return fixmedinsCode;
-	}
-
-    public AppConfig() {
-        System.out.println("构造函数执行中...");
+        return fixmedinsCode;
     }
 
-    public AppConfig(String browserPort, String insuType, String insuTypeCn, String billUrl, String token, String session, String pageSize, String frontUrl,String fixmedinsCode) {
-        this.browserPort = browserPort;
-        this.insuType = insuType;
-        this.insuTypeCn = insuTypeCn;
-        this.billUrl = billUrl;
-        this.token = token;
-        this.session = session;
-        this.pageSize = pageSize;
-        this.frontUrl = frontUrl;
-        this.fixmedinsCode = fixmedinsCode;
+    public boolean isOpenExportInterface() {
+        return isOpenExportInterface;
     }
-
-    @PostConstruct
-    public void init() {
-        // 依赖注入已经完成，appName 有值了
-        System.out.println("在 @PostConstruct 中获取的 insuType: " + insuType);
-      //  return new AppConfig(browserPort, insuType, insuTypeCn, billUrl, token, session, pageSize, frontUrl);
-    }
-    @PostConstruct
-    public  AppConfig getAppConfig() {
-        return new AppConfig(browserPort, insuType, insuTypeCn, billUrl, token, session, pageSize, frontUrl, fixmedinsCode);
-    }
-
-
     @Override
     public String toString() {
         return "AppConfig{" +
@@ -143,15 +98,13 @@ public class AppConfig {
                 ", insuType='" + insuType + '\'' +
                 ", insuTypeCn='" + insuTypeCn + '\'' +
                 ", billUrl='" + billUrl + '\'' +
-                ", token='" + token + '\'' +
+                ", token='" + (token != null && token.length() > 5 ?
+                token.substring(0, 3) + "***" : "***") + '\'' + // 敏感信息脱敏
                 ", session='" + session + '\'' +
                 ", pageSize='" + pageSize + '\'' +
                 ", frontUrl='" + frontUrl + '\'' +
+                ", fixmedinsCode='" + fixmedinsCode + '\'' +
                 '}';
     }
 
-    public static void main(String[] args) {
-    	AppConfig appConfig = new AppConfig();
-    	System.out.println(appConfig.toString());
-    }
 }

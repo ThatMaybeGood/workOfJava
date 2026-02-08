@@ -6,11 +6,10 @@ import com.alibaba.fastjson.JSON;
 import com.example.auto_demo.config.AppConfig;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -23,19 +22,20 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-@Service
-public class ExcelDownloadService {
+@Component
+public class ExportUtil {
 
-    @Resource
-    private AppConfig appConfig;
-
-    AppConfig config = new AppConfig();
-    @PostConstruct
-    public void init(){
-        config = appConfig.getAppConfig() ;
-    }
+    @Autowired
+    private AppConfig config;
 
 
+    /*
+     * 请求两定平台导出接口，获取Excel文件并解析内容
+     * @param url 导出接口URL
+     * @param data 请求参数
+     * @param headerMap 自定义请求头
+     * @return 解析后的Excel内容，每行为一个Map，键为列索引，值为单元格内容
+     */
     public List<Map<Integer, String>> postExport(String url, Map<String, Object> data, Map<String, String> headerMap) {
         OkHttpClient client = new OkHttpClient.Builder()
                 .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
@@ -54,22 +54,6 @@ public class ExcelDownloadService {
             Request.Builder requestBuilder = new Request.Builder()
                     .url(url)
                     .post(formBody);
-
-            // 添加必需的头信息
-//            requestBuilder.addHeader("Accept", "application/json, text/plain, */*");
-//            requestBuilder.addHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-//            requestBuilder.addHeader("Referer", "http://mas.cq.hsip.gov.cn/hds/N1703.html");
-//            requestBuilder.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36");
-//            requestBuilder.addHeader("X-XSRF-TOKEN", "530137d4-9687-48b7-9b20-3cf10ecb3f18");
-//            requestBuilder.addHeader("Cookie", "XSRF-TOKEN=530137d4-9687-48b7-9b20-3cf10ecb3f18; SESSION=MzFmMzBkZmYtYzVkMi00ZjRlLWE3ODktNDkxZjQ2NDAyMjE1");
-            // 添加必需的头信息
-
-            requestBuilder.addHeader("Accept", "application/json, text/plain, */*");
-            requestBuilder.addHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-            requestBuilder.addHeader("Referer", config.getFrontUrl());
-            requestBuilder.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36");
-            requestBuilder.addHeader("X-XSRF-TOKEN", config.getToken());
-            requestBuilder.addHeader("Cookie", "XSRF-TOKEN="+config.getToken()+"; SESSION="+config.getSession());
 
             // 添加自定义头
             for (Map.Entry<String, String> entry : headerMap.entrySet()) {

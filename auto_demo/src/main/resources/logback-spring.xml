@@ -123,8 +123,9 @@
     <!-- 最低要求, 必须开启warn级别以上的日志, INFO看情况, 生产禁止开启DEBUG-->
     <!-- 级别由Spring 配置文件控制-->
     <root level="INFO">
-        <appender-ref ref="FILE" />
-        <appender-ref ref="CONSOLE" />
+<!--     注释掉   base.xml自带-->
+<!--        <appender-ref ref="FILE" />-->
+<!--        <appender-ref ref="CONSOLE" />-->
         <appender-ref ref="WARN_FILE" />
         <appender-ref ref="ERROR_FILE"/>
         <appender-ref ref="TRACE_FILE"/>

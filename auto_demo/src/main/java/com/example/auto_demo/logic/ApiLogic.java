@@ -3,16 +3,13 @@ package com.example.auto_demo.logic;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.example.auto_demo.config.AppConfig;
-import com.example.auto_demo.util.ExcelDownloadService;
+import com.example.auto_demo.util.ExportUtil;
 import com.example.auto_demo.util.HttpUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,19 +18,9 @@ import java.util.Map;
 @Service
 public class ApiLogic {
 
-    // 注入接口地址（直接注入字符串）
-    @Value("${yb.bill.url}")
-    private String billUrl;
+    @Autowired
+    private AppConfig config;
 
-    @Resource
-    private AppConfig appConfig;
-
-    private static AppConfig config;
-
-    @PostConstruct
-    public void init(){
-        config = appConfig.getAppConfig() ;
-    }
 
     public JSONArray getBillListByInsuType(String sessionId, String fixmedinsCode, String billDate,String insutype,String type) {
 
@@ -49,7 +36,9 @@ public class ApiLogic {
             String  result = getBillDetail(sessionId,fixmedinsCode,billDate,insutype,pageNum,pageSize, type);
 
             //----------------------------增加调用文件导出-----------------------------------------
-//            getBillDetailExport(sessionId,fixmedinsCode,billDate,insutype,pageNum,pageSize, type);
+            if(config.isOpenExportInterface()){
+                getBillDetailExport(sessionId,fixmedinsCode,billDate,insutype,pageNum,pageSize, type);
+            }
 
             JSONObject jsonObject = JSONObject.parseObject(result);
             JSONObject data = jsonObject.getJSONObject("data");
@@ -156,35 +145,34 @@ public class ApiLogic {
         return result;
     }
 
+    /*
+     * 调用两定平台接口，获取文件导出结果
+     */
     public void getBillDetailExport(String sessionId, String fixmedinsCode,String billDate,String insutype,
                                     int pageNum,int pageSize,String type) {
         Map<String, Object> map = new HashMap<>();
 
         map.put("fixmedinsCode", fixmedinsCode);
-//        map.put("billDate", billDate);
+        map.put("billDate", billDate);
 //        map.put("pageNum", pageNum);
         map.put("setlTime",billDate);
         map.put("insutype",insutype);
 //        map.put("pageSize",pageSize);
         map.put("_modulePartId_","");
-        String frontUrl = config.getFrontUrl();
-        map.put("frontUrl",frontUrl);
-
-        String url = config.getBillUrl();
-        String token = config.getToken();
-        String session = config.getSession();
+        map.put("frontUrl",config.getFrontUrl());
 
         Map<String, String> headerMap = new HashMap<>();
         headerMap.put("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        headerMap.put("X-XSRF-TOKEN", token);
-        headerMap.put("Cookie", "XSRF-TOKEN=" + token + ";SESSION=" + session);
+        headerMap.put("X-XSRF-TOKEN", config.getToken());
+        headerMap.put("Cookie", "XSRF-TOKEN=" + config.getToken() + ";SESSION=" + config.getSession());
+        headerMap.put("Referer", config.getFrontUrl());
+        headerMap.put("Accept", "application/json, text/plain, */*");
+        headerMap.put("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36");
 
         log.info(sessionId + "调两定接口["+insutype+"]入参:" +  map.toString());
 
         List<Map<Integer,String>> result ;
-        ExcelDownloadService downloadService = new ExcelDownloadService();
-
-        result =  downloadService.postExport(url, map, headerMap);
+        result =  new ExportUtil().postExport(config.getBillUrl(), map, headerMap);
 
 //        for (Map<Integer,String> row : result){
 //            row.forEach((cloumnIndex,cellValue)->{
