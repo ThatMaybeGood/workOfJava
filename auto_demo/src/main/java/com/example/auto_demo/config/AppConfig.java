@@ -37,8 +37,16 @@ public class AppConfig {
     private String fixmedinsCode;
 
     // 注入是否开启调用导出接口（直接注入字符串）
-    @Value("${isOpenExportInterface}")
+    @Value("${yb.export.isOpenExportInterface}")
     private boolean isOpenExportInterface;
+
+    // 导出接口URL
+    @Value("${yb.export.url}")
+    private String exportUrl;
+
+    // 是否保存Excel文件
+    @Value("${yb.export.isSaveExcel}")
+    private boolean isSaveExcel ;
 
     public AppConfig() {
         System.out.println("AppConfig 构造函数执行...");
@@ -91,6 +99,15 @@ public class AppConfig {
     public boolean isOpenExportInterface() {
         return isOpenExportInterface;
     }
+
+    public String getExportUrl() {
+        return exportUrl;
+    }
+
+    public boolean isSaveExcel() {
+        return isSaveExcel;
+    }
+
     @Override
     public String toString() {
         return "AppConfig{" +

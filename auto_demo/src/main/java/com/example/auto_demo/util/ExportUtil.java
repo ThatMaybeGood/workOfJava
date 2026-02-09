@@ -25,8 +25,6 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class ExportUtil {
 
-    @Autowired
-    private AppConfig config;
 
 
     /*
@@ -39,7 +37,7 @@ public class ExportUtil {
     public List<Map<Integer, String>> postExport(String url, Map<String, Object> data, Map<String, String> headerMap) {
         OkHttpClient client = new OkHttpClient.Builder()
                 .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-                .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(120, java.util.concurrent.TimeUnit.SECONDS)  //下载时间
                 .build();
 
         try {
@@ -72,6 +70,10 @@ public class ExportUtil {
                     return new ArrayList<>();
                 }
 
+                // 获取响应体字节
+                byte[] excelBytes = response.body().bytes();
+                log.info("获取到Excel文件，大小: {} 字节", excelBytes.length);
+
                 // 检查响应类型
                 String contentType = response.header("Content-Type", "");
                 String contentDisposition = response.header("Content-Disposition", "");
@@ -79,9 +81,6 @@ public class ExportUtil {
                 log.info("响应 Content-Type: {}", contentType);
                 log.info("响应 Content-Disposition: {}", contentDisposition);
 
-                // 获取响应体字节
-                byte[] excelBytes = response.body().bytes();
-                log.info("获取到Excel文件，大小: {} 字节", excelBytes.length);
 
                 // 将文件临时保存（用于调试）
                 try {
@@ -121,6 +120,7 @@ public class ExportUtil {
             return new ArrayList<>();
         }
     }
+
     // 方法重载：支持指定sheet索引
     public List<Map<Integer, String>> postExport(String url, Map<String, Object> data,
                                                  Map<String, String> headerMap, int sheetNo) {
@@ -137,11 +137,6 @@ public class ExportUtil {
                 .post(formBody);
 
         // 添加头信息
-        requestBuilder.addHeader("Accept", "application/json, text/plain, */*");
-        requestBuilder.addHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-        requestBuilder.addHeader("X-XSRF-TOKEN", "530137d4-9687-48b7-9b20-3cf10ecb3f18");
-        requestBuilder.addHeader("Cookie", "XSRF-TOKEN=530137d4-9687-48b7-9b20-3cf10ecb3f18; SESSION=MzFmMzBkZmYtYzVkMi00ZjRlLWE3ODktNDkxZjQ2NDAyMjE1");
-
         for (Map.Entry<String, String> entry : headerMap.entrySet()) {
             requestBuilder.addHeader(entry.getKey(), entry.getValue());
         }
@@ -188,11 +183,6 @@ public class ExportUtil {
                 .post(formBody);
 
         // 添加头信息
-        requestBuilder.addHeader("Accept", "application/json, text/plain, */*");
-        requestBuilder.addHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-        requestBuilder.addHeader("X-XSRF-TOKEN", "530137d4-9687-48b7-9b20-3cf10ecb3f18");
-        requestBuilder.addHeader("Cookie", "XSRF-TOKEN=530137d4-9687-48b7-9b20-3cf10ecb3f18; SESSION=MzFmMzBkZmYtYzVkMi00ZjRlLWE3ODktNDkxZjQ2NDAyMjE1");
-
         for (Map.Entry<String, String> entry : headerMap.entrySet()) {
             requestBuilder.addHeader(entry.getKey(), entry.getValue());
         }
@@ -243,13 +233,6 @@ public class ExportUtil {
                     .post(formBody);
 
             // 添加头信息
-            requestBuilder.addHeader("Accept", "application/json, text/plain, */*");
-            requestBuilder.addHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-            requestBuilder.addHeader("Referer", "http://mas.cq.hsip.gov.cn/hds/N1703.html");
-            requestBuilder.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36");
-            requestBuilder.addHeader("X-XSRF-TOKEN", "530137d4-9687-48b7-9b20-3cf10ecb3f18");
-            requestBuilder.addHeader("Cookie", "XSRF-TOKEN=530137d4-9687-48b7-9b20-3cf10ecb3f18; SESSION=MzFmMzBkZmYtYzVkMi00ZjRlLWE3ODktNDkxZjQ2NDAyMjE1");
-
             for (Map.Entry<String, String> entry : headerMap.entrySet()) {
                 requestBuilder.addHeader(entry.getKey(), entry.getValue());
             }
