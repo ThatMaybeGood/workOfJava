@@ -9,6 +9,7 @@ import com.example.auto_demo.config.AppConfig;
 import com.example.auto_demo.model.ExportExcelDTO;
 import com.example.auto_demo.util.ExportUtil;
 import com.example.auto_demo.util.HttpUtil;
+import com.example.auto_demo.util.InsuType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -180,20 +182,28 @@ public class ApiLogic {
 
         log.info(sessionId + "调两定接口[" + insutype + "]入参:" + map.toString());
 
-//        List<Map<Integer,String>> result ;
 
         byte[] result = httpUtil.postExport(config.getExportUrl(), map, headerMap);
 
         JSONArray jsonArray = null;
 
         if (result != null) {
+
+            log.info("Excel文件大小: {} 字节", result.length);
+            if(config.isSaveExcel()){
+                // 2. 生成基础文件名
+                String baseFileName = InsuType.nameOf(insutype) +""+ billDate;
+                String extension = ".xlsx";
+
+                HttpUtil.saveExcelFile(result, baseFileName,extension);
+            }
+
             // 配置驼峰转下划线
             SerializeConfig config = SerializeConfig.globalInstance;
             config.propertyNamingStrategy = PropertyNamingStrategy.SnakeCase;
 
             jsonArray = (JSONArray) JSON.toJSON(httpUtil.readExcelFile(result,insutype));
         }
-
 
         log.info(sessionId + "调两定接口[" + insutype + "]出参:" + jsonArray);
         return jsonArray;

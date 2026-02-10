@@ -35,10 +35,10 @@ public class ApiController {
         String insuType = jsonObject.getString("insutype");
         String type = jsonObject.getString("type");
 
-        JSONArray list =  apiLogic.getBillList(sessionId,fixmedinsCode,billDate,insuType,type);
+//        JSONArray list =  apiLogic.getBillList(sessionId,fixmedinsCode,billDate,insuType,type);
 
         //----------------------------增加调用文件导出-----------------------------------------
-//        JSONArray list  = apiLogic.getBillDetailExport(sessionId, fixmedinsCode, billDate, insuType, type);
+        JSONArray list  = apiLogic.getBillDetailExport(sessionId, fixmedinsCode, billDate, insuType, type);
 
         JSONObject result = new JSONObject();
         result.put("rc","1");

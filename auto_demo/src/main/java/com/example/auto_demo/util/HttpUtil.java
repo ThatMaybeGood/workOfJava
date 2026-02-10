@@ -3,11 +3,12 @@ package com.example.auto_demo.util;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.fastjson.JSON;
 import com.example.auto_demo.model.ExportExcelDTO;
-import com.google.common.io.Files;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -110,65 +111,43 @@ public class HttpUtil {
         return null;
     }
 
+    /**
+     * 保存Excel文件
+     *
+     * @param excelBytes Excel文件字节数组
+     * @param baseFileName 基础文件名（不包含扩展名）
+     * @param extension 文件扩展名（包含点号，如 ".xlsx"）
+     */
+    public static void saveExcelFile(byte[] excelBytes, String baseFileName,String extension) {
+        try {
+            // 3. 处理文件名重复
+            String fileName = baseFileName + extension;
+            Path filePath = Paths.get(fileName);
 
-//    public List<ExportExcelDTO> readExcelFile(byte[] excelBytes) {
-//        List<ExportExcelDTO> excelDTOS = new ArrayList<>();
-//
-//        try {
-//
-//            // 获取响应体字节
-//            log.info("获取到Excel文件，大小: {} 字节", excelBytes.length);
-//            // 将文件临时保存（用于调试）
-////            String tempFileName = "temp_excel_" + System.currentTimeMillis() + ".xlsx";
-////            Files.write(Paths.get(tempFileName), excelBytes);
-////            log.info("Excel文件已临时保存为: {}", tempFileName);
-//
-//            // 使用 EasyExcel 读取 Excel 内容
-//            InputStream inputStream = new ByteArrayInputStream(excelBytes);
-//            List<Map<Integer, String>> list = EasyExcel.read(inputStream)
-//                    .sheet()  // 读取第一个sheet
-//                    .headRowNumber(0)  // 从第0行开始读取数据
-//                    .doReadSync();
-//
-//            log.info("成功读取Excel数据，共 {} 行", list.size());
-//
-//            // 打印前几行数据（用于调试）
-//            if (!list.isEmpty()) {
-//                for (int i = 0; i < Math.min(list.size(), 3); i++) {
-//                    log.info("第 {} 行数据: {}", i, list.get(i));
-//                }
-//
-//                for (int i = 1; i < list.size(); i++) {
-//                    ExportExcelDTO exportExcelDTO = new ExportExcelDTO();
-//                    exportExcelDTO.setPsnNo(list.get(i).get(0));
-//                    exportExcelDTO.setPsnName(list.get(i).get(1));
-//                    exportExcelDTO.setCertno(list.get(i).get(2));
-//                    exportExcelDTO.setMdtrtId(list.get(i).get(3));
-//                    exportExcelDTO.setSetlId(list.get(i).get(4));
-//                    exportExcelDTO.setMedinsSetlId(list.get(i).get(5));
-//                    exportExcelDTO.setMsgid(list.get(i).get(5));
-//                    exportExcelDTO.setAdmDate(list.get(i).get(6));
-//                    exportExcelDTO.setDisDate(list.get(i).get(7));
-//                    exportExcelDTO.setBillDate(list.get(i).get(8));
-//                    exportExcelDTO.setMedType(list.get(i).get(9));
-//                    exportExcelDTO.setMedfeeSumamt(list.get(i).get(10));
-//                    exportExcelDTO.setTranType(list.get(i).get(10).contains("-")?"2":"1");
-//                    excelDTOS.add(exportExcelDTO);
-//                }
-//            }
-//        } catch (Exception e) {
-//            log.error("读取Excel文件异常: ", e);
-//        }
-//        return excelDTOS;
-//    }
+            int sequence = 1;
+            while (Files.exists(filePath)) {
+                fileName = baseFileName + "(" + sequence + ")" + extension;
+                filePath = Paths.get(fileName);
+                sequence++;
 
-    public List<ExportExcelDTO> readExcelFile(byte[] excelBytes,String insutype) {
-        if (excelBytes == null || excelBytes.length == 0) {
-            log.warn("Excel文件为空");
-            return Collections.emptyList();
+                // 安全限制，防止无限循环
+                if (sequence > 20) {
+                    log.error("文件名重复超过20次，不再保存文件");
+                    break;
+                }
+            }
+            // 4. 保存文件
+            Files.write(filePath, excelBytes);
+
+            log.info("Excel文件已保存为: {}", filePath.toAbsolutePath().toString());
+
+
+        } catch (Exception e) {
+            log.error("保存Excel文件失败: {}", e.getMessage(), e);
         }
+    }
 
-        log.info("Excel文件大小: {} 字节", excelBytes.length);
+    public  List<ExportExcelDTO> readExcelFile(byte[] excelBytes, String insutype) {
 
         try (InputStream inputStream = new ByteArrayInputStream(excelBytes)) {
             List<Map<Integer, String>> data = EasyExcel.read(inputStream)
@@ -186,7 +165,7 @@ public class HttpUtil {
             // 跳过表头，转换为DTO
             return data.stream()
                     .skip(1)
-                    .map(row -> convertRowToDTO(row,insutype))
+                    .map(row -> convertRowToDTO(row, insutype))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
@@ -196,7 +175,7 @@ public class HttpUtil {
         }
     }
 
-    private ExportExcelDTO convertRowToDTO(Map<Integer, String> row,String insutype) {
+    private  ExportExcelDTO convertRowToDTO(Map<Integer, String> row, String insutype) {
         if (row == null) return null;
 
         ExportExcelDTO dto = new ExportExcelDTO();
