@@ -191,7 +191,7 @@ public class ApiLogic {
             log.info("{} 导出Excel文件大小: {} 字节", sessionId, result.length);
             if(config.isSaveExcel()){
                 // 2. 生成基础文件名
-                String baseFileName = InsuType.nameOf(insutype) +""+ billDate;
+                String baseFileName = InsuType.nameOf(insutype) +" "+ billDate;
                 String extension = ".xlsx";
 
                 HttpUtil.saveExcelFile(result, baseFileName,extension,sessionId);
