@@ -67,9 +67,10 @@ public class HttpUtil {
      * @param url 导出接口URL
      * @param data 请求参数
      * @param headerMap 自定义请求头
+     * @param traceId 追踪号
      * @return
      */
-    public byte[] postExport(String url, Map<String, Object> data, Map<String, String> headerMap) {
+    public byte[] postExport(String url, Map<String, Object> data, Map<String, String> headerMap, String traceId) {
         OkHttpClient client = new OkHttpClient.Builder()
                 .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
                 .readTimeout(120, java.util.concurrent.TimeUnit.SECONDS)  //下载时间
@@ -91,9 +92,9 @@ public class HttpUtil {
                 requestBuilder.addHeader(entry.getKey(), entry.getValue());
             }
 
-            log.info("调用两定平台入参：{}", JSON.toJSONString(data));
-            log.info("调用两定平台header：{}", headerMap);
-            log.info("调用两定平台url：{}", url);
+            log.info("{} 调用两定平台导出接口入参：{}", traceId, JSON.toJSONString(data));
+            log.info("{} 调用两定平台导出接口header：{}", traceId, headerMap);
+            log.info("{} 调用两定平台导出接口url：{}", traceId, url);
 
             Request request = requestBuilder.build();
 
@@ -101,11 +102,11 @@ public class HttpUtil {
             if (response.isSuccessful()) {
                 return response.body().bytes();
             } else {
-                log.error("调用两定平台异常，状态码: {}，消息: {}", response.code(), response.message());
+                log.error("{} 调用两定平台异常，状态码: {}，消息: {}", traceId, response.code(), response.message());
             }
 
         } catch (Exception e) {
-            log.error("调用两定平台异常: ", e);
+            log.error("{} 调用两定平台异常: ", traceId, e);
             return null;
         }
         return null;
@@ -118,7 +119,7 @@ public class HttpUtil {
      * @param baseFileName 基础文件名（不包含扩展名）
      * @param extension 文件扩展名（包含点号，如 ".xlsx"）
      */
-    public static void saveExcelFile(byte[] excelBytes, String baseFileName,String extension) {
+    public static void saveExcelFile(byte[] excelBytes, String baseFileName,String extension,String traceId) {
         try {
             // 3. 处理文件名重复
             String fileName = baseFileName + extension;
@@ -132,22 +133,22 @@ public class HttpUtil {
 
                 // 安全限制，防止无限循环
                 if (sequence > 20) {
-                    log.error("文件名重复超过20次，不再保存文件");
+                    log.error("{} 文件名重复超过20次，不再保存文件", traceId);
                     break;
                 }
             }
             // 4. 保存文件
             Files.write(filePath, excelBytes);
 
-            log.info("Excel文件已保存为: {}", filePath.toAbsolutePath().toString());
+            log.info("{} Excel文件已保存为: {}", traceId, filePath.toAbsolutePath().toString());
 
 
         } catch (Exception e) {
-            log.error("保存Excel文件失败: {}", e.getMessage(), e);
+            log.error("{} 保存Excel文件失败: {}", traceId, e.getMessage(), e);
         }
     }
 
-    public  List<ExportExcelDTO> readExcelFile(byte[] excelBytes, String insutype) {
+    public  List<ExportExcelDTO> readExcelFile(byte[] excelBytes, String insutype,String traceId) {
 
         try (InputStream inputStream = new ByteArrayInputStream(excelBytes)) {
             List<Map<Integer, String>> data = EasyExcel.read(inputStream)
@@ -155,10 +156,10 @@ public class HttpUtil {
                     .headRowNumber(0)
                     .doReadSync();
 
-            log.info("读取到 {} 行数据", data.size());
+            log.info("{} 读取到 {} 行数据", traceId, data.size());
 
             if (!data.isEmpty()) {
-                log.debug("表头: {}", data.get(0));
+                log.debug("{} 表头: {}", traceId, data.get(0));
                 data.stream().limit(3).forEach(row -> log.debug("数据行: {}", row));
             }
 
@@ -170,7 +171,7 @@ public class HttpUtil {
                     .collect(Collectors.toList());
 
         } catch (Exception e) {
-            log.error("读取Excel异常", e);
+            log.error("{} 读取Excel异常: {}", traceId, e.getMessage(), e);
             return Collections.emptyList();
         }
     }

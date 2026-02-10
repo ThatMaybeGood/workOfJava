@@ -26,7 +26,7 @@ Thumbs.db
 
 # 环境变量
 .env
-*.properties
+
 
 # 其他
 *.class

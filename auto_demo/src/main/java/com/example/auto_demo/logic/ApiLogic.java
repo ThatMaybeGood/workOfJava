@@ -160,7 +160,7 @@ public class ApiLogic {
         Map<String, Object> map = new HashMap<>();
         HttpUtil httpUtil = new HttpUtil();
 
-        map.put("fixmedinsCode", fixmedinsCode);
+        map.put("fixmedinsCode", fixmedinsCode != null ? fixmedinsCode : config.getFixmedinsCode());
         map.put("setlTime", billDate);
         map.put("insutype", insutype);
         map.put("_modulePartId_", "");
@@ -180,32 +180,31 @@ public class ApiLogic {
         headerMap.put("X-XSRF-TOKEN", config.getToken());
 
 
-        log.info(sessionId + "调两定接口[" + insutype + "]入参:" + map.toString());
+        log.info("{} 发起调两定接口[{}]导出请求", sessionId, insutype);
 
-
-        byte[] result = httpUtil.postExport(config.getExportUrl(), map, headerMap);
+        byte[] result = httpUtil.postExport(config.getExportUrl(), map, headerMap,sessionId);
 
         JSONArray jsonArray = null;
 
         if (result != null) {
 
-            log.info("Excel文件大小: {} 字节", result.length);
+            log.info("{} 导出Excel文件大小: {} 字节", sessionId, result.length);
             if(config.isSaveExcel()){
                 // 2. 生成基础文件名
                 String baseFileName = InsuType.nameOf(insutype) +""+ billDate;
                 String extension = ".xlsx";
 
-                HttpUtil.saveExcelFile(result, baseFileName,extension);
+                HttpUtil.saveExcelFile(result, baseFileName,extension,sessionId);
             }
 
             // 配置驼峰转下划线
             SerializeConfig config = SerializeConfig.globalInstance;
             config.propertyNamingStrategy = PropertyNamingStrategy.SnakeCase;
 
-            jsonArray = (JSONArray) JSON.toJSON(httpUtil.readExcelFile(result,insutype));
+            jsonArray = (JSONArray) JSON.toJSON(httpUtil.readExcelFile(result,insutype,sessionId));
         }
 
-        log.info(sessionId + "调两定接口[" + insutype + "]出参:" + jsonArray);
+        log.info("{} 调两定接口[{}]出参: {}", sessionId, insutype, jsonArray);
         return jsonArray;
     }
 }
