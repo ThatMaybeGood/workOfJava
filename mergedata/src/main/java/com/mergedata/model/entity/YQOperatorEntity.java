@@ -1,6 +1,8 @@
 package com.mergedata.model.entity;
 
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -12,6 +14,7 @@ import java.time.LocalDate;
  * 医院操作员实体类
  */
 @Data
+@TableName("mpp_cash_reg_operator")
 public class YQOperatorEntity {
     /**
      * 流水号
@@ -40,6 +43,7 @@ public class YQOperatorEntity {
     /**
      * 是否有效（0:无效，1：有效）
      */
+    @TableField(value = "isvalid")
     private  String validStatus;
     /**
      * 创建人

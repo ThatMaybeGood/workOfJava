@@ -17,6 +17,12 @@ public interface YQHolidayService {
     List<YQHolidayEntity> findByDate(LocalDate date);
 
     /*
+     * 通过年份查询节假日信息
+     */
+    List<YQHolidayEntity> findByYear(String year);
+
+
+    /*
      * 单条写入
      */
     Boolean insert(YQHolidayEntity holiday);

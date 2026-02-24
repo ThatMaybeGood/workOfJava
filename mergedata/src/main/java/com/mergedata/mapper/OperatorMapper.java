@@ -1,5 +1,6 @@
 package com.mergedata.mapper;
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.mergedata.model.entity.YQOperatorEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -8,7 +9,7 @@ import org.springframework.cache.annotation.Cacheable;
 import java.util.List;
 
 @Mapper
-public interface OperatorMapper {
+public interface OperatorMapper extends BaseMapper<YQOperatorEntity> {
 
     /**
      * 查询所有员工信息

@@ -1,6 +1,8 @@
 package com.mergedata.server.impl;
 
+import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.mergedata.mapper.OperatorMapper;
+import com.mergedata.model.entity.InpCashSubEntity;
 import com.mergedata.model.entity.YQOperatorEntity;
 import com.mergedata.server.YQOperatorService;
 import com.mergedata.util.PrimaryKeyGenerator;
@@ -9,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -31,7 +34,17 @@ public class OperatorServiceImpl implements YQOperatorService {
         return operatorMapper.selectByID(operator.getOperatorNo());
     }
 
-     /**
+    @Override
+    public List<YQOperatorEntity> findByCategory(String category) {
+
+        List<YQOperatorEntity> subs = Db.lambdaQuery(YQOperatorEntity.class)
+                .eq(YQOperatorEntity::getCategory, category)
+                .list();
+
+        return subs;
+    }
+
+    /**
       * 插入单条员工信息
       * @param yqOperatorsEntity 员工实体
       * @return 是否成功

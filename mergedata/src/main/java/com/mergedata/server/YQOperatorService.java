@@ -10,8 +10,16 @@ public interface YQOperatorService {
      */
     List<YQOperatorEntity> findAll();
 
-
+    /*
+     * 根据ID查询操作员
+     */
     List<YQOperatorEntity> findByID(YQOperatorEntity operator);
+
+    /*
+     * 根据门诊/住院查询  门诊 0  住院 1
+     */
+    List<YQOperatorEntity> findByCategory(String category);
+
 
     /*
      * 单条插入操作员数据

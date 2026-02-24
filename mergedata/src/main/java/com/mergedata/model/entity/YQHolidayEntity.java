@@ -1,5 +1,6 @@
 package com.mergedata.model.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
@@ -35,6 +36,7 @@ public class YQHolidayEntity {
     /**
      * 有效状态
      */
+    @TableField(value = "isvalid")
     private String validStatus;
     /**
      * 节假日类型  周末，节假日，工作日 0，1，2

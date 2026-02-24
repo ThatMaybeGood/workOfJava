@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -37,6 +38,12 @@ public class HolidayServiceImpl implements YQHolidayService {
     public List<YQHolidayEntity> findByDate(LocalDate reportDate) {
          return holidayMapper.selectByDate(reportDate);
     }
+
+    @Override
+    public List<YQHolidayEntity> findByYear(String year) {
+        return holidayMapper.selectByYear(Integer.valueOf(year));
+    }
+
 
     /**
      * 插入或更新节假日信息
