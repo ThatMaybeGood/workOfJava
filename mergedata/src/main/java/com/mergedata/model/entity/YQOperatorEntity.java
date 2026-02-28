@@ -8,6 +8,7 @@ import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
@@ -77,6 +78,10 @@ public class YQOperatorEntity {
      * 是否在ATM机内（0:否，1：是）
      */
     private Integer atm;
+    /*
+     *  备用金
+     */
+    private BigDecimal pettyCash;
 
 }
 

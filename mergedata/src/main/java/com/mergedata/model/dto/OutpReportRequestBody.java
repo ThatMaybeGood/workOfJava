@@ -30,6 +30,12 @@ public class OutpReportRequestBody {
     @JsonProperty("atm")
     private Integer atm;
 
+    /*
+     * 是否汇总
+     */
+    @JsonProperty("total_flag")
+    private Integer totalFlag;
+
     private String extendParams1;
     private String extendParams2;
     private String extendParams3;

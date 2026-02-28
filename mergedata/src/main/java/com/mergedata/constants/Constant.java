@@ -104,6 +104,12 @@ public class Constant {
      */
     public static final String  HOLIDAY_PRE= "3";
 
+    /*
+     * 月末最后一天且是节假日
+     */
+    public static final String  HOLIDAY_MONTH_LASTDAY= "4";
+
+
     //===============门诊/住院类型========================
     /*
      * 门诊

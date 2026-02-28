@@ -89,6 +89,11 @@ public class HolidayServiceImpl implements YQHolidayService {
 //        }
 
         if (isHoliday( holidayDate)){
+            //判断日期是否节假日 且是月末最后一天
+            if(holidayDate.getDayOfMonth() == holidayDate.lengthOfMonth()) {
+                return Constant.HOLIDAY_MONTH_LASTDAY;
+            }
+
            return Constant.HOLIDAY_IS;
         }else {
             // ❗当前是工作日 且 前一天是节假日/周末
@@ -99,6 +104,7 @@ public class HolidayServiceImpl implements YQHolidayService {
             if(isHoliday(holidayDate.plusDays(1))){
                 return Constant.HOLIDAY_PRE;
             }
+
         }
         return Constant.HOLIDAY_NOT;
     }

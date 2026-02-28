@@ -15,6 +15,7 @@ import com.mergedata.model.entity.*;
 import com.mergedata.server.HisDataService;
 import com.mergedata.server.ReportService;
 import com.mergedata.server.YQHolidayService;
+import com.mergedata.server.YQOperatorService;
 import com.mergedata.util.PrimaryKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -52,6 +53,8 @@ public class ReportServiceImpl implements ReportService {
     @Autowired
     YQHolidayService holidayService;
 
+    @Autowired
+    YQOperatorService operatorService;
 
      /**
       * 获取门诊报表数据
@@ -72,7 +75,9 @@ public class ReportServiceImpl implements ReportService {
 
             // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
             if (outpResults.isEmpty() || isInitFlag) {
-                outpResults = getOutpReportData(currentDate);
+
+                outpResults = getOutpReportData(currentDate,body.getTotalFlag());
+
                 //查询时候数据库没有相关的数据，插入数据库，此处调用 firstInsert 方法批量插入数据
                 isInitInsertOutp(outpResults, currentDate);
             }
@@ -293,16 +298,15 @@ public class ReportServiceImpl implements ReportService {
     private void computeOutpFields(OutpReportVO dto, LocalDate currtDate, String holidayType,
                                    Set<LocalDate> holidaySet, Map<LocalDate, Map<String, OutpReportVO>> cache) {
 
-        // 执行回溯计算逻辑   1. 执行回溯计算逻辑 (A = B - Sum(C) - D)
         handleOutpBacktrackLogic(dto, currtDate, holidayType, holidaySet, cache);
 
-        // 5.实收现金数 = 实收报表数 + 当日暂收款
-        dto.setActualCashAmount(getSafeBigDecimal(dto.getActualReportAmount()).add(getSafeBigDecimal(dto.getCurrentTemporaryReceipt())));
-
-        // 6.留存数差额 = 留存现金 - 备用金 + 实收报表数
-        dto.setRetainedDifference(getSafeBigDecimal(dto.getRetainedCash())
-                .subtract(getSafeBigDecimal(dto.getPettyCash()))
-                .add(getSafeBigDecimal(dto.getActualReportAmount())));
+//        // 5.实收现金数 = 实收报表数 + 当日暂收款
+//        dto.setActualCashAmount(getSafeBigDecimal(dto.getActualReportAmount()).add(getSafeBigDecimal(dto.getCurrentTemporaryReceipt())));
+//
+//        // 6.留存数差额 = 留存现金 - 备用金 + 实收报表数
+//        dto.setRetainedDifference(getSafeBigDecimal(dto.getRetainedCash())
+//                .subtract(getSafeBigDecimal(dto.getPettyCash()))
+//                .add(getSafeBigDecimal(dto.getActualReportAmount())));
     }
 
 
@@ -787,8 +791,8 @@ public class ReportServiceImpl implements ReportService {
 
     //  结果类来封装回溯计算的结果
     private static class BacktrackResult {
-        BigDecimal totalHolidayReceipts = BigDecimal.ZERO; // 对应 totalC
-        BigDecimal lastWorkdayReceipt = BigDecimal.ZERO;   // 对应 dAmountFriday
+        BigDecimal backReportAmount = BigDecimal.ZERO;  // 应交报表数
+        BigDecimal backPreviousTemporaryReceipt = BigDecimal.ZERO;   // 前日暂收款
     }
 
     /** 获取门诊报表---优化了回溯查询
@@ -796,13 +800,16 @@ public class ReportServiceImpl implements ReportService {
      * 2. 以操作员为基准进行匹配和计算。
      * 3. 对周一进行特殊的回溯计算 (A = B - Sum(C) - D)。
      * 4. 对其他工作日进行正常计算 (A = B - C - D)。
-     *
+     * @param currtDate 日期
+     * @param  totalFlag 汇总标志
      * @return 包含所有操作员计算结果的 ReportDTO 列表
      */
-    public List<OutpReportVO> getOutpReportData(LocalDate currtDate) {
+    public List<OutpReportVO> getOutpReportData(LocalDate currtDate,Integer totalFlag) {
         try {
             String holidayType = holidayService.queryDateType(currtDate, Constant.TYPE_OUTP);
+
             List<YQOperatorEntity> operators = operatorMapper.selectByCategory(Constant.TYPE_OUTP);
+
             Set<LocalDate> holidaySet = holidayMapper.selectByYear(currtDate.getYear()).stream()
                     .map(YQHolidayEntity::getHolidayDate).collect(Collectors.toSet());
 
@@ -812,6 +819,7 @@ public class ReportServiceImpl implements ReportService {
                     .collect(Collectors.toMap(HisOutpIncomeResponseDTO::getOperatorNo, Function.identity(), (v1, v2) -> v1));
             Map<String, YQCashRegRecordEntity> cashMap = cashMapper.selectByDate(currtDate).stream()
                     .collect(Collectors.toMap(YQCashRegRecordEntity::getOperatorNo, Function.identity(), (v1, v2) -> v1));
+
             // 获取历史数据（昨日）
             Map<String, OutpReportVO> yesterdayMap = outpReportMapper.selectReportByDate(currtDate.minusDays(1)).stream()
                     .collect(Collectors.toMap(OutpReportVO::getOperatorNo, Function.identity(), (v1, v2) -> v1));
@@ -827,6 +835,7 @@ public class ReportServiceImpl implements ReportService {
                 dto.setSerialNo(batchPk);
                 dto.setOperatorNo(operator.getOperatorNo());
                 dto.setOperatorName(operator.getOperatorName());
+                dto.setPettyCash(operator.getPettyCash());
                 dto.setReportDate(currtDate);
 
                 // 1. 基础 HIS 收入赋值
@@ -841,14 +850,41 @@ public class ReportServiceImpl implements ReportService {
                     dto.setReportAmount(BigDecimal.ZERO);
                 }
 
-                // 填充昨日和现金记录
-                OutpReportVO yest = yesterdayMap.get(operator.getOperatorNo());
-                dto.setPreviousTemporaryReceipt(yest != null ? getSafeBigDecimal(yest.getCurrentTemporaryReceipt()) : BigDecimal.ZERO);
+
                 YQCashRegRecordEntity cashRec = cashMap.get(operator.getOperatorNo());
                 dto.setRetainedCash(cashRec != null ? getSafeBigDecimal(cashRec.getRetainedCash()) : BigDecimal.ZERO);
 
-                //统一计算核心 自动处理回溯缓存
-                computeOutpFields(dto, currtDate, holidayType, holidaySet, historyCache);
+
+                /*
+                1、判断是否汇总
+                    1.1、是汇总 ，且对应日期 是节假日 且是月末最后一天
+                    1.2、是汇总，且对应日期 是节假日后工作日第一天
+                */
+                if (Constant.YES.equals(totalFlag)) {
+                    if (holidayType.equals(Constant.HOLIDAY_AFTER) || holidayType.equals(Constant.HOLIDAY_MONTH_LASTDAY)) {
+                        //统一计算核心 自动处理回溯缓存
+                        computeOutpFields(dto, currtDate, holidayType, holidaySet, historyCache);
+                    }
+                }else {
+                    //应交报表数  =  his预交金 + his医疗收入
+                    dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome())) ;
+                    //前日暂收款  =  前一天的 当日 暂收款
+                    OutpReportVO yest = yesterdayMap.get(operator.getOperatorNo());
+                    dto.setPreviousTemporaryReceipt(yest != null ? getSafeBigDecimal(yest.getCurrentTemporaryReceipt()) : BigDecimal.ZERO);
+                }
+
+
+                // 实交报表数据 = 应交报表数 - 前日暂收款
+                dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()));
+
+                // 5.实收现金数 = 实收报表数 + 当日暂收款
+                dto.setActualCashAmount(getSafeBigDecimal(dto.getActualReportAmount()).add(getSafeBigDecimal(dto.getCurrentTemporaryReceipt())));
+
+                // 6.留存数差额 = 留存现金 - 备用金 + 实收报表数
+                dto.setRetainedDifference(getSafeBigDecimal(dto.getRetainedCash())
+                        .subtract(getSafeBigDecimal(dto.getPettyCash()))
+                        .add(getSafeBigDecimal(dto.getActualReportAmount())));
+
 
                 resultList.add(dto);
             }
@@ -869,8 +905,10 @@ public class ReportServiceImpl implements ReportService {
         if (Constant.HOLIDAY_AFTER.equals(holidayType)) {
             // 回溯计算 A = B - Sum(C) - D
             BacktrackResult res = executeBacktrack(dto.getOperatorNo(), targetDate, holidaySet, cache);
-            dto.setActualReportAmount(dto.getReportAmount().subtract(res.totalHolidayReceipts).subtract(res.lastWorkdayReceipt));
-            dto.setHolidayTemporaryReceipt(res.totalHolidayReceipts);
+
+            dto.setReportAmount(res.backReportAmount);
+            dto.setPreviousTemporaryReceipt(res.backPreviousTemporaryReceipt);
+
         } else if (Constant.HOLIDAY_IS.equals(holidayType)) {
             dto.setActualReportAmount(dto.getReportAmount().subtract(getSafeBigDecimal(dto.getHolidayTemporaryReceipt())));
             // 节假日且是月末需特殊处理...
@@ -898,13 +936,13 @@ public class ReportServiceImpl implements ReportService {
             BigDecimal c = hist != null ? getSafeBigDecimal(hist.getHolidayTemporaryReceipt()) : BigDecimal.ZERO;
 
             if (holidaySet.contains(current)) {
-                result.totalHolidayReceipts = result.totalHolidayReceipts.add(c);
+                result.backReportAmount = result.backReportAmount.add(c);
                 if (current.getDayOfMonth() == 1) break;
                 current = current.minusDays(1);
             } else {
                 // 找到工作日（周五）
-                result.totalHolidayReceipts = result.totalHolidayReceipts.add(c);
-                result.lastWorkdayReceipt = hist != null ? getSafeBigDecimal(hist.getCurrentTemporaryReceipt()) : BigDecimal.ZERO;
+                result.backReportAmount = result.backReportAmount.add(c);
+                result.backPreviousTemporaryReceipt = hist != null ? getSafeBigDecimal(hist.getCurrentTemporaryReceipt()) : BigDecimal.ZERO;
                 break;
             }
         }

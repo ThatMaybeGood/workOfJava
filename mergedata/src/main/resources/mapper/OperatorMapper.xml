@@ -18,6 +18,7 @@
         <result column="row_num" property="rowNum"/>
         <result column="inp_window" property="inpWindow"/>
         <result column="atm" property="atm"/>
+        <result column="petty_cash" property="pettyCash"/>
 
 
     </resultMap>
@@ -32,7 +33,7 @@
         create_time,
          updator,
         update_time,
-        update_count,serial_no,row_num,inp_window,atm,category
+        update_count,serial_no,row_num,inp_window,atm,category,petty_cash
         FROM
         MPP_CASH_REG_OPERATOR
         WHERE
@@ -43,7 +44,7 @@
     <select id="selectByCategory" resultMap="YQOperatorMap">
         SELECT
         operator_no, operator_name, department_id, isvalid, creator,
-        create_time,  updator, update_time, update_count,serial_no,row_num,inp_window,atm,category
+        create_time,  updator, update_time, update_count,serial_no,row_num,inp_window,atm,category,petty_cash
         FROM
         MPP_CASH_REG_OPERATOR
         WHERE isvalid = '1'
@@ -54,7 +55,7 @@
     <select id="selectByID" resultMap="YQOperatorMap">
         SELECT
         operator_no, operator_name, department_id, isvalid, creator,
-        create_time,  updator, update_time, update_count,serial_no,row_num,inp_window,atm,category
+        create_time,  updator, update_time, update_count,serial_no,row_num,inp_window,atm,category,petty_cash
         FROM
         MPP_CASH_REG_OPERATOR
         WHERE
@@ -65,7 +66,7 @@
     <insert id="insert" parameterType="com.mergedata.model.entity.YQOperatorEntity">
         INSERT INTO MPP_CASH_REG_OPERATOR (
         operator_no, operator_name, department_id,  creator,category,
-          updator, update_time,serial_no,row_num,inp_window,atm
+          updator, update_time,serial_no,row_num,inp_window,atm,petty_cash
         )
         VALUES (
         #{operatorNo , jdbcType=VARCHAR },
@@ -76,7 +77,8 @@
         #{serialNo , jdbcType=VARCHAR },
         #{rowNum , jdbcType=VARCHAR },
         #{inpWindow , jdbcType=VARCHAR },
-        #{atm , jdbcType=VARCHAR }
+        #{atm , jdbcType=VARCHAR },
+        #{petty_cash, jdbcType=NUMERIC},
         )
     </insert>
 

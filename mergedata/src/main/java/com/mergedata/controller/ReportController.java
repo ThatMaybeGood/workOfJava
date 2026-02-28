@@ -55,7 +55,7 @@ public class ReportController {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         Integer b = report.insertOutpReport(list);
 
-        if (Constant.SUCCESS.equals(b)) {
+        if (!Constant.SUCCESS.equals(b)) {
             return ApiResponse.failure("门诊报表写入失败！");
         }
         return ApiResponse.success("门诊报表写入成功！");

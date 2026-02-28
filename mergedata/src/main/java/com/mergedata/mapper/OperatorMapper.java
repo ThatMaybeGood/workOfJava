@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.mergedata.model.entity.YQOperatorEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 
 import java.util.List;
@@ -36,13 +37,18 @@ public interface OperatorMapper extends BaseMapper<YQOperatorEntity> {
     /*
      * 插入单条员工信息
      */
+    @CacheEvict(value = "operators", allEntries = true)
     int insert(YQOperatorEntity yqOperatorsEntity);
     /*
      * 批量插入员工列表
      */
+    @CacheEvict(value = "operators", allEntries = true)
     int batchInsertList(List<YQOperatorEntity> yqOperatorEntities);
 
-
+    /*
+     *  清除缓存 CacheEvict
+     */
+    @CacheEvict(value = "operators", allEntries = true)
     int delete(String operatorNo);
 
 

@@ -55,10 +55,13 @@ public class OperatorServiceImpl implements YQOperatorService {
 
         yqOperatorsEntity.setRowNum(size+1);
 
+        List<YQOperatorEntity> list = Db.lambdaQuery(YQOperatorEntity.class).eq(YQOperatorEntity::getSerialNo, yqOperatorsEntity.getSerialNo()).list();
+        if (!list.isEmpty() || list.size() != 0 ) {
+            delete(yqOperatorsEntity);
+        }
+
         PrimaryKeyGenerator pk = new PrimaryKeyGenerator();
-
         yqOperatorsEntity.setSerialNo(pk.generateKey());
-
         int insert = operatorMapper.insert(yqOperatorsEntity);
 
         return insert > 0;
