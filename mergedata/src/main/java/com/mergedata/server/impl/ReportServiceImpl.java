@@ -804,7 +804,7 @@ public class ReportServiceImpl implements ReportService {
      * @param  totalFlag 汇总标志
      * @return 包含所有操作员计算结果的 ReportDTO 列表
      */
-    public List<OutpReportVO> getOutpReportData(LocalDate currtDate,Integer totalFlag) {
+    public List<OutpReportVO> getOutpReportData(LocalDate currtDate,String totalFlag) {
         try {
             String holidayType = holidayService.queryDateType(currtDate, Constant.TYPE_OUTP);
 
@@ -860,11 +860,12 @@ public class ReportServiceImpl implements ReportService {
                     1.1、是汇总 ，且对应日期 是节假日 且是月末最后一天
                     1.2、是汇总，且对应日期 是节假日后工作日第一天
                 */
-                if (Constant.YES.equals(totalFlag)) {
-                    if (holidayType.equals(Constant.HOLIDAY_AFTER) || holidayType.equals(Constant.HOLIDAY_MONTH_LASTDAY)) {
+                boolean isSpecialHoliday = Constant.YES.equals(totalFlag)
+                        && (Constant.HOLIDAY_AFTER.equals(holidayType) || Constant.HOLIDAY_MONTH_LASTDAY.equals(holidayType));
+
+                if (isSpecialHoliday) {
                         //统一计算核心 自动处理回溯缓存
                         computeOutpFields(dto, currtDate, holidayType, holidaySet, historyCache);
-                    }
                 }else {
                     //应交报表数  =  his预交金 + his医疗收入
                     dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome())) ;
@@ -897,7 +898,7 @@ public class ReportServiceImpl implements ReportService {
 
 
     /**
-     * 封装回溯逻辑，使用缓存减少数据库IO
+     * 封装回溯逻辑，缓存减少数据库IO
      */
     private void handleOutpBacktrackLogic(OutpReportVO dto, LocalDate targetDate, String holidayType,
                                           Set<LocalDate> holidaySet, Map<LocalDate, Map<String, OutpReportVO>> cache) {
@@ -909,14 +910,14 @@ public class ReportServiceImpl implements ReportService {
             dto.setReportAmount(res.backReportAmount);
             dto.setPreviousTemporaryReceipt(res.backPreviousTemporaryReceipt);
 
-        } else if (Constant.HOLIDAY_IS.equals(holidayType)) {
-            dto.setActualReportAmount(dto.getReportAmount().subtract(getSafeBigDecimal(dto.getHolidayTemporaryReceipt())));
-            // 节假日且是月末需特殊处理...
-        } else if (Constant.HOLIDAY_PRE.equals(holidayType)) {
-            dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()).subtract(getSafeBigDecimal(dto.getCurrentTemporaryReceipt())));
-        } else {
-            dto.setActualReportAmount(dto.getReportAmount());
-            dto.setHolidayTemporaryReceipt(BigDecimal.ZERO);
+//        } else if (Constant.HOLIDAY_IS.equals(holidayType)) {
+//            dto.setActualReportAmount(dto.getReportAmount().subtract(getSafeBigDecimal(dto.getHolidayTemporaryReceipt())));
+//            // 节假日且是月末需特殊处理...
+//        } else if (Constant.HOLIDAY_PRE.equals(holidayType)) {
+//            dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()).subtract(getSafeBigDecimal(dto.getCurrentTemporaryReceipt())));
+//        } else {
+//            dto.setActualReportAmount(dto.getReportAmount());
+//            dto.setHolidayTemporaryReceipt(BigDecimal.ZERO);
         }
     }
 
@@ -933,16 +934,25 @@ public class ReportServiceImpl implements ReportService {
                             .collect(Collectors.toMap(OutpReportVO::getOperatorNo, Function.identity(), (v1,v2)->v1)));
 
             OutpReportVO hist = dayData.get(opNo);
-            BigDecimal c = hist != null ? getSafeBigDecimal(hist.getHolidayTemporaryReceipt()) : BigDecimal.ZERO;
+            BigDecimal c = hist != null ? getSafeBigDecimal(hist.getReportAmount()) : BigDecimal.ZERO;
+            BigDecimal b= hist != null ? getSafeBigDecimal(hist.getPreviousTemporaryReceipt()) : BigDecimal.ZERO;
+
+            //再跳出循环之前 都应该累加
+            result.backReportAmount = result.backReportAmount.add(c);
 
             if (holidaySet.contains(current)) {
-                result.backReportAmount = result.backReportAmount.add(c);
-                if (current.getDayOfMonth() == 1) break;
+//                result.backReportAmount = result.backReportAmount.add(c);
+                //月初1号退出循环
+                if (current.getDayOfMonth() == 1){
+                    result.backPreviousTemporaryReceipt =  b;
+                    break;
+                }
                 current = current.minusDays(1);
+
             } else {
                 // 找到工作日（周五）
-                result.backReportAmount = result.backReportAmount.add(c);
-                result.backPreviousTemporaryReceipt = hist != null ? getSafeBigDecimal(hist.getCurrentTemporaryReceipt()) : BigDecimal.ZERO;
+//                result.backReportAmount = result.backReportAmount.add(c);
+                result.backPreviousTemporaryReceipt =  b;
                 break;
             }
         }

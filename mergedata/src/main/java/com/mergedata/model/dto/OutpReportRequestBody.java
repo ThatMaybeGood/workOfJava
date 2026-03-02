@@ -34,7 +34,7 @@ public class OutpReportRequestBody {
      * 是否汇总
      */
     @JsonProperty("total_flag")
-    private Integer totalFlag;
+    private String totalFlag;
 
     private String extendParams1;
     private String extendParams2;

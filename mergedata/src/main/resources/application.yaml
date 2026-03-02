@@ -34,14 +34,14 @@ mybatis-plus:
 logging:
   level:
     # 保持 MyBatis-Plus 的 INFO 或 DEBUG 级别（如果需要查看框架内部信息）
-    com.baomidou.mybatisplus: info
+    com.baomidou.mybatisplus: debug
 
     # 将您的 Mapper 接口所在包设置为 INFO
     # INFO 级别会打印 SQL 和参数，但不会打印 Row 数据
-    com.mergedata.mapper: info
+    com.mergedata.mapper: debug
 
     # 确保 MyBatis 的执行器日志也设置为 INFO (如果仅设置 Mapper 包无效)
-    org.apache.ibatis.executor: info
+    org.apache.ibatis.executor: debug
 
 #    com.mergedata.util: info
 
