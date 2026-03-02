@@ -47,5 +47,9 @@ public class HisInpIncomeResponseDTO {
     @JsonProperty("report_date")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDate reportDate;
-
+    /*
+     * DB_USER 登录用户
+     */
+    @JsonProperty("db_user")
+    private String dbUser;
 }

@@ -3,6 +3,7 @@ package com.mergedata.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -82,6 +83,9 @@ public class YQOperatorEntity {
      *  备用金
      */
     private BigDecimal pettyCash;
-
+    /*
+     * DB_USER 登录用户
+     */
+    private String dbUser;
 }
 
