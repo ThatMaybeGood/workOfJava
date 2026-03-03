@@ -11,9 +11,15 @@ public interface YQOperatorService {
     List<YQOperatorEntity> findAll();
 
     /*
-     * 根据ID查询操作员
+     * 根据ID查询操作员,即db_user
      */
     List<YQOperatorEntity> findByID(YQOperatorEntity operator);
+
+    /*
+     * 根据主键ID查询
+     */
+    List<YQOperatorEntity> findBySerialNo(YQOperatorEntity operator);
+
 
     /*
      * 根据门诊/住院查询  门诊 0  住院 1

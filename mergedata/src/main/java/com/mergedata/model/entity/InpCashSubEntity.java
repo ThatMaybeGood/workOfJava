@@ -135,6 +135,8 @@ public class InpCashSubEntity {
     private String createdBy;   //创建人
     @TableField("updated_by")
     private String updatedBy;   //更新人
+    @TableField("db_user")
+    private String dbUser;
 
 
     //  重写 Getter 方法

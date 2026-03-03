@@ -165,4 +165,10 @@ public class OutpReportVO {
      */
     @JsonProperty("amt")
     private Integer atm;
+
+    /*
+     * 登录用户ID
+     */
+     @JsonProperty("db_user")
+     private String dbUser;
 }

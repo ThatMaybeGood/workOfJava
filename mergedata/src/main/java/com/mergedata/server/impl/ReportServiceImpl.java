@@ -170,7 +170,7 @@ public class ReportServiceImpl implements ReportService {
 
                // 所有明细记录使用同一个主键作为外键
                sub.setSerialNo(pk);
-               sub.setHisOperatorNo(outpReportVO.getOperatorNo());
+               sub.setDbUser(outpReportVO.getDbUser());
                sub.setHisOperatorName(outpReportVO.getOperatorName());
 
                //添加 结账序号 结账时间  2025.12.31
@@ -415,7 +415,7 @@ public class ReportServiceImpl implements ReportService {
 
             // 1. 获取所有必需的原始数据
             List<YQHolidayEntity> holidays = holidayMapper.selectByYear(currtDate.getYear());
-            List<YQOperatorEntity> operators = operatorMapper.selectByCategory(Constant.TYPE_INP);
+            List<YQOperatorEntity> operators = operatorService.findByCategory(Constant.TYPE_INP);
             List<YQCashRegRecordEntity> yqRecordList = cashMapper.selectByDate(currtDate);
 
             // 假设 HIS 接口需要 String，则转换
@@ -435,10 +435,10 @@ public class ReportServiceImpl implements ReportService {
 
             // 2. 数据预处理：转换为 Map/Set (保持不变)
             Map<String, HisInpIncomeResponseDTO> hisDataMap = hisInpIncomeResponseDTOList.stream()
-                    .collect(Collectors.toMap(HisInpIncomeResponseDTO::getOperatorNo, Function.identity(), (v1, v2) -> v1));
+                    .collect(Collectors.toMap(HisInpIncomeResponseDTO::getDbUser, Function.identity(), (v1, v2) -> v1));
 
             Map<String, YQCashRegRecordEntity> cashMap = yqRecordList.stream()
-                    .collect(Collectors.toMap(YQCashRegRecordEntity::getOperatorNo, Function.identity(), (v1, v2) -> v1));
+                    .collect(Collectors.toMap(YQCashRegRecordEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
 
             Set<LocalDate> holidaySet = holidays.stream()
                     .map(YQHolidayEntity::getHolidayDate)
@@ -459,7 +459,7 @@ public class ReportServiceImpl implements ReportService {
                 count++;
 
                 inpCashSub.setSerialNo(pk);
-                inpCashSub.setOperatorNo(operator.getOperatorNo());
+                inpCashSub.setDbUser(operator.getDbUser());
                 inpCashSub.setOperatorName(operator.getOperatorName());
                 inpCashSub.setCreatedTime(LocalDateTime.now());
 
@@ -468,11 +468,11 @@ public class ReportServiceImpl implements ReportService {
                 // =========================================================================
 
                 // 1. 获取当前操作员的 HIS 收入数据 (保持不变)
-                HisInpIncomeResponseDTO hisInpIncomeResponseDTO = hisDataMap.get(operator.getOperatorNo());
+                HisInpIncomeResponseDTO hisInpIncomeResponseDTO = hisDataMap.get(operator.getDbUser());
 
                 // 2. 从昨日数据 (preReport) 查找操作员的记录 (保持不变)
                 InpCashSubEntity yesterdayOutpReportVO = preInpReportSub.stream()
-                        .filter(r -> operator.getOperatorNo().equals(r.getOperatorNo()))
+                        .filter(r -> operator.getDbUser().equals(r.getDbUser()))
                         .findFirst()
                         .orElse(null);
 
@@ -488,7 +488,7 @@ public class ReportServiceImpl implements ReportService {
                     inpCashSub.setPreviousDayAdvanceReceipt(getSafeBigDecimal(yesterdayOutpReportVO.getPreviousDayAdvanceReceipt()));
                 }
 
-                YQCashRegRecordEntity cashRecord = cashMap.get(operator.getOperatorNo());
+                YQCashRegRecordEntity cashRecord = cashMap.get(operator.getDbUser());
 
                 //获取小程序数据源
                 if (cashRecord != null) {
@@ -565,7 +565,7 @@ public class ReportServiceImpl implements ReportService {
 
                 // 所有明细记录使用同一个主键作为外键
                 sub.setSerialNo(pk);
-                sub.setHisOperatorNo(outpReportVO.getOperatorNo());
+                sub.setHisOperatorNo(outpReportVO.getDbUser());
                 sub.setHisOperatorName(outpReportVO.getOperatorName());
 
                 //添加 结账序号 结账时间  2025.12.31
@@ -808,7 +808,7 @@ public class ReportServiceImpl implements ReportService {
         try {
             String holidayType = holidayService.queryDateType(currtDate, Constant.TYPE_OUTP);
 
-            List<YQOperatorEntity> operators = operatorMapper.selectByCategory(Constant.TYPE_OUTP);
+            List<YQOperatorEntity> operators = operatorService.findByCategory(Constant.TYPE_OUTP);
 
             Set<LocalDate> holidaySet = holidayMapper.selectByYear(currtDate.getYear()).stream()
                     .map(YQHolidayEntity::getHolidayDate).collect(Collectors.toSet());
@@ -816,13 +816,13 @@ public class ReportServiceImpl implements ReportService {
 
             // 预加载 HIS 数据和现金记录
             Map<String, HisOutpIncomeResponseDTO> hisDataMap = hisdata.findByDateOutp(currtDate.toString()).stream()
-                    .collect(Collectors.toMap(HisOutpIncomeResponseDTO::getOperatorNo, Function.identity(), (v1, v2) -> v1));
+                    .collect(Collectors.toMap(HisOutpIncomeResponseDTO::getDbUser, Function.identity(), (v1, v2) -> v1));
             Map<String, YQCashRegRecordEntity> cashMap = cashMapper.selectByDate(currtDate).stream()
-                    .collect(Collectors.toMap(YQCashRegRecordEntity::getOperatorNo, Function.identity(), (v1, v2) -> v1));
+                    .collect(Collectors.toMap(YQCashRegRecordEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
 
             // 获取历史数据（昨日）
             Map<String, OutpReportVO> yesterdayMap = outpReportMapper.selectReportByDate(currtDate.minusDays(1)).stream()
-                    .collect(Collectors.toMap(OutpReportVO::getOperatorNo, Function.identity(), (v1, v2) -> v1));
+                    .collect(Collectors.toMap(OutpReportVO::getDbUser, Function.identity(), (v1, v2) -> v1));
 
 
             // 增加历史日期查询缓存，避免 N+1 问题 ---
@@ -833,13 +833,13 @@ public class ReportServiceImpl implements ReportService {
             for (YQOperatorEntity operator : operators) {
                 OutpReportVO dto = new OutpReportVO();
                 dto.setSerialNo(batchPk);
-                dto.setOperatorNo(operator.getOperatorNo());
+                dto.setDbUser(operator.getDbUser());
                 dto.setOperatorName(operator.getOperatorName());
                 dto.setPettyCash(operator.getPettyCash());
                 dto.setReportDate(currtDate);
 
                 // 1. 基础 HIS 收入赋值
-                HisOutpIncomeResponseDTO hisDto = hisDataMap.get(operator.getOperatorNo());
+                HisOutpIncomeResponseDTO hisDto = hisDataMap.get(operator.getDbUser());
                 if (hisDto != null) {
                     dto.setHisAdvancePayment(getSafeBigDecimal(hisDto.getHisAdvancePayment()));
                     dto.setHisMedicalIncome(getSafeBigDecimal(hisDto.getHisMedicalIncome()));
@@ -851,7 +851,7 @@ public class ReportServiceImpl implements ReportService {
                 }
 
 
-                YQCashRegRecordEntity cashRec = cashMap.get(operator.getOperatorNo());
+                YQCashRegRecordEntity cashRec = cashMap.get(operator.getDbUser());
                 dto.setRetainedCash(cashRec != null ? getSafeBigDecimal(cashRec.getRetainedCash()) : BigDecimal.ZERO);
 
 
@@ -870,7 +870,7 @@ public class ReportServiceImpl implements ReportService {
                     //应交报表数  =  his预交金 + his医疗收入
                     dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome())) ;
                     //前日暂收款  =  前一天的 当日 暂收款
-                    OutpReportVO yest = yesterdayMap.get(operator.getOperatorNo());
+                    OutpReportVO yest = yesterdayMap.get(operator.getDbUser());
                     dto.setPreviousTemporaryReceipt(yest != null ? getSafeBigDecimal(yest.getCurrentTemporaryReceipt()) : BigDecimal.ZERO);
                 }
 
@@ -905,7 +905,7 @@ public class ReportServiceImpl implements ReportService {
 
         if (Constant.HOLIDAY_AFTER.equals(holidayType)) {
             // 回溯计算 A = B - Sum(C) - D
-            BacktrackResult res = executeBacktrack(dto.getOperatorNo(), targetDate, holidaySet, cache);
+            BacktrackResult res = executeBacktrack(dto.getDbUser(), targetDate, holidaySet, cache);
 
             dto.setReportAmount(res.backReportAmount);
             dto.setPreviousTemporaryReceipt(res.backPreviousTemporaryReceipt);
@@ -931,7 +931,7 @@ public class ReportServiceImpl implements ReportService {
             // 从缓存获取，没命中则查数据库
             Map<String, OutpReportVO> dayData = cache.computeIfAbsent(current,
                     date -> outpReportMapper.selectReportByDate(date).stream()
-                            .collect(Collectors.toMap(OutpReportVO::getOperatorNo, Function.identity(), (v1,v2)->v1)));
+                            .collect(Collectors.toMap(OutpReportVO::getDbUser, Function.identity(), (v1,v2)->v1)));
 
             OutpReportVO hist = dayData.get(opNo);
             BigDecimal c = hist != null ? getSafeBigDecimal(hist.getReportAmount()) : BigDecimal.ZERO;

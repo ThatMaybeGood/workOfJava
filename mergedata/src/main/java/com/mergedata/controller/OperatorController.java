@@ -7,10 +7,12 @@ import com.mergedata.model.dto.ApiRequestList;
 import com.mergedata.model.vo.ApiResponse;
 import com.mergedata.model.vo.ApiResponseBodyList;
 import com.mergedata.server.YQOperatorService;
+import com.mergedata.util.AddGroup;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -61,7 +63,7 @@ public class OperatorController {
 
     @Operation(summary = "批量写入操作员数据", description = "返回操作结果")
     @PostMapping("batchinsert")
-    public ApiResponse batchInsert(@Valid @RequestBody ApiRequestList<YQOperatorEntity> request)  {
+    public ApiResponse batchInsert(@Validated(AddGroup.class) @RequestBody ApiRequestList<YQOperatorEntity> request)  {
 
         List<YQOperatorEntity> list = request.getBody().getList();
 
@@ -96,9 +98,9 @@ public class OperatorController {
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         Boolean b = operator.delete(list);
         if (!b) {
-            return ApiResponse.failure("更新操作员信息失败");
+            return ApiResponse.failure("删除操作员信息失败");
         }
-        return ApiResponse.success("更新操作员信息成功");
+        return ApiResponse.success("删除操作员信息成功");
     }
 
 }

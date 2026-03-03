@@ -10,6 +10,7 @@ import java.math.BigDecimal;
  * 医院现金登记记录实体类
  */
 @Data
+@TableName("mpp_cash_reg_record") // 真实的表名
 public class YQCashRegRecordEntity {
     /*
      * 操作员
@@ -50,6 +51,11 @@ public class YQCashRegRecordEntity {
       * 报表日期
       */
     public String saveDate;
+
+    /**
+     * 现金登记记录编号
+     */
+     private String dbUser;
 
 
 

@@ -23,6 +23,9 @@ public class OutpCashSubEntity {
     @TableField("emp_name")
     private String hisOperatorName;
 
+    @TableField("db_user")
+    private String dbUser;
+
     private BigDecimal hisAdvancePayment; //his
     private BigDecimal hisMedicalIncome; //his
     private BigDecimal hisRegistrationIncome; //his

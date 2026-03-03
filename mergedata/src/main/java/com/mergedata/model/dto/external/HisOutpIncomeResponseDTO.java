@@ -62,4 +62,10 @@ public class HisOutpIncomeResponseDTO {
     @JsonProperty("acct_date")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime acctDate;
+
+    /*
+     * 登录用户ID
+     */
+     @JsonProperty("db_user")
+     private String dbUser;
 }

@@ -1,5 +1,6 @@
 package com.mergedata.server.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.mergedata.mapper.OperatorMapper;
 import com.mergedata.model.entity.InpCashSubEntity;
@@ -25,13 +26,27 @@ public class OperatorServiceImpl implements YQOperatorService {
 
     @Override
     public List<YQOperatorEntity> findAll() {
-        return  operatorMapper.selectAll();
+
+        return  Db.lambdaQuery(YQOperatorEntity.class).orderByAsc(YQOperatorEntity::getRowNum).list();
+//                Db.list(new LambdaQueryWrapper<>(YQOperatorEntity.class));
+
      }
 
     @Override
     public List<YQOperatorEntity> findByID(YQOperatorEntity operator) {
 
-        return operatorMapper.selectByID(operator.getOperatorNo());
+        return  Db.lambdaQuery(YQOperatorEntity.class)
+                .eq(YQOperatorEntity::getDbUser, operator.getDbUser())
+                .orderByAsc(YQOperatorEntity::getRowNum)
+                .list();
+    }
+
+    @Override
+    public List<YQOperatorEntity> findBySerialNo(YQOperatorEntity operator) {
+        return  Db.lambdaQuery(YQOperatorEntity.class)
+                .eq(YQOperatorEntity::getSerialNo, operator.getSerialNo())
+                .orderByAsc(YQOperatorEntity::getRowNum)
+                .list();
     }
 
     @Override
@@ -39,6 +54,7 @@ public class OperatorServiceImpl implements YQOperatorService {
 
         List<YQOperatorEntity> subs = Db.lambdaQuery(YQOperatorEntity.class)
                 .eq(YQOperatorEntity::getCategory, category)
+                .orderByAsc(YQOperatorEntity::getRowNum)
                 .list();
 
         return subs;
@@ -51,20 +67,27 @@ public class OperatorServiceImpl implements YQOperatorService {
       */
     @Override
     public Boolean insert(YQOperatorEntity yqOperatorsEntity) {
-        int size = operatorMapper.selectAll().size();
+        long size = Db.lambdaQuery(YQOperatorEntity.class).count();
 
-        yqOperatorsEntity.setRowNum(size+1);
+        List<YQOperatorEntity> list =  findBySerialNo(yqOperatorsEntity);
 
-        List<YQOperatorEntity> list = Db.lambdaQuery(YQOperatorEntity.class).eq(YQOperatorEntity::getSerialNo, yqOperatorsEntity.getSerialNo()).list();
         if (!list.isEmpty() || list.size() != 0 ) {
-            delete(yqOperatorsEntity);
+           return update(yqOperatorsEntity);
         }
 
         PrimaryKeyGenerator pk = new PrimaryKeyGenerator();
         yqOperatorsEntity.setSerialNo(pk.generateKey());
-        int insert = operatorMapper.insert(yqOperatorsEntity);
+        yqOperatorsEntity.setRowNum((int) (size+1));
 
-        return insert > 0;
+        // 增加判断兼容 atm 和inpWindow 兼容 true和false传入 转换为 1 和 0
+        if (yqOperatorsEntity.getAtm().equals("true")){
+            yqOperatorsEntity.setAtm("1");
+        }
+        if (yqOperatorsEntity.getInpWindow().equals("true")){
+            yqOperatorsEntity.setInpWindow("1");
+        }
+
+        return Db.save(yqOperatorsEntity);
     }
 
      /**
@@ -81,14 +104,13 @@ public class OperatorServiceImpl implements YQOperatorService {
 
             yqOperatorEntity.setSerialNo(pk.generateKey());
 
-            if (operatorMapper.selectByID(yqOperatorEntity.getOperatorNo()).size() > 0){
+            if (findByID(yqOperatorEntity).size() > 0){
                 //移除这个id的
                 yqOperatorEntities.remove(yqOperatorEntity);
             }
         }
 
-        int i = operatorMapper.batchInsertList(yqOperatorEntities);
-        return i > 0;
+        return Db.saveBatch(yqOperatorEntities);
     }
      /**
       * 删除员工信息
@@ -98,10 +120,20 @@ public class OperatorServiceImpl implements YQOperatorService {
     @Override
     public Boolean delete(YQOperatorEntity yqOperatorEntity) {
         //查询出id
-        if ( yqOperatorEntity.getOperatorNo() == null) {
+        if ( yqOperatorEntity.getSerialNo() == null) {
             return false;
         }
-        return operatorMapper.delete(yqOperatorEntity.getOperatorNo()) > 0;
+        //通过流水号删除  removebyid必须实体类指定主键
+        return Db.removeById(yqOperatorEntity.getSerialNo(), YQOperatorEntity.class);
+
+
+//        /**
+//         * 根据条件删除
+//         */
+//            return Db.lambdaUpdate(YQOperatorEntity.class)
+//                    .eq(YQOperatorEntity::getSerialNo, yqOperatorEntity.getSerialNo())
+//                    .remove();
+
     }
      /**
       * 更新员工信息
@@ -110,7 +142,7 @@ public class OperatorServiceImpl implements YQOperatorService {
       */
     @Override
     public Boolean update(YQOperatorEntity yqOperatorEntity) {
-        return null;
+        return Db.updateById(yqOperatorEntity);
     }
 }
 

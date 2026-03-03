@@ -1,9 +1,13 @@
 package com.mergedata.model.entity;
 
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.ctc.wstx.shaded.msv_core.datatype.xsd.IDType;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.mergedata.util.AddGroup;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -21,17 +25,17 @@ public class YQOperatorEntity {
     /**
      * 流水号
      */
+    @TableId(value = "serial_no", type = IdType.INPUT)
     private String serialNo;
     /**
      * 员工ID
      */
-    @NotBlank(message = "员工ID不能为空")
     private String operatorNo;
     /**
      * 员工姓名
      */
-    @NotBlank(message = "员工姓名不能为空")
-    @Size(min = 2, max = 50, message = "员工姓名长度必须在2-50字符之间")
+    @NotBlank(message = "员工姓名不能为空",groups ={AddGroup.class} )
+    @Size(min = 2, max = 50, message = "员工姓名长度必须在2-50字符之间",groups ={AddGroup.class})
     private String operatorName;
     /**
      * 员工类型 门诊/住院 0/1
@@ -74,11 +78,11 @@ public class YQOperatorEntity {
     /**
      * 是否在窗内（0:否，1：是）
      */
-    private Integer inpWindow;
+    private String inpWindow;
     /**
      * 是否在ATM机内（0:否，1：是）
      */
-    private Integer atm;
+    private String atm;
     /*
      *  备用金
      */
@@ -86,6 +90,7 @@ public class YQOperatorEntity {
     /*
      * DB_USER 登录用户
      */
+    @NotBlank(message = "登录用户ID不能为空",groups ={AddGroup.class} )
     private String dbUser;
 }
 

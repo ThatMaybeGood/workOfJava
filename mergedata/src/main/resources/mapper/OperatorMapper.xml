@@ -33,7 +33,7 @@
         create_time,
          updator,
         update_time,
-        update_count,serial_no,row_num,inp_window,atm,category,petty_cash
+        update_count,serial_no,row_num,inp_window,atm,category,petty_cash,db_user
         FROM
         MPP_CASH_REG_OPERATOR
         WHERE
@@ -44,7 +44,7 @@
     <select id="selectByCategory" resultMap="YQOperatorMap">
         SELECT
         operator_no, operator_name, department_id, isvalid, creator,
-        create_time,  updator, update_time, update_count,serial_no,row_num,inp_window,atm,category,petty_cash
+        create_time,  updator, update_time, update_count,serial_no,row_num,inp_window,atm,category,petty_cash,db_user
         FROM
         MPP_CASH_REG_OPERATOR
         WHERE isvalid = '1'
@@ -55,7 +55,7 @@
     <select id="selectByID" resultMap="YQOperatorMap">
         SELECT
         operator_no, operator_name, department_id, isvalid, creator,
-        create_time,  updator, update_time, update_count,serial_no,row_num,inp_window,atm,category,petty_cash
+        create_time,  updator, update_time, update_count,serial_no,row_num,inp_window,atm,category,petty_cash,db_user
         FROM
         MPP_CASH_REG_OPERATOR
         WHERE
@@ -66,7 +66,7 @@
     <insert id="insert" parameterType="com.mergedata.model.entity.YQOperatorEntity">
         INSERT INTO MPP_CASH_REG_OPERATOR (
         operator_no, operator_name, department_id,  creator,category,
-          updator, update_time,serial_no,row_num,inp_window,atm,petty_cash
+          updator, update_time,serial_no,row_num,inp_window,atm,petty_cash,db_user
         )
         VALUES (
         #{operatorNo , jdbcType=VARCHAR },
@@ -78,7 +78,8 @@
         #{rowNum , jdbcType=VARCHAR },
         #{inpWindow , jdbcType=VARCHAR },
         #{atm , jdbcType=VARCHAR },
-        #{petty_cash, jdbcType=NUMERIC},
+        #{pettyCash, jdbcType=NUMERIC},
+        #{dbUser, jdbcType=VARCHAR}
         )
     </insert>
 
