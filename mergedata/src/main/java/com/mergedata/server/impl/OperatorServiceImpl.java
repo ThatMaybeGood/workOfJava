@@ -62,69 +62,72 @@ public class OperatorServiceImpl implements YQOperatorService {
 
     /**
       * 插入单条员工信息
-      * @param yqOperatorsEntity 员工实体
+      * @param entity 员工实体
       * @return 是否成功
       */
     @Override
-    public Boolean insert(YQOperatorEntity yqOperatorsEntity) {
+    public Boolean insert(YQOperatorEntity entity) {
         long size = Db.lambdaQuery(YQOperatorEntity.class).count();
 
-        List<YQOperatorEntity> list =  findBySerialNo(yqOperatorsEntity);
+        List<YQOperatorEntity> list =  findBySerialNo(entity);
 
         if (!list.isEmpty() || list.size() != 0 ) {
-           return update(yqOperatorsEntity);
+           return update(entity);
         }
 
         PrimaryKeyGenerator pk = new PrimaryKeyGenerator();
-        yqOperatorsEntity.setSerialNo(pk.generateKey());
-        yqOperatorsEntity.setRowNum((int) (size+1));
+        entity.setSerialNo(pk.generateKey());
+        entity.setRowNum((int) (size+1));
 
         // 增加判断兼容 atm 和inpWindow 兼容 true和false传入 转换为 1 和 0
-        if (yqOperatorsEntity.getAtm().equals("true")){
-            yqOperatorsEntity.setAtm("1");
+        if (entity.getAtm().equals("true")){
+            entity.setAtm("1");
         }
-        if (yqOperatorsEntity.getInpWindow().equals("true")){
-            yqOperatorsEntity.setInpWindow("1");
+        if (entity.getInpWindow().equals("true")){
+            entity.setInpWindow("1");
         }
 
-        return Db.save(yqOperatorsEntity);
+        return Db.save(entity);
     }
 
      /**
       * 批量插入员工信息
-      * @param yqOperatorEntities 员工实体列表
+      * @param entityList 员工实体列表
       * @return 是否成功
       */
     @Override
     @Transactional
-    public Boolean batchInsert(List<YQOperatorEntity> yqOperatorEntities) {
+    public Boolean batchInsert(List<YQOperatorEntity> entityList) {
         //查询出id
-        for (YQOperatorEntity yqOperatorEntity : yqOperatorEntities) {
-            PrimaryKeyGenerator pk = new PrimaryKeyGenerator();
+        for (YQOperatorEntity yqOperatorEntity : entityList) {
 
-            yqOperatorEntity.setSerialNo(pk.generateKey());
 
             if (findByID(yqOperatorEntity).size() > 0){
                 //移除这个id的
-                yqOperatorEntities.remove(yqOperatorEntity);
+                entityList.remove(yqOperatorEntity);
+            }else {
+                PrimaryKeyGenerator pk = new PrimaryKeyGenerator();
+                yqOperatorEntity.setSerialNo(pk.generateKey());
             }
+
+
         }
 
-        return Db.saveBatch(yqOperatorEntities);
+        return Db.saveBatch(entityList);
     }
      /**
       * 删除员工信息
-      * @param yqOperatorEntity 员工实体
+      * @param entity 员工实体
       * @return 是否成功
       */
     @Override
-    public Boolean delete(YQOperatorEntity yqOperatorEntity) {
+    public Boolean delete(YQOperatorEntity entity) {
         //查询出id
-        if ( yqOperatorEntity.getSerialNo() == null) {
+        if ( entity.getSerialNo() == null) {
             return false;
         }
         //通过流水号删除  removebyid必须实体类指定主键
-        return Db.removeById(yqOperatorEntity.getSerialNo(), YQOperatorEntity.class);
+        return Db.removeById(entity.getSerialNo(), YQOperatorEntity.class);
 
 
 //        /**
@@ -137,13 +140,31 @@ public class OperatorServiceImpl implements YQOperatorService {
     }
      /**
       * 更新员工信息
-      * @param yqOperatorEntity 员工实体
+      * @param entity 员工实体
       * @return 是否成功
       */
     @Override
-    public Boolean update(YQOperatorEntity yqOperatorEntity) {
-        return Db.updateById(yqOperatorEntity);
+    public Boolean update(YQOperatorEntity entity) {
+        return Db.updateById(entity);
     }
-}
+
+    /**
+     * 同步his更新员工信息
+     */
+    public void syncUpdate(YQOperatorEntity entity) {
+        List<YQOperatorEntity> list = Db.lambdaQuery(YQOperatorEntity.class)
+                .eq(YQOperatorEntity::getOperatorNo, entity.getOperatorNo())
+                .list();
+        if (list.size() > 0) {
+            Db.lambdaUpdate(YQOperatorEntity.class)
+                    .eq(YQOperatorEntity::getOperatorNo, entity.getOperatorNo())
+                    .set(YQOperatorEntity::getDbUser, entity.getDbUser())
+                    .update();
+        } else {
+            insert(entity);
+        }
+    }
+
+    }
 
 

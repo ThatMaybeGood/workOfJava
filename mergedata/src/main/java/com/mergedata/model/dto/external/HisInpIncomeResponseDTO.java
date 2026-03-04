@@ -36,6 +36,12 @@ public class HisInpIncomeResponseDTO {
     private BigDecimal  hisSettlementIncome;
 
     /*
+    his军改收入
+     */
+    @JsonProperty("military_reform_pay")
+    private BigDecimal hisMilitaryReformPay;
+
+    /*
     his院前收入
      */
     @JsonProperty("pre_hospital_income")

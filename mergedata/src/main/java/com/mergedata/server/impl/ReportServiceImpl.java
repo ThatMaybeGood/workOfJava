@@ -22,6 +22,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -56,6 +58,8 @@ public class ReportServiceImpl implements ReportService {
     @Autowired
     YQOperatorService operatorService;
 
+    @Autowired
+    private TransactionTemplate transactionTemplate;
      /**
       * 获取门诊报表数据
       * @param body 门诊报表请求体
@@ -102,102 +106,112 @@ public class ReportServiceImpl implements ReportService {
      * @return 是否成功
      */
     @Override
-    @Transactional
     public Integer insertOutpReport(List<OutpReportVO> outpReportVOList) {
-       try {
+        // ----- 第1步：参数校验（无事务）-----
+        if (outpReportVOList == null || outpReportVOList.isEmpty()) {
+            return Constant.FAILURE;
+        }
 
-           if (outpReportVOList == null || outpReportVOList.isEmpty()) {
-               return Constant.FAILURE;
-           }
+        LocalDate reportDate = outpReportVOList.get(0).getReportDate();
 
-           // 1. 确定要作废的日期
-           LocalDate reportDate = outpReportVOList.get(0).getReportDate();
+        try {
+            // ----- 第2步：数据预处理和验证（无事务）-----
+            log.info("开始处理日期: {} 的报表数据", reportDate);
 
-           // 2. 作废该日期下所有的主表记录
-           if (!outpReportMapper.selectReportByDate(reportDate).isEmpty()) {
-               outpReportMapper.updateByDate(reportDate);
-           }
-           log.info("{} {} 历史报表数据作废完成 !", reportDate, Constant.REPORT_NAME_OUTP);
+            // 转换数据
+            List<OutpReportVO> list = exchangeOutpReportData(reportDate, outpReportVOList);
 
-           //3.转换对应门诊报表数据
-           List<OutpReportVO> list = exchangeOutpReportData(reportDate, outpReportVOList);
+            // ----- 第3步：在事务中执行数据库操作 -----
+            return insertWithTransaction(reportDate, list);
 
-
-           // =======================================================
-           // 只生成一个主键，作为主表的主键和明细表的外键
-           // =======================================================
-           PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
-           String pk = pks.generateKey();
-
-           List<OutpCashMainEntity> mainList = new ArrayList<>();
-           List<OutpCashSubEntity> subList = new ArrayList<>();
-
-           // ------------------------------------------
-           //  只创建 1 条 CashStattisticsMain (主表) 记录
-           // ------------------------------------------
-           OutpCashMainEntity main = new OutpCashMainEntity();
-           OutpReportVO firstOutpReportVO = list.get(0); // 随便取一条 Report 来获取通用的主表信息
-
-           main.setSerialNo(pk); // 唯一主键
-           main.setIsvalid(true);
-
-           // 复制通用的日期/年份信息
-           if (firstOutpReportVO.getReportDate() != null) {
-               try {
-                   main.setReportDate(firstOutpReportVO.getReportDate());
-               } catch (Exception e) {
-                   throw new RuntimeException("日期格式错误: " + firstOutpReportVO.getReportDate());
-               }
-           }
-           if (firstOutpReportVO.getReportYear() != null) {
-               main.setReportYear(Integer.valueOf(firstOutpReportVO.getReportYear()));
-           }
+        } catch (Exception e) {
+            log.error("插入门诊报表数据异常", e);
+            throw new RuntimeException("插入门诊报表数据异常", e);
+        }
+    }
 
 
-           main.setCreateTime(firstOutpReportVO.getCreateTime() != null ? firstOutpReportVO.getCreateTime() : LocalDateTime.now());
-           main.setUpdateTime(LocalDateTime.now());
+    /**
+     * 实际的数据库操作（带事务）
+     */
+    private Integer insertWithTransaction(LocalDate reportDate, List<OutpReportVO> list) {
 
-           mainList.add(main); // 主表列表中只有 1 条记录
+        // 2. 生成主键
+        String pk = new PrimaryKeyGenerator().generateKey();
 
+        // 3. 构建主表
+        OutpCashMainEntity main = buildMainEntity(pk, list.get(0));
 
-           // ------------------------------------------
-           // 遍历 Report 列表，创建 N 条 CashStatisticsSub (明细表) 记录
-           // ------------------------------------------
-           for (OutpReportVO outpReportVO : list) {
-               OutpCashSubEntity sub = new OutpCashSubEntity();
+        // 4. 构建明细表
+        List<OutpCashSubEntity> subList = buildSubEntities(pk, list);
 
-               BeanUtils.copyProperties(outpReportVO, sub);
+        // 2. 显式开启事务
+        return transactionTemplate.execute(status -> {
+            try {
+                // 检测事务为 true
+                System.out.println("是否开启事务: " + status.isNewTransaction());
 
-               // 所有明细记录使用同一个主键作为外键
-               sub.setSerialNo(pk);
-               sub.setDbUser(outpReportVO.getDbUser());
-               sub.setHisOperatorName(outpReportVO.getOperatorName());
+                // 1. 作废历史
+                if (!outpReportMapper.selectReportByDate(reportDate).isEmpty()) {
+                    outpReportMapper.updateByDate(reportDate);
+                    log.info("{} {} 历史报表数据作废完成", reportDate, Constant.REPORT_NAME_OUTP);
+                }
 
-               //添加 结账序号 结账时间  2025.12.31
-               sub.setRowNum(outpReportVO.getRowNum());
-               sub.setAcctDate(outpReportVO.getAcctDate());
-               sub.setAcctNo(outpReportVO.getAcctNo());
+                Db.save(main);
 
-               if (!outpReportVO.getOperatorName().contains("合计")) {
-                   subList.add(sub);
-               }
-           }
+                Db.saveBatch(subList);
 
-           // --- 3. 批量插入操作（事务生效） ---
-           // 此时 mainList 只有 1 条记录
-           int mainCount = outpReportMapper.batchInsertList(mainList);
+                return Constant.SUCCESS;
 
-           int subCount = 0;
-           if (!subList.isEmpty()) {
-               subCount = outpReportMapper.batchInsertSubList(subList);
-           }
+            } catch (Exception e) {
+                status.setRollbackOnly(); // 手动回滚
+                log.error("数据库操作失败，执行回滚", e);
+                throw new RuntimeException("门诊现金报表写入失败，已回滚", e);
+            }
+        });
 
+    }
 
-           return Constant.SUCCESS;
-       } catch (Exception e) {
-           log.error("插入门诊报表数据异常", e);
-           throw new RuntimeException("插入门诊报表数据异常");
-       }
+    private OutpCashMainEntity buildMainEntity(String pk, OutpReportVO vo) {
+        OutpCashMainEntity main = new OutpCashMainEntity();
+        main.setSerialNo(pk);
+        main.setIsvalid(true);
+
+        if (vo.getReportDate() != null) {
+            main.setReportDate(vo.getReportDate());
+        }
+        if (vo.getReportYear() != null) {
+            main.setReportYear(Integer.valueOf(vo.getReportYear()));
+        }
+
+        main.setCreateTime(vo.getCreateTime() != null ? vo.getCreateTime() : LocalDateTime.now());
+        main.setUpdateTime(LocalDateTime.now());
+
+        return main;
+    }
+
+    private List<OutpCashSubEntity> buildSubEntities(String pk, List<OutpReportVO> list) {
+        List<OutpCashSubEntity> subList = new ArrayList<>();
+
+        for (OutpReportVO vo : list) {
+            if (vo.getOperatorName().contains("合计")) {
+                continue;  // 跳过合计行
+            }
+
+            OutpCashSubEntity sub = new OutpCashSubEntity();
+            BeanUtils.copyProperties(vo, sub);
+
+            sub.setSerialNo(pk);
+            sub.setDbUser(vo.getDbUser());
+            sub.setHisOperatorName(vo.getOperatorName());
+            sub.setRowNum(vo.getRowNum());
+            sub.setAcctDate(vo.getAcctDate());
+            sub.setAcctNo(vo.getAcctNo());
+
+            subList.add(sub);
+        }
+
+        return subList;
     }
 
 
@@ -522,70 +536,9 @@ public class ReportServiceImpl implements ReportService {
      * @param list 门诊报表数据列表
      * @param date 日期
      */
-    @Transactional(rollbackFor = Exception.class)
-    public void isInitInsertOutp(List<OutpReportVO> list, LocalDate date) {
+     public void isInitInsertOutp(List<OutpReportVO> list, LocalDate date) {
         try {
-            {
-
-            }
-            // 2. 作废该日期下所有的主表记录
-            if (!outpReportMapper.selectReportByDate(date).isEmpty()) {
-                outpReportMapper.updateByDate(date);
-            }
-            log.info("历史报表数据作废完成.");
-
-
-            // =======================================================
-            // 只生成一个主键，作为主表的主键和明细表的外键
-            // =======================================================
-            PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
-            String pk = pks.generateKey();
-
-            List<OutpCashSubEntity> subList = new ArrayList<>();
-
-            // ------------------------------------------
-            //  只创建 1 条 CashStattisticsMain (主表) 记录
-            // ------------------------------------------
-            OutpCashMainEntity main = new OutpCashMainEntity();
-
-            main.setSerialNo(pk); // 唯一主键
-            main.setIsvalid(true);
-            main.setReportDate(date);
-            main.setReportYear(date.getYear());
-            main.setCreateTime(LocalDateTime.now());
-
-
-            // ------------------------------------------
-            // 遍历 Report 列表，创建 N 条 CashStatisticsSub (明细表) 记录
-            // ------------------------------------------
-            for (OutpReportVO outpReportVO : list) {
-                OutpCashSubEntity sub = new OutpCashSubEntity();
-
-                BeanUtils.copyProperties(outpReportVO, sub);
-
-                // 所有明细记录使用同一个主键作为外键
-                sub.setSerialNo(pk);
-                sub.setHisOperatorNo(outpReportVO.getDbUser());
-                sub.setHisOperatorName(outpReportVO.getOperatorName());
-
-                //添加 结账序号 结账时间  2025.12.31
-                sub.setRowNum(outpReportVO.getRowNum());
-                sub.setAcctDate(outpReportVO.getAcctDate());
-                sub.setAcctNo(outpReportVO.getAcctNo());
-
-                if (!outpReportVO.getOperatorName().contains("合计")) {
-                    subList.add(sub);
-                }
-            }
-
-
-            // 2. 写入主表
-            Db.save(main);
-
-            // 3. 批量写入子表
-            if (!subList.isEmpty()) {
-                Db.saveBatch(subList);
-            }
+            insertWithTransaction(date,list);
         } catch (Exception e) {
             log.error("初始化插入门诊现金主表数据失败，日期：{}", date, e);
             throw new RuntimeException("初始化插入门诊现金主表数据失败" + e.getMessage());
@@ -601,7 +554,6 @@ public class ReportServiceImpl implements ReportService {
      * @param isInitFlag 是否初次写入标志 ，默认值为"1"，表示初次写入
      * @return 插入成功的记录数
      */
-    @Transactional(rollbackFor = Exception.class)
     public Integer isInitInsertInp(InpCashMainEntity main, String isInitFlag) {
         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
         String pk = pks.generateKey();
@@ -617,47 +569,49 @@ public class ReportServiceImpl implements ReportService {
         main.setCreateTime(LocalDateTime.now());
         main.setSerialNo(pk); // 唯一主键
 
-        try {
+        //开启显式事务 不用注解事务
+        return transactionTemplate.execute(status -> {
+            try {
+                    /*
+                     * 作废旧数据
+                     * 根据 report_date 将之前已生效的报表全部改为作废(0)
+                     */
+                    Db.lambdaUpdate(InpCashMainEntity.class)
+                            .eq(InpCashMainEntity::getReportDate, main.getReportDate())
+                            .eq(InpCashMainEntity::getValidFlag, Constant.YES) // 只作废当前有效的
+                            .eq(InpCashMainEntity::getHolidayTotalFlag, main.getHolidayTotalFlag())  //对应节假日汇总类型
+                            .set(InpCashMainEntity::getValidFlag, Constant.NO)
+                            .set(InpCashMainEntity::getUpdateTime, LocalDateTime.now())
+                            .update();
 
-            /*
-             * 作废旧数据
-             * 根据 report_date 将之前已生效的报表全部改为作废(0)
-             */
-            Db.lambdaUpdate(InpCashMainEntity.class)
-                    .eq(InpCashMainEntity::getReportDate, main.getReportDate())
-                    .eq(InpCashMainEntity::getValidFlag, Constant.YES) // 只作废当前有效的
-                    .eq(InpCashMainEntity::getHolidayTotalFlag, main.getHolidayTotalFlag())  //对应节假日汇总类型
-                    .set(InpCashMainEntity::getValidFlag, Constant.NO)
-                    .set(InpCashMainEntity::getUpdateTime, LocalDateTime.now())
-                    .update();
+                    log.info("{} {}  历史报表数据作废完成", Constant.REPORT_NAME_INP,main.getReportDate());
 
-            log.info("{} {}  历史报表数据作废完成", Constant.REPORT_NAME_INP,main.getReportDate());
+                    if (!main.getSubs().isEmpty()) {
+                        /*
+                         * 插入子表数据
+                         */
+                        // 确保子表的关联字段和主表一致
+                        main.getSubs().forEach(sub -> {
+                            sub.setSerialNo(main.getSerialNo());
+                        });
 
-            if (!main.getSubs().isEmpty()) {
-                /*
-                 * 插入子表数据
-                 */
-                // 确保子表的关联字段和主表一致
-                main.getSubs().forEach(sub -> {
-                    sub.setSerialNo(main.getSerialNo());
-                });
+                        //不能用savedBatch 作为判断情况
+                        boolean savedBatch = Db.saveBatch(main.getSubs());
 
-                //不能用savedBatch 作为判断情况
-                boolean savedBatch = Db.saveBatch(main.getSubs());
+                        /*
+                         * 插入主表数据
+                         */
+                        boolean saveMain = Db.save(main);
 
-                /*
-                 * 插入主表数据
-                 */
-                boolean saveMain = Db.save(main);
+                    }
+                    log.info("{} {}  报表数据保存成功！", Constant.REPORT_NAME_INP,main.getReportDate());
+                    return Constant.SUCCESS;
 
-            }
-
-            log.info("{} {}  报表数据保存成功！", Constant.REPORT_NAME_INP,main.getReportDate());
-            return 1;
-        } catch (Exception e) {
-            log.error("插入住院报表数据失败，日期：{}", main.getReportDate(), e);
-            throw new RuntimeException("插入住院报表数据失败" + e.getMessage());
-        }
+                } catch (Exception e) {
+                    log.error("插入住院报表数据失败，日期：{}", main.getReportDate(), e);
+                    throw new RuntimeException("插入住院报表数据失败,已回滚" + e.getMessage());
+                }
+        });
     }
 
 
@@ -833,6 +787,7 @@ public class ReportServiceImpl implements ReportService {
             for (YQOperatorEntity operator : operators) {
                 OutpReportVO dto = new OutpReportVO();
                 dto.setSerialNo(batchPk);
+//                dto.setOperatorNo(operator.getOperatorNo());
                 dto.setDbUser(operator.getDbUser());
                 dto.setOperatorName(operator.getOperatorName());
                 dto.setPettyCash(operator.getPettyCash());
