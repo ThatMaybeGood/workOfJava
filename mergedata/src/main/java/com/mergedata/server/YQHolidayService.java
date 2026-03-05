@@ -19,7 +19,7 @@ public interface YQHolidayService {
     /*
      * 通过年份查询节假日信息
      */
-    List<YQHolidayEntity> findByYear(String year);
+    List<YQHolidayEntity> findByYear(Integer year);
 
 
     /*
@@ -36,6 +36,12 @@ public interface YQHolidayService {
      * 作废
      */
     Boolean update(YQHolidayEntity holiday);
+
+    /*
+     * 作废
+     */
+    Boolean delete(YQHolidayEntity holiday);
+
 
     /*
      * 获取日期对应的类型

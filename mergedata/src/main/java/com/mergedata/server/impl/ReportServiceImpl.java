@@ -12,10 +12,7 @@ import com.mergedata.mapper.HolidayMapper;
 import com.mergedata.mapper.OperatorMapper;
 import com.mergedata.mapper.OutpReportMapper;
 import com.mergedata.model.entity.*;
-import com.mergedata.server.HisDataService;
-import com.mergedata.server.ReportService;
-import com.mergedata.server.YQHolidayService;
-import com.mergedata.server.YQOperatorService;
+import com.mergedata.server.*;
 import com.mergedata.util.PrimaryKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -41,7 +38,7 @@ public class ReportServiceImpl implements ReportService {
     HisDataService hisdata;
 
     @Autowired
-    CashMapper cashMapper;
+    YQCashService cashService;
 
     @Autowired
     OperatorMapper operatorMapper;
@@ -82,8 +79,12 @@ public class ReportServiceImpl implements ReportService {
 
                 outpResults = getOutpReportData(currentDate,body.getTotalFlag());
 
+                //无效查询，返回空列表
+                if (outpResults.isEmpty() || outpResults.size() == 0) {
+                    return Collections.emptyList();
+                }
                 //查询时候数据库没有相关的数据，插入数据库，此处调用 firstInsert 方法批量插入数据
-                isInitInsertOutp(outpResults, currentDate);
+                isInitInsertOutp(outpResults, currentDate,body.getTotalFlag());
             }
 
 //        results.add(calculateTotal(results, LocalDate.parse(reportdate)));
@@ -122,7 +123,8 @@ public class ReportServiceImpl implements ReportService {
             List<OutpReportVO> list = exchangeOutpReportData(reportDate, outpReportVOList);
 
             // ----- 第3步：在事务中执行数据库操作 -----
-            return insertWithTransaction(reportDate, list);
+            //是否汇总标志  前端调用穿=传入
+            return insertWithTransaction(reportDate, list,"0");
 
         } catch (Exception e) {
             log.error("插入门诊报表数据异常", e);
@@ -134,13 +136,13 @@ public class ReportServiceImpl implements ReportService {
     /**
      * 实际的数据库操作（带事务）
      */
-    private Integer insertWithTransaction(LocalDate reportDate, List<OutpReportVO> list) {
+    private Integer insertWithTransaction(LocalDate reportDate, List<OutpReportVO> list,String totalFlag) {
 
         // 2. 生成主键
         String pk = new PrimaryKeyGenerator().generateKey();
 
         // 3. 构建主表
-        OutpCashMainEntity main = buildMainEntity(pk, list.get(0));
+        OutpCashMainEntity main = buildMainEntity(pk, list.get(0),totalFlag);
 
         // 4. 构建明细表
         List<OutpCashSubEntity> subList = buildSubEntities(pk, list);
@@ -172,10 +174,12 @@ public class ReportServiceImpl implements ReportService {
 
     }
 
-    private OutpCashMainEntity buildMainEntity(String pk, OutpReportVO vo) {
+    private OutpCashMainEntity buildMainEntity(String pk, OutpReportVO vo,String totalFlag) {
         OutpCashMainEntity main = new OutpCashMainEntity();
         main.setSerialNo(pk);
-        main.setIsvalid(true);
+        main.setValidFlag("1");
+        //是否汇总标志  前端调用穿=传入
+        main.setTotalFlag(totalFlag);
 
         if (vo.getReportDate() != null) {
             main.setReportDate(vo.getReportDate());
@@ -207,6 +211,7 @@ public class ReportServiceImpl implements ReportService {
             sub.setRowNum(vo.getRowNum());
             sub.setAcctDate(vo.getAcctDate());
             sub.setAcctNo(vo.getAcctNo());
+            sub.setRemarks(vo.getRemarks());
 
             subList.add(sub);
         }
@@ -428,9 +433,9 @@ public class ReportServiceImpl implements ReportService {
             LocalDate preDate = currtDate.minusDays(1);
 
             // 1. 获取所有必需的原始数据
-            List<YQHolidayEntity> holidays = holidayMapper.selectByYear(currtDate.getYear());
+            List<YQHolidayEntity> holidays = holidayService.findByYear(currtDate.getYear());
             List<YQOperatorEntity> operators = operatorService.findByCategory(Constant.TYPE_INP);
-            List<YQCashRegRecordEntity> yqRecordList = cashMapper.selectByDate(currtDate);
+            List<YQCashRegRecordEntity> yqRecordList = cashService.findByDate(currtDate);
 
             // 假设 HIS 接口需要 String，则转换
             List<HisInpIncomeResponseDTO> hisInpIncomeResponseDTOList = hisdata.findByDateInp(currtDate.toString());
@@ -536,9 +541,9 @@ public class ReportServiceImpl implements ReportService {
      * @param list 门诊报表数据列表
      * @param date 日期
      */
-     public void isInitInsertOutp(List<OutpReportVO> list, LocalDate date) {
+     public void isInitInsertOutp(List<OutpReportVO> list, LocalDate date,String totalFlag) {
         try {
-            insertWithTransaction(date,list);
+            insertWithTransaction(date,list,totalFlag);
         } catch (Exception e) {
             log.error("初始化插入门诊现金主表数据失败，日期：{}", date, e);
             throw new RuntimeException("初始化插入门诊现金主表数据失败" + e.getMessage());
@@ -762,16 +767,33 @@ public class ReportServiceImpl implements ReportService {
         try {
             String holidayType = holidayService.queryDateType(currtDate, Constant.TYPE_OUTP);
 
+            /*
+            先判断是否是汇总  还是单独查询
+            1、先判断是否是汇总标志
+                1、1  如果是汇总标志，再判断是否是特殊节假日
+                1、2  是汇总，但是不符合 特殊节假日  直接返回空列表
+
+            */
+            boolean isSpecialHoliday = false;
+            if (Constant.YES.equals(totalFlag)) {
+                if (Constant.HOLIDAY_AFTER.equals(holidayType) || Constant.HOLIDAY_MONTH_LASTDAY.equals(holidayType)){
+                    isSpecialHoliday =true;
+                }else{
+                    return Collections.emptyList();
+                }
+            }
+
+
             List<YQOperatorEntity> operators = operatorService.findByCategory(Constant.TYPE_OUTP);
 
-            Set<LocalDate> holidaySet = holidayMapper.selectByYear(currtDate.getYear()).stream()
+            Set<LocalDate> holidaySet = holidayService.findByYear(currtDate.getYear()).stream()
                     .map(YQHolidayEntity::getHolidayDate).collect(Collectors.toSet());
 
 
             // 预加载 HIS 数据和现金记录
             Map<String, HisOutpIncomeResponseDTO> hisDataMap = hisdata.findByDateOutp(currtDate.toString()).stream()
                     .collect(Collectors.toMap(HisOutpIncomeResponseDTO::getDbUser, Function.identity(), (v1, v2) -> v1));
-            Map<String, YQCashRegRecordEntity> cashMap = cashMapper.selectByDate(currtDate).stream()
+            Map<String, YQCashRegRecordEntity> cashMap = cashService.findByDate(currtDate).stream()
                     .collect(Collectors.toMap(YQCashRegRecordEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
 
             // 获取历史数据（昨日）
@@ -815,9 +837,6 @@ public class ReportServiceImpl implements ReportService {
                     1.1、是汇总 ，且对应日期 是节假日 且是月末最后一天
                     1.2、是汇总，且对应日期 是节假日后工作日第一天
                 */
-                boolean isSpecialHoliday = Constant.YES.equals(totalFlag)
-                        && (Constant.HOLIDAY_AFTER.equals(holidayType) || Constant.HOLIDAY_MONTH_LASTDAY.equals(holidayType));
-
                 if (isSpecialHoliday) {
                         //统一计算核心 自动处理回溯缓存
                         computeOutpFields(dto, currtDate, holidayType, holidaySet, historyCache);
@@ -920,7 +939,7 @@ public class ReportServiceImpl implements ReportService {
      * 判断日期是否为节假日 (使用 Set 版本)
      */
     private Set<LocalDate> getHolidaySet(int year) {
-        return holidayMapper.selectByYear(year).stream()
+        return holidayService.findByYear(year).stream()
                 .map(YQHolidayEntity::getHolidayDate).collect(Collectors.toSet());
     }
 

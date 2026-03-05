@@ -138,6 +138,7 @@ public class OutpReportVO {
     报表创建时间
      */
     @JsonProperty("create_time")
+    @JsonFormat(pattern = "yyyy-MM-dd['T'HH:mm:ss][ HH:mm:ss]")
     private LocalDateTime createTime;
 
     /*

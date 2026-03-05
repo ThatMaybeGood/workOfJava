@@ -67,7 +67,7 @@ public class HolidayController {
         for (YQHolidayEntity dto : list) {
             PrimaryKeyGenerator pk   = new PrimaryKeyGenerator();
             dto.setSerialNo(pk.generateKey());
-            dto.setValidStatus("1");
+            dto.setValidFlag("1");
         }
 
 

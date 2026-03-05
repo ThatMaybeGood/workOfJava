@@ -30,7 +30,8 @@ public class OutpCashMainEntity {
     /**
      * 是否有效 (0,1 默认1)
      */
-    private Boolean isvalid;
+
+    private String validFlag;
     /**
      * 创建人
      */
@@ -43,6 +44,11 @@ public class OutpCashMainEntity {
      * 更新时间
      */
     private LocalDateTime updateTime;
+     /**
+     * 是否汇总标志  前端调用穿=传入
+     */
+    private String totalFlag;
+
     /**
      * 关联的子报表列表（一对多关系）
      */

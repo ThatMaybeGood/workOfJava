@@ -36,8 +36,8 @@ public class YQHolidayEntity {
     /**
      * 有效状态
      */
-    @TableField(value = "isvalid")
-    private String validStatus;
+    @TableField(value = "valid_flag")
+    private String validFlag;
     /**
      * 节假日类型  周末，节假日，工作日 0，1，2
      */
@@ -57,7 +57,7 @@ public class YQHolidayEntity {
     /**
      * 创建时间
      */
-    private LocalDateTime createdTime;
+    private LocalDateTime createTime;
     /**
      * 更新时间
      */
@@ -73,5 +73,5 @@ public class YQHolidayEntity {
     /**
      * 节假日分类 门诊/住院/通用 0/1/2
      */
-    private String category;
+    private String category = "2";
 }

@@ -52,7 +52,7 @@ public class PlatformController {
             // 2. 避免重复调用服务，并使用转换后的 LocalDate
             resultList = holiday.findAll();
         }else {
-            resultList = holiday.findByYear(res.getBody().getExtendParams1());
+            resultList = holiday.findByYear(Integer.valueOf(res.getBody().getExtendParams1()));
         }
         // 4. 返回结果
         return ApiResponse.successList(resultList,"查询节假日列表成功");

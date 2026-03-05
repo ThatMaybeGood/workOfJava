@@ -1,5 +1,6 @@
 package com.mergedata.server.impl;
 
+import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.mergedata.mapper.CashMapper;
 import com.mergedata.model.entity.YQCashRegRecordEntity;
 import com.mergedata.server.YQCashService;
@@ -23,7 +24,10 @@ public class CashServiceImpl implements YQCashService {
      * @return 资金记录列表
      */
     @Override
-    public List<YQCashRegRecordEntity> findByDate(String reportdate) {
-        return cashMapper.selectByDate(LocalDate.parse(reportdate));
+    public List<YQCashRegRecordEntity> findByDate(LocalDate reportdate) {
+
+        return Db.lambdaQuery(YQCashRegRecordEntity.class)
+                .eq(YQCashRegRecordEntity::getSaveDate, reportdate)
+                .list();
     }
 }

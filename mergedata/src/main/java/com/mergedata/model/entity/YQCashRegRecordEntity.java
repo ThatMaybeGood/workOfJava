@@ -1,8 +1,10 @@
 package com.mergedata.model.entity;
 
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+import lombok.Value;
 
 import java.math.BigDecimal;
 
@@ -23,6 +25,7 @@ public class YQCashRegRecordEntity {
     /**
      * 留存现金数
      */
+    @TableField(value = "amount")
     private BigDecimal retainedCash;
     /**
      * 申请日期
