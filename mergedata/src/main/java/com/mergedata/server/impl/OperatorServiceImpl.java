@@ -69,23 +69,27 @@ public class OperatorServiceImpl implements YQOperatorService {
     public Boolean insert(YQOperatorEntity entity) {
         long size = Db.lambdaQuery(YQOperatorEntity.class).count();
 
-        List<YQOperatorEntity> list =  findBySerialNo(entity);
-
-        if (!list.isEmpty() || list.size() != 0 ) {
-           return update(entity);
-        }
+//        List<YQOperatorEntity> list =  findBySerialNo(entity);
+//        List<YQOperatorEntity> list = Db.lambdaQuery(YQOperatorEntity.class)
+//                .eq(YQOperatorEntity::getOperatorNo, entity.getOperatorNo())
+//                .list();
+//
+//
+//        if (!list.isEmpty() || list.size() != 0 ) {
+//           return update(entity);
+//        }
 
         PrimaryKeyGenerator pk = new PrimaryKeyGenerator();
         entity.setSerialNo(pk.generateKey());
         entity.setRowNum((int) (size+1));
 
-        // 增加判断兼容 atm 和inpWindow 兼容 true和false传入 转换为 1 和 0
-        if (entity.getAtm().equals("true")){
-            entity.setAtm("1");
-        }
-        if (entity.getInpWindow().equals("true")){
-            entity.setInpWindow("1");
-        }
+//        // 增加判断兼容 atm 和inpWindow 兼容 true和false传入 转换为 1 和 0
+//        if (entity.getAtm().equals("true")){
+//            entity.setAtm("1");
+//        }
+//        if (entity.getInpWindow().equals("true")){
+//            entity.setInpWindow("1");
+//        }
 
         return Db.save(entity);
     }
@@ -158,6 +162,7 @@ public class OperatorServiceImpl implements YQOperatorService {
         if (list.size() > 0) {
             Db.lambdaUpdate(YQOperatorEntity.class)
                     .eq(YQOperatorEntity::getOperatorNo, entity.getOperatorNo())
+                    .set(YQOperatorEntity::getCategory, entity.getCategory())
                     .set(YQOperatorEntity::getDbUser, entity.getDbUser())
                     .update();
         } else {

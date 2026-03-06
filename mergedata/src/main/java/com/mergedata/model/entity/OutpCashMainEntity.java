@@ -55,34 +55,34 @@ public class OutpCashMainEntity {
      * 是否汇总标志  前端调用穿=传入
      */
     private String totalFlag;
-    /**
-     * 当日暂收款合计
-     */
-    private BigDecimal tempReceiptTotal;
-    /**
-    * 日报表数合计
-     */
-    private BigDecimal dailyReportTotal;
-     /**
-     * 合计存款金额
-     */
-    private BigDecimal depositTotal;
-     /**
-     * 住院部当日借款
-     */
-    private BigDecimal borrowTotal;
-     /**
-     * 住院部当日回款
-     */
-    private BigDecimal repayTotal;
-     /**
-     * 门诊当日借款
-     */
-    private BigDecimal outpBorrowTotal;
-     /**
-     * 门诊当日回款
-     */
-    private BigDecimal outpRepayTotal;
+//    /**
+//     * 当日暂收款合计
+//     */
+//    private BigDecimal tempReceiptTotal;
+//    /**
+//    * 日报表数合计
+//     */
+//    private BigDecimal dailyReportTotal;
+//     /**
+//     * 合计存款金额
+//     */
+//    private BigDecimal depositTotal;
+//     /**
+//     * 住院部当日借款
+//     */
+//    private BigDecimal borrowTotal;
+//     /**
+//     * 住院部当日回款
+//     */
+//    private BigDecimal repayTotal;
+//     /**
+//     * 门诊当日借款
+//     */
+//    private BigDecimal outpBorrowTotal;
+//     /**
+//     * 门诊当日回款
+//     */
+//    private BigDecimal outpRepayTotal;
 //     /**
 //     * 门诊当日实存金额
 //     */

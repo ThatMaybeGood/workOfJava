@@ -1052,7 +1052,11 @@ public class ReportServiceImpl implements ReportService {
                 */
                 if (isSpecialHoliday) {
                     //统一计算核心 自动处理回溯缓存
+                    /**
+                      需要完善独立的方法，首先去判断找到回溯截止的日期，且回溯期间是否有日期中无数据的，那就回溯截止日期到对应无数据为准
+                     */
                     computeOutpFields(dto, currtDate, holidayType, holidaySet, historyCache);
+
                 } else {
                     //应交报表数  =  his预交金 + his医疗收入
                     dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
@@ -1254,11 +1258,17 @@ public class ReportServiceImpl implements ReportService {
 
         while (targetDate.toEpochDay() - current.toEpochDay() <= 30 && current.getDayOfMonth() >= 1) {
 
-
             // 从缓存获取，没命中则查数据库
-            Map<String, OutpCashSubEntity> dayData = cache.computeIfAbsent(current,
-                    date -> outpReportService.findByDate(date).getSubs().stream()
-                            .collect(Collectors.toMap(OutpCashSubEntity::getDbUser, Function.identity(), (v1, v2) -> v1)));
+            // findByDate判断是否有数据，如果没有数据会抛异常，直接捕获异常并记录日志，跳出循环
+            OutpCashMainEntity byDate = outpReportService.findByDate(current);
+            if(byDate == null || byDate.getSubs() == null || byDate.getSubs().isEmpty()){
+                log.warn("回溯到历史日期无数据，日期：{}", current);
+                break;
+            }
+
+            Map<String, OutpCashSubEntity> dayData  = cache.computeIfAbsent(current,
+                        date -> outpReportService.findByDate(date).getSubs().stream()
+                                .collect(Collectors.toMap(OutpCashSubEntity::getDbUser, Function.identity(), (v1, v2) -> v1)));
 
             OutpCashSubEntity hist = dayData.get(opNo);
             BigDecimal c = hist != null ? getSafeBigDecimal(hist.getReportAmount()) : BigDecimal.ZERO;
