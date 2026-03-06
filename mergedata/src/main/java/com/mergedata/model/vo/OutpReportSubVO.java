@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
  * 门诊现金统计主表VO
  */
 @Data
-public class OutpReportVO {
+public class OutpReportSubVO {
     @JsonProperty("serial_no")
     private String serialNo;
 

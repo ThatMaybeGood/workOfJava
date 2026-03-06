@@ -1,6 +1,8 @@
 package com.mergedata.model.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
@@ -15,6 +17,7 @@ import java.time.LocalDateTime;
 @TableName("mpp_cash_statistics_sub") //表名
 public class OutpCashSubEntity {
     // 关联的主表流水号
+    @TableId(type = IdType.INPUT)
     @TableField("serial_no")
     private String serialNo;
 
@@ -56,6 +59,7 @@ public class OutpCashSubEntity {
     private String acctNo;   //结账序号
 
     private LocalDateTime acctDate; //结账时间
+
 
 
     // 统一处理BigDecimal类型的null值

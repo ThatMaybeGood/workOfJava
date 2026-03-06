@@ -3,7 +3,7 @@ package com.mergedata.mapper;
 import com.mergedata.model.dto.OutpReportRequestBody;
 import com.mergedata.model.entity.OutpCashSubEntity;
 import com.mergedata.model.entity.OutpCashMainEntity;
-import com.mergedata.model.vo.OutpReportVO;
+import com.mergedata.model.vo.OutpReportSubVO;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.time.LocalDate;
@@ -14,18 +14,18 @@ import java.util.List;
 @Mapper
 public interface OutpReportMapper {
 
-    List<OutpReportVO> selectByPk(String serialNo);
+    List<OutpReportSubVO> selectByPk(String serialNo);
 
     /*
      * 新增查询：直接返回扁平化 Report 列表
      * 使用 ReportMap（无 <collection>）进行映射
      */
-    List<OutpReportVO> selectReportByDate(LocalDate reportDate);
+    List<OutpReportSubVO> selectReportByDate(LocalDate reportDate);
 
     /**
      * 查询：根据日期范围查询门诊报表数据
      */
-    List<OutpReportVO> findReport(OutpReportRequestBody body);
+    List<OutpReportSubVO> findReport(OutpReportRequestBody body);
 
     /* 查询：主从嵌套报表 */
     List<OutpCashMainEntity> selectByDate(LocalDate reportDate);

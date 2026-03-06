@@ -37,23 +37,34 @@ public class ReportController {
 
     @Operation(summary = "根据日期查询门诊报表数据", description = "返回门诊报表数据")
     @PostMapping("/findbydate")
-    public ApiResponse<ApiResponseBodyList<OutpReportVO>> getOutpReport(@Valid @RequestBody ApiRequest<OutpReportRequestBody> request)  {
+    public ApiResponse<OutpReportMainVO> getOutpReport(@Valid @RequestBody ApiRequest<OutpReportRequestBody> request)  {
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        List<OutpReportVO> resultList = report.getOutpReport(request.getBody());
+        OutpReportMainVO resultList = report.getOutpReport(request.getBody());
 
         // 4. 返回结果
-        return ApiResponse.successList(resultList,"查询门诊报表列表成功！");
+        return ApiResponse.successObj(resultList,"查询门诊报表列表成功！");
     }
+
+
+    @Operation(summary = "根据日期查询门诊报表数据", description = "返回门诊报表数据")
+    @PostMapping("/findbydate_new")
+    public ApiResponse<OutpReportMainVONew> getOutpReportNew(@Valid @RequestBody ApiRequest<OutpReportRequestBody> request)  {
+
+        // 2. 避免重复调用服务，并使用转换后的 LocalDate
+        OutpReportMainVONew resultList = report.getOutpReportNew(request.getBody());
+
+        // 4. 返回结果
+        return ApiResponse.successObj(resultList,"查询门诊报表列表成功！");
+    }
+
 
     @Operation(summary = "批量插入门诊报表数据", description = "返回对应结果")
     @PostMapping("/insert")
-    public ApiResponse insertOutpReport(@Validated(AddGroup.class) @RequestBody ApiRequestList<OutpReportVO> request)  {
-
-        List<OutpReportVO> list = request.getBody().getList();
+    public ApiResponse insertOutpReport(@Validated(AddGroup.class) @RequestBody ApiRequest<OutpReportMainVO> request)  {
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Integer b = report.insertOutpReport(list);
+        Integer b = report.insertOutpReport(request.getBody());
 
         if (!Constant.SUCCESS.equals(b)) {
             return ApiResponse.failure("门诊报表写入失败！");

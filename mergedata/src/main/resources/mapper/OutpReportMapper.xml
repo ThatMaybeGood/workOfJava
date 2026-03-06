@@ -35,7 +35,7 @@
         </collection>
     </resultMap>
 
-    <resultMap id="ReportMap" type="com.mergedata.model.vo.OutpReportVO">
+    <resultMap id="ReportMap" type="com.mergedata.model.vo.OutpReportSubVONew">
         <result column="main_serial_no" property="serialNo"/>
         <result column="emp_id" property="operatorNo"/>
         <result column="emp_name" property="operatorName"/>
