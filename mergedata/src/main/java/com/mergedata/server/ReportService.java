@@ -4,10 +4,6 @@ import com.mergedata.model.dto.InpReportRequestBody;
 import com.mergedata.model.dto.OutpReportRequestBody;
 import com.mergedata.model.entity.InpCashMainEntity;
 import com.mergedata.model.vo.OutpReportMainVO;
-import com.mergedata.model.vo.OutpReportMainVONew;
-import com.mergedata.model.vo.OutpReportSubVO;
-
-import java.util.List;
 
 public interface ReportService {
 
@@ -15,12 +11,6 @@ public interface ReportService {
      * 根据日期查询门诊报表数据
      */
     OutpReportMainVO getOutpReport(OutpReportRequestBody body)  ;
-
-
-    /**
-     * 根据日期查询门诊报表数据
-     */
-    OutpReportMainVONew getOutpReportNew(OutpReportRequestBody body)  ;
 
 
     /**

@@ -1,6 +1,5 @@
 package com.mergedata.server.impl;
 
-import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.mergedata.constants.Constant;
@@ -63,7 +62,7 @@ public class OutpReportServiceImpl implements OutpReportService {
 
         // 保存从表 (OrderItem)
         if (CollectionUtils.isNotEmpty(entity.getSubs())) {
-            entity.getSubs().forEach(sub -> sub.setSerialNo(entity.getSerialNo()));
+//            entity.getSubs().forEach(sub -> sub.setSerialNo(entity.getSerialNo()));
             Db.saveBatch(entity.getSubs());
         }
 

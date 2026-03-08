@@ -3,18 +3,16 @@ package com.mergedata.server.impl;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.mergedata.constants.Constant;
-import com.mergedata.model.dto.InpReportRequestBody;
-import com.mergedata.model.dto.external.HisInpIncomeResponseDTO;
-import com.mergedata.model.dto.external.HisOutpIncomeResponseDTO;
-import com.mergedata.model.vo.OutpReportMainVO;
-import com.mergedata.model.vo.OutpReportMainVONew;
-import com.mergedata.model.vo.OutpReportSubVONew;
-import com.mergedata.model.vo.OutpReportSubVO;
-import com.mergedata.model.dto.OutpReportRequestBody;
 import com.mergedata.mapper.HolidayMapper;
 import com.mergedata.mapper.OperatorMapper;
 import com.mergedata.mapper.OutpReportMapper;
+import com.mergedata.model.dto.InpReportRequestBody;
+import com.mergedata.model.dto.OutpReportRequestBody;
+import com.mergedata.model.dto.external.HisInpIncomeResponseDTO;
+import com.mergedata.model.dto.external.HisOutpIncomeResponseDTO;
 import com.mergedata.model.entity.*;
+import com.mergedata.model.vo.OutpReportMainVO;
+import com.mergedata.model.vo.OutpReportSubVO;
 import com.mergedata.server.*;
 import com.mergedata.util.PrimaryKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
@@ -109,7 +107,7 @@ public class ReportServiceImpl implements ReportService {
 
             OutpReportMainVO mainVO = outpExchangeDbToView(main);
 
-            subList = subList.stream()
+            subList = mainVO.getSubList().stream()
                     .filter(r -> (body.getInpWindow() == null || !body.getInpWindow().equals(1) || Integer.valueOf(1).equals(r.getInpWindow())))
                     .filter(r -> (body.getAtm() == null || !body.getAtm().equals(1) || Integer.valueOf(1).equals(r.getAtm())))
                     .collect(Collectors.toList());
@@ -126,50 +124,6 @@ public class ReportServiceImpl implements ReportService {
         }
     }
 
-
-    @Override
-    public OutpReportMainVONew getOutpReportNew(OutpReportRequestBody body) {
-
-        //调用存储过程获取报表数据
-        try {
-
-            List<OutpCashMainEntity> list = Db.lambdaQuery(OutpCashMainEntity.class)
-                    .eq(OutpCashMainEntity::getReportDate, body.getReportDate())
-                    .eq(OutpCashMainEntity::getTotalFlag, body.getTotalFlag())
-                    .eq(OutpCashMainEntity::getValidFlag, "1")
-                    .list();
-
-            LocalDate currentDate = body.getReportDate();
-            //接收ExtendParams1为true时，即初始化报表
-            Boolean isInitFlag = "true".equalsIgnoreCase(body.getExtendParams1());
-
-            OutpReportMainVONew mainVO = new OutpReportMainVONew();
-
-            // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
-            if (list.isEmpty() || isInitFlag) {
-
-                mainVO = getOutpReportDataNew(body);
-
-
-                //查询时候数据库没有相关的数据，插入数据库，此处调用 firstInsert 方法批量插入数据
-                isInitInsertOutpNew(mainVO, body);
-            }
-
-//        results.add(calculateTotal(results, LocalDate.parse(reportdate)));
-            // 进行筛选,过滤掉明细中inp_window和atm不匹配的数据
-
-            List<OutpReportSubVONew> subVo = mainVO.getSubs().stream()
-                    .filter(r -> (body.getInpWindow().equals(r.getInpWindow())))
-                    .filter(r -> (body.getAtm().equals(r.getAtm())))
-                    .collect(Collectors.toList());
-
-            mainVO.setSubs(subVo);
-            return mainVO;
-        } catch (Exception e) {
-            log.error("获取报表数据异常", e);
-            throw new RuntimeException("获取报表数据异常");
-        }
-    }
 
 
     /**
@@ -195,7 +149,16 @@ public class ReportServiceImpl implements ReportService {
             }
         }
 
-        OutpCashMainEntity main = outpExchangeViewToDb(reportDate, mainVO.getTotalFlag(), remark, mainVO.getSubList());
+
+        //门诊接收的转换为对应实体类保存到数据库
+        OutpCashMainEntity main = new OutpCashMainEntity();
+
+        main = outpExchangeViewToDb(reportDate, mainVO.getTotalFlag(), remark, mainVO.getSubList());
+
+        //转换为实体类的数据值需要验证，防止写入的数据有非修改的 而改动 校验方法
+        //明细数据校验方法
+        ouptInsertVerityDetailData(reportDate,main.getSubs());
+
 
         try {
             //先作废目前已经有的报表数据
@@ -209,6 +172,14 @@ public class ReportServiceImpl implements ReportService {
             log.error("插入门诊报表数据异常", e);
             throw new RuntimeException("插入门诊报表数据异常", e);
         }
+    }
+    /**
+     * 门诊明细数据写入前校验方法
+     */
+    private void ouptInsertVerityDetailData(LocalDate localDate,List<OutpCashSubEntity> subs) {
+        // 校验明细数据
+
+
     }
 
 
@@ -253,46 +224,6 @@ public class ReportServiceImpl implements ReportService {
 
     }
 
-    /**
-     * 实际的数据库操作（带事务）
-     */
-    private Integer insertWithTransactionNew(OutpReportMainVONew mainVO, OutpReportRequestBody body) {
-
-        // 2. 生成主键
-        String pk = new PrimaryKeyGenerator().generateKey();
-
-        // 3. 构建主表
-        OutpCashMainEntity main = buildMainEntityNew(pk, body);
-
-        // 4. 构建明细表
-        List<OutpCashSubEntity> subList = buildSubEntitiesNew(pk, mainVO.getSubs());
-
-        // 2. 显式开启事务
-        return transactionTemplate.execute(status -> {
-            try {
-                // 检测事务为 true
-                System.out.println("是否开启事务: " + status.isNewTransaction());
-
-                // 1. 作废历史
-                if (!outpReportMapper.selectReportByDate(body.getReportDate()).isEmpty()) {
-                    outpReportMapper.updateByDate(body.getReportDate());
-                    log.info("{} {} 历史报表数据作废完成", body.getReportDate(), Constant.REPORT_NAME_OUTP);
-                }
-
-                Db.save(main);
-
-                Db.saveBatch(subList);
-
-                return Constant.SUCCESS;
-
-            } catch (Exception e) {
-                status.setRollbackOnly(); // 手动回滚
-                log.error("数据库操作失败，执行回滚", e);
-                throw new RuntimeException("门诊现金报表写入失败，已回滚", e);
-            }
-        });
-
-    }
 
     /**
      * 门诊报表数据实体转换视图
@@ -362,47 +293,6 @@ public class ReportServiceImpl implements ReportService {
         return subList;
     }
 
-    private OutpCashMainEntity buildMainEntityNew(String pk, OutpReportRequestBody body) {
-        OutpCashMainEntity main = new OutpCashMainEntity();
-        main.setSerialNo(pk);
-        main.setValidFlag("1");
-        //是否汇总标志  前端调用穿=传入
-        main.setTotalFlag(body.getTotalFlag());
-
-        if (body.getReportDate() != null) {
-            main.setReportDate(body.getReportDate());
-            main.setReportYear(body.getReportDate().getYear());
-        }
-        main.setCreateTime(LocalDateTime.now());
-        main.setUpdateTime(LocalDateTime.now());
-
-        return main;
-    }
-
-    private List<OutpCashSubEntity> buildSubEntitiesNew(String pk, List<OutpReportSubVONew> list) {
-        List<OutpCashSubEntity> subList = new ArrayList<>();
-
-        for (OutpReportSubVONew vo : list) {
-            if (vo.getOperatorName().contains("合计")) {
-                continue;  // 跳过合计行
-            }
-
-            OutpCashSubEntity sub = new OutpCashSubEntity();
-            BeanUtils.copyProperties(vo, sub);
-
-            sub.setSerialNo(pk);
-            sub.setDbUser(vo.getDbUser());
-            sub.setHisOperatorName(vo.getOperatorName());
-            sub.setRowNum(vo.getRowNum());
-            sub.setAcctDate(vo.getAcctDate());
-            sub.setAcctNo(vo.getAcctNo());
-            sub.setRemarks(vo.getRemarks());
-
-            subList.add(sub);
-        }
-
-        return subList;
-    }
 
     /**
      * 获取住院报表数据
@@ -738,19 +628,6 @@ public class ReportServiceImpl implements ReportService {
         }
     }
 
-    /*
-     * 对应门诊日期报表无数据时候，是否初始化写入数据
-     * @param list 门诊报表数据列表
-     * @param date 日期
-     */
-    public void isInitInsertOutpNew(OutpReportMainVONew mainVO, OutpReportRequestBody body) {
-        try {
-            insertWithTransactionNew(mainVO, body);
-        } catch (Exception e) {
-            log.error("初始化插入门诊现金主表数据失败，日期：{}", body.getReportDate(), e);
-            throw new RuntimeException("初始化插入门诊现金主表数据失败" + e.getMessage());
-        }
-    }
 
 
     /**
@@ -1087,143 +964,6 @@ public class ReportServiceImpl implements ReportService {
         }
     }
 
-    /**
-     * 获取门诊报表---优化了回溯查询
-     * 1. 从各数据源获取数据。
-     * 2. 以操作员为基准进行匹配和计算。
-     * 3. 对周一进行特殊的回溯计算 (A = B - Sum(C) - D)。
-     * 4. 对其他工作日进行正常计算 (A = B - C - D)。
-     *
-     * @param body
-     * @return 包含所有操作员计算结果的 ReportDTO 列表
-     */
-    public OutpReportMainVONew getOutpReportDataNew(OutpReportRequestBody body) {
-        try {
-
-            LocalDate currtDate = body.getReportDate();
-            String totalFlag = body.getTotalFlag();
-
-            String holidayType = holidayService.queryDateType(currtDate, Constant.TYPE_OUTP);
-
-            /*
-            先判断是否是汇总  还是单独查询
-            1、先判断是否是汇总标志
-                1、1  如果是汇总标志，再判断是否是特殊节假日
-                1、2  是汇总，但是不符合 特殊节假日  直接返回空列表
-
-            */
-            boolean isSpecialHoliday = false;
-            if (Constant.YES.equals(totalFlag)) {
-                if (Constant.HOLIDAY_AFTER.equals(holidayType) || Constant.HOLIDAY_MONTH_LASTDAY.equals(holidayType)) {
-                    isSpecialHoliday = true;
-                } else {
-                    return null;
-                }
-            }
-
-
-            List<YQOperatorEntity> operators = operatorService.findByCategory(Constant.TYPE_OUTP);
-
-            Set<LocalDate> holidaySet = holidayService.findByYear(currtDate.getYear()).stream()
-                    .map(YQHolidayEntity::getHolidayDate).collect(Collectors.toSet());
-
-
-            // 预加载 HIS 数据和现金记录
-            Map<String, HisOutpIncomeResponseDTO> hisDataMap = hisdata.findByDateOutp(currtDate.toString()).stream()
-                    .collect(Collectors.toMap(HisOutpIncomeResponseDTO::getDbUser, Function.identity(), (v1, v2) -> v1));
-            Map<String, YQCashRegRecordEntity> cashMap = cashService.findByDate(currtDate).stream()
-                    .collect(Collectors.toMap(YQCashRegRecordEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
-
-            // 获取历史数据（昨日）
-            Map<String, OutpCashSubEntity> yesterdayMap = new HashMap<>();
-            // 获取昨日数据对象
-            OutpCashMainEntity yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1));
-            //  先判断 main 是否为 null
-            if (yesterdayMain == null || yesterdayMain.getSubs() == null || yesterdayMain.getSubs().isEmpty()) {
-                yesterdayMap = Collections.emptyMap();
-            } else {
-                // 只有确定不为空时，才进行 stream 操作
-                yesterdayMap = yesterdayMain.getSubs().stream()
-                        .collect(Collectors.toMap(
-                                OutpCashSubEntity::getDbUser,
-                                Function.identity(),
-                                (v1, v2) -> v1
-                        ));
-            }
-
-            // 增加历史日期查询缓存，避免 N+1 问题 ---
-            Map<LocalDate, Map<String, OutpReportSubVO>> historyCache = new HashMap<>();
-
-            OutpReportMainVONew mainVO = new OutpReportMainVONew();
-            List<OutpReportSubVONew> resultList = new ArrayList<>();
-            String pk = new PrimaryKeyGenerator().generateKey();
-
-            for (YQOperatorEntity operator : operators) {
-                OutpReportSubVONew dto = new OutpReportSubVONew();
-                dto.setSerialNo(pk);
-//                dto.setOperatorNo(operator.getOperatorNo());
-                dto.setDbUser(operator.getDbUser());
-                dto.setOperatorName(operator.getOperatorName());
-                dto.setPettyCash(operator.getPettyCash());
-
-                // 1. 基础 HIS 收入赋值
-                HisOutpIncomeResponseDTO hisDto = hisDataMap.get(operator.getDbUser());
-                if (hisDto != null) {
-                    dto.setHisAdvancePayment(getSafeBigDecimal(hisDto.getHisAdvancePayment()));
-                    dto.setHisMedicalIncome(getSafeBigDecimal(hisDto.getHisMedicalIncome()));
-                    dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
-                    dto.setAcctNo(hisDto.getAcctNo());
-                    dto.setAcctDate(hisDto.getAcctDate());
-                } else {
-                    dto.setReportAmount(BigDecimal.ZERO);
-                }
-
-
-                YQCashRegRecordEntity cashRec = cashMap.get(operator.getDbUser());
-                dto.setRetainedCash(cashRec != null ? getSafeBigDecimal(cashRec.getRetainedCash()) : BigDecimal.ZERO);
-
-
-                /*
-                1、判断是否汇总
-                    1.1、是汇总 ，且对应日期 是节假日 且是月末最后一天
-                    1.2、是汇总，且对应日期 是节假日后工作日第一天
-                */
-                if (isSpecialHoliday) {
-                    //统一计算核心 自动处理回溯缓存
-//                    computeOutpFields(dto, currtDate, holidayType, holidaySet, historyCache);
-                } else {
-                    //应交报表数  =  his预交金 + his医疗收入
-                    dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
-                    //前日暂收款  =  前一天的 当日 暂收款
-                    OutpCashSubEntity yest = yesterdayMap.get(operator.getDbUser());
-                    dto.setPreviousTemporaryReceipt(yest != null ? getSafeBigDecimal(yest.getCurrentTemporaryReceipt()) : BigDecimal.ZERO);
-                }
-
-
-                // 实交报表数据 = 应交报表数 - 前日暂收款
-                dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()));
-
-                // 5.实收现金数 = 实收报表数 + 当日暂收款
-                dto.setActualCashAmount(getSafeBigDecimal(dto.getActualReportAmount()).add(getSafeBigDecimal(dto.getCurrentTemporaryReceipt())));
-
-                // 6.留存数差额 = 留存现金 - 备用金 + 实收报表数
-                dto.setRetainedDifference(getSafeBigDecimal(dto.getRetainedCash())
-                        .subtract(getSafeBigDecimal(dto.getPettyCash()))
-                        .add(getSafeBigDecimal(dto.getActualReportAmount())));
-
-
-                resultList.add(dto);
-            }
-            mainVO.setReportDate(currtDate);
-            mainVO.setTotalFlag(Constant.YES);
-            mainVO.setSerialNo(pk);
-
-            return mainVO;
-        } catch (Exception e) {
-            log.error("门诊报表生成失败", e);
-            return null;
-        }
-    }
 
 
     /**
