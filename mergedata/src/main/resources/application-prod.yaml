@@ -47,7 +47,7 @@ spring:
     test-on-return: false
 
     # 是否打开连接泄露检测。开启会降低性能。
-    remove-abandoned: true
+    remove-abandoned: false
     remove-abandoned-timeout: 1800 # 连接被认为是泄露的超时时间（秒）
     log-abandoned: true # 泄露时是否记录日志
 

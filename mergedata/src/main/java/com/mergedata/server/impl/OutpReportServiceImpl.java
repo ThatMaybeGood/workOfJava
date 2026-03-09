@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -32,15 +33,31 @@ public class OutpReportServiceImpl implements OutpReportService {
     }
 
     @Override
-    public OutpCashMainEntity findByDate(LocalDate date) {
+    public OutpCashMainEntity findByDate(LocalDate date,String totalFlag) {
         OutpCashMainEntity main = Db.lambdaQuery(OutpCashMainEntity.class)
                 .eq(OutpCashMainEntity::getReportDate, date)
-                .eq(OutpCashMainEntity::getTotalFlag, Constant.YES)
+                .eq(OutpCashMainEntity::getTotalFlag, totalFlag)
+                .eq(OutpCashMainEntity::getValidFlag, Constant.YES)
                 .one();
 
         fillSubs(main);
 
         return main;
+    }
+
+    @Override
+    public Long countByDate(LocalDate date, String totalFlag) {
+
+        return Db.lambdaQuery(OutpCashMainEntity.class)
+                .eq(OutpCashMainEntity::getReportDate, date)
+                .eq(OutpCashMainEntity::getTotalFlag, totalFlag)
+                .eq(OutpCashMainEntity::getValidFlag, Constant.YES)
+                .count();
+    }
+
+    @Override
+    public List<OutpCashMainEntity> findBatchByDateRange(LocalDate startDate, LocalDate endDate) {
+        return Collections.emptyList();
     }
 
     @Override
@@ -90,6 +107,7 @@ public class OutpReportServiceImpl implements OutpReportService {
                 .set(OutpCashMainEntity::getValidFlag, Constant.NO)
                 .eq(OutpCashMainEntity::getReportDate, date)
                 .eq(OutpCashMainEntity::getTotalFlag, totalFlag)
+                .eq(OutpCashMainEntity::getValidFlag, Constant.YES)
                 .update();
     }
 
@@ -108,6 +126,7 @@ public class OutpReportServiceImpl implements OutpReportService {
         if (main != null) {
             List<OutpCashSubEntity> items = Db.lambdaQuery(OutpCashSubEntity.class)
                     .eq(OutpCashSubEntity::getSerialNo, main.getSerialNo())
+                    .orderByAsc(OutpCashSubEntity::getId)
                     .list();
             main.setSubs(items);
         }

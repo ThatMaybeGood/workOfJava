@@ -110,7 +110,7 @@ public class OutpReportSubVO {
      */
     @NotBlank(message = "备用金不能为空", groups = {AddGroup.class})
     @JsonProperty("petty_cash")
-    private BigDecimal pettyCash = BigDecimal.ZERO;                // 默认0
+    private BigDecimal pettyCash  = BigDecimal.ZERO;                // 默认0
 
     /*
     备注信息
@@ -131,7 +131,7 @@ public class OutpReportSubVO {
     报表年份
      */
     @JsonProperty("report_year")
-    private String reportYear;
+    private Integer reportYear;
 
     /*
     报表创建时间
@@ -159,16 +159,23 @@ public class OutpReportSubVO {
      窗口号
      */
     @JsonProperty("inp_window")
-    private Integer inpWindow;
+    private String inpWindow;
     /*
      * 金额
      */
     @JsonProperty("amt")
-    private Integer atm;
+    private String atm;
 
     /*
      * 登录用户ID
      */
      @JsonProperty("db_user")
      private String dbUser;
+
+    /**
+     * 界面排序号
+     */
+     @JsonProperty("id")
+     private Integer id;
+
 }

@@ -5,6 +5,7 @@ import com.mergedata.model.entity.OutpCashMainEntity;
 import com.mergedata.model.vo.OutpReportMainVO;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public interface OutpReportService {
 
@@ -17,7 +18,17 @@ public interface OutpReportService {
     /**
      * 根据日期查询门诊报表数据
      */
-    OutpCashMainEntity findByDate(LocalDate date)  ;
+    OutpCashMainEntity findByDate(LocalDate date,String totalFlag)  ;
+
+    /**
+     * 根据日期查询门诊报表主表数量
+     */
+    Long countByDate(LocalDate date,String totalFlag)  ;
+
+    /**
+     * 查询时间范围内的所有门诊报表主表数据（包含 Subs 明细）
+     */
+     List<OutpCashMainEntity> findBatchByDateRange(LocalDate startDate, LocalDate endDate)  ;
 
 
 

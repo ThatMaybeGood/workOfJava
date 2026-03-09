@@ -22,9 +22,9 @@ public class OutpCashSubEntity {
     private String serialNo;
 
     @TableField("emp_id")
-    private String hisOperatorNo;
+    private String operatorNo;
     @TableField("emp_name")
-    private String hisOperatorName;
+    private String operatorName;
 
     @TableField("db_user")
     private String dbUser;
@@ -60,6 +60,19 @@ public class OutpCashSubEntity {
 
     private LocalDateTime acctDate; //结账时间
 
+    /**
+     * 是否在窗内（0:否，1：是）
+     */
+    private String inpWindow;
+    /**
+     * 是否在ATM机内（0:否，1：是）
+     */
+    private String atm;
+
+    /*
+     * 界面排序号
+     */
+    private Integer id;
 
 
     // 统一处理BigDecimal类型的null值
@@ -76,22 +89,6 @@ public class OutpCashSubEntity {
 
     public void setSerialNo(String serialNo) {
         this.serialNo = serialNo;
-    }
-
-    public String getHisOperatorNo() {
-        return hisOperatorNo;
-    }
-
-    public void setHisOperatorNo(String hisOperatorNo) {
-        this.hisOperatorNo = hisOperatorNo;
-    }
-
-    public String getHisOperatorName() {
-        return hisOperatorName;
-    }
-
-    public void setHisOperatorName(String hisOperatorName) {
-        this.hisOperatorName = hisOperatorName;
     }
 
     public BigDecimal getHisAdvancePayment() {

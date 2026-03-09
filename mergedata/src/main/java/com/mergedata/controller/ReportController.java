@@ -47,16 +47,7 @@ public class ReportController {
     }
 
 
-    @Operation(summary = "根据日期查询门诊报表数据", description = "返回门诊报表数据")
-    @PostMapping("/findbydate_new")
-    public ApiResponse<OutpReportMainVONew> getOutpReportNew(@Valid @RequestBody ApiRequest<OutpReportRequestBody> request)  {
 
-        // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        OutpReportMainVONew resultList = report.getOutpReportNew(request.getBody());
-
-        // 4. 返回结果
-        return ApiResponse.successObj(resultList,"查询门诊报表列表成功！");
-    }
 
 
     @Operation(summary = "批量插入门诊报表数据", description = "返回对应结果")
@@ -93,7 +84,7 @@ public class ReportController {
     public ApiResponse insertInpReport(@RequestBody ApiRequest<InpReportVO> request)  {
 
         InpReportVO vo = request.getBody();
-        InpCashMainEntity main = new InpCashMainEntity();
+        InpCashMainEntity main =  new InpCashMainEntity();
         BeanUtils.copyProperties(vo, main);
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
