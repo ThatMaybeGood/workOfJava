@@ -4,7 +4,8 @@
 
     <include resource="org/springframework/boot/logging/logback/base.xml" />
 
-    <property name="FILE_LOG_PATTERN_MY" value="%d{yyyy-MM-dd hh:mm:ss} [%thread]  %-5level %logger{50}[%L] - %msg%n"/>
+<!--    <property name="FILE_LOG_PATTERN_MY" value="%d{yyyy-MM-dd hh:mm:ss} [%thread]  %-5level %logger{50}[%L] - %msg%n"/>-->
+    <property name="FILE_LOG_PATTERN_MY" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%level] [%X{traceId}] [%X{step}]：%msg%n"/>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <!-- 對日誌進行格式化 -->
@@ -19,7 +20,7 @@
         <file>${LOG_PATH}/log_trace.log</file>
         <!--日志文件输出格式-->
         <encoder>
-            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <pattern>${FILE_LOG_PATTERN_MY}</pattern>
             <charset>UTF-8</charset> <!-- 此处设置字符集 -->
         </encoder>
         <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
@@ -73,7 +74,7 @@
         <file>${LOG_PATH}/log_warn.log</file>
         <!--日志文件输出格式-->
         <encoder>
-            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <pattern>${FILE_LOG_PATTERN_MY}</pattern>
             <charset>UTF-8</charset> <!-- 此处设置字符集 -->
         </encoder>
         <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
@@ -100,7 +101,7 @@
         <file>${LOG_PATH}/log_error.log</file>
         <!--日志文件输出格式-->
         <encoder>
-            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <pattern>${FILE_LOG_PATTERN_MY}</pattern>
         </encoder>
         <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">

@@ -112,7 +112,7 @@ public class ApiLogic {
         newJsonObject.put("medins_setl_id", jsonObject.getString("medinsSetlId"));
         newJsonObject.put("msgid", jsonObject.getString("medinsSetlId"));
         newJsonObject.put("med_type", jsonObject.getString("medType"));
-        newJsonObject.put("certno", jsonObject.getString("certno"));
+        newJsonObject.put("card_no", jsonObject.getString("certno"));
 
 
         return newJsonObject;
