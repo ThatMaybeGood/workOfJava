@@ -34,7 +34,7 @@ public class OutpCashSubEntity {
     private BigDecimal hisRegistrationIncome; //his
 
 
-    private BigDecimal reportAmount;    // LocalDate
+    private BigDecimal reportAmount;    // 应交报表数 = hisAdvancePayment + hisMedicalIncome + hisRegistrationIncome
 
     private BigDecimal previousTemporaryReceipt;    // 前日暂收款
 

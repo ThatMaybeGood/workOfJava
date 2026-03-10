@@ -73,11 +73,11 @@ public class ReportServiceImpl implements ReportService {
 
         try {
             //查询数据库是否有数据
-            OutpCashMainEntity main  =new OutpCashMainEntity();
+            OutpCashMainEntity main = new OutpCashMainEntity();
 
-            Long count = outpReportService.countByDate(body.getReportDate(),body.getTotalFlag());
+            Long count = outpReportService.countByDate(body.getReportDate(), body.getTotalFlag());
 
-            int type= isSpecialHolidaySum(body);
+            int type = isSpecialHolidaySum(body.getReportDate(), body.getTotalFlag());
 
             List<OutpReportSubVO> subList = new ArrayList<>();
 
@@ -94,17 +94,15 @@ public class ReportServiceImpl implements ReportService {
                 }
 
                 outpReportService.insertOrUpdate(main);
-            }else {
-                main = outpReportService.findByDate(body.getReportDate(),body.getTotalFlag());
+            } else {
+                main = outpReportService.findByDate(body.getReportDate(), body.getTotalFlag());
             }
-
-
 
 
             OutpReportMainVO mainVO = outpExchangeDbToView(main);
             mainVO.setTotalFlag(body.getTotalFlag());
 
-            if(type == 2 ){
+            if (type == 2) {
                 mainVO.setSubList(Collections.emptyList());
                 return mainVO;
             }
@@ -127,12 +125,14 @@ public class ReportServiceImpl implements ReportService {
 
     /**
      * 判断是否符合特殊节假日需要进行回溯汇总计算
-     * @param body 门诊报表请求体
-     * @return  0  不是汇总查询
-     *          1  是汇总查询，且是特殊节假日
-     *          2  是汇总查询，但是不是特殊节假日
+     *
+     * @param localDate 日期
+     * @param totalFlag 汇总标志
+     * @return 0  不是汇总查询
+     * 1  是汇总查询，且是特殊节假日
+     * 2  是汇总查询，但是不是特殊节假日
      */
-    private int isSpecialHolidaySum(OutpReportRequestBody body) {
+    private int isSpecialHolidaySum(LocalDate localDate,String totalFlag) {
           /*
             先判断是否是汇总  还是单独查询
             1、先判断是否是汇总标志
@@ -140,12 +140,12 @@ public class ReportServiceImpl implements ReportService {
                 1、2  是汇总，但是不符合 特殊节假日  直接返回空列表
             */
 
-        String holidayType = holidayService.queryDateType(body.getReportDate(), Constant.TYPE_OUTP);
+        String holidayType = holidayService.queryDateType(localDate, Constant.TYPE_OUTP);
 
-         if (Constant.YES.equals(body.getTotalFlag())) {
+        if (Constant.YES.equals(totalFlag)) {
             if (Constant.HOLIDAY_AFTER.equals(holidayType) || Constant.HOLIDAY_MONTH_LASTDAY.equals(holidayType)) {
                 return 1;
-            }else {
+            } else {
                 return 2;
             }
         }
@@ -188,27 +188,155 @@ public class ReportServiceImpl implements ReportService {
 
         //转换为实体类的数据值需要验证，防止写入的数据有非修改的 而改动 校验方法
         //明细数据校验方法
-        ouptInsertVerityDetailData(reportDate,main.getSubs());
+        //判断是否符合特殊节假日需要进行回溯汇总计算
+        int calculationType = isSpecialHolidaySum(reportDate, mainVO.getTotalFlag());
+        //如果是汇总查询，但是日期不符合特殊日期情况，不处理校验
+        if (calculationType!=2) {
 
+            ouptInsertVerityDetailData(reportDate, calculationType, main);
 
-        try {
-            //先作废目前已经有的报表数据
-            //在写入数据库
-            outpReportService.insertOrUpdate(main);
+            try {
+                //先作废目前已经有的报表数据
+                //在写入数据库
+                outpReportService.insertOrUpdate(main);
 
-            return Constant.SUCCESS;
+                return Constant.SUCCESS;
 
-        } catch (Exception e) {
-            log.error("插入门诊报表数据异常", e);
-            throw new RuntimeException("插入门诊报表数据异常", e);
+            } catch (Exception e) {
+                log.error("插入门诊报表数据异常", e);
+                throw new RuntimeException("插入门诊报表数据异常", e);
+            }
         }
+        return Constant.SUCCESS;
     }
-    /**
-     * 门诊明细数据写入前校验方法
-     */
-    private void ouptInsertVerityDetailData(LocalDate localDate,List<OutpCashSubEntity> subs) {
-        // 校验明细数据
 
+    /**
+     * 门诊明细数据写入前校验方法,确保有些不能修改的字段值，修改后保存
+     */
+    private void ouptInsertVerityDetailData(LocalDate currtDate, int calculationType, OutpCashMainEntity main) {
+        try {
+                Map<String, YQOperatorEntity> operatorMap = operatorService.findByCategory(Constant.TYPE_OUTP).stream()
+                        .collect(Collectors.toMap(YQOperatorEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
+
+                Set<LocalDate> holidaySet = holidayService.findByYear(currtDate.getYear()).stream()
+                        .map(YQHolidayEntity::getHolidayDate).collect(Collectors.toSet());
+
+
+                // 预加载 HIS 数据和现金记录
+                Map<String, HisOutpIncomeResponseDTO> hisDataMap = hisdata.findByDateOutp(currtDate.toString()).stream()
+                        .collect(Collectors.toMap(HisOutpIncomeResponseDTO::getDbUser, Function.identity(), (v1, v2) -> v1));
+                Map<String, YQCashRegRecordEntity> cashMap = cashService.findByDate(currtDate).stream()
+                        .collect(Collectors.toMap(YQCashRegRecordEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
+
+                // 获取历史数据（昨日）
+                Map<String, OutpCashSubEntity> yesterdayMap = new HashMap<>();
+                OutpCashMainEntity yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1), main.getTotalFlag());
+
+                //  先判断 main 是否为 null
+                if (yesterdayMain == null || yesterdayMain.getSubs() == null || yesterdayMain.getSubs().isEmpty()) {
+                    yesterdayMap = Collections.emptyMap();
+                } else {
+                    // 只有确定不为空时，才进行 stream 操作
+                    yesterdayMap = yesterdayMain.getSubs().stream()
+                            .collect(Collectors.toMap(
+                                    OutpCashSubEntity::getDbUser,
+                                    Function.identity(),
+                                    (v1, v2) -> v1
+                            ));
+                }
+
+
+                LocalDate minDate = LocalDate.of(1900, 1, 1);
+                Map<LocalDate, OutpCashMainEntity> historyMap = new HashMap<>();
+                //需要汇总回溯时候，查询历史数据
+                if (calculationType == 1) {
+                    // 获取昨日数据对象
+                    // 定位回溯的最远日期
+                    minDate = findMinBacktrackDate(currtDate, holidaySet);
+                    //一次性查询范围内的所有报表（包含 Subs 明细）
+                    // WHERE report_date >= minDate AND report_date < currtDate
+                    List<OutpCashMainEntity> historyMains = outpReportService.findBatchByDateRange(minDate, currtDate.minusDays(1), "0");
+
+                    //转换为 Map 以便内存快速回溯
+                    historyMap = historyMains.stream()
+                            .collect(Collectors.toMap(OutpCashMainEntity::getReportDate, Function.identity()));
+                }
+
+
+
+
+                for (OutpCashSubEntity dto : main.getSubs()) {
+
+                    YQOperatorEntity operator = operatorMap.get(dto.getDbUser());
+
+//                    OutpCashSubEntity dto = new OutpCashSubEntity();
+//                    dto.setSerialNo(main.getSerialNo());
+//                    dto.setOperatorNo(operator.getOperatorNo());
+//                    dto.setDbUser(operator.getDbUser());
+//                    dto.setOperatorName(operator.getOperatorName());
+                      dto.setPettyCash(operator.getPettyCash());
+//                    dto.setInpWindow(operator.getInpWindow());
+//                    dto.setAtm(operator.getAtm());
+//                    dto.setRowNum(operator.getRowNum());
+
+                    // 1. 基础 HIS 收入赋值
+                    HisOutpIncomeResponseDTO hisDto = hisDataMap.get(dto.getDbUser());
+                    if (hisDto != null) {
+                        dto.setHisAdvancePayment(getSafeBigDecimal(hisDto.getHisAdvancePayment()));
+                        dto.setHisMedicalIncome(getSafeBigDecimal(hisDto.getHisMedicalIncome()));
+                        dto.setAcctNo(hisDto.getAcctNo());
+                        dto.setAcctDate(hisDto.getAcctDate());
+                    } else {
+                        dto.setHisAdvancePayment(BigDecimal.ZERO);
+                        dto.setHisMedicalIncome(BigDecimal.ZERO);
+                        dto.setAcctNo(null);
+                        dto.setAcctDate(null);
+                    }
+                    // 2. 计算 reportAmount = hisAdvancePayment + hisMedicalIncome
+                    dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
+
+
+                    YQCashRegRecordEntity cashRec = cashMap.get(dto.getDbUser());
+                    dto.setRetainedCash(cashRec != null ? getSafeBigDecimal(cashRec.getRetainedCash()) : BigDecimal.ZERO);
+
+
+                /*
+                1、判断是否汇总
+                    1.1、是汇总 ，且对应日期 是节假日 且是月末最后一天
+                    1.2、是汇总，且对应日期 是节假日后工作日第一天
+                */
+                    if (calculationType == 1) {
+                        //统一计算核心 自动处理回溯缓存
+                        /**
+                         需要完善独立的方法，首先去判断找到回溯截止的日期，且回溯期间是否有日期中无数据的，那就回溯截止日期到对应无数据为准
+                         */
+                        handleOutpBacktrackLogic(dto, currtDate, minDate, historyMap);
+
+                    }
+
+                    if (calculationType == 0) {
+                        //应交报表数  =  his预交金 + his医疗收入
+                        dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
+                        //前日暂收款  =  前一天的 当日 暂收款
+                        OutpCashSubEntity yest = yesterdayMap.get(dto.getDbUser());
+                        dto.setPreviousTemporaryReceipt(yest != null ? getSafeBigDecimal(yest.getCurrentTemporaryReceipt()) : BigDecimal.ZERO);
+                    }
+
+
+                    // 实交报表数据 = 应交报表数 - 前日暂收款
+                    dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()));
+
+                    // 5.实收现金数 = 实收报表数 + 当日暂收款
+                    dto.setActualCashAmount(getSafeBigDecimal(dto.getActualReportAmount()).add(getSafeBigDecimal(dto.getCurrentTemporaryReceipt())));
+
+                    // 6.留存数差额 = 留存现金 - 备用金 + 实收报表数
+                    dto.setRetainedDifference(getSafeBigDecimal(dto.getRetainedCash())
+                            .subtract(getSafeBigDecimal(dto.getPettyCash()))
+                            .add(getSafeBigDecimal(dto.getActualReportAmount())));
+                }
+        } catch (Exception e) {
+            log.error("门诊报表写入数据校验失败", e);
+        }
 
     }
 
@@ -297,7 +425,7 @@ public class ReportServiceImpl implements ReportService {
         mainEntity.setRemark(remark);
         mainEntity.setCreateTime(LocalDateTime.now());
 
-         // 转换 List
+        // 转换 List
         if (CollectionUtils.isNotEmpty(mainVO.getSubList())) {
             List<OutpCashSubEntity> subList = mainVO.getSubList().stream().map(subVO -> {
                 OutpCashSubEntity subEntity = new OutpCashSubEntity();
@@ -654,7 +782,6 @@ public class ReportServiceImpl implements ReportService {
     }
 
 
-
     /**
      * 初始化插入住院现金主表数据
      *
@@ -833,7 +960,7 @@ public class ReportServiceImpl implements ReportService {
      * 3. 对周一进行特殊的回溯计算 (A = B - Sum(C) - D)。
      * 4. 对其他工作日进行正常计算 (A = B - C - D)。
      *
-     * @param body 日期
+     * @param body            日期
      * @param calculationType 计算类型 0：正常计算 1：特殊回溯计算 ,2 直接明细设空
      * @return 包含所有操作员计算结果的 ReportDTO 列表
      */
@@ -852,11 +979,10 @@ public class ReportServiceImpl implements ReportService {
             main.setCreateTime(LocalDateTime.now());
 
             //如果是汇总查询，但是日期不符合特殊日期情况，直接返回空
-            if (calculationType==2){
+            if (calculationType == 2) {
                 main.setSubs(new ArrayList<>());
                 return main;
             }
-
 
 
             List<YQOperatorEntity> operators = operatorService.findByCategory(Constant.TYPE_OUTP);
@@ -873,19 +999,7 @@ public class ReportServiceImpl implements ReportService {
 
             // 获取历史数据（昨日）
             Map<String, OutpCashSubEntity> yesterdayMap = new HashMap<>();
-            // 获取昨日数据对象
-            // 定位回溯的最远日期
-            LocalDate minDate = findMinBacktrackDate(currtDate, holidaySet);
-            //一次性查询范围内的所有报表（包含 Subs 明细）
-            // WHERE report_date >= minDate AND report_date < currtDate
-            List<OutpCashMainEntity> historyMains = outpReportService.findBatchByDateRange(minDate, currtDate.minusDays(1));
-
-            //转换为 Map 以便内存快速回溯
-            Map<LocalDate, OutpCashMainEntity> historyMap = historyMains.stream()
-                    .collect(Collectors.toMap(OutpCashMainEntity::getReportDate, Function.identity()));
-
-            OutpCashMainEntity yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1),body.getTotalFlag());
-
+            OutpCashMainEntity yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1), body.getTotalFlag());
             //  先判断 main 是否为 null
             if (yesterdayMain == null || yesterdayMain.getSubs() == null || yesterdayMain.getSubs().isEmpty()) {
                 yesterdayMap = Collections.emptyMap();
@@ -899,9 +1013,26 @@ public class ReportServiceImpl implements ReportService {
                         ));
             }
 
+
+
+            LocalDate minDate = LocalDate.of(1900, 1, 1);
+            Map<LocalDate, OutpCashMainEntity> historyMap = new HashMap<>();
+            if (calculationType == 1) {
+                // 获取昨日数据对象
+                // 定位回溯的最远日期
+                minDate = findMinBacktrackDate(currtDate, holidaySet);
+                //一次性查询范围内的所有报表（包含 Subs 明细）
+                // WHERE report_date >= minDate AND report_date < currtDate
+                List<OutpCashMainEntity> historyMains = outpReportService.findBatchByDateRange(minDate, currtDate.minusDays(1), "0");
+
+                //转换为 Map 以便内存快速回溯
+                historyMap = historyMains.stream()
+                        .collect(Collectors.toMap(OutpCashMainEntity::getReportDate, Function.identity()));
+            }
+
+
             // 增加历史日期查询缓存，避免 N+1 问题 ---
-            Map<LocalDate, Map<String, OutpCashSubEntity>> historyCache = new HashMap<>();
-            List<OutpCashSubEntity> resultList = new ArrayList<>();
+             List<OutpCashSubEntity> resultList = new ArrayList<>();
 
             for (YQOperatorEntity operator : operators) {
                 OutpCashSubEntity dto = new OutpCashSubEntity();
@@ -939,7 +1070,7 @@ public class ReportServiceImpl implements ReportService {
                 if (calculationType == 1) {
                     //统一计算核心 自动处理回溯缓存
                     /**
-                      需要完善独立的方法，首先去判断找到回溯截止的日期，且回溯期间是否有日期中无数据的，那就回溯截止日期到对应无数据为准
+                     需要完善独立的方法，首先去判断找到回溯截止的日期，且回溯期间是否有日期中无数据的，那就回溯截止日期到对应无数据为准
                      */
                     handleOutpBacktrackLogic(dto, currtDate, minDate, historyMap);
 
@@ -968,7 +1099,6 @@ public class ReportServiceImpl implements ReportService {
 
                 resultList.add(dto);
             }
-
 
 
             main.setSubs(resultList);
@@ -1005,13 +1135,13 @@ public class ReportServiceImpl implements ReportService {
      * 封装回溯逻辑，缓存减少数据库IO
      */
     private void handleOutpBacktrackLogic(OutpCashSubEntity dto, LocalDate targetDate,
-                                          LocalDate minDate, Map<LocalDate,OutpCashMainEntity> historyMap) {
+                                          LocalDate minDate, Map<LocalDate, OutpCashMainEntity> historyMap) {
 
-            // 回溯计算 A = B - Sum(C) - D
-            BacktrackResult res = executeBacktrack(dto.getDbUser(), targetDate,minDate, historyMap);
+        // 回溯计算 A = B - Sum(C) - D
+        BacktrackResult res = executeBacktrack(dto.getDbUser(), targetDate, minDate, historyMap);
 
-            dto.setReportAmount(res.backReportAmount);
-            dto.setPreviousTemporaryReceipt(res.backPreviousTemporaryReceipt);
+        dto.setReportAmount(res.backReportAmount);
+        dto.setPreviousTemporaryReceipt(res.backPreviousTemporaryReceipt);
     }
 
 

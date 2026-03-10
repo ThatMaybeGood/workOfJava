@@ -1,6 +1,7 @@
 package com.mergedata.server.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.mergedata.constants.Constant;
 import com.mergedata.model.dto.OutpReportRequestBody;
@@ -14,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -22,11 +25,7 @@ public class OutpReportServiceImpl implements OutpReportService {
     @Override
     public OutpCashMainEntity findByRequestBody(OutpReportRequestBody requestBody) {
 
-        OutpCashMainEntity main = Db.lambdaQuery(OutpCashMainEntity.class)
-                .eq(OutpCashMainEntity::getReportDate, requestBody.getReportDate())
-                .eq(OutpCashMainEntity::getTotalFlag, requestBody.getTotalFlag())
-                .eq(OutpCashMainEntity::getValidFlag, Constant.YES)
-                .one();
+        OutpCashMainEntity main = queryMainByDate(requestBody.getReportDate(), requestBody.getTotalFlag()).one();
 
         fillSubs(main);
         return main;
@@ -34,11 +33,7 @@ public class OutpReportServiceImpl implements OutpReportService {
 
     @Override
     public OutpCashMainEntity findByDate(LocalDate date,String totalFlag) {
-        OutpCashMainEntity main = Db.lambdaQuery(OutpCashMainEntity.class)
-                .eq(OutpCashMainEntity::getReportDate, date)
-                .eq(OutpCashMainEntity::getTotalFlag, totalFlag)
-                .eq(OutpCashMainEntity::getValidFlag, Constant.YES)
-                .one();
+        OutpCashMainEntity main = queryMainByDate(date, totalFlag).one();
 
         fillSubs(main);
 
@@ -48,16 +43,35 @@ public class OutpReportServiceImpl implements OutpReportService {
     @Override
     public Long countByDate(LocalDate date, String totalFlag) {
 
-        return Db.lambdaQuery(OutpCashMainEntity.class)
-                .eq(OutpCashMainEntity::getReportDate, date)
-                .eq(OutpCashMainEntity::getTotalFlag, totalFlag)
-                .eq(OutpCashMainEntity::getValidFlag, Constant.YES)
-                .count();
+        return queryMainByDate(date, totalFlag).count();
     }
 
     @Override
-    public List<OutpCashMainEntity> findBatchByDateRange(LocalDate startDate, LocalDate endDate) {
-        return Collections.emptyList();
+    public List<OutpCashMainEntity> findBatchByDateRange(LocalDate startDate, LocalDate endDate,String totalFlag) {
+
+        List<OutpCashMainEntity> mainList = Db.lambdaQuery(OutpCashMainEntity.class)
+                .between(OutpCashMainEntity::getReportDate, startDate, endDate)
+                .eq(OutpCashMainEntity::getTotalFlag, totalFlag)   //只查询不是汇总标志的
+                .eq(OutpCashMainEntity::getValidFlag, Constant.YES)
+                .list();
+
+        if (CollectionUtils.isEmpty(mainList)) return mainList;
+
+        // 1. 提取所有主表的 serialNo
+        List<String> serialNos = mainList.stream().map(OutpCashMainEntity::getSerialNo).collect(Collectors.toList());
+
+        // 2. 一次性查询所有相关从表记录
+        List<OutpCashSubEntity> allSubs = Db.lambdaQuery(OutpCashSubEntity.class)
+                .in(OutpCashSubEntity::getSerialNo, serialNos)
+                .list();
+
+        // 3. 在内存中进行分组并填充 (使用 Map 提高查找效率)
+        Map<String, List<OutpCashSubEntity>> subMap = allSubs.stream()
+                .collect(Collectors.groupingBy(OutpCashSubEntity::getSerialNo));
+
+        mainList.forEach(main -> main.setSubs(subMap.getOrDefault(main.getSerialNo(), Collections.emptyList())));
+
+        return mainList;
     }
 
     @Override
@@ -104,10 +118,10 @@ public class OutpReportServiceImpl implements OutpReportService {
     @Transactional(rollbackFor = Exception.class)
     public Boolean updateByDate(LocalDate date, String totalFlag) {
         return Db.lambdaUpdate(OutpCashMainEntity.class)
-                .set(OutpCashMainEntity::getValidFlag, Constant.NO)
                 .eq(OutpCashMainEntity::getReportDate, date)
                 .eq(OutpCashMainEntity::getTotalFlag, totalFlag)
                 .eq(OutpCashMainEntity::getValidFlag, Constant.YES)
+                .set(OutpCashMainEntity::getValidFlag, Constant.NO)
                 .update();
     }
 
@@ -130,6 +144,13 @@ public class OutpReportServiceImpl implements OutpReportService {
                     .list();
             main.setSubs(items);
         }
+    }
+
+    private LambdaQueryChainWrapper<OutpCashMainEntity> queryMainByDate(LocalDate date, String totalFlag) {
+        return Db.lambdaQuery(OutpCashMainEntity.class)
+                .eq(OutpCashMainEntity::getReportDate, date)
+                .eq(OutpCashMainEntity::getTotalFlag, totalFlag)
+                .eq(OutpCashMainEntity::getValidFlag, Constant.YES);
     }
 
 }
