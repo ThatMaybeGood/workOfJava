@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.example.auto_demo.logic.ApiLogic;
 import com.example.auto_demo.model.ExportExcelDTO;
+import com.example.auto_demo.util.Log;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,8 +14,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-
-@Slf4j
 @RestController
 @RequestMapping("/api")
 public class ApiController {
@@ -25,18 +24,14 @@ public class ApiController {
     @RequestMapping(value = "/queryYbBill", method = RequestMethod.POST)
     public String queryYbBill(@RequestBody String input) {
 
-        // 1. 初始化 MDC
         MDC.put("traceId", "YQ_" + System.currentTimeMillis());
-        MDC.put("step", "0"); // 显式初始化为 0，后续第一次 Log.info 就会变成 1
 
         try {
+            String sessionId = System.currentTimeMillis() + "|";
 
-            String sessionId = String.valueOf(System.currentTimeMillis()) + "|";
-
-            log.info(sessionId + "平台接口入参:" + input);
+            Log.info("平台接口入参: {}", input);
 
             JSONObject jsonObject = JSONObject.parseObject(input);
-
             String billDate = jsonObject.getString("bill_date");
             String fixmedinsCode = jsonObject.getString("fixmedinsCode");
             String insuType = jsonObject.getString("insutype");
@@ -44,21 +39,21 @@ public class ApiController {
 
             JSONArray list = apiLogic.getBillList(sessionId, fixmedinsCode, billDate, insuType, type);
 
-            //----------------------------增加调用文件导出-----------------------------------------
-//        JSONArray list  = apiLogic.getBillDetailExport(sessionId, fixmedinsCode, billDate, insuType, type);
-
             JSONObject result = new JSONObject();
             result.put("rc", "1");
             result.put("msg", "成功");
             result.put("list", list);
 
-            log.info(sessionId + "平台接口出参:" + result.toJSONString());
+            Log.info("平台接口出参: {}", result.toJSONString());
 
             return result.toJSONString();
-        } finally {
-            MDC.clear(); // 请求结束清理，防止脏数据
+
+        } catch (Exception e) {
+            Log.error("平台接口执行异常", e);
+            return "{\"rc\":\"0\",\"msg\":\"系统异常\"}";
         }
-
+        finally {
+            MDC.clear();
+        }
     }
-
 }

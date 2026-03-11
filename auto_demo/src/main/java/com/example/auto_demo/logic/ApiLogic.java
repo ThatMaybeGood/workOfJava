@@ -141,14 +141,14 @@ public class ApiLogic {
         headerMap.put("X-XSRF-TOKEN", token);
         headerMap.put("Cookie", "XSRF-TOKEN=" + token + ";SESSION=" + session);
 
-        log.info(sessionId + "调两定接口[" + insutype + "]入参:" + map.toString());
+        log.info("调两定接口[" + insutype + "]入参:" + map.toString());
 
         String result = "";
 
         result = new HttpUtil().post(url, map, headerMap);
 
 
-        log.info(sessionId + "调两定接口[" + insutype + "]出参:" + result);
+        log.info("调两定接口[" + insutype + "]出参:" + result);
 
         return result;
     }

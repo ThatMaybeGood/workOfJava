@@ -2,14 +2,11 @@
 <configuration>
     <property name="LOG_PATH" value="d:/logs/auto_demo"/>
 
-    <include resource="org/springframework/boot/logging/logback/base.xml" />
-
-    <property name="FILE_LOG_PATTERN_MY" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%level] [%X{traceId}] [%X{step}]：%msg%n"/>
+    <property name="FILE_LOG_PATTERN_MY" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{traceId}] %msg%n"/>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%level] [%X{traceId}] [%X{step}]：%msg%n</pattern>
-            <charset>UTF-8</charset>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{traceId}] %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -101,6 +98,7 @@
         <!--日志文件输出格式-->
         <encoder>
             <pattern>${FILE_LOG_PATTERN_MY}</pattern>
+            <charset>UTF-8</charset>
         </encoder>
         <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
@@ -120,13 +118,16 @@
         </filter>
     </appender>
 
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{traceId}] [#%X{step}] %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
     <!-- 最低要求, 必须开启warn级别以上的日志, INFO看情况, 生产禁止开启DEBUG-->
     <!-- 级别由Spring 配置文件控制-->
     <root level="INFO">
-<!--     注释掉   base.xml自带-->
-<!--        <appender-ref ref="FILE" />-->
-<!--        <appender-ref ref="CONSOLE" />-->
-        <appender-ref ref="WARN_FILE" />
+        <appender-ref ref="CONSOLE" /> <appender-ref ref="WARN_FILE" />
         <appender-ref ref="ERROR_FILE"/>
         <appender-ref ref="TRACE_FILE"/>
         <appender-ref ref="INFO_FILE"/>
