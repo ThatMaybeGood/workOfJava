@@ -33,6 +33,11 @@ public interface YQOperatorService {
     Boolean insert(YQOperatorEntity yqOperatorsEntity);
 
     /*
+     * 存在有数据则更新，无则写入
+     */
+     Boolean insertOrUpdate(YQOperatorEntity operator);
+
+    /*
      * 批量插入操作员数据
      */
     Boolean batchInsert(List<YQOperatorEntity> yqOperatorEntities);

@@ -26,4 +26,22 @@ public class YQHolidayCalendarVO {
      * 查询类型，0 门诊 1住院
      */
     private String queryType;
+    /**
+     * 回溯汇总时候的截止日期
+     */
+    private LocalDate misDate;
+
+     /**
+     * 汇总标志，0 不汇总 1 汇总
+     */
+    private String totalFlag;
+
+    /**
+     * 汇总标题
+     */
+     private String totalTitle;
+
+
+
+
 }

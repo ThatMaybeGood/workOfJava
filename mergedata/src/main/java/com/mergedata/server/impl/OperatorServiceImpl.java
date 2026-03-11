@@ -37,6 +37,7 @@ public class OperatorServiceImpl implements YQOperatorService {
 
         return  Db.lambdaQuery(YQOperatorEntity.class)
                 .eq(YQOperatorEntity::getDbUser, operator.getDbUser())
+                .eq(YQOperatorEntity::getCategory, operator.getCategory())
                 .orderByAsc(YQOperatorEntity::getRowNum)
                 .list();
     }
@@ -62,39 +63,24 @@ public class OperatorServiceImpl implements YQOperatorService {
 
     /**
       * 插入单条员工信息
-      * @param entity 员工实体
+      * @param operator 员工实体
       * @return 是否成功
       */
     @Override
-    public Boolean insert(YQOperatorEntity entity) {
-        long size = Db.lambdaQuery(YQOperatorEntity.class).count();
-
-//        List<YQOperatorEntity> list =  findBySerialNo(entity);
-//        List<YQOperatorEntity> list = Db.lambdaQuery(YQOperatorEntity.class)
-//                .eq(YQOperatorEntity::getOperatorNo, entity.getOperatorNo())
-//                .list();
-//
-//
-//        if (!list.isEmpty() || list.size() != 0 ) {
-//           return update(entity);
-//        }
-
-        PrimaryKeyGenerator pk = new PrimaryKeyGenerator();
-        entity.setSerialNo(pk.generateKey());
-        entity.setRowNum((int) (size+1));
-
-//        // 增加判断兼容 atm 和inpWindow 兼容 true和false传入 转换为 1 和 0
-//        if (entity.getAtm().equals("true")){
-//            entity.setAtm("1");
-//        }
-//        if (entity.getInpWindow().equals("true")){
-//            entity.setInpWindow("1");
-//        }
-
-        return Db.save(entity);
+    public Boolean insert(YQOperatorEntity operator) {
+        return Db.save(operator);
     }
 
-     /**
+
+    /*
+     * 存在有数据则更新，无则写入
+     */
+    @Override
+    public Boolean insertOrUpdate(YQOperatorEntity operator) {
+        return Db.saveOrUpdate(operator);
+    }
+
+    /**
       * 批量插入员工信息
       * @param entityList 员工实体列表
       * @return 是否成功
@@ -151,6 +137,8 @@ public class OperatorServiceImpl implements YQOperatorService {
     public Boolean update(YQOperatorEntity entity) {
         return Db.updateById(entity);
     }
+
+
 
     /**
      * 同步his更新员工信息

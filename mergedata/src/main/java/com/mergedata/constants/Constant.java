@@ -139,4 +139,18 @@ public class Constant {
      * 住院现金报表接口名称
      */
     public static final String REPORT_NAME_INP = "住院现金报表";
+
+    //===============门诊现金报表汇总标题========================
+    /*
+     * 汇总标题
+     */
+    public static final String OUTP_HOLIDAY_TOTAL_TITLE = "门诊现金汇总统计表";
+
+    /*
+     * 非汇总标题
+     */
+    public static final String HOLIDAY_NOT_TOTAL_TITLE = "门诊现金每日统计表(";
+
+
+
 }

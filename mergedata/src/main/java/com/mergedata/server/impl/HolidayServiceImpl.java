@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.mergedata.constants.Constant;
 import com.mergedata.mapper.HolidayMapper;
 import com.mergedata.model.entity.YQHolidayEntity;
+import com.mergedata.model.vo.YQHolidayCalendarVO;
 import com.mergedata.server.YQHolidayService;
 import com.mergedata.util.OracleBatchUtil;
 import com.mergedata.util.PrimaryKeyGenerator;
@@ -15,8 +16,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -24,9 +28,6 @@ public class HolidayServiceImpl implements YQHolidayService {
 
     @Autowired
     HolidayMapper holidayMapper;
-
-    @Autowired
-    JdbcTemplate jdbcTemplate;
 
     @Override
     public List<YQHolidayEntity> findAll() {
@@ -48,6 +49,14 @@ public class HolidayServiceImpl implements YQHolidayService {
                 .eq(YQHolidayEntity::getHolidayYear, year)
                 .list();
      }
+
+    @Override
+    public List<YQHolidayEntity> findByYearMonth(Integer year, Integer month) {
+        return Db.lambdaQuery(YQHolidayEntity.class)
+                .eq(YQHolidayEntity::getHolidayYear, year)
+                .eq(YQHolidayEntity::getHolidayMonth, month)
+                .list();
+    }
 
 
     /**
@@ -111,6 +120,44 @@ public class HolidayServiceImpl implements YQHolidayService {
         return Constant.HOLIDAY_NOT;
     }
 
+    /**
+     * 前端查询日期时候，返回对应日期的节假日类型以及是否汇总
+     * @param currentDate
+     * @param queryType
+     * @return
+     */
+    @Override
+    public YQHolidayCalendarVO queryHolidayTotalType(LocalDate currentDate, String queryType) {
+        YQHolidayCalendarVO vo = new YQHolidayCalendarVO();
+        String type = queryDateType(currentDate, queryType);
+        LocalDate minDate = findMinBacktrackDate(currentDate);
+
+        vo.setHolidayDate(currentDate);
+        vo.setQueryType(queryType);
+        vo.setHolidayType(type);
+
+        //是否需要添加汇总标志 ，排除对应汇总时候，但是又不符合汇总条件的情况
+
+        //type为 2 和 4 时 汇总
+        if (type.equals(Constant.HOLIDAY_IS) || type.equals(Constant.HOLIDAY_MONTH_LASTDAY)){
+            // 汇总的标题
+            String totalTitle = minDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd"))
+                    +"-"
+                    +currentDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd"))
+                    +" "+ Constant.OUTP_HOLIDAY_TOTAL_TITLE;
+
+            vo.setMisDate(minDate);
+            vo.setTotalFlag(Constant.NO);
+            vo.setTotalTitle(totalTitle);
+        }else {
+            vo.setTotalFlag(Constant.YES);
+            vo.setTotalTitle(currentDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd")) +" "+ Constant.HOLIDAY_NOT_TOTAL_TITLE);
+        }
+
+
+        return vo;
+    }
+
 
     /**
      * 判断日期是否为 节假日
@@ -168,5 +215,64 @@ public class HolidayServiceImpl implements YQHolidayService {
     public Boolean delete(YQHolidayEntity entity) {
         return Db.removeById(entity);
     }
+
+
+
+
+    /**
+     * 查找最近的工作日或月初 1 号，作为回溯截止日期
+     */
+    @Override
+    public LocalDate findMinBacktrackDate(LocalDate localDate) {
+
+        Set<LocalDate> holidaySet = findByYear(localDate.getYear()).stream()
+                .map(YQHolidayEntity::getHolidayDate).collect(Collectors.toSet());
+
+
+        LocalDate current = localDate.minusDays(1);
+        // 限制最大回溯 30 天防止死循环
+        for (int i = 0; i < 30; i++) {
+            // 如果是工作日，这就是我们要找的边界
+            if (!holidaySet.contains(current)) {
+                return current;
+            }
+            // 如果是月初 1 号，也必须停止
+            if (current.getDayOfMonth() == 1) {
+                return current;
+            }
+            current = current.minusDays(1);
+        }
+        return current;
+    }
+
+    /**
+     * 判断是否符合特殊节假日需要进行回溯汇总计算
+     * @param localDate 日期
+     * @param totalFlag 汇总标
+     * @return
+     * 0  不是汇总查询                正常计算
+     * 1  是汇总查询，且是特殊节假日     需要进行回溯汇总计算
+     * 2  是汇总查询，但是不是特殊节假日  直接返回空列表
+     */
+    @Override
+    public Integer isSpecialHolidaySum(LocalDate localDate, String totalFlag) {
+             /*
+            先判断是否是汇总  还是单独查询
+            1、先判断是否是汇总标志
+                1、1  如果是汇总标志，再判断是否是特殊节假日
+                1、2  是汇总，但是不符合 特殊节假日  直接返回空列表
+            */
+
+            String holidayType = queryDateType(localDate, Constant.TYPE_OUTP);
+
+            if (Constant.YES.equals(totalFlag)) {
+                if (Constant.HOLIDAY_AFTER.equals(holidayType) || Constant.HOLIDAY_MONTH_LASTDAY.equals(holidayType)) {
+                    return 1;
+                } else {
+                    return 2;
+                }
+            }
+            return 0;
+        }
 
 }

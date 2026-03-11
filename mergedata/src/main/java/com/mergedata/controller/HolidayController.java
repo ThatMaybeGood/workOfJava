@@ -114,12 +114,9 @@ public class HolidayController {
     @PostMapping("querydatetype/holidayDate")
     public ApiResponse<YQHolidayCalendarVO> queryType(@Valid @RequestBody ApiRequest<HolidayRequestBody> request) {
 
-        YQHolidayCalendarVO yqHolidayCalendarVO = new YQHolidayCalendarVO();
-        yqHolidayCalendarVO.setHolidayDate(request.getBody().getReportDate());
-        yqHolidayCalendarVO.setQueryType(request.getBody().getQueryType());
-        yqHolidayCalendarVO.setHolidayType(holiday.queryDateType(request.getBody().getReportDate(), request.getBody().getQueryType()));
+        YQHolidayCalendarVO vo = holiday.queryHolidayTotalType(request.getBody().getReportDate(), request.getBody().getQueryType());
 
-        return ApiResponse.successObj(yqHolidayCalendarVO,"查询节假日类型成功");
+        return ApiResponse.successObj(vo,"查询节假日类型成功");
     }
 
 }
