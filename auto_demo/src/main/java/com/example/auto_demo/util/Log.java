@@ -5,27 +5,28 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 public class Log {
-    private static final Logger log = LoggerFactory.getLogger("SystemLog");
+    // 这里的 Logger 名称要对应，建议直接用 LoggerFactory.getLogger(Log.class)
+    private static final Logger log = LoggerFactory.getLogger(Log.class);
 
-    // 每次打印前自动加1
     private static void autoIncrement() {
         String current = MDC.get("step");
-        int next = (current == null) ? 1 : Integer.parseInt(current) + 1;
+        int next = (current == null || current.isEmpty()) ? 1 : Integer.parseInt(current) + 1;
         MDC.put("step", String.valueOf(next));
     }
 
+    // INFO 级别
     public static void info(String msg) {
         autoIncrement();
         log.info(msg);
     }
 
-    // 如果需要传参的写法
-    public static void info(String format, Object... arguments) {
+    // TRACE 级别 (对应你样例中的 [TRACE])
+    public static void trace(String msg) {
         autoIncrement();
-        log.info(format, arguments);
+        log.trace(msg);
     }
 
-    // 你可以根据需要添加 error 或 warn 方法
+    // ERROR 级别
     public static void error(String msg) {
         autoIncrement();
         log.error(msg);

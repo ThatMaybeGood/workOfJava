@@ -25,9 +25,9 @@ public class ApiController {
     @RequestMapping(value = "/queryYbBill", method = RequestMethod.POST)
     public String queryYbBill(@RequestBody String input) {
 
-        // 1. 生成并存入追踪号
-        String traceId = "YQ_" + System.currentTimeMillis();
-        MDC.put("traceId", traceId);
+        // 1. 初始化 MDC
+        MDC.put("traceId", "YQ_" + System.currentTimeMillis());
+        MDC.put("step", "0"); // 显式初始化为 0，后续第一次 Log.info 就会变成 1
 
         try {
 
