@@ -35,9 +35,9 @@ public class HttpUtil {
             requestBuilder.addHeader(entry.getKey(), entry.getValue());
         }
 
-        log.info("调用两定平台入参：" + JSON.toJSONString(formBody));
-        log.info("调用两定平台header：" + headerMap.toString());
-        log.info("调用两定平台url：" + url);
+        Log.info("调用两定平台入参：" + JSON.toJSONString(formBody));
+        Log.info("调用两定平台header：" + headerMap.toString());
+        Log.info("调用两定平台url：" + url);
 
         Request request = requestBuilder
                 .url(url)
@@ -52,10 +52,10 @@ public class HttpUtil {
             if (response.isSuccessful() && response.body() != null) {
                 return response.body().string();
             } else {
-                log.error("调用两定平台异常:" + response.code());
+                Log.error("调用两定平台异常:" + response.code());
             }
         } catch (Exception e) {
-            log.error("调用两定平台异常:", e);
+            Log.error("调用两定平台异常:", e);
             return "";
         }
         return "";
@@ -92,9 +92,9 @@ public class HttpUtil {
                 requestBuilder.addHeader(entry.getKey(), entry.getValue());
             }
 
-            log.info("{} 调用两定平台导出接口入参：{}", traceId, JSON.toJSONString(data));
-            log.info("{} 调用两定平台导出接口header：{}", traceId, headerMap);
-            log.info("{} 调用两定平台导出接口url：{}", traceId, url);
+            Log.info("{} 调用两定平台导出接口入参：{}", traceId, JSON.toJSONString(data));
+            Log.info("{} 调用两定平台导出接口header：{}", traceId, headerMap);
+            Log.info("{} 调用两定平台导出接口url：{}", traceId, url);
 
             Request request = requestBuilder.build();
 
@@ -102,11 +102,11 @@ public class HttpUtil {
             if (response.isSuccessful()) {
                 return response.body().bytes();
             } else {
-                log.error("{} 调用两定平台异常，状态码: {}，消息: {}", traceId, response.code(), response.message());
+                Log.error("{} 调用两定平台异常，状态码: {}，消息: {}", traceId, response.code(), response.message());
             }
 
         } catch (Exception e) {
-            log.error("{} 调用两定平台异常: ", traceId, e);
+            Log.error("{} 调用两定平台异常: ", traceId, e);
             return null;
         }
         return null;
@@ -133,18 +133,18 @@ public class HttpUtil {
 
                 // 安全限制，防止无限循环
                 if (sequence > 20) {
-                    log.error("{} 文件名重复超过20次，不再保存文件", traceId);
+                    Log.error("{} 文件名重复超过20次，不再保存文件", traceId);
                     break;
                 }
             }
             // 4. 保存文件
             Files.write(filePath, excelBytes);
 
-            log.info("{} Excel文件已保存为: {}", traceId, filePath.toAbsolutePath().toString());
+            Log.info("{} Excel文件已保存为: {}", traceId, filePath.toAbsolutePath().toString());
 
 
         } catch (Exception e) {
-            log.error("{} 保存Excel文件失败: {}", traceId, e.getMessage(), e);
+            Log.error("{} 保存Excel文件失败: {}", traceId, e.getMessage(), e);
         }
     }
 
@@ -156,11 +156,11 @@ public class HttpUtil {
                     .headRowNumber(0)
                     .doReadSync();
 
-            log.info("{} 读取到 {} 行数据", traceId, data.size());
+            Log.info("{} 读取到 {} 行数据", traceId, data.size());
 
             if (!data.isEmpty()) {
-                log.debug("{} 表头: {}", traceId, data.get(0));
-                data.stream().limit(3).forEach(row -> log.debug("数据行: {}", row));
+                Log.debug("{} 表头: {}", traceId, data.get(0));
+                data.stream().limit(3).forEach(row -> Log.debug("数据行: {}", row));
             }
 
             // 跳过表头，转换为DTO
@@ -171,7 +171,7 @@ public class HttpUtil {
                     .collect(Collectors.toList());
 
         } catch (Exception e) {
-            log.error("{} 读取Excel异常: {}", traceId, e.getMessage(), e);
+            Log.error("{} 读取Excel异常: {}", traceId, e.getMessage(), e);
             return Collections.emptyList();
         }
     }

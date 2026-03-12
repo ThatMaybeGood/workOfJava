@@ -58,37 +58,37 @@ public class ExportUtil {
                 requestBuilder.addHeader(entry.getKey(), entry.getValue());
             }
 
-            log.info("调用两定平台入参：{}", JSON.toJSONString(data));
-            log.info("调用两定平台header：{}", headerMap);
-            log.info("调用两定平台url：{}", url);
+            Log.info("调用两定平台入参：{}", JSON.toJSONString(data));
+            Log.info("调用两定平台header：{}", headerMap);
+            Log.info("调用两定平台url：{}", url);
 
             Request request = requestBuilder.build();
 
             try (Response response = client.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
-                    log.error("调用两定平台异常，状态码: {}，消息: {}", response.code(), response.message());
+                    Log.error("调用两定平台异常，状态码: {}，消息: {}", response.code(), response.message());
                     return new ArrayList<>();
                 }
 
                 // 获取响应体字节
                 byte[] excelBytes = response.body().bytes();
-                log.info("获取到Excel文件，大小: {} 字节", excelBytes.length);
+                Log.info("获取到Excel文件，大小: {} 字节", excelBytes.length);
 
                 // 检查响应类型
                 String contentType = response.header("Content-Type", "");
                 String contentDisposition = response.header("Content-Disposition", "");
 
-                log.info("响应 Content-Type: {}", contentType);
-                log.info("响应 Content-Disposition: {}", contentDisposition);
+                Log.info("响应 Content-Type: {}", contentType);
+                Log.info("响应 Content-Disposition: {}", contentDisposition);
 
 
                 // 将文件临时保存（用于调试）
                 try {
                     String tempFileName = "temp_excel_" + System.currentTimeMillis() + ".xlsx";
                     Files.write(Paths.get(tempFileName), excelBytes);
-                    log.info("Excel文件已临时保存为: {}", tempFileName);
+                    Log.info("Excel文件已临时保存为: {}", tempFileName);
                 } catch (Exception e) {
-                    log.warn("无法保存临时文件: {}", e.getMessage());
+                    Log.warn("无法保存临时文件: {}", e.getMessage());
                 }
 
                 // 使用 EasyExcel 读取 Excel 内容
@@ -98,12 +98,12 @@ public class ExportUtil {
                             .headRowNumber(0)  // 从第0行开始读取数据
                             .doReadSync();
 
-                    log.info("成功读取Excel数据，共 {} 行", list.size());
+                    Log.info("成功读取Excel数据，共 {} 行", list.size());
 
                     // 打印前几行数据（用于调试）
                     if (!list.isEmpty()) {
                         for (int i = 0; i < Math.min(list.size(), 3); i++) {
-                            log.info("第 {} 行数据: {}", i, list.get(i));
+                            Log.info("第 {} 行数据: {}", i, list.get(i));
                         }
                     }
 
@@ -111,12 +111,12 @@ public class ExportUtil {
                 }
 
             } catch (IOException e) {
-                log.error("调用两定平台IO异常: ", e);
+                Log.error("调用两定平台IO异常: ", e);
                 return new ArrayList<>();
             }
 
         } catch (Exception e) {
-            log.error("调用两定平台异常: ", e);
+            Log.error("调用两定平台异常: ", e);
             return new ArrayList<>();
         }
     }
@@ -145,7 +145,7 @@ public class ExportUtil {
 
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                log.error("调用失败，状态码: " + response.code());
+                Log.error("调用失败，状态码: " + response.code());
                 return new ArrayList<>();
             }
 
@@ -157,12 +157,12 @@ public class ExportUtil {
                         .headRowNumber(0)
                         .doReadSync();
 
-                log.info("成功读取Excel第" + sheetNo + "个sheet，共" + list.size() + "行");
+                Log.info("成功读取Excel第" + sheetNo + "个sheet，共" + list.size() + "行");
                 return list;
             }
 
         } catch (IOException e) {
-            log.error("调用异常: ", e);
+            Log.error("调用异常: ", e);
             return new ArrayList<>();
         }
     }
@@ -191,7 +191,7 @@ public class ExportUtil {
 
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                log.error("调用失败，状态码: " + response.code());
+                Log.error("调用失败，状态码: " + response.code());
                 return new ArrayList<>();
             }
 
@@ -203,12 +203,12 @@ public class ExportUtil {
                         .headRowNumber(0)
                         .doReadSync();
 
-                log.info("成功读取Excel sheet: " + sheetName + "，共" + list.size() + "行");
+                Log.info("成功读取Excel sheet: " + sheetName + "，共" + list.size() + "行");
                 return list;
             }
 
         } catch (IOException e) {
-            log.error("调用异常: ", e);
+            Log.error("调用异常: ", e);
             return new ArrayList<>();
         }
     }
@@ -241,25 +241,25 @@ public class ExportUtil {
 
             try (Response response = client.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
-                    log.error("调用失败，状态码: {}", response.code());
+                    Log.error("调用失败，状态码: {}", response.code());
                     return false;
                 }
 
                 // 保存文件
                 byte[] excelBytes = response.body().bytes();
                 Files.write(Paths.get(savePath), excelBytes);
-                log.info("Excel文件保存成功: {}, 大小: {} 字节", savePath, excelBytes.length);
+                Log.info("Excel文件保存成功: {}, 大小: {} 字节", savePath, excelBytes.length);
 
                 // 验证文件是否可以打开
                 File file = new File(savePath);
                 if (file.exists() && file.length() > 0) {
-                    log.info("文件验证成功，可以手动打开查看");
+                    Log.info("文件验证成功，可以手动打开查看");
                     return true;
                 }
                 return false;
             }
         } catch (Exception e) {
-            log.error("下载Excel文件异常: ", e);
+            Log.error("下载Excel文件异常: ", e);
             return false;
         }
     }

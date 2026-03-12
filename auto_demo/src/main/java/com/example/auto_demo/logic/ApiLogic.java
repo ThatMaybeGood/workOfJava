@@ -10,6 +10,7 @@ import com.example.auto_demo.model.ExportExcelDTO;
 import com.example.auto_demo.util.ExportUtil;
 import com.example.auto_demo.util.HttpUtil;
 import com.example.auto_demo.util.InsuType;
+import com.example.auto_demo.util.Log;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +41,7 @@ public class ApiLogic {
 
         int pageNum = 1;
 
-        log.info("读取参数配置文件:" + config.toString());
+        Log.info("读取参数配置文件:" + config.toString());
         int pageSize = Integer.valueOf(config.getPageSize());
 
         while (true) {
@@ -141,14 +142,14 @@ public class ApiLogic {
         headerMap.put("X-XSRF-TOKEN", token);
         headerMap.put("Cookie", "XSRF-TOKEN=" + token + ";SESSION=" + session);
 
-        log.info("调两定接口[" + insutype + "]入参:" + map.toString());
+        Log.info("调两定接口[" + insutype + "]入参:" + map.toString());
 
         String result = "";
 
         result = new HttpUtil().post(url, map, headerMap);
 
 
-        log.info("调两定接口[" + insutype + "]出参:" + result);
+//        Log.info("调两定接口[" + insutype + "]出参:" + result);
 
         return result;
     }
@@ -180,7 +181,7 @@ public class ApiLogic {
         headerMap.put("X-XSRF-TOKEN", config.getToken());
 
 
-        log.info("{} 发起调两定接口[{}]导出请求", sessionId, insutype);
+        Log.info("{} 发起调两定接口[{}]导出请求", sessionId, insutype);
 
         byte[] result = httpUtil.postExport(config.getExportUrl(), map, headerMap,sessionId);
 
@@ -188,7 +189,7 @@ public class ApiLogic {
 
         if (result != null) {
 
-            log.info("{} 导出Excel文件大小: {} 字节", sessionId, result.length);
+            Log.info("{} 导出Excel文件大小: {} 字节", sessionId, result.length);
             if(config.isSaveExcel()){
                 // 2. 生成基础文件名
                 String baseFileName = InsuType.nameOf(insutype) +" "+ billDate;
@@ -204,7 +205,7 @@ public class ApiLogic {
             jsonArray = (JSONArray) JSON.toJSON(httpUtil.readExcelFile(result,insutype,sessionId));
         }
 
-        log.info("{} 调两定接口[{}]出参: {}", sessionId, insutype, jsonArray);
+        Log.info("{} 调两定接口[{}]出参: {}", sessionId, insutype, jsonArray);
         return jsonArray;
     }
 }

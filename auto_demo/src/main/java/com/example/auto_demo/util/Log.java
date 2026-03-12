@@ -14,11 +14,23 @@ public class Log {
         log.trace(format, arguments);
     }
 
+
+    public static void debug(String format, Object... arguments) {
+        log.debug(format, arguments);
+    }
+
+    public static void warn(String format, Object... arguments) {
+        log.warn(format, arguments);
+    }
+
     public static void error(String msg, Throwable t) {
         log.error(msg, t);
     }
 
     public static void error(String msg) {
         log.error(msg);
+    }
+    public static void error(String format, Object... arguments) {
+        log.error(format, arguments);
     }
 }

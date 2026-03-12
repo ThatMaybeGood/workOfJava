@@ -36,9 +36,9 @@ public class HttpUtilBak {
             requestBuilder.addHeader(entry.getKey(), entry.getValue());
         }
 
-        log.info("调用两定平台入参：" + JSON.toJSONString(formBody));
-        log.info("调用两定平台header：" + headerMap.toString());
-        log.info("调用两定平台url：" + url);
+        Log.info("调用两定平台入参：" + JSON.toJSONString(formBody));
+        Log.info("调用两定平台header：" + headerMap.toString());
+        Log.info("调用两定平台url：" + url);
 
         Request request = requestBuilder
                 .url(url)
@@ -53,10 +53,10 @@ public class HttpUtilBak {
             if (response.isSuccessful() && response.body() != null) {
                 return response.body().string();
             }else{
-                log.error("调用两定平台异常:" + response.code());
+                Log.error("调用两定平台异常:" + response.code());
             }
         } catch (Exception e) {
-            log.error("调用两定平台异常:" , e);
+            Log.error("调用两定平台异常:" , e);
             return "";
         }
         return "";
@@ -86,9 +86,9 @@ public class HttpUtilBak {
             formParams = formParams.substring(0, formParams.length() - 1);
 
 
-            log.info("调用两定平台入参：" + formParams);
-            log.info("调用两定平台header：" + headerMap.toString());
-            log.info("调用两定平台url：" + url);
+            Log.info("调用两定平台入参：" + formParams);
+            Log.info("调用两定平台header：" + headerMap.toString());
+            Log.info("调用两定平台url：" + url);
 
             // 2. 将表单参数写入请求体
             OutputStream os = connection.getOutputStream() ;
@@ -115,7 +115,7 @@ public class HttpUtilBak {
             return response.toString();
 
         }catch (Exception e){
-            log.error("调两定异常:",e);
+            Log.error("调两定异常:",e);
             return "";
         } finally {
             // 5. 断开连接
@@ -142,9 +142,9 @@ public class HttpUtilBak {
             requestBuilder.addHeader(entry.getKey(), entry.getValue());
         }
 
-        log.info("调用两定平台入参：" + JSON.toJSONString(formBody));
-        log.info("调用两定平台header：" + headerMap.toString());
-        log.info("调用两定平台url：" + url);
+        Log.info("调用两定平台入参：" + JSON.toJSONString(formBody));
+        Log.info("调用两定平台header：" + headerMap.toString());
+        Log.info("调用两定平台url：" + url);
 
         Request request = requestBuilder
                 .url(url)
@@ -161,10 +161,10 @@ public class HttpUtilBak {
 
                 return null;
             }else{
-                log.error("调用两定平台异常:" + response.code());
+                Log.error("调用两定平台异常:" + response.code());
             }
         } catch (Exception e) {
-            log.error("调用两定平台异常:" , e);
+            Log.error("调用两定平台异常:" , e);
             return "";
         }
         return "";
