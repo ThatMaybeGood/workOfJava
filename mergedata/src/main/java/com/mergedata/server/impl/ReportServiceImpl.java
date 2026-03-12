@@ -24,6 +24,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -992,6 +993,20 @@ public class ReportServiceImpl implements ReportService {
                 //转换为 Map 以便内存快速回溯
                 historyMap = historyMains.stream()
                         .collect(Collectors.toMap(OutpCashMainEntity::getReportDate, Function.identity()));
+
+                // 1. 计算需要校验的日期范围 ,首先判断数据是否连贯性完整，如果不完整就抛出对应异常或者设置为空
+                long totalDays = ChronoUnit.DAYS.between(minDate, currtDate); // 不包含 currtDate
+                // 2. 验证 Map 大小与天数是否一致
+                if (historyMap.size() < totalDays) {
+                    // 找出第一个缺失的日期，
+                    for (LocalDate d = minDate; d.isBefore(currtDate); d = d.plusDays(1)) {
+                        if (!historyMap.containsKey(d)) {
+                            main.setSubs(new ArrayList<>());
+                            return main;
+//                          throw new RuntimeException("数据不完整：报表日期 " + d + " 数据缺失，无法进行回溯计算。");
+                        }
+                    }
+                }
             }
 
 

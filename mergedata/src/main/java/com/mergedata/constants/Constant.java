@@ -149,7 +149,7 @@ public class Constant {
     /*
      * 非汇总标题
      */
-    public static final String HOLIDAY_NOT_TOTAL_TITLE = "门诊现金每日统计表(";
+    public static final String HOLIDAY_NOT_TOTAL_TITLE = "门诊现金每日统计表";
 
 
 
