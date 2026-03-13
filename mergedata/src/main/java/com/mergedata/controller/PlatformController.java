@@ -48,12 +48,10 @@ public class PlatformController {
     public ApiResponse<ApiResponseBodyList<YQHolidayEntity>> holidayFindALl(@Valid @RequestBody ApiRequest<CommonRequestBody> res)  {
         List<YQHolidayEntity> resultList = new ArrayList<>();
 
-        if ( res.getBody().getExtendParams1() == null || res.getBody().getExtendParams1().isEmpty()) {
-            // 2. 避免重复调用服务，并使用转换后的 LocalDate
-            resultList = holiday.findAll();
-        }else {
-            resultList = holiday.findByYear(Integer.valueOf(res.getBody().getExtendParams1()));
-        }
+
+        resultList = (res.getBody().getExtendParams1() == null && res.getBody().getExtendParams2() == null) ?
+                holiday.findAll() :
+                holiday.findByYearMonth(res.getBody());
         // 4. 返回结果
         return ApiResponse.successList(resultList,"查询节假日列表成功");
     }
@@ -97,13 +95,18 @@ public class PlatformController {
     public ApiResponse<ApiResponseBodyList<YQOperatorEntity>> operatorFindALl(@Valid @RequestBody  ApiRequest<CommonRequestBody> res)  {
         List<YQOperatorEntity> resultList = new ArrayList<>();
 
+        //门诊  住院
         String category = res.getBody().getExtendParams1();
 
-        if(category== null || category.isEmpty()) {
+        //姓名或者ID查询
+        String nameOrId = res.getBody().getExtendParams2();
+
+        //如何都是空白情况时候，查询所有
+        if(category== null && nameOrId== null) {
             // 2. 避免重复调用服务，并使用转换后的 LocalDate
              resultList = operator.findAll();
         }else {
-             resultList = operator.findByCategory(category);
+             resultList = operator.findByCategoryAndNameOrId(res.getBody());
         }
 
 

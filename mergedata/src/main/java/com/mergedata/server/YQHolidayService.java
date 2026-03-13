@@ -1,5 +1,6 @@
 package com.mergedata.server;
 
+import com.mergedata.model.dto.CommonRequestBody;
 import com.mergedata.model.entity.YQHolidayEntity;
 import com.mergedata.model.vo.YQHolidayCalendarVO;
 
@@ -25,7 +26,7 @@ public interface YQHolidayService {
     /*
      * 通过年份+月份查询节假日信息
      */
-    List<YQHolidayEntity> findByYearMonth(Integer year, Integer month);
+    List<YQHolidayEntity> findByYearMonth(CommonRequestBody body);
 
 
     /*

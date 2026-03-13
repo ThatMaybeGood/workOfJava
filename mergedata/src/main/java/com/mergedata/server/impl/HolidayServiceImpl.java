@@ -4,6 +4,7 @@ import com.alibaba.druid.sql.dialect.db2.visitor.DB2ASTVisitor;
 import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.mergedata.constants.Constant;
 import com.mergedata.mapper.HolidayMapper;
+import com.mergedata.model.dto.CommonRequestBody;
 import com.mergedata.model.entity.YQHolidayEntity;
 import com.mergedata.model.vo.YQHolidayCalendarVO;
 import com.mergedata.server.YQHolidayService;
@@ -40,6 +41,7 @@ public class HolidayServiceImpl implements YQHolidayService {
     public List<YQHolidayEntity> findByDate(LocalDate reportDate) {
          return Db.lambdaQuery(YQHolidayEntity.class)
                 .eq(YQHolidayEntity::getHolidayDate, reportDate)
+                 .orderByAsc(YQHolidayEntity::getHolidayYear,YQHolidayEntity::getHolidayMonth,YQHolidayEntity::getHolidayDate)
                 .list();
     }
 
@@ -47,14 +49,19 @@ public class HolidayServiceImpl implements YQHolidayService {
     public List<YQHolidayEntity> findByYear(Integer year) {
         return Db.lambdaQuery(YQHolidayEntity.class)
                 .eq(YQHolidayEntity::getHolidayYear, year)
+                .orderByAsc(YQHolidayEntity::getHolidayMonth,YQHolidayEntity::getHolidayDate)
                 .list();
      }
 
     @Override
-    public List<YQHolidayEntity> findByYearMonth(Integer year, Integer month) {
+    public List<YQHolidayEntity> findByYearMonth(CommonRequestBody body) {
+        Integer year = body.getExtendParams1() != null ? Integer.parseInt(body.getExtendParams1()) : null;
+        Integer month = body.getExtendParams2() != null ? Integer.parseInt(body.getExtendParams2()) : null;
+
         return Db.lambdaQuery(YQHolidayEntity.class)
-                .eq(YQHolidayEntity::getHolidayYear, year)
-                .eq(YQHolidayEntity::getHolidayMonth, month)
+                .eq(year != null , YQHolidayEntity::getHolidayYear, year)
+                .eq(month != null , YQHolidayEntity::getHolidayMonth, month)
+                .orderByAsc(YQHolidayEntity::getHolidayDate)
                 .list();
     }
 

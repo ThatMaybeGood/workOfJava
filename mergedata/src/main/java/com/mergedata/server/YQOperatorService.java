@@ -1,5 +1,6 @@
 package com.mergedata.server;
 
+import com.mergedata.model.dto.CommonRequestBody;
 import com.mergedata.model.entity.YQOperatorEntity;
 
 import java.util.List;
@@ -26,6 +27,10 @@ public interface YQOperatorService {
      */
     List<YQOperatorEntity> findByCategory(String category);
 
+    /*
+     * 提供给平台查询的接口  类型  姓名或者ID
+     */
+    List<YQOperatorEntity> findByCategoryAndNameOrId(CommonRequestBody commonRequestBody);
 
     /*
      * 单条插入操作员数据
@@ -50,5 +55,8 @@ public interface YQOperatorService {
      * 作废
      */
     Boolean update(YQOperatorEntity yqOperatorEntity);
+
+
+
 
 }
