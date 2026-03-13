@@ -7,10 +7,7 @@ import com.alibaba.fastjson.PropertyNamingStrategy;
 import com.alibaba.fastjson.serializer.SerializeConfig;
 import com.example.auto_demo.config.AppConfig;
 import com.example.auto_demo.model.ExportExcelDTO;
-import com.example.auto_demo.util.ExportUtil;
-import com.example.auto_demo.util.HttpUtil;
-import com.example.auto_demo.util.InsuType;
-import com.example.auto_demo.util.Log;
+import com.example.auto_demo.util.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -112,7 +109,8 @@ public class ApiLogic {
         newJsonObject.put("insutype", insutype);
         newJsonObject.put("medins_setl_id", jsonObject.getString("medinsSetlId"));
         newJsonObject.put("msgid", jsonObject.getString("medinsSetlId"));
-        newJsonObject.put("med_type", jsonObject.getString("medType"));
+        newJsonObject.put("med_type", MedType.nameOf(jsonObject.getString("medType")));  //返回医疗类别的中文
+        newJsonObject.put("med_type_code", jsonObject.getString("medType"));
         newJsonObject.put("card_no", jsonObject.getString("certno"));
 
 
