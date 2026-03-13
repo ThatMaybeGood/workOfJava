@@ -59,7 +59,7 @@ public interface YQHolidayService {
     /*
      * 查询节假日是否汇总以及类型
      */
-    YQHolidayCalendarVO queryHolidayTotalType(LocalDate holidayDate, String queryType);
+    YQHolidayCalendarVO queryHolidayTotalType(LocalDate holidayDate, String queryType,String totalFlag);
 
 
 

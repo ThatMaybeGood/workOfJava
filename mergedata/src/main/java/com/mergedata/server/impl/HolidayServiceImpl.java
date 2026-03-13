@@ -134,7 +134,7 @@ public class HolidayServiceImpl implements YQHolidayService {
      * @return
      */
     @Override
-    public YQHolidayCalendarVO queryHolidayTotalType(LocalDate currentDate, String queryType) {
+    public YQHolidayCalendarVO queryHolidayTotalType(LocalDate currentDate, String queryType,String totalFlag) {
         YQHolidayCalendarVO vo = new YQHolidayCalendarVO();
         String type = queryDateType(currentDate, queryType);
         LocalDate minDate = findMinBacktrackDate(currentDate);
@@ -146,7 +146,7 @@ public class HolidayServiceImpl implements YQHolidayService {
         //是否需要添加汇总标志 ，排除对应汇总时候，但是又不符合汇总条件的情况
 
         //type为 2 和 4 时 汇总
-        if (type.equals(Constant.HOLIDAY_AFTER) || type.equals(Constant.HOLIDAY_MONTH_LASTDAY)){
+        if (totalFlag.equals(Constant.YES) && (type.equals(Constant.HOLIDAY_AFTER) || type.equals(Constant.HOLIDAY_MONTH_LASTDAY))){
             // 汇总的标题
             String totalTitle = minDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd"))
                     +"-"

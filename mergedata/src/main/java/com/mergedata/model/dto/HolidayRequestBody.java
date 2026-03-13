@@ -22,6 +22,12 @@ public class HolidayRequestBody {
     @JsonProperty("query_type")
     private String queryType; //0门诊 1 住院
 
+    @NotNull(message = "total_flag不能为空")
+    @JsonProperty("total_flag")
+    private String totalFlag; //是否需要汇总 0 不需要 1 需要
+
+
+
     private String extendParams1;
     private String extendParams2;
     private String extendParams3;
