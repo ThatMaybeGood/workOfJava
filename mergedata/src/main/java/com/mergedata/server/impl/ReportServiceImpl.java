@@ -941,15 +941,23 @@ public class ReportServiceImpl implements ReportService {
 
             OutpCashMainEntity main = new OutpCashMainEntity();
             main.setSerialNo(pk);
-            main.setReportDate(body.getReportDate());
+            main.setReportDate(currtDate);
             main.setReportYear(body.getReportDate().getYear());
             main.setTotalFlag(body.getTotalFlag());
             main.setValidFlag("1");
             main.setCreateTime(LocalDateTime.now());
 
+            //构建特殊情况，返回子对象展示单个列表
+            OutpCashSubEntity sub = new OutpCashSubEntity();
+            sub.setSerialNo(pk);
+            sub.setOperatorName("当日暂收款");
+            sub.setOperatorNo("当日暂收款");
+
+
             //如果是汇总查询，但是日期不符合特殊日期情况，直接返回空
             if (calculationType == 2) {
-                main.setSubs(new ArrayList<>());
+                sub.setRemarks("查询汇总，单对应的日期 [" + currtDate.toString() + "] 不符合特殊日期情况");
+                main.setSubs(Collections.singletonList(sub));
                 return main;
             }
 
@@ -1001,8 +1009,11 @@ public class ReportServiceImpl implements ReportService {
                     // 找出第一个缺失的日期，
                     for (LocalDate d = minDate; d.isBefore(currtDate); d = d.plusDays(1)) {
                         if (!historyMap.containsKey(d)) {
-                            main.setRemark(String.format("回溯数据不完整：报表日期 [%s] 数据缺失，无法进行回溯计算。", d));
-                            main.setSubs(new ArrayList<>());
+                            String s =  "回溯数据不完整：报表日期 [" + d.toString() + "] 数据缺失，无法进行回溯计算。";
+                            sub.setRemarks(s);
+
+                            main.setRemark(s);
+                            main.setSubs(Collections.singletonList(sub));
                             return main;
 //                            throw new RuntimeException("数据不完整：报表日期 " + d + " 数据缺失，无法进行回溯计算。");
                         }
