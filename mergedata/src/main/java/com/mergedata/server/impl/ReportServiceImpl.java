@@ -96,7 +96,7 @@ public class ReportServiceImpl implements ReportService {
             OutpReportMainVO mainVO = outpExchangeDbToView(main);
             mainVO.setTotalFlag(body.getTotalFlag());
 
-            if (type == 2) {
+            if (type == 2 || main.getSubs() == null || main.getSubs().isEmpty()) {
                 mainVO.setSubList(Collections.emptyList());
                 return mainVO;
             }
@@ -1001,9 +1001,10 @@ public class ReportServiceImpl implements ReportService {
                     // 找出第一个缺失的日期，
                     for (LocalDate d = minDate; d.isBefore(currtDate); d = d.plusDays(1)) {
                         if (!historyMap.containsKey(d)) {
+                            main.setRemark(String.format("回溯数据不完整：报表日期 [%s] 数据缺失，无法进行回溯计算。", d));
                             main.setSubs(new ArrayList<>());
                             return main;
-//                          throw new RuntimeException("数据不完整：报表日期 " + d + " 数据缺失，无法进行回溯计算。");
+//                            throw new RuntimeException("数据不完整：报表日期 " + d + " 数据缺失，无法进行回溯计算。");
                         }
                     }
                 }

@@ -43,8 +43,8 @@ public class ApiResponseResult {
         result.setSignType("md5");
         result.setSign("0TU5e1nHncMVBOaNqJjDzA==");
         result.setCode("40004");
-        result.setMsg("业务处理失败");
-        result.setSubCode("request_thirdparty_service_return_error");
+        result.setMsg("系统错误异常");
+        result.setSubCode("request_system_service_return_error");
         result.setSubMsg(msg);
         return result;
     }
