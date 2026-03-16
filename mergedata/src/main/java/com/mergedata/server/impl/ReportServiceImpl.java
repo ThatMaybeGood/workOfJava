@@ -917,6 +917,8 @@ public class ReportServiceImpl implements ReportService {
 
     //  结果类来封装回溯计算的结果
     private static class BacktrackResult {
+        BigDecimal backHisAdvancePayment = BigDecimal.ZERO; //his预交金
+        BigDecimal backHisMedicalIncome = BigDecimal.ZERO; //his医疗收入
         BigDecimal backReportAmount = BigDecimal.ZERO;  // 应交报表数
         BigDecimal backPreviousTemporaryReceipt = BigDecimal.ZERO;   // 前日暂收款
         BigDecimal backHolidayTemporaryReceipt = BigDecimal.ZERO; // 节假日暂收款
@@ -1063,17 +1065,16 @@ public class ReportServiceImpl implements ReportService {
                      需要完善独立的方法，首先去判断找到回溯截止的日期，且回溯期间是否有日期中无数据的，那就回溯截止日期到对应无数据为准
                      */
                     handleOutpBacktrackLogic(dto, currtDate, minDate, historyMap);
-
                 }
 
                 if (calculationType == 0) {
-                    //应交报表数  =  his预交金 + his医疗收入
-                    dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
                     //前日暂收款  =  前一天的 当日 暂收款
                     OutpCashSubEntity yest = yesterdayMap.get(operator.getDbUser());
                     dto.setPreviousTemporaryReceipt(yest != null ? getSafeBigDecimal(yest.getCurrentTemporaryReceipt()) : BigDecimal.ZERO);
                 }
 
+                //应交报表数  =  his预交金 + his医疗收入
+                dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
 
                 // 实交报表数据 = 应交报表数 - 前日暂收款
                 dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()));
@@ -1110,8 +1111,13 @@ public class ReportServiceImpl implements ReportService {
                                           LocalDate minDate, Map<LocalDate, OutpCashMainEntity> historyMap) {
 
         BacktrackResult res = executeBacktrack(dto.getDbUser(), targetDate, minDate, historyMap);
+
+
         // 应交报表数  =  回溯结果的 周五+周六+周末 应交报表数
-        dto.setReportAmount(res.backReportAmount);
+        dto.setHisAdvancePayment(res.backHisAdvancePayment);
+        dto.setHisMedicalIncome(res.backHisMedicalIncome);
+
+//        dto.setReportAmount(res.backReportAmount);
         // 前日暂收款  =  回溯结果的 周五的当日暂收款
         dto.setPreviousTemporaryReceipt(res.backPreviousTemporaryReceipt);
         // 节假日暂收款  =  回溯结果的 周六+周末 的 节假日暂收款录入
@@ -1142,8 +1148,13 @@ public class ReportServiceImpl implements ReportService {
                     .findFirst().orElse(null);
 
             // 累加计算
-            BigDecimal c = hist != null ? getSafeBigDecimal(hist.getReportAmount()) : BigDecimal.ZERO;
-            result.backReportAmount = result.backReportAmount.add(c);
+            BigDecimal c1 = hist!= null ? getSafeBigDecimal(hist.getHisAdvancePayment()) : BigDecimal.ZERO;
+            BigDecimal c2 = hist!= null ? getSafeBigDecimal(hist.getHisMedicalIncome()) : BigDecimal.ZERO;
+
+//            BigDecimal c = hist != null ? getSafeBigDecimal(hist.getReportAmount()) : BigDecimal.ZERO;
+            result.backHisAdvancePayment= result.backHisAdvancePayment.add(c1);
+            result.backHisMedicalIncome = result.backHisMedicalIncome.add(c2);
+//            result.backReportAmount = result.backReportAmount.add(c);
 
 
             //节假日暂收款 = 周六+周末 节假日暂收款录入
