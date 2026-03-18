@@ -96,9 +96,8 @@ public class ReportServiceImpl implements ReportService {
             OutpReportMainVO mainVO = outpExchangeDbToView(main);
             mainVO.setTotalFlag(body.getTotalFlag());
 
-            if (type == 2 || main.getSubs() == null || main.getSubs().isEmpty()) {
-                mainVO.setSubList(Collections.emptyList());
-                return mainVO;
+            if (main.getSubs() == null || main.getSubs().isEmpty()) {
+                return mainVO;  //直接返回
             }
 
             subList = mainVO.getSubList().stream()
