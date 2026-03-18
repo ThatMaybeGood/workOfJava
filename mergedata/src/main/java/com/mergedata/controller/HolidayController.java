@@ -59,26 +59,6 @@ public class HolidayController {
     }
 
 
-    @Operation(summary = "批量写入节假日数据", description = "返回操作结果")
-    @PostMapping("batchinsert")
-    public ApiResponse batchInsert(@Valid @RequestBody ApiRequestList<YQHolidayEntity> request)  {
-
-        List<YQHolidayEntity> list = request.getBody().getList();
-        for (YQHolidayEntity dto : list) {
-            PrimaryKeyGenerator pk   = new PrimaryKeyGenerator();
-            dto.setSerialNo(pk.generateKey());
-            dto.setValidFlag("1");
-        }
-
-
-        // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Boolean b = holiday.batchInsertList(list);
-        if (!b) {
-            return ApiResponse.failure("批量插入失败");
-        }
-        return ApiResponse.successList(list,"批量插入成功");
-    }
-
     @Operation(summary = "写入节假日数据", description = "返回操作结果")
     @PostMapping("insert")
     public ApiResponse singleInsert(@Valid @RequestBody ApiRequest<YQHolidayEntity> request)  {

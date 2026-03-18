@@ -39,9 +39,9 @@ public class HolidayServiceImpl implements YQHolidayService {
 
     @Override
     public List<YQHolidayEntity> findByDate(LocalDate reportDate) {
-         return Db.lambdaQuery(YQHolidayEntity.class)
+        return Db.lambdaQuery(YQHolidayEntity.class)
                 .eq(YQHolidayEntity::getHolidayDate, reportDate)
-                 .orderByAsc(YQHolidayEntity::getHolidayYear,YQHolidayEntity::getHolidayMonth,YQHolidayEntity::getHolidayDate)
+                .orderByAsc(YQHolidayEntity::getHolidayYear, YQHolidayEntity::getHolidayMonth, YQHolidayEntity::getHolidayDate)
                 .list();
     }
 
@@ -49,9 +49,9 @@ public class HolidayServiceImpl implements YQHolidayService {
     public List<YQHolidayEntity> findByYear(Integer year) {
         return Db.lambdaQuery(YQHolidayEntity.class)
                 .eq(YQHolidayEntity::getHolidayYear, year)
-                .orderByAsc(YQHolidayEntity::getHolidayMonth,YQHolidayEntity::getHolidayDate)
+                .orderByAsc(YQHolidayEntity::getHolidayMonth, YQHolidayEntity::getHolidayDate)
                 .list();
-     }
+    }
 
     @Override
     public List<YQHolidayEntity> findByYearMonth(CommonRequestBody body) {
@@ -59,8 +59,8 @@ public class HolidayServiceImpl implements YQHolidayService {
         Integer month = body.getExtendParams2() != null ? Integer.parseInt(body.getExtendParams2()) : null;
 
         return Db.lambdaQuery(YQHolidayEntity.class)
-                .eq(year != null , YQHolidayEntity::getHolidayYear, year)
-                .eq(month != null , YQHolidayEntity::getHolidayMonth, month)
+                .eq(year != null, YQHolidayEntity::getHolidayYear, year)
+                .eq(month != null, YQHolidayEntity::getHolidayMonth, month)
                 .orderByAsc(YQHolidayEntity::getHolidayDate)
                 .list();
     }
@@ -68,6 +68,7 @@ public class HolidayServiceImpl implements YQHolidayService {
 
     /**
      * 插入或更新节假日信息
+     *
      * @param holiday 节假日实体
      * @return 是否成功
      */
@@ -75,7 +76,7 @@ public class HolidayServiceImpl implements YQHolidayService {
     @Transactional
     public Boolean insert(YQHolidayEntity holiday) {
 
-        if(findByDate(holiday.getHolidayDate()).size() > 0 ){
+        if (findByDate(holiday.getHolidayDate()).size() > 0) {
             update(holiday);
         }
 
@@ -94,32 +95,33 @@ public class HolidayServiceImpl implements YQHolidayService {
 
     /**
      * 查询日期类型
+     *
      * @param holidayDate 日期
-     * @param queryType 查询类型
+     * @param queryType   查询类型
      * @return 日期类型
      */
     @Override
-    public String queryDateType(LocalDate holidayDate,String queryType) {
+    public String queryDateType(LocalDate holidayDate, String queryType) {
 
 //        // 判断是住院/门诊
 //        if (queryType== Constant.TYPE_OUTP){
 //
 //        }
 
-        if (isHoliday( holidayDate)){
+        if (isHoliday(holidayDate)) {
             //判断日期是否节假日 且是月末最后一天
-            if(holidayDate.getDayOfMonth() == holidayDate.lengthOfMonth()) {
+            if (holidayDate.getDayOfMonth() == holidayDate.lengthOfMonth()) {
                 return Constant.HOLIDAY_MONTH_LASTDAY;
             }
 
-           return Constant.HOLIDAY_IS;
-        }else {
+            return Constant.HOLIDAY_IS;
+        } else {
             // ❗当前是工作日 且 前一天是节假日/周末
-            if(isHoliday(holidayDate.minusDays(1))){
-                 return Constant.HOLIDAY_AFTER;
+            if (isHoliday(holidayDate.minusDays(1))) {
+                return Constant.HOLIDAY_AFTER;
             }
             // ❗当前是工作日 且 后一天是节假日/周末
-            if(isHoliday(holidayDate.plusDays(1))){
+            if (isHoliday(holidayDate.plusDays(1))) {
                 return Constant.HOLIDAY_PRE;
             }
 
@@ -129,12 +131,13 @@ public class HolidayServiceImpl implements YQHolidayService {
 
     /**
      * 前端查询日期时候，返回对应日期的节假日类型以及是否汇总
+     *
      * @param currentDate
      * @param queryType
      * @return
      */
     @Override
-    public YQHolidayCalendarVO queryHolidayTotalType(LocalDate currentDate, String queryType,String totalFlag) {
+    public YQHolidayCalendarVO queryHolidayTotalType(LocalDate currentDate, String queryType, String totalFlag) {
         YQHolidayCalendarVO vo = new YQHolidayCalendarVO();
         String type = queryDateType(currentDate, queryType);
         LocalDate minDate = findMinBacktrackDate(currentDate);
@@ -146,19 +149,32 @@ public class HolidayServiceImpl implements YQHolidayService {
         //是否需要添加汇总标志 ，排除对应汇总时候，但是又不符合汇总条件的情况
 
         //type为 2 和 4 时 汇总
-        if (totalFlag.equals(Constant.YES) && (type.equals(Constant.HOLIDAY_AFTER) || type.equals(Constant.HOLIDAY_MONTH_LASTDAY))){
+        if (totalFlag.equals(Constant.YES)) {
             // 汇总的标题
-            String totalTitle = minDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd"))
-                    +"-"
-                    +currentDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd"))
-                    +" "+ Constant.OUTP_HOLIDAY_TOTAL_TITLE;
-
+            String totalTitle = "";
+            if (type.equals(Constant.HOLIDAY_AFTER)) {
+                //如果最大日期和最小的日期
+                if(currentDate.minusDays(1).equals(minDate)){
+                    totalTitle = minDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd")) + " " + Constant.OUTP_HOLIDAY_TOTAL_TITLE;
+                }else {
+                    totalTitle = minDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd"))
+                            + "-"
+                            + currentDate.minusDays(1).format(DateTimeFormatter.ofPattern("yyyy.MM.dd"))
+                            + " " + Constant.OUTP_HOLIDAY_TOTAL_TITLE;
+                }
+            }
+            if (type.equals(Constant.HOLIDAY_MONTH_LASTDAY)) {
+                totalTitle = minDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd"))
+                        + "-"
+                        + currentDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd"))
+                        + " " + Constant.OUTP_HOLIDAY_TOTAL_TITLE;
+            }
             vo.setMisDate(minDate);
             vo.setTotalFlag(Constant.NO);
             vo.setTotalTitle(totalTitle);
-        }else {
+        }else{
             vo.setTotalFlag(Constant.YES);
-            vo.setTotalTitle(currentDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd")) +" "+ Constant.HOLIDAY_NOT_TOTAL_TITLE);
+            vo.setTotalTitle(currentDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd")) + " " + Constant.HOLIDAY_NOT_TOTAL_TITLE);
         }
 
 
@@ -168,6 +184,7 @@ public class HolidayServiceImpl implements YQHolidayService {
 
     /**
      * 判断日期是否为 节假日
+     *
      * @param targetDate 日期
      * @return 是否为节假日
      */
@@ -175,7 +192,7 @@ public class HolidayServiceImpl implements YQHolidayService {
         // 1. 获取所有必需的原始数据
         List<YQHolidayEntity> holidays = findByDate(targetDate);
 
-        if (holidays.size() > 0){
+        if (holidays.size() > 0) {
             return true;
         }
         return false;
@@ -184,6 +201,7 @@ public class HolidayServiceImpl implements YQHolidayService {
 
     /**
      * 批量写入节假日信息
+     *
      * @param entities 节假日实体列表
      * @return 是否成功
      */
@@ -192,7 +210,7 @@ public class HolidayServiceImpl implements YQHolidayService {
     public Boolean batchInsertList(List<YQHolidayEntity> entities) {
         try {
 //            OracleBatchUtil.fastBatchInsert(jdbcTemplate, list, "mpp_cash_reg_holiday", 2000,true);
-            return Db.saveBatch(entities) ;
+            return Db.saveBatch(entities);
         } catch (Exception e) {
             log.error("保存节假日信息失败：", e);
             throw new RuntimeException("保存节假日信息失败：" + e.getMessage());
@@ -201,6 +219,7 @@ public class HolidayServiceImpl implements YQHolidayService {
 
     /**
      * 作废节假日信息
+     *
      * @param entity 节假日实体
      * @return 是否成功
      */
@@ -214,6 +233,7 @@ public class HolidayServiceImpl implements YQHolidayService {
 
     /**
      * 删除节假日信息
+     *
      * @param entity 节假日实体
      * @return 是否成功
      */
@@ -222,8 +242,6 @@ public class HolidayServiceImpl implements YQHolidayService {
     public Boolean delete(YQHolidayEntity entity) {
         return Db.removeById(entity);
     }
-
-
 
 
     /**
@@ -254,10 +272,10 @@ public class HolidayServiceImpl implements YQHolidayService {
 
     /**
      * 判断是否符合特殊节假日需要进行回溯汇总计算
+     *
      * @param localDate 日期
      * @param totalFlag 汇总标
-     * @return
-     * 0  不是汇总查询                正常计算
+     * @return 0  不是汇总查询                正常计算
      * 1  是汇总查询，且是特殊节假日     需要进行回溯汇总计算
      * 2  是汇总查询，但是不是特殊节假日  直接返回空列表
      */
@@ -270,16 +288,16 @@ public class HolidayServiceImpl implements YQHolidayService {
                 1、2  是汇总，但是不符合 特殊节假日  直接返回空列表
             */
 
-            String holidayType = queryDateType(localDate, Constant.TYPE_OUTP);
+        String holidayType = queryDateType(localDate, Constant.TYPE_OUTP);
 
-            if (Constant.YES.equals(totalFlag)) {
-                if (Constant.HOLIDAY_AFTER.equals(holidayType) || Constant.HOLIDAY_MONTH_LASTDAY.equals(holidayType)) {
-                    return 1;
-                } else {
-                    return 2;
-                }
+        if (Constant.YES.equals(totalFlag)) {
+            if (Constant.HOLIDAY_AFTER.equals(holidayType) || Constant.HOLIDAY_MONTH_LASTDAY.equals(holidayType)) {
+                return 1;
+            } else {
+                return 2;
             }
-            return 0;
         }
+        return 0;
+    }
 
 }

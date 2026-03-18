@@ -21,10 +21,6 @@ import java.util.List;
 public class OperatorServiceImpl implements YQOperatorService {
 
 
-    @Autowired
-    OperatorMapper operatorMapper;
-
-
     @Override
     public List<YQOperatorEntity> findAll() {
 

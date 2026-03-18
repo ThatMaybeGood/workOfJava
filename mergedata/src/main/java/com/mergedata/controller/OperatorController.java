@@ -61,19 +61,7 @@ public class OperatorController {
         return ApiResponse.successList(resultList,"查询操作员信息成功");
     }
 
-    @Operation(summary = "批量写入操作员数据", description = "返回操作结果")
-    @PostMapping("batchinsert")
-    public ApiResponse batchInsert(@Validated(AddGroup.class) @RequestBody ApiRequestList<YQOperatorEntity> request)  {
 
-        List<YQOperatorEntity> list = request.getBody().getList();
-
-        // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Boolean b = operator.batchInsert(list);
-        if (!b) {
-            return ApiResponse.failure("批量插入操作员信息失败");
-        }
-        return ApiResponse.successList(null,"批量插入操作员信息成功");
-    }
 
     @Operation(summary = "写入操作员数据", description = "返回操作结果")
     @PostMapping("insert")

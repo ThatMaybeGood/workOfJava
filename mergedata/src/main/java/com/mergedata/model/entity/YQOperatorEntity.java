@@ -92,5 +92,12 @@ public class YQOperatorEntity {
      */
     @NotBlank(message = "登录用户ID不能为空",groups ={AddGroup.class} )
     private String dbUser;
+
+    /*
+     * 是否可输入
+     */
+     private String inputFlag;
+
+
 }
 

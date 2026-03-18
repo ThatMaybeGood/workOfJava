@@ -243,9 +243,8 @@ public class ReportServiceImpl implements ReportService {
                     /*
                     卢语2这个人his数据可以录入保存   特殊处理
                      */
-
-                    //需要对卢语这个人可输入保存对应his的数据,即非卢语的人，对应这个数据是不能变动的
-                    if(!("卢语2".equals(dto.getOperatorName())||"BILL_LY2".equals(dto.getDbUser()))) {
+                    //如果是不可以输入的人，需要 提取his数据 原有赋予值，不允许修改，其余的则按照接收的dto数据赋值
+                    if(!operator.getInputFlag().equals("1")) {
                         // 1. 基础 HIS 收入赋值
                         HisOutpIncomeResponseDTO hisDto = hisDataMap.get(dto.getDbUser());
                         if (hisDto != null) {
@@ -1076,9 +1075,14 @@ public class ReportServiceImpl implements ReportService {
                 //应交报表数  =  his预交金 + his医疗收入
                 dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
 
-                // 实交报表数据 = 应交报表数 - 前日暂收款
-                dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()));
-
+                //汇总情况下，对应公式应该是
+                if(calculationType ==1) {
+                    // 实交报表数据 = 应交报表数 - 前日暂收款 - 节假日暂收款
+                    dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()).subtract(dto.getHolidayTemporaryReceipt()));
+                }else {
+                    // 实交报表数据 = 应交报表数 - 前日暂收款
+                    dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()));
+                }
                 // 5.实收现金数 = 实收报表数 + 当日暂收款
                 dto.setActualCashAmount(getSafeBigDecimal(dto.getActualReportAmount()).add(getSafeBigDecimal(dto.getCurrentTemporaryReceipt())));
 
