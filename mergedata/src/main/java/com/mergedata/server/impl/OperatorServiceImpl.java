@@ -80,7 +80,7 @@ public class OperatorServiceImpl implements YQOperatorService {
                 .eq(category != null && !category.isEmpty(), YQOperatorEntity::getCategory, category)
                 // B和C字段的条件：b值可能匹配B或C
                 .and(nameOrId != null && !nameOrId.isEmpty(), wrapper ->
-                        wrapper.eq(YQOperatorEntity::getOperatorName, nameOrId)
+                        wrapper.like(YQOperatorEntity::getOperatorName, nameOrId)
                                 .or()
                                 .eq(YQOperatorEntity::getDbUser, nameOrId)
                 )
