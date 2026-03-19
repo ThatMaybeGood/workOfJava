@@ -102,7 +102,7 @@ public class PlatformController {
         String nameOrId = res.getBody().getExtendParams2();
 
         //如何都是空白情况时候，查询所有
-        if(category== null && nameOrId== null) {
+        if((category== null||category.isEmpty()) && (nameOrId== null||nameOrId.isEmpty())) {
             // 2. 避免重复调用服务，并使用转换后的 LocalDate
              resultList = operator.findAll();
         }else {
