@@ -1,6 +1,7 @@
 package com.mergedata.server.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.mergedata.mapper.OperatorMapper;
 import com.mergedata.model.dto.CommonRequestBody;
@@ -10,16 +11,20 @@ import com.mergedata.server.YQOperatorService;
 import com.mergedata.util.PrimaryKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
 public class OperatorServiceImpl implements YQOperatorService {
 
+    @Autowired
+    JdbcTemplate jdbcTemplate;
 
     @Override
     public List<YQOperatorEntity> findAll() {
@@ -99,6 +104,8 @@ public class OperatorServiceImpl implements YQOperatorService {
      */
     @Override
     public Boolean insertOrUpdate(YQOperatorEntity operator) {
+        //设置最大序号+ 1
+        operator.setRowNum(queryMaxRownum());
         return Db.saveOrUpdate(operator);
     }
 
@@ -184,6 +191,14 @@ public class OperatorServiceImpl implements YQOperatorService {
         }
     }
 
+    /*
+     * 查询出表中 序号最大的值
+     */
+    private Integer queryMaxRownum(){
+        String sql = "SELECT NVL(MAX(row_num), 0) + 1 as nextVal FROM mpp_cash_reg_operator";
+        Integer nextValue = jdbcTemplate.queryForObject(sql, Integer.class);
+        return nextValue;
+    }
 }
 
 

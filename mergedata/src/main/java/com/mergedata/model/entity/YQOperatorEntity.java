@@ -40,7 +40,7 @@ public class YQOperatorEntity {
     /**
      * 员工类型 门诊/住院 0/1
      */
-    private String category;
+    private String category = "1";
 
     /**
      * 部门ID
@@ -86,7 +86,7 @@ public class YQOperatorEntity {
     /*
      *  备用金
      */
-    private BigDecimal pettyCash;
+    private BigDecimal pettyCash = BigDecimal.ZERO;
     /*
      * DB_USER 登录用户
      */
@@ -96,7 +96,7 @@ public class YQOperatorEntity {
     /*
      * 是否可输入
      */
-     private String inputFlag;
+     private String inputFlag = "0";
 
 
 }
