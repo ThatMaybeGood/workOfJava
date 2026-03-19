@@ -54,13 +54,13 @@ public class HolidayServiceImpl implements YQHolidayService {
     }
 
     @Override
-    public List<YQHolidayEntity> findByYearMonth(CommonRequestBody body) {
-        Integer year = body.getExtendParams1() != null ? Integer.parseInt(body.getExtendParams1()) : null;
-        Integer month = body.getExtendParams2() != null ? Integer.parseInt(body.getExtendParams2()) : null;
+    public List<YQHolidayEntity> findByYearMonth(String year,String month) {
+        Integer years = (year == null ||year.isEmpty()) ? null : Integer.parseInt(year) ;
+        Integer months = (month == null ||month.isEmpty()) ? null: Integer.parseInt(month) ;
 
         return Db.lambdaQuery(YQHolidayEntity.class)
-                .eq(year != null, YQHolidayEntity::getHolidayYear, year)
-                .eq(month != null, YQHolidayEntity::getHolidayMonth, month)
+                .eq(years != null , YQHolidayEntity::getHolidayYear, years)
+                .eq(months != null, YQHolidayEntity::getHolidayMonth, months)
                 .orderByAsc(YQHolidayEntity::getHolidayDate)
                 .list();
     }

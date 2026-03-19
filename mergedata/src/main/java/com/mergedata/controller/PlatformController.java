@@ -48,10 +48,13 @@ public class PlatformController {
     public ApiResponse<ApiResponseBodyList<YQHolidayEntity>> holidayFindALl(@Valid @RequestBody ApiRequest<CommonRequestBody> res)  {
         List<YQHolidayEntity> resultList = new ArrayList<>();
 
+        String year = res.getBody().getExtendParams1();
+        String month = res.getBody().getExtendParams2();
 
-        resultList = (res.getBody().getExtendParams1() == null && res.getBody().getExtendParams2() == null) ?
+
+        resultList = ((year==null||year.isEmpty()) && (month== null||month.isEmpty())) ?
                 holiday.findAll() :
-                holiday.findByYearMonth(res.getBody());
+                holiday.findByYearMonth(year,month);
         // 4. 返回结果
         return ApiResponse.successList(resultList,"查询节假日列表成功");
     }

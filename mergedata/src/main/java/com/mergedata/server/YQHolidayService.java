@@ -26,7 +26,7 @@ public interface YQHolidayService {
     /*
      * 通过年份+月份查询节假日信息
      */
-    List<YQHolidayEntity> findByYearMonth(CommonRequestBody body);
+    List<YQHolidayEntity> findByYearMonth(String year,String month);
 
 
     /*
