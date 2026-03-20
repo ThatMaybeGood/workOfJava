@@ -82,7 +82,7 @@ public class ReportServiceImpl implements ReportService {
             // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
             if (count == 0 || isInitFlag) {
 
-                main = getOutpReportData(body,type);
+                main = getOutpReportData(body, type);
                 //无效查询，返回空列表
                 if (main == null) {
                     return null;
@@ -193,7 +193,6 @@ public class ReportServiceImpl implements ReportService {
             // 获取历史数据（昨日）
             Map<String, OutpCashSubEntity> yesterdayMap = new HashMap<>();
             OutpCashMainEntity yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1), main.getTotalFlag());
-
             //  先判断 main 是否为 null
             if (yesterdayMain == null || yesterdayMain.getSubs() == null || yesterdayMain.getSubs().isEmpty()) {
                 yesterdayMap = Collections.emptyMap();
@@ -218,7 +217,9 @@ public class ReportServiceImpl implements ReportService {
                 //一次性查询范围内的所有报表（包含 Subs 明细）
                 // WHERE report_date >= minDate AND report_date < currtDate
                 List<OutpCashMainEntity> historyMains = outpReportService.findBatchByDateRange(minDate, currtDate.minusDays(1), "0");
-
+                if (Constant.HOLIDAY_MONTH_LASTDAY.equals(type)){
+                    historyMains = outpReportService.findBatchByDateRange(minDate, currtDate, "0");
+                }
                 //转换为 Map 以便内存快速回溯
                 historyMap = historyMains.stream()
                         .collect(Collectors.toMap(OutpCashMainEntity::getReportDate, Function.identity()));
@@ -278,7 +279,7 @@ public class ReportServiceImpl implements ReportService {
                     /**
                      需要完善独立的方法，首先去判断找到回溯截止的日期，且回溯期间是否有日期中无数据的，那就回溯截止日期到对应无数据为准
                      */
-                    handleOutpBacktrackLogic(dto, currtDate, minDate, historyMap,type);
+                    handleOutpBacktrackLogic(dto, currtDate, minDate, historyMap, type);
 
                 }
 
@@ -932,7 +933,7 @@ public class ReportServiceImpl implements ReportService {
      * @param calculationType 计算类型 0：正常计算 1：特殊回溯计算 ,2 直接明细设空
      * @return 包含所有操作员计算结果的 ReportDTO 列表
      */
-    public OutpCashMainEntity getOutpReportData(OutpReportRequestBody body,int calculationType) {
+    public OutpCashMainEntity getOutpReportData(OutpReportRequestBody body, int calculationType) {
         try {
             LocalDate currtDate = body.getReportDate();
             String pk = new PrimaryKeyGenerator().generateKey();
@@ -957,9 +958,9 @@ public class ReportServiceImpl implements ReportService {
 
             //如果是汇总查询，但是日期不符合特殊日期情况，直接返回空
             if (calculationType == 2) {
-                    sub.setRemarks("查询汇总，单对应的日期 [" + currtDate.toString() + "] 不符合特殊日期情况");
-                    main.setSubs(Collections.singletonList(sub));
-                    return main;
+                sub.setRemarks("查询汇总，单对应的日期 [" + currtDate.toString() + "] 不符合特殊日期情况");
+                main.setSubs(Collections.singletonList(sub));
+                return main;
             }
 
             List<YQOperatorEntity> operators = operatorService.findByCategory(Constant.TYPE_OUTP);
@@ -991,34 +992,37 @@ public class ReportServiceImpl implements ReportService {
             LocalDate minDate = LocalDate.of(1900, 1, 1);
             Map<LocalDate, OutpCashMainEntity> historyMap = new HashMap<>();
             if (calculationType == 1) {
-                    // 获取昨日数据对象
-                    // 定位回溯的最远日期
-                    minDate = holidayService.findMinBacktrackDate(currtDate);
-                    //一次性查询范围内的所有报表（包含 Subs 明细）
-                    // WHERE report_date >= minDate AND report_date < currtDate
-                    List<OutpCashMainEntity> historyMains = outpReportService.findBatchByDateRange(minDate, currtDate.minusDays(1), "0");
+                // 获取昨日数据对象
+                // 定位回溯的最远日期
+                minDate = holidayService.findMinBacktrackDate(currtDate);
+                //一次性查询范围内的所有报表（包含 Subs 明细）
+                // WHERE report_date >= minDate AND report_date < currtDate
+                List<OutpCashMainEntity> historyMains = outpReportService.findBatchByDateRange(minDate, currtDate.minusDays(1), "0");
+                //月末情况需要包含当天的数据
+                if (Constant.HOLIDAY_MONTH_LASTDAY.equals(type)) {
+                    historyMains = outpReportService.findBatchByDateRange(minDate, currtDate, "0");
+                }
+                //转换为 Map 以便内存快速回溯
+                historyMap = historyMains.stream()
+                        .collect(Collectors.toMap(OutpCashMainEntity::getReportDate, Function.identity()));
 
-                    //转换为 Map 以便内存快速回溯
-                    historyMap = historyMains.stream()
-                            .collect(Collectors.toMap(OutpCashMainEntity::getReportDate, Function.identity()));
+                // 1. 计算需要校验的日期范围 ,首先判断数据是否连贯性完整，如果不完整就抛出对应异常或者设置为空
+                long totalDays = ChronoUnit.DAYS.between(minDate, currtDate); // 不包含 currtDate
+                // 2. 验证 Map 大小与天数是否一致
+                if (historyMap.size() < totalDays) {
+                    // 找出第一个缺失的日期，
+                    for (LocalDate d = minDate; d.isBefore(currtDate); d = d.plusDays(1)) {
+                        if (!historyMap.containsKey(d)) {
+                            String s = "回溯数据不完整：报表日期 [" + d.toString() + "] 数据缺失，无法进行回溯计算。";
+                            sub.setRemarks(s);
 
-                    // 1. 计算需要校验的日期范围 ,首先判断数据是否连贯性完整，如果不完整就抛出对应异常或者设置为空
-                    long totalDays = ChronoUnit.DAYS.between(minDate, currtDate); // 不包含 currtDate
-                    // 2. 验证 Map 大小与天数是否一致
-                    if (historyMap.size() < totalDays) {
-                        // 找出第一个缺失的日期，
-                        for (LocalDate d = minDate; d.isBefore(currtDate); d = d.plusDays(1)) {
-                            if (!historyMap.containsKey(d)) {
-                                String s = "回溯数据不完整：报表日期 [" + d.toString() + "] 数据缺失，无法进行回溯计算。";
-                                sub.setRemarks(s);
-
-                                main.setRemark(s);
-                                main.setSubs(Collections.singletonList(sub));
-                                return main;
+                            main.setRemark(s);
+                            main.setSubs(Collections.singletonList(sub));
+                            return main;
 //                            throw new RuntimeException("数据不完整：报表日期 " + d + " 数据缺失，无法进行回溯计算。");
-                            }
                         }
                     }
+                }
 
             }
 
@@ -1063,7 +1067,7 @@ public class ReportServiceImpl implements ReportService {
                     /**
                      需要完善独立的方法，首先去判断找到回溯截止的日期，且回溯期间是否有日期中无数据的，那就回溯截止日期到对应无数据为准
                      */
-                    handleOutpBacktrackLogic(dto, currtDate, minDate, historyMap,type);
+                    handleOutpBacktrackLogic(dto, currtDate, minDate, historyMap, type);
                 }
 
                 if (calculationType == 0) {
@@ -1111,9 +1115,9 @@ public class ReportServiceImpl implements ReportService {
      * 封装回溯逻辑，缓存减少数据库IO
      */
     private void handleOutpBacktrackLogic(OutpCashSubEntity dto, LocalDate targetDate,
-                                          LocalDate minDate, Map<LocalDate, OutpCashMainEntity> historyMap,String type) {
+                                          LocalDate minDate, Map<LocalDate, OutpCashMainEntity> historyMap, String type) {
 
-        BacktrackResult res = executeBacktrack(dto.getDbUser(), targetDate, minDate, historyMap,type);
+        BacktrackResult res = executeBacktrack(dto.getDbUser(), targetDate, minDate, historyMap, type);
 
 
         // 应交报表数  =  回溯结果的 周五+周六+周末 应交报表数
@@ -1129,12 +1133,12 @@ public class ReportServiceImpl implements ReportService {
 
 
     private BacktrackResult executeBacktrack(String opNo, LocalDate targetDate, LocalDate minDate,
-                                             Map<LocalDate, OutpCashMainEntity> historyMap,String type) {
+                                             Map<LocalDate, OutpCashMainEntity> historyMap, String type) {
         BacktrackResult result = new BacktrackResult();
         LocalDate current = targetDate.minusDays(1);
 
         //如果是月末最后一天回溯，需要包含当日的数据
-        if(Constant.HOLIDAY_MONTH_LASTDAY.equals(type)) {
+        if (Constant.HOLIDAY_MONTH_LASTDAY.equals(type)) {
             current = targetDate;
         }
 
@@ -1174,7 +1178,7 @@ public class ReportServiceImpl implements ReportService {
                         getSafeBigDecimal(hist.getCurrentTemporaryReceipt()) : BigDecimal.ZERO;
 
                 //如果最小日期不是月初第一天，则需要对应节假日暂收款置为0
-                if(minDate.getDayOfMonth() != 1) {
+                if (minDate.getDayOfMonth() != 1) {
                     b = BigDecimal.ZERO;
                 }
             }
