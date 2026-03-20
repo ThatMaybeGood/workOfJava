@@ -108,6 +108,10 @@ public class Constant {
      * 月末最后一天且是节假日
      */
     public static final String  HOLIDAY_MONTH_LASTDAY= "4";
+    /*
+     * 月末最后一天且 且 非假日 需要特殊计算 但不汇总
+     */
+    public static final String  HOLIDAY_NOT_MONTH_LASTDAY= "5";
 
 
     //===============门诊/住院类型========================

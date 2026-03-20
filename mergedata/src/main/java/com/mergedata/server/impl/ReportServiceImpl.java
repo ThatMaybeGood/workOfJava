@@ -291,9 +291,14 @@ public class ReportServiceImpl implements ReportService {
                     dto.setPreviousTemporaryReceipt(yest != null ? getSafeBigDecimal(yest.getCurrentTemporaryReceipt()) : BigDecimal.ZERO);
                 }
 
-
-                // 实交报表数据 = 应交报表数 - 前日暂收款
-                dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()));
+                //汇总情况下，对应公式应该是  月末最后一天且非节假日也是如此
+                if (calculationType == 1 || Constant.HOLIDAY_NOT_MONTH_LASTDAY.equals(type)) {
+                    // 实交报表数据 = 应交报表数 - 前日暂收款 - 节假日暂收款
+                    dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()).subtract(dto.getHolidayTemporaryReceipt()));
+                } else {
+                    // 实交报表数据 = 应交报表数 - 前日暂收款
+                    dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()));
+                }
 
                 // 5.实收现金数 = 实收报表数 + 当日暂收款
                 dto.setActualCashAmount(getSafeBigDecimal(dto.getActualReportAmount()).add(getSafeBigDecimal(dto.getCurrentTemporaryReceipt())));
@@ -1019,8 +1024,8 @@ public class ReportServiceImpl implements ReportService {
                 //应交报表数  =  his预交金 + his医疗收入
                 dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
 
-                //汇总情况下，对应公式应该是
-                if (calculationType == 1) {
+                //汇总情况下，对应公式应该是  月末最后一天且非节假日也是如此
+                if (calculationType == 1 || Constant.HOLIDAY_NOT_MONTH_LASTDAY.equals(type)) {
                     // 实交报表数据 = 应交报表数 - 前日暂收款 - 节假日暂收款
                     dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()).subtract(dto.getHolidayTemporaryReceipt()));
                 } else {
