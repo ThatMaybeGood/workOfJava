@@ -154,7 +154,7 @@ public class OutpReportSubVO {
     会计日期
      */
     @JsonProperty("acct_date")
-    private LocalDateTime acctDate;
+    private LocalDate acctDate;
     /*
      窗口号
      */
@@ -177,5 +177,16 @@ public class OutpReportSubVO {
      */
      @JsonProperty("id")
      private Integer id;
+    /*
+     * 明细表的唯一id
+     */
+    @JsonProperty("serial_sub_no")
+    private String serialSubNo;
+    /*
+     * 审核标志
+     */
+    @JsonProperty("audit_flag")
+    private  Integer auditFlag ;
+
 
 }

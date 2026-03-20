@@ -17,9 +17,13 @@ import java.time.LocalDateTime;
 @TableName("mpp_cash_statistics_sub") //表名
 public class OutpCashSubEntity {
     // 关联的主表流水号
-    @TableId(type = IdType.INPUT)
     @TableField("serial_no")
     private String serialNo;
+    /*
+     * 明细表唯一ID
+     */
+    @TableId(type = IdType.INPUT)
+    private String serialSubNo;
 
     @TableField("emp_id")
     private String operatorNo;
@@ -74,6 +78,10 @@ public class OutpCashSubEntity {
      */
     private Integer id;
 
+    /*
+     * 审核标志
+     */
+    private  Integer auditFlag = 0;
 
     // 统一处理BigDecimal类型的null值
     private BigDecimal safeBigDecimal(BigDecimal value) {

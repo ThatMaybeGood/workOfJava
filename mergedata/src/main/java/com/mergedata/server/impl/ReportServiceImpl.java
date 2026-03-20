@@ -311,48 +311,6 @@ public class ReportServiceImpl implements ReportService {
 
 
     /**
-     * 实际的数据库操作（带事务）
-     */
-    private Integer insertWithTransaction(LocalDate reportDate, List<OutpReportSubVO> list, String totalFlag) {
-
-        // 2. 生成主键
-        String pk = new PrimaryKeyGenerator().generateKey();
-
-        // 3. 构建主表
-//        OutpCashMainEntity main = buildMainEntity(pk, list.get(0),totalFlag);
-
-        // 4. 构建明细表
-        List<OutpCashSubEntity> subList = buildSubEntities(pk, list);
-
-        // 2. 显式开启事务
-        return transactionTemplate.execute(status -> {
-            try {
-                // 检测事务为 true
-                System.out.println("是否开启事务: " + status.isNewTransaction());
-
-                // 1. 作废历史
-                if (!outpReportMapper.selectReportByDate(reportDate).isEmpty()) {
-                    outpReportMapper.updateByDate(reportDate);
-                    log.info("{} {} 历史报表数据作废完成", reportDate, Constant.REPORT_NAME_OUTP);
-                }
-
-//                Db.save(main);
-
-                Db.saveBatch(subList);
-
-                return Constant.SUCCESS;
-
-            } catch (Exception e) {
-                status.setRollbackOnly(); // 手动回滚
-                log.error("数据库操作失败，执行回滚", e);
-                throw new RuntimeException("门诊现金报表写入失败，已回滚", e);
-            }
-        });
-
-    }
-
-
-    /**
      * 门诊报表数据实体转换视图
      */
     private OutpReportMainVO outpExchangeDbToView(OutpCashMainEntity mainEntity) {
@@ -364,7 +322,14 @@ public class ReportServiceImpl implements ReportService {
         if (CollectionUtils.isNotEmpty(mainEntity.getSubs())) {
             List<OutpReportSubVO> subList = mainEntity.getSubs().stream().map(subEntity -> {
                 OutpReportSubVO subVO = new OutpReportSubVO();
-                BeanUtils.copyProperties(subEntity, subVO); //或Entity到VO
+                // 复制除 acctDate 外的所有字段
+                String[] ignoreProperties = {"acctDate"};
+                BeanUtils.copyProperties(subEntity, subVO, ignoreProperties);
+
+                // 手动处理 LocalDateTime 到 LocalDate 的转换
+                if (subEntity.getAcctDate() != null) {
+                    subVO.setAcctDate(subEntity.getAcctDate().toLocalDate());
+                }
 
                 subVO.setReportDate(mainEntity.getReportDate());
                 subVO.setReportYear(mainEntity.getReportYear());
@@ -398,9 +363,18 @@ public class ReportServiceImpl implements ReportService {
         if (CollectionUtils.isNotEmpty(mainVO.getSubList())) {
             List<OutpCashSubEntity> subList = mainVO.getSubList().stream().map(subVO -> {
                 OutpCashSubEntity subEntity = new OutpCashSubEntity();
-                BeanUtils.copyProperties(subVO, subEntity); //或Entity到VO
+
+                // 复制除 acctDate 外的所有字段
+                String[] ignoreProperties = {"acctDate"};
+                BeanUtils.copyProperties(subVO,subEntity, ignoreProperties);
+                // 手动处理 LocalDateTime 到 LocalDate 的转换
+                if (subEntity.getAcctDate() != null) {
+                    subEntity.setAcctDate(subVO.getAcctDate().atStartOfDay());
+                }
 
                 subEntity.setSerialNo(pk);
+                subEntity.setSerialSubNo(PrimaryKeyGenerator.generateKey());
+
                 return subEntity;
             }).collect(Collectors.toList());
 
@@ -410,30 +384,6 @@ public class ReportServiceImpl implements ReportService {
         return mainEntity;
     }
 
-    private List<OutpCashSubEntity> buildSubEntities(String pk, List<OutpReportSubVO> list) {
-        List<OutpCashSubEntity> subList = new ArrayList<>();
-
-        for (OutpReportSubVO vo : list) {
-            if (vo.getOperatorName().contains("合计")) {
-                continue;  // 跳过合计行
-            }
-
-            OutpCashSubEntity sub = new OutpCashSubEntity();
-            BeanUtils.copyProperties(vo, sub);
-
-            sub.setSerialNo(pk);
-            sub.setDbUser(vo.getDbUser());
-            sub.setOperatorNo(vo.getOperatorName());
-            sub.setRowNum(vo.getRowNum());
-            sub.setAcctDate(vo.getAcctDate());
-            sub.setAcctNo(vo.getAcctNo());
-            sub.setRemarks(vo.getRemarks());
-
-            subList.add(sub);
-        }
-
-        return subList;
-    }
 
 
     /**
@@ -733,19 +683,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
 
-    /*
-     * 对应门诊日期报表无数据时候，是否初始化写入数据
-     * @param list 门诊报表数据列表
-     * @param date 日期
-     */
-    public void buildInitInsertOutp(List<OutpReportSubVO> list, OutpReportRequestBody body) {
-        try {
-            insertWithTransaction(body.getReportDate(), list, body.getTotalFlag());
-        } catch (Exception e) {
-            log.error("初始化插入门诊现金主表数据失败，日期：{}", body.getReportDate(), e);
-            throw new RuntimeException("初始化插入门诊现金主表数据失败" + e.getMessage());
-        }
-    }
+
 
 
     /**
@@ -936,7 +874,7 @@ public class ReportServiceImpl implements ReportService {
     public OutpCashMainEntity getOutpReportData(OutpReportRequestBody body, int calculationType) {
         try {
             LocalDate currtDate = body.getReportDate();
-            String pk = new PrimaryKeyGenerator().generateKey();
+            String pk = PrimaryKeyGenerator.generateKey();
             //查询出具体的类型
             String type = holidayService.queryDateType(body.getReportDate(), Constant.TYPE_OUTP);
 
@@ -952,6 +890,7 @@ public class ReportServiceImpl implements ReportService {
             //构建特殊情况，返回子对象展示单个列表
             OutpCashSubEntity sub = new OutpCashSubEntity();
             sub.setSerialNo(pk);
+            sub.setSerialSubNo(PrimaryKeyGenerator.generateKey());
             sub.setOperatorName("当日暂收款");
             sub.setOperatorNo("当日暂收款");
 
@@ -1033,6 +972,7 @@ public class ReportServiceImpl implements ReportService {
             for (YQOperatorEntity operator : operators) {
                 OutpCashSubEntity dto = new OutpCashSubEntity();
                 dto.setSerialNo(pk);
+                dto.setSerialSubNo(PrimaryKeyGenerator.generateKey());  //每一条生成唯一的编号
                 dto.setOperatorNo(operator.getOperatorNo());
                 dto.setDbUser(operator.getDbUser());
                 dto.setOperatorName(operator.getOperatorName());
