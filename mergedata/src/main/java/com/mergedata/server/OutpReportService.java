@@ -1,7 +1,9 @@
 package com.mergedata.server;
 
 import com.mergedata.model.dto.OutpReportRequestBody;
+import com.mergedata.model.entity.InpCashMainEntity;
 import com.mergedata.model.entity.OutpCashMainEntity;
+import com.mergedata.model.entity.OutpCashSubEntity;
 import com.mergedata.model.vo.OutpReportMainVO;
 
 import java.time.LocalDate;
@@ -64,4 +66,14 @@ public interface OutpReportService {
      */
     Boolean delete(OutpCashMainEntity entity);
 
+
+    /*
+     * 查询门诊报表审核情况
+     */
+    OutpReportMainVO getAuditReport(OutpReportRequestBody body);
+
+    /*
+     * 保存门诊报表审核情况
+     */
+    void saveAuditReport(OutpReportMainVO mainVO);
 }

@@ -46,11 +46,7 @@ public class ReportController {
         return ApiResponse.successObj(resultList,"查询门诊报表列表成功！");
     }
 
-
-
-
-
-    @Operation(summary = "批量插入门诊报表数据", description = "返回对应结果")
+    @Operation(summary = "写入门诊报表数据", description = "返回对应结果")
     @PostMapping("/insert")
     public ApiResponse insertOutpReport(@Validated(AddGroup.class) @RequestBody ApiRequest<OutpReportMainVO> request)  {
 
@@ -79,7 +75,7 @@ public class ReportController {
     }
 
 
-    @Operation(summary = "批量插入住院表数据", description = "返回对应结果")
+    @Operation(summary = "写入住院表数据", description = "返回对应结果")
     @PostMapping("/inp_insert")
     public ApiResponse insertInpReport(@RequestBody ApiRequest<InpReportVO> request)  {
 

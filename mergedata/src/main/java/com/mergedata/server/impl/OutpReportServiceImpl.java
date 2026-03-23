@@ -5,14 +5,20 @@ import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapp
 import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.mergedata.constants.Constant;
 import com.mergedata.model.dto.OutpReportRequestBody;
+import com.mergedata.model.entity.InpCashMainEntity;
 import com.mergedata.model.entity.OutpCashMainEntity;
 import com.mergedata.model.entity.OutpCashSubEntity;
+import com.mergedata.model.vo.OutpReportMainVO;
+import com.mergedata.model.vo.OutpReportSubVO;
 import com.mergedata.server.OutpReportService;
+import com.mergedata.util.PrimaryKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -135,6 +141,36 @@ public class OutpReportServiceImpl implements OutpReportService {
         return Db.removeById(entity);
     }
 
+    @Override
+    public OutpReportMainVO getAuditReport(OutpReportRequestBody body) {
+        OutpCashMainEntity main = findByRequestBody(body);
+        return outpExchangeDbToView(main);
+    }
+
+
+    @Override
+    public void saveAuditReport(OutpReportMainVO mainVO) {
+        LocalDate reportDate = mainVO.getSubList().get(0).getReportDate();
+        if (reportDate == null) {
+            reportDate = LocalDate.now();
+        }
+
+        String remark = "";
+        for (OutpReportSubVO sub : mainVO.getSubList()) {
+            if (sub.getOperatorName().equals("当日暂收款")) {
+                remark = sub.getRemarks();
+            }
+        }
+        OutpCashMainEntity main = outpExchangeViewToDb(reportDate,mainVO,remark);
+
+        main.getSubs().forEach(sub -> {
+            Db.lambdaUpdate(OutpCashSubEntity.class)
+                    .eq(OutpCashSubEntity::getSerialSubNo, sub.getSerialSubNo())
+                    .set(OutpCashSubEntity::getAuditFlag, sub.getAuditFlag())
+                    .update();
+        });
+    }
+
     // 填充从表数据
     private void fillSubs(OutpCashMainEntity main) {
         if (main != null) {
@@ -152,5 +188,82 @@ public class OutpReportServiceImpl implements OutpReportService {
                 .eq(OutpCashMainEntity::getTotalFlag, totalFlag)
                 .eq(OutpCashMainEntity::getValidFlag, Constant.YES);
     }
+
+
+    /**
+     * 门诊报表数据实体转换视图
+     */
+    private OutpReportMainVO outpExchangeDbToView(OutpCashMainEntity mainEntity) {
+
+        OutpReportMainVO mainVO = new OutpReportMainVO();
+        mainVO.setTotalFlag(mainEntity.getTotalFlag());
+
+        // 转换 List
+        if (CollectionUtils.isNotEmpty(mainEntity.getSubs())) {
+            List<OutpReportSubVO> subList = mainEntity.getSubs().stream().map(subEntity -> {
+                OutpReportSubVO subVO = new OutpReportSubVO();
+                // 复制除 acctDate 外的所有字段
+                String[] ignoreProperties = {"acctDate"};
+                BeanUtils.copyProperties(subEntity, subVO, ignoreProperties);
+
+                // 手动处理 LocalDateTime 到 LocalDate 的转换
+                if (subEntity.getAcctDate() != null) {
+                    subVO.setAcctDate(subEntity.getAcctDate().toLocalDate());
+                }
+
+                subVO.setReportDate(mainEntity.getReportDate());
+                subVO.setReportYear(mainEntity.getReportYear());
+                subVO.setCreateTime(mainEntity.getCreateTime());
+
+                return subVO;
+            }).collect(Collectors.toList());
+
+            mainVO.setSubList(subList);
+        }
+        return mainVO;
+    }
+
+
+    /**
+     * 门诊报表数据视图转换实体类
+     */
+    private OutpCashMainEntity outpExchangeViewToDb(LocalDate reportDate, OutpReportMainVO mainVO, String remark) {
+
+        OutpCashMainEntity mainEntity = new OutpCashMainEntity();
+        String pk = PrimaryKeyGenerator.generateKey();
+        mainEntity.setSerialNo(pk);
+        mainEntity.setReportDate(reportDate);
+        mainEntity.setReportYear(reportDate.getYear());
+        mainEntity.setTotalFlag(mainVO.getTotalFlag());
+        mainEntity.setValidFlag(Constant.YES);
+        mainEntity.setRemark(remark);
+        mainEntity.setCreateTime(LocalDateTime.now());
+
+        // 转换 List
+        if (CollectionUtils.isNotEmpty(mainVO.getSubList())) {
+            List<OutpCashSubEntity> subList = mainVO.getSubList().stream().map(subVO -> {
+                OutpCashSubEntity subEntity = new OutpCashSubEntity();
+
+                // 复制除 acctDate 外的所有字段
+                String[] ignoreProperties = {"acctDate"};
+                BeanUtils.copyProperties(subVO,subEntity, ignoreProperties);
+                // 手动处理 LocalDateTime 到 LocalDate 的转换
+                if (subEntity.getAcctDate() != null) {
+                    subEntity.setAcctDate(subVO.getAcctDate().atStartOfDay());
+                }
+
+                subEntity.setSerialNo(pk);
+                subEntity.setSerialSubNo(PrimaryKeyGenerator.generateKey());
+
+                return subEntity;
+            }).collect(Collectors.toList());
+
+            mainEntity.setSubs(subList);
+        }
+
+        return mainEntity;
+    }
+
+
 
 }
