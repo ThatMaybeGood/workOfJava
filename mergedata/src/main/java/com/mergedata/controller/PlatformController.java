@@ -83,7 +83,7 @@ public class PlatformController {
         YQHolidayEntity list = request.getBody();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Boolean b = holiday.update(list);
+        Boolean b = holiday.delete(list);
         if (!b){
             return ApiResponse.failure("节假日作废失败");
         }
@@ -107,11 +107,10 @@ public class PlatformController {
         //如何都是空白情况时候，查询所有
         if((category== null||category.isEmpty()) && (nameOrId== null||nameOrId.isEmpty())) {
             // 2. 避免重复调用服务，并使用转换后的 LocalDate
-             resultList = operator.findAll();
+             resultList = operator.findAllPlatform();
         }else {
              resultList = operator.findByCategoryAndNameOrId(res.getBody());
         }
-
 
         // 4. 返回结果
         return ApiResponse.successList(resultList,"查询操作员列表成功！");

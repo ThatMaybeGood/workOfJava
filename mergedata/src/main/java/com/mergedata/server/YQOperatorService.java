@@ -10,6 +10,10 @@ public interface YQOperatorService {
      * 查询所有历史操作员数据
      */
     List<YQOperatorEntity> findAll();
+    /*
+     * 平台查询所有历史操作员数据
+     */
+    List<YQOperatorEntity> findAllPlatform();
 
     /*
      * 根据ID查询操作员,即db_user

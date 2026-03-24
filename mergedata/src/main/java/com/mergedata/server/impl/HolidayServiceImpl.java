@@ -33,6 +33,7 @@ public class HolidayServiceImpl implements YQHolidayService {
     @Override
     public List<YQHolidayEntity> findAll() {
         return Db.lambdaQuery(YQHolidayEntity.class)
+                .eq(YQHolidayEntity::getValidFlag, Constant.YES)
                 .list();
     }
 
@@ -41,6 +42,7 @@ public class HolidayServiceImpl implements YQHolidayService {
     public List<YQHolidayEntity> findByDate(LocalDate reportDate) {
         return Db.lambdaQuery(YQHolidayEntity.class)
                 .eq(YQHolidayEntity::getHolidayDate, reportDate)
+                .eq(YQHolidayEntity::getValidFlag, Constant.YES)
                 .orderByAsc(YQHolidayEntity::getHolidayYear, YQHolidayEntity::getHolidayMonth, YQHolidayEntity::getHolidayDate)
                 .list();
     }
@@ -49,6 +51,7 @@ public class HolidayServiceImpl implements YQHolidayService {
     public List<YQHolidayEntity> findByYear(Integer year) {
         return Db.lambdaQuery(YQHolidayEntity.class)
                 .eq(YQHolidayEntity::getHolidayYear, year)
+                .eq(YQHolidayEntity::getValidFlag, Constant.YES)
                 .orderByAsc(YQHolidayEntity::getHolidayMonth, YQHolidayEntity::getHolidayDate)
                 .list();
     }
@@ -61,6 +64,7 @@ public class HolidayServiceImpl implements YQHolidayService {
         return Db.lambdaQuery(YQHolidayEntity.class)
                 .eq(years != null , YQHolidayEntity::getHolidayYear, years)
                 .eq(months != null, YQHolidayEntity::getHolidayMonth, months)
+                .eq(YQHolidayEntity::getValidFlag, Constant.YES)
                 .orderByAsc(YQHolidayEntity::getHolidayDate)
                 .list();
     }
@@ -76,18 +80,14 @@ public class HolidayServiceImpl implements YQHolidayService {
     @Transactional
     public Boolean insert(YQHolidayEntity holiday) {
 
-        if (findByDate(holiday.getHolidayDate()).size() > 0) {
-            update(holiday);
+        if(holiday.getSerialNo() == null || holiday.getSerialNo().isEmpty()){
+            holiday.setSerialNo(PrimaryKeyGenerator.generateKey());
         }
-
-        PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
-        holiday.setSerialNo(pks.generateKey());
-
         holiday.setHolidayMonth(String.valueOf(holiday.getHolidayDate().getMonthValue()));
         holiday.setHolidayYear(String.valueOf(holiday.getHolidayDate().getYear()));
 
         try {
-            return Db.save(holiday);
+            return Db.saveOrUpdate(holiday);
         } catch (Exception e) {
             throw new RuntimeException("节假日数据保存失败！！！");
         }

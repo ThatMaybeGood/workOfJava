@@ -28,10 +28,14 @@ public class OperatorServiceImpl implements YQOperatorService {
 
     @Override
     public List<YQOperatorEntity> findAll() {
-
         return Db.lambdaQuery(YQOperatorEntity.class).orderByAsc(YQOperatorEntity::getRowNum).list();
-//                Db.list(new LambdaQueryWrapper<>(YQOperatorEntity.class));
+    }
 
+    @Override
+    public List<YQOperatorEntity> findAllPlatform() {
+        List<YQOperatorEntity> list = Db.lambdaQuery(YQOperatorEntity.class).orderByAsc(YQOperatorEntity::getRowNum).list();
+//        list.forEach(this::convetSend);
+        return list;
     }
 
     @Override
@@ -75,7 +79,7 @@ public class OperatorServiceImpl implements YQOperatorService {
         String nameOrId = body.getExtendParams2() != null ? body.getExtendParams2() : "";
 
 
-        return Db.lambdaQuery(YQOperatorEntity.class)
+        List<YQOperatorEntity> list = Db.lambdaQuery(YQOperatorEntity.class)
                 // A字段条件
                 .eq(category != null && !category.isEmpty(), YQOperatorEntity::getCategory, category)
                 // B和C字段的条件：b值可能匹配B或C
@@ -86,6 +90,7 @@ public class OperatorServiceImpl implements YQOperatorService {
                 )
                 .orderByAsc(YQOperatorEntity::getRowNum)
                 .list();
+        return list;
     }
     /**
      * 插入单条员工信息
@@ -98,14 +103,19 @@ public class OperatorServiceImpl implements YQOperatorService {
         return Db.save(operator);
     }
 
-
     /*
      * 存在有数据则更新，无则写入
      */
     @Override
     public Boolean insertOrUpdate(YQOperatorEntity operator) {
-        //设置最大序号+ 1
-        operator.setRowNum(queryMaxRownum());
+        //需要判断是否有主键，来确定是修改还是写入
+        if(operator.getSerialNo() == null || operator.getSerialNo().isEmpty()){
+            operator.setSerialNo(PrimaryKeyGenerator.generateKey());
+            //设置最大序号+ 1
+            operator.setRowNum(queryMaxRownum());
+        }
+        //转换接收的清洗数据
+//        convetRcv(operator);
         return Db.saveOrUpdate(operator);
     }
 
@@ -129,8 +139,6 @@ public class OperatorServiceImpl implements YQOperatorService {
                 PrimaryKeyGenerator pk = new PrimaryKeyGenerator();
                 yqOperatorEntity.setSerialNo(pk.generateKey());
             }
-
-
         }
 
         return Db.saveBatch(entityList);
@@ -199,6 +207,38 @@ public class OperatorServiceImpl implements YQOperatorService {
         Integer nextValue = jdbcTemplate.queryForObject(sql, Integer.class);
         return nextValue;
     }
+
+
+    /*
+     * 创建转换方法 ，转换平台传入来的时候的 写入操作员数据为 true和false 转为1 和 0
+     */
+    private void convetRcv(YQOperatorEntity operator) {
+        if (operator.getInputFlag() != null) {
+            operator.setInputFlag(operator.getInputFlag().equals("true") ? "1" : "0");
+        }
+        if (operator.getAtm() != null) {
+            operator.setAtm(operator.getAtm().equals("true") ? "1" : "0");
+        }
+        if (operator.getInpWindow() != null) {
+            operator.setInpWindow(operator.getInpWindow().equals("true") ? "1" : "0");
+        }
+    }
+    /*
+     * 创建转换方法 ，转换平台传出的时候的 操作员数据为  为1 和 0 转为 true和false
+     */
+    private void convetSend(YQOperatorEntity operator) {
+        if (operator.getInputFlag() != null) {
+            operator.setInputFlag(operator.getInputFlag().equals("1") ? "true" : "false");
+        }
+        if (operator.getAtm() != null) {
+            operator.setAtm(operator.getAtm().equals("1") ? "true" : "false");
+        }
+        if (operator.getInpWindow() != null) {
+            operator.setInpWindow(operator.getInpWindow().equals("1") ? "true" : "false");
+        }
+    }
+
+
 }
 
 

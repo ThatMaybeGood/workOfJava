@@ -15,6 +15,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * 医院操作员实体类
@@ -58,7 +59,7 @@ public class YQOperatorEntity {
     /**
      * 创建时间
      */
-    private LocalDate createTime;
+    private LocalDateTime createTime;
     /**
      * 更新人
      */
@@ -66,7 +67,7 @@ public class YQOperatorEntity {
     /**
      * 更新时间
      */
-    private LocalDate updateTime;
+    private LocalDateTime updateTime;
     /**
      * 更新次数
      */

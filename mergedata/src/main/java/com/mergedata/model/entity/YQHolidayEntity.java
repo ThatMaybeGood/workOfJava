@@ -1,6 +1,8 @@
 package com.mergedata.model.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
@@ -26,6 +28,7 @@ public class YQHolidayEntity {
     /**
      * 流水号
      */
+    @TableId(value = "serial_no", type = IdType.INPUT)
     private String serialNo;
     /**
      * 节假日日期
