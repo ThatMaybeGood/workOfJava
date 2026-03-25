@@ -28,6 +28,7 @@ public class ApiController {
 
         try {
             String sessionId = System.currentTimeMillis() + "|";
+            Log.trace("开始本次调用平台接口入参: {}", input);
 
             Log.info("平台接口入参: {}", input);
 
@@ -45,6 +46,8 @@ public class ApiController {
             result.put("list", list);
 
             Log.info("平台接口出参: {}", result.toJSONString());
+
+            Log.trace("结束本次调用平台接口出参: {}");
 
             return result.toJSONString();
 
