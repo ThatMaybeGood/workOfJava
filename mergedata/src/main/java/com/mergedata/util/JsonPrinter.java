@@ -7,7 +7,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 /**
  * 极简 JSON 打印工具
- * 只做一件事：把对象漂亮地打印出来
+ *
  */
 public final class JsonPrinter {
 
@@ -24,14 +24,14 @@ public final class JsonPrinter {
     }
 
     /**
-     * 漂亮的打印任何对象
+     *打印任何对象
      */
     public static void prettyPrint(Object obj) {
         try {
             System.out.println(PRETTY_MAPPER.writeValueAsString(obj));
         } catch (JsonProcessingException e) {
             System.err.println("⚠️ JSON 打印失败: " + e.getMessage());
-            System.out.println(obj); // 降级：使用默认 toString
+            System.out.println(obj);
         }
     }
 
