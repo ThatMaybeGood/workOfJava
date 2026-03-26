@@ -36,13 +36,12 @@ public class MsgRequestBody {
     @JsonAlias({"text_msg", "textMsg"})
     private String textMsg;
 
-    // 重要：data 字段定义为 String 类型
-    private String data;
+    private String data;  //接收为String  需要单独转为对象
 
     // 额外字段：从请求中看到的其他字段
     private String channel_code;
     private String client_msg_id;
-    private Object info;  // info 是一个复杂对象
+    private Object info;  // info对象
     private String template_config;
     private String unique_id;
     private String msg_name;

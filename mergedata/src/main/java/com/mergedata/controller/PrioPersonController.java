@@ -18,6 +18,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/message/rcv")
 public class PrioPersonController {
+    ObjectMapper mapper = new ObjectMapper();
 
     @PostMapping("/prioPersonMessage")
     public MsgResponse<?> prioPersonMessage(@RequestBody MsgRequest request,
@@ -34,15 +35,10 @@ public class PrioPersonController {
 //            String headerName = headerNames.nextElement();
 //            log.info("{}: {}", headerName, httpRequest.getHeader(headerName));
 //        }
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            log.info(mapper.writeValueAsString(request));
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-            log.info(request.toString());
-        }
 
         try {
+            log.info(mapper.writeValueAsString(request));
+
             if (request != null && request.getBody() != null) {
                 MsgRequestBody body = request.getBody();
 
@@ -56,6 +52,8 @@ public class PrioPersonController {
             }
 
         } catch (Exception e) {
+            //失败情况  把原始请求体打印  方便调试
+            log.info(request.toString());
             log.error("接收消息失败: {}", e.getMessage(), e);
             return MsgResponse.failure("接收消息失败: " + e.getMessage());
         }
