@@ -20,7 +20,7 @@ public class MsgResponseResult {
     public static MsgResponseResult failure(String msg) {
         MsgResponseResult result = new MsgResponseResult();
         result.setMsg(msg);
-        result.setCode("failure");
+        result.setCode("fail");
         return result;
     }
    }

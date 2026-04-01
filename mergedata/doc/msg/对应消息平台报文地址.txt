@@ -1,0 +1,177 @@
+调用地址： http://168.168.235.77:28120/orgine/powermop/message/http/api
+
+1、报到成功
+{
+	"head":{
+		"charset":"utf-8",
+		"encrypt_type":"AES",
+		"enterprise_id":"xinqiao",
+		"language":"zh_CN",
+		"method":"orgine.powermop.message.http.api.define.sendSingleMsg",
+		"sign":"1",
+		"sign_type":"md5",
+		"sys_track_code":"3a51b48ef88946cbbfb25fa168cf97bc",
+		"timestamp":"1728456958723",
+		"version":"1.0",
+		"access_token":"b16ff06f5fd44ab6b56e037d7ee1a6ed1744948236956144369",
+		"app_id":"b16ff06f5fd44ab6b56e037d7ee1a6ed"
+	},
+	"body":{
+		"param":{
+			"enterprise_id":"xinqiao",
+			"identity_id":"12098585",
+			"mobile":"15682558261",
+			"msg_code":"XQqueueCallCheckIn",
+			"data":"{\"pat_hospital_id\":\"12632557\",
+			\"pat_name\":\"test\",
+			\"doc_name\":\"医1生\",
+			\"department_name\":\"部门\",
+			\"memo\":\"须知\"}",
+			"identity_type":"1"
+		}
+	}
+}
+
+
+2、正在叫号
+{
+	"head":{
+		"charset":"utf-8",
+		"encrypt_type":"AES",
+		"enterprise_id":"xinqiao",
+		"language":"zh_CN",
+		"method":"orgine.powermop.message.http.api.define.sendSingleMsg",
+		"sign":"1",
+		"sign_type":"md5",
+		"sys_track_code":"3a51b48ef88946cbbfb25fa168cf97bc",
+		"timestamp":"1728456958723",
+		"version":"1.0",
+		"access_token":"b16ff06f5fd44ab6b56e037d7ee1a6ed1744948236956144369",
+		"app_id":"b16ff06f5fd44ab6b56e037d7ee1a6ed"
+	},
+	"body":{
+		"param":{
+			"enterprise_id":"xinqiao",
+			"identity_id":"11100267",
+			"mobile":"15682558261",
+			"msg_code":"XQqueueCalling",
+			"data":"{
+			\"pat_hospital_id\":\"11100267\",
+			\"pat_name\":\"test\",
+			\"department_name\":\"部门\",
+			\"appointment_time\":\"2026-04-01 06:56:12\",
+			\"wait_status\":\"等待\",
+			\"my_wait_no\":\"3\",
+			\"curr_wait_no\":\"12\",
+			\"memo\":\"须知\"}",
+			"identity_type":"1"
+		}
+	}
+}
+
+3、排队提醒
+
+{
+	"head":{
+		"charset":"utf-8",
+		"encrypt_type":"AES",
+		"enterprise_id":"xinqiao",
+		"language":"zh_CN",
+		"method":"orgine.powermop.message.http.api.define.sendSingleMsg",
+		"sign":"1",
+		"sign_type":"md5",
+		"sys_track_code":"3a51b48ef88946cbbfb25fa168cf97bc",
+		"timestamp":"1728456958723",
+		"version":"1.0",
+		"access_token":"b16ff06f5fd44ab6b56e037d7ee1a6ed1744948236956144369",
+		"app_id":"b16ff06f5fd44ab6b56e037d7ee1a6ed"
+	},
+	"body":{
+		"param":{
+			"enterprise_id":"xinqiao",
+			"identity_id":"11100267",
+			"mobile":"15682558261",
+			"msg_code":"XQqueueCallRemind",
+			"data":"{\"pat_hospital_id\":\"11100267\",
+			\"pat_name\":\"test\",
+			\"wait_status\":\"等待\",
+			\"appointment_time\":\"2026-04-01 06:56:12\",
+			\"department_name\":\"部门\",
+			\"memo\":\"须知\"}",
+			"identity_type":"1"
+		}
+	}
+}
+
+4、过号
+{
+	"head":{
+		"charset":"utf-8",
+		"encrypt_type":"AES",
+		"enterprise_id":"xinqiao",
+		"language":"zh_CN",
+		"method":"orgine.powermop.message.http.api.define.sendSingleMsg",
+		"sign":"1",
+		"sign_type":"md5",
+		"sys_track_code":"3a51b48ef88946cbbfb25fa168cf97bc",
+		"timestamp":"1728456958723",
+		"version":"1.0",
+		"access_token":"b16ff06f5fd44ab6b56e037d7ee1a6ed1744948236956144369",
+		"app_id":"b16ff06f5fd44ab6b56e037d7ee1a6ed"
+	},
+	"body":{
+		"param":{
+			"enterprise_id":"xinqiao",
+			"identity_id":"11100267",
+			"mobile":"15682558261",
+			"msg_code":"XQqueueCallSkip",
+			"data":"{
+				\"pat_hospital_id\":\"11100267\",
+			\"pat_name\":\"test\",
+			\"department_name\":\"部门\",
+			\"appointment_time\":\"2026-04-01 06:56:12\",
+			\"wait_status\":\"等待\",
+			\"my_wait_no\":\"3\",
+			\"memo\":\"须知\"}",
+			"identity_type":"1"
+		}
+	}
+}
+
+5、医生换诊室
+
+{
+	"head":{
+		"charset":"utf-8",
+		"encrypt_type":"AES",
+		"enterprise_id":"xinqiao",
+		"language":"zh_CN",
+		"method":"orgine.powermop.message.http.api.define.sendSingleMsg",
+		"sign":"1",
+		"sign_type":"md5",
+		"sys_track_code":"3a51b48ef88946cbbfb25fa168cf97bc",
+		"timestamp":"1728456958723",
+		"version":"1.0",
+		"access_token":"b16ff06f5fd44ab6b56e037d7ee1a6ed1744948236956144369",
+		"app_id":"b16ff06f5fd44ab6b56e037d7ee1a6ed"
+	},
+	"body":{
+		"param":{
+			"enterprise_id":"xinqiao",
+			"identity_id":"11100267",
+			"mobile":"15682558261",
+			"msg_code":"XQqueueCallRoomChanged",
+			"data":"{
+				\"pat_hospital_id\":\"11100267\",
+			\"pat_name\":\"test\",
+			\"department_name\":\"部门\",
+			\"department_location\":\"地点\",
+			\"doc_name\":\"医生\",		
+			\"appointment_time\":\"2026-04-01 06:56:12\",
+			\"memo\":\"须知\"}",
+			"identity_type":"1"
+		}
+	}
+}
+
+ 
