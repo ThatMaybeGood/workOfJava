@@ -124,7 +124,7 @@ public class PlatformController {
         YQOperatorEntity list = request.getBody();
 
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
-        Boolean b = operator.insertOrUpdate(list);
+        Boolean b = operator.outpInsertOrUpdate(list);
         if (!b) {
             return ApiResponse.failure("插入操作员信息失败");
         }

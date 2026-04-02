@@ -14,15 +14,14 @@ import com.mergedata.util.JsonStringToBigDecimalDeserializer;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import com.fasterxml.jackson.core.json.JsonReadFeature;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import com.fasterxml.jackson.core.JsonParser;
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 public class JacksonConfig {
@@ -79,11 +78,17 @@ public class JacksonConfig {
      * 支持格式：
      * 1. yyyy-MM-dd HH:mm:ss
      * 2. yyyy-MM-dd
+     * 3. yyyy-MM-dd'T'HH:mm:ss (ISO格式)
+     * 4. yyyy-MM-dd'T'HH:mm:ss HH:mm:ss (错误格式，包含重复时间)
      */
     private static class MultiFormatLocalDateTimeDeserializer extends JsonDeserializer<LocalDateTime> {
 
-        private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern(DATETIME_FORMAT);
-        private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern(DATE_FORMAT);
+        private static final List<String> SUPPORTED_FORMATS = Arrays.asList(
+                "yyyy-MM-dd HH:mm:ss",
+                "yyyy-MM-dd",
+                "yyyy-MM-dd'T'HH:mm:ss",
+                "yyyy-MM-dd'T'HH:mm:ss HH:mm:ss"
+        );
 
         @Override
         public LocalDateTime deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
@@ -94,20 +99,19 @@ public class JacksonConfig {
 
             dateStr = dateStr.trim();
 
-            try {
-                // 尝试解析完整的日期时间格式
-                return LocalDateTime.parse(dateStr, DATETIME_FORMATTER);
-            } catch (DateTimeParseException e1) {
+            // 遍历所有支持的格式进行解析
+            for (String format : SUPPORTED_FORMATS) {
                 try {
-                    // 尝试解析日期格式，时间部分默认为 00:00:00
-                    LocalDate date = LocalDate.parse(dateStr, DATE_FORMATTER);
-                    return date.atStartOfDay();
-                } catch (DateTimeParseException e2) {
-                    // 如果都失败，抛出异常
-                    throw new IOException("无法解析日期时间格式: " + dateStr +
-                            "，支持的格式: " + DATETIME_FORMAT + " 或 " + DATE_FORMAT);
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+                    return LocalDateTime.parse(dateStr, formatter);
+                } catch (DateTimeParseException e) {
+                    // 继续尝试下一个格式
                 }
             }
+
+            // 所有格式都失败，抛出异常
+            throw new IOException("无法解析日期时间格式: " + dateStr +
+                    "，支持的格式: " + String.join(", ", SUPPORTED_FORMATS));
         }
     }
 }

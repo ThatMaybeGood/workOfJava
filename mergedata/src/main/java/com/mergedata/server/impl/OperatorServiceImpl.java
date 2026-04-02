@@ -3,6 +3,7 @@ package com.mergedata.server.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.toolkit.Db;
+import com.mergedata.constants.Constant;
 import com.mergedata.mapper.OperatorMapper;
 import com.mergedata.model.dto.CommonRequestBody;
 import com.mergedata.model.entity.InpCashSubEntity;
@@ -67,6 +68,13 @@ public class OperatorServiceImpl implements YQOperatorService {
         return subs;
     }
 
+    @Override
+    public Long countByCategory(String category) {
+        return  Db.lambdaQuery(YQOperatorEntity.class)
+                .eq(YQOperatorEntity::getCategory,category)
+                .count();
+    }
+
     /**
      * 提供给平台查询的接口  类型  姓名或者ID
      *
@@ -104,15 +112,17 @@ public class OperatorServiceImpl implements YQOperatorService {
     }
 
     /*
-     * 存在有数据则更新，无则写入
+     * 门诊  存在有数据则更新，无则写入
      */
     @Override
-    public Boolean insertOrUpdate(YQOperatorEntity operator) {
+    public Boolean outpInsertOrUpdate(YQOperatorEntity operator) {
         //需要判断是否有主键，来确定是修改还是写入
         if(operator.getSerialNo() == null || operator.getSerialNo().isEmpty()){
             operator.setSerialNo(PrimaryKeyGenerator.generateKey());
-            //设置最大序号+ 1
-            operator.setRowNum(queryMaxRownum());
+            if (operator.getRowNum() == null || operator.getSerialNo().isEmpty()) {
+                //设置最大序号+ 1
+                operator.setRowNum(countByCategory(Constant.TYPE_OUTP).intValue() + 1);
+            }
         }
         //转换接收的清洗数据
 //        convetRcv(operator);
@@ -184,17 +194,19 @@ public class OperatorServiceImpl implements YQOperatorService {
     /**
      * 同步his更新员工信息
      */
-    public void syncUpdate(YQOperatorEntity entity) {
+    public void syncUpdate(YQOperatorEntity entity,String category) {
         List<YQOperatorEntity> list = Db.lambdaQuery(YQOperatorEntity.class)
-                .eq(YQOperatorEntity::getOperatorNo, entity.getOperatorNo())
+                .eq(YQOperatorEntity::getDbUser, entity.getDbUser())
+                .eq(YQOperatorEntity::getCategory,category)
                 .list();
         if (list.size() > 0) {
             Db.lambdaUpdate(YQOperatorEntity.class)
-                    .eq(YQOperatorEntity::getOperatorNo, entity.getOperatorNo())
-                    .set(YQOperatorEntity::getCategory, entity.getCategory())
-                    .set(YQOperatorEntity::getDbUser, entity.getDbUser())
+                    .eq(YQOperatorEntity::getDbUser, entity.getDbUser())
+                    .eq(YQOperatorEntity::getCategory,category)
+                    .set(YQOperatorEntity::getOperatorNo,entity.getDbUser())
                     .update();
         } else {
+            entity.setSerialNo(PrimaryKeyGenerator.generateKey());
             insert(entity);
         }
     }
@@ -202,13 +214,14 @@ public class OperatorServiceImpl implements YQOperatorService {
     /*
      * 查询出表中 序号最大的值
      */
-    private Integer queryMaxRownum(){
-        String sql = "SELECT NVL(MAX(row_num), 0) + 1 as nextVal FROM mpp_cash_reg_operator";
-        Integer nextValue = jdbcTemplate.queryForObject(sql, Integer.class);
-        return nextValue;
+    private Integer queryMaxRownum(String category) {
+
+        String sql = "SELECT NVL(MAX(row_num), 0) + 1 FROM mpp_cash_reg_operator WHERE category = ?";
+
+        Integer nextValue = jdbcTemplate.queryForObject(sql, Integer.class, category);
+
+        return nextValue != null ? nextValue : 1;
     }
-
-
     /*
      * 创建转换方法 ，转换平台传入来的时候的 写入操作员数据为 true和false 转为1 和 0
      */

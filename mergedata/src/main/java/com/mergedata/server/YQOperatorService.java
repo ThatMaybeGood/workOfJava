@@ -32,6 +32,12 @@ public interface YQOperatorService {
     List<YQOperatorEntity> findByCategory(String category);
 
     /*
+     * 根据门诊/住院查询条数
+     */
+    Long countByCategory(String category);
+
+
+    /*
      * 提供给平台查询的接口  类型  姓名或者ID
      */
     List<YQOperatorEntity> findByCategoryAndNameOrId(CommonRequestBody commonRequestBody);
@@ -42,9 +48,9 @@ public interface YQOperatorService {
     Boolean insert(YQOperatorEntity yqOperatorsEntity);
 
     /*
-     * 存在有数据则更新，无则写入
+     * 门诊 存在有数据则更新，无则写入
      */
-     Boolean insertOrUpdate(YQOperatorEntity operator);
+     Boolean outpInsertOrUpdate(YQOperatorEntity operator);
 
     /*
      * 批量插入操作员数据
