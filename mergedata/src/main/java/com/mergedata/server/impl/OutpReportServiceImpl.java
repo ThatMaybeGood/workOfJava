@@ -176,6 +176,7 @@ public class OutpReportServiceImpl implements OutpReportService {
         if (main != null) {
             List<OutpCashSubEntity> items = Db.lambdaQuery(OutpCashSubEntity.class)
                     .eq(OutpCashSubEntity::getSerialNo, main.getSerialNo())
+                    .orderByAsc(OutpCashSubEntity::getRowNum)
                     .orderByAsc(OutpCashSubEntity::getId)
                     .list();
             main.setSubs(items);

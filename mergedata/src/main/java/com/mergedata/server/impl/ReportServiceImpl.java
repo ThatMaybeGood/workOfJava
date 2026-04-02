@@ -101,6 +101,7 @@ public class ReportServiceImpl implements ReportService {
             }
 
             subList = mainVO.getSubList().stream()
+                    .sorted(Comparator.comparing(OutpReportSubVO::getRowNum).thenComparing(OutpReportSubVO::getId))
                     .filter(r -> (body.getInpWindow() == null || !body.getInpWindow().equals(1) || Integer.valueOf(1).equals(r.getInpWindow())))
                     .filter(r -> (body.getAtm() == null || !body.getAtm().equals(1) || Integer.valueOf(1).equals(r.getAtm())))
                     .collect(Collectors.toList());
