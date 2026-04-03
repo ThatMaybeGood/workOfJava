@@ -101,7 +101,9 @@ public class ReportServiceImpl implements ReportService {
             }
 
             subList = mainVO.getSubList().stream()
-                    .sorted(Comparator.comparing(OutpReportSubVO::getRowNum).thenComparing(OutpReportSubVO::getId))
+                    .sorted(Comparator.comparing(OutpReportSubVO::getRowNum, Comparator.nullsLast(Comparator.naturalOrder()))
+                            // 假设 id 是 String 类型 (如果是 Integer 用 Comparator.naturalOrder())
+                    .thenComparing(OutpReportSubVO::getId, Comparator.nullsLast(Comparator.naturalOrder())))
                     .filter(r -> (body.getInpWindow() == null || !body.getInpWindow().equals(1) || Integer.valueOf(1).equals(r.getInpWindow())))
                     .filter(r -> (body.getAtm() == null || !body.getAtm().equals(1) || Integer.valueOf(1).equals(r.getAtm())))
                     .collect(Collectors.toList());
