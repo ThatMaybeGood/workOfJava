@@ -1,6 +1,9 @@
 package com.mergedata.constants;
 
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * 常量类
  */
@@ -156,5 +159,12 @@ public class Constant {
     public static final String HOLIDAY_NOT_TOTAL_TITLE = "门诊现金每日统计表";
 
 
+
+    // 用于过滤掉不是操作员的行
+    public static final List<String> EXCLUDE_OPERATOR_NAMES = Arrays.asList(
+            "合计", "当日暂收款", "日报表数", "合计存款金额",
+            "住院部当日借款", "住院部当日回款", "门诊当日借款",
+            "门诊当日回款", "门诊当日实存金额", "审核："
+    );
 
 }

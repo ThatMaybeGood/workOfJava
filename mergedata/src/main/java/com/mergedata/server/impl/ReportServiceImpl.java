@@ -79,15 +79,26 @@ public class ReportServiceImpl implements ReportService {
             //接收ExtendParams1为true时，即初始化报表
             Boolean isInitFlag = "true".equalsIgnoreCase(body.getExtendParams1());
 
-            // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
-            if (count == 0 || isInitFlag) {
-
-                main = getOutpReportData(body, type);
+            /*
+            需要对初始化的只获取his更新 其余的不改变
+             */
+            if (isInitFlag){
+                main = isInitGetOutpReportData(body, type);
                 //无效查询，返回空列表
                 if (main == null) {
                     return null;
                 }
 
+                outpReportService.insertOrUpdate(main);
+            }
+
+            // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
+            if (count == 0 ) {
+                main = getOutpReportData(body, type);
+                //无效查询，返回空列表
+                if (main == null) {
+                    return null;
+                }
                 outpReportService.insertOrUpdate(main);
             } else {
                 main = outpReportService.findByDate(body.getReportDate(), body.getTotalFlag());
@@ -150,7 +161,15 @@ public class ReportServiceImpl implements ReportService {
         //门诊接收的转换为对应实体类保存到数据库
         OutpCashMainEntity main = new OutpCashMainEntity();
 
+        //计算合计
+//        OutpReportSubVO calculateTotal = calculateTotal(mainVO.getSubList(), reportDate, Constant.EXCLUDE_OPERATOR_NAMES);
+
+        //判断是否合计后金额替换组装
+        setSpecialRowsValues(mainVO.getSubList());
+
         main = outpExchangeViewToDb(reportDate, mainVO, remark);
+
+
 
         //转换为实体类的数据值需要验证，防止写入的数据有非修改的 而改动 校验方法
         //明细数据校验方法
@@ -175,6 +194,72 @@ public class ReportServiceImpl implements ReportService {
         }
         return Constant.SUCCESS;
     }
+
+    /*
+     * 用于门诊插入数据时候 合计之后的数据需要填写组装
+     */
+    private void setSpecialRowsValues(List<OutpReportSubVO> dtoList) {
+        OutpReportSubVO calculatedTotal = calculateTotal(dtoList, Constant.EXCLUDE_OPERATOR_NAMES);
+
+        // 先获取公式需要的原始值
+        BigDecimal 原当日暂收款 = getHisAdvancePaymentByName(dtoList, "当日暂收款");
+        BigDecimal 原日报表数 = getHisAdvancePaymentByName(dtoList, "日报表数");
+        BigDecimal 原合计存款金额 = getHisAdvancePaymentByName(dtoList, "合计存款金额");
+        BigDecimal 原住院部当日回款 = getHisAdvancePaymentByName(dtoList, "住院部当日回款");
+        BigDecimal 原门诊当日回款 = getHisAdvancePaymentByName(dtoList, "门诊当日回款");
+        BigDecimal 原门诊当日借款 = getHisAdvancePaymentByName(dtoList, "门诊当日借款");
+        BigDecimal 原住院部当日借款 = getHisAdvancePaymentByName(dtoList, "住院部当日借款");
+
+        // 计算公式值    门诊当日实存金额=当日暂收款+日报表数+合计存款金额+住院部当日回款+门诊当日回款-门诊当日借款-住院部当日借款
+        BigDecimal 门诊当日实存金额 = 原当日暂收款.add(原日报表数)
+                .add(原合计存款金额)
+                .add(原住院部当日回款)
+                .add(原门诊当日回款)
+                .subtract(原门诊当日借款)
+                .subtract(原住院部当日借款);
+
+        // 设置新值
+        for (OutpReportSubVO dto : dtoList) {
+            String name = dto.getOperatorName();
+            if (name == null) continue;
+
+            switch (name) {
+                case "合计":
+                    dto.setHisAdvancePayment(calculatedTotal.getHisAdvancePayment());
+                    dto.setHisMedicalIncome(calculatedTotal.getHisMedicalIncome());
+                    dto.setHisRegistrationIncome(calculatedTotal.getHisRegistrationIncome());
+                    dto.setRetainedCash(calculatedTotal.getRetainedCash());
+                    dto.setReportAmount(calculatedTotal.getReportAmount());
+                    dto.setPreviousTemporaryReceipt(calculatedTotal.getPreviousTemporaryReceipt());
+                    dto.setHolidayTemporaryReceipt(calculatedTotal.getHolidayTemporaryReceipt());
+                    dto.setActualCashAmount(calculatedTotal.getActualCashAmount());
+                    dto.setCurrentTemporaryReceipt(calculatedTotal.getCurrentTemporaryReceipt());
+                    dto.setActualCashAmount(calculatedTotal.getActualCashAmount());
+                    dto.setRetainedDifference(calculatedTotal.getRetainedDifference());
+                    dto.setPettyCash(calculatedTotal.getPettyCash());
+                    break;
+                case "当日暂收款":
+                    dto.setHisAdvancePayment(calculatedTotal.getCurrentTemporaryReceipt());
+                    break;
+                case "日报表数":
+                    dto.setHisAdvancePayment(calculatedTotal.getReportAmount());
+                    break;
+                case "门诊当日实存金额":
+                    dto.setHisAdvancePayment(门诊当日实存金额);
+                    break;
+            }
+        }
+    }
+
+    private BigDecimal getHisAdvancePaymentByName(List<OutpReportSubVO> dtoList, String name) {
+        return dtoList.stream()
+                .filter(dto -> name.equals(dto.getOperatorName()))
+                .findFirst()
+                .map(OutpReportSubVO::getHisAdvancePayment)
+                .filter(Objects::nonNull)
+                .orElse(BigDecimal.ZERO);
+    }
+
 
     /**
      * 门诊明细数据写入前校验方法,确保有些不能修改的字段值，修改后保存
@@ -761,21 +846,31 @@ public class ReportServiceImpl implements ReportService {
         });
     }
 
-
-    private OutpReportSubVO calculateTotal(List<OutpReportSubVO> dtoList, LocalDate reportdate) {
+    /*
+     * 用于计算写入时候的操作员的数据合计
+     */
+    private OutpReportSubVO calculateTotal(List<OutpReportSubVO> dtoList,List<String> excludeNames) {
         final BigDecimal ZERO = BigDecimal.ZERO;
         BinaryOperator<BigDecimal> sumOperator = BigDecimal::add;
 
+        // 使用传入的排除列表
+        List<OutpReportSubVO> filteredDtoList = dtoList.stream()
+                .filter(dto -> dto.getOperatorName() != null)
+                .filter(dto -> !excludeNames.contains(dto.getOperatorName()))
+                .collect(Collectors.toList());
+        // 创建新的合计对象
         OutpReportSubVO total = new OutpReportSubVO();
-        total.setOperatorNo("sum_total");
+        total.setOperatorNo(null);
         total.setOperatorName("合计");
 
+        // 定义求和函数
         Function<Function<OutpReportSubVO, BigDecimal>, BigDecimal> sumByField =
-                getter -> dtoList.stream()
+                getter -> filteredDtoList.stream()
                         .map(getter)
                         .filter(Objects::nonNull)
                         .reduce(ZERO, sumOperator);
 
+        // 更新合计行的各个金额字段
         total.setHisAdvancePayment(sumByField.apply(OutpReportSubVO::getHisAdvancePayment));
         total.setHisMedicalIncome(sumByField.apply(OutpReportSubVO::getHisMedicalIncome));
         total.setHisRegistrationIncome(sumByField.apply(OutpReportSubVO::getHisRegistrationIncome));
@@ -783,19 +878,18 @@ public class ReportServiceImpl implements ReportService {
         total.setReportAmount(sumByField.apply(OutpReportSubVO::getReportAmount));
         total.setPreviousTemporaryReceipt(sumByField.apply(OutpReportSubVO::getPreviousTemporaryReceipt));
         total.setHolidayTemporaryReceipt(sumByField.apply(OutpReportSubVO::getHolidayTemporaryReceipt));
-
         total.setActualCashAmount(sumByField.apply(OutpReportSubVO::getActualCashAmount));
         total.setCurrentTemporaryReceipt(sumByField.apply(OutpReportSubVO::getCurrentTemporaryReceipt));
+        total.setActualCashAmount(sumByField.apply(OutpReportSubVO::getActualCashAmount));
         total.setRetainedDifference(sumByField.apply(OutpReportSubVO::getRetainedDifference));
         total.setPettyCash(sumByField.apply(OutpReportSubVO::getPettyCash));
 
         total.setRemarks("合计行，不展示在报表中");
-        total.setReportDate(reportdate);
+//        total.setReportDate(reportdate);
         total.setCreateTime(LocalDateTime.now());
 
         return total;
     }
-
 
     /**
      * 住院前端界面保存数据时候，也需要做对应计算
