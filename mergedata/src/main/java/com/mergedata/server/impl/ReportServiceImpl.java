@@ -85,7 +85,7 @@ public class ReportServiceImpl implements ReportService {
             if (isInitFlag && count >0 ){
 
                 main = isInitOutpReportData(body, type);
-                //无效查询，返回空列表
+
                 if (main == null) {
                     return null;
                 }
@@ -109,12 +109,11 @@ public class ReportServiceImpl implements ReportService {
             mainVO.setTotalFlag(body.getTotalFlag());
 
             if (main.getSubs() == null || main.getSubs().isEmpty()) {
-                return mainVO;  //直接返回
+                return mainVO;
             }
 
             subList = mainVO.getSubList().stream()
                     .sorted(Comparator.comparing(OutpReportSubVO::getRowNum, Comparator.nullsLast(Comparator.naturalOrder()))
-                            // 假设 id 是 String 类型 (如果是 Integer 用 Comparator.naturalOrder())
                     .thenComparing(OutpReportSubVO::getId, Comparator.nullsLast(Comparator.naturalOrder())))
                     .filter(r -> (body.getInpWindow() == null || !body.getInpWindow().equals(1) || Integer.valueOf(1).equals(r.getInpWindow())))
                     .filter(r -> (body.getAtm() == null || !body.getAtm().equals(1) || Integer.valueOf(1).equals(r.getAtm())))
@@ -170,7 +169,7 @@ public class ReportServiceImpl implements ReportService {
                 // 获取历史数据（昨日）
                 Map<String, OutpCashSubEntity> yesterdayMap = new HashMap<>();
                 OutpCashMainEntity yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1), body.getTotalFlag());
-                //  先判断 main 是否为 null
+
                 if (yesterdayMain == null || yesterdayMain.getSubs() == null || yesterdayMain.getSubs().isEmpty()) {
                     yesterdayMap = Collections.emptyMap();
                 } else {
@@ -190,20 +189,17 @@ public class ReportServiceImpl implements ReportService {
                     // 获取昨日数据对象
                     // 定位回溯的最远日期
                     minDate = holidayService.findMinBacktrackDate(currtDate);
-                    //一次性查询范围内的所有报表（包含 Subs 明细）
-                    // WHERE report_date >= minDate AND report_date < currtDate
+
                     List<OutpCashMainEntity> historyMains = outpReportService.findBatchByDateRange(minDate, currtDate.minusDays(1), "0");
-                    //月末情况需要包含当天的数据
                     if (Constant.HOLIDAY_MONTH_LASTDAY.equals(type)) {
                         historyMains = outpReportService.findBatchByDateRange(minDate, currtDate, "0");
                     }
-                    //转换为 Map 以便内存快速回溯
+
                     historyMap = historyMains.stream()
                             .collect(Collectors.toMap(OutpCashMainEntity::getReportDate, Function.identity()));
 
-                    // 1. 计算需要校验的日期范围 ,首先判断数据是否连贯性完整，如果不完整就抛出对应异常或者设置为空
-                    long totalDays = ChronoUnit.DAYS.between(minDate, currtDate); // 不包含 currtDate
-                    // 2. 验证 Map 大小与天数是否一致
+                    long totalDays = ChronoUnit.DAYS.between(minDate, currtDate);
+
                     if (historyMap.size() < totalDays) {
                         // 找出第一个缺失的日期，
                         for (LocalDate d = minDate; d.isBefore(currtDate); d = d.plusDays(1)) {
@@ -214,7 +210,6 @@ public class ReportServiceImpl implements ReportService {
                                 main.setRemark(s);
                                 main.setSubs(Collections.singletonList(sub));
                                 return main;
-//                            throw new RuntimeException("数据不完整：报表日期 " + d + " 数据缺失，无法进行回溯计算。");
                             }
                         }
                     }
@@ -229,7 +224,7 @@ public class ReportServiceImpl implements ReportService {
                 for (OutpCashSubEntity dto : resultList) {
 //                    OutpCashSubEntity dto = new OutpCashSubEntity();
                     dto.setSerialNo(pk);
-                    dto.setSerialSubNo(PrimaryKeyGenerator.generateKey());  //每一条生成唯一的编号
+                    dto.setSerialSubNo(PrimaryKeyGenerator.generateKey());
 //                    dto.setOperatorNo(operator.getOperatorNo());
 //                    dto.setDbUser(operator.getDbUser());
 //                    dto.setOperatorName(operator.getOperatorName());
