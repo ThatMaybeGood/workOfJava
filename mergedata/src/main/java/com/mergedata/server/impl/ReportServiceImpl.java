@@ -157,8 +157,10 @@ public class ReportServiceImpl implements ReportService {
                     return main;
                 }
 
-                List<YQOperatorEntity> operators = operatorService.findByCategory(Constant.TYPE_OUTP);
+//                List<YQOperatorEntity> operators = operatorService.findByCategory(Constant.TYPE_OUTP);
 
+                Map<String, YQOperatorEntity> operatorMap = operatorService.findByCategory(Constant.TYPE_OUTP).stream()
+                        .collect(Collectors.toMap(YQOperatorEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
 
                 // 预加载 HIS 数据和现金记录
                 Map<String, HisOutpIncomeResponseDTO> hisDataMap = hisdata.findByDateOutp(currtDate.toString()).stream()
@@ -233,16 +235,16 @@ public class ReportServiceImpl implements ReportService {
 //                    dto.setAtm(operator.getAtm());
 //                    dto.setRowNum(operator.getRowNum());
 
-                    // 1. 基础 HIS 收入赋值
-                    HisOutpIncomeResponseDTO hisDto = hisDataMap.get(dto.getDbUser());
-                    if (hisDto != null) {
-                        dto.setHisAdvancePayment(getSafeBigDecimal(hisDto.getHisAdvancePayment()));
-                        dto.setHisMedicalIncome(getSafeBigDecimal(hisDto.getHisMedicalIncome()));
-                        dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
-                        dto.setAcctNo(hisDto.getAcctNo());
-                        dto.setAcctDate(hisDto.getAcctDate());
-                    } else {
-                        dto.setReportAmount(BigDecimal.ZERO);
+                    if(!operatorMap.get(dto.getDbUser()).getInputFlag().equals("1")) {
+                        // 1. 基础 HIS 收入赋值
+                        HisOutpIncomeResponseDTO hisDto = hisDataMap.get(dto.getDbUser());
+                        if (hisDto != null) {
+                            dto.setHisAdvancePayment(getSafeBigDecimal(hisDto.getHisAdvancePayment()));
+                            dto.setHisMedicalIncome(getSafeBigDecimal(hisDto.getHisMedicalIncome()));
+                            dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
+                            dto.setAcctNo(hisDto.getAcctNo());
+                            dto.setAcctDate(hisDto.getAcctDate());
+                        }
                     }
 
 
