@@ -3,9 +3,6 @@ package com.mergedata.server.impl;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.mergedata.constants.Constant;
-import com.mergedata.mapper.HolidayMapper;
-import com.mergedata.mapper.OperatorMapper;
-import com.mergedata.mapper.OutpReportMapper;
 import com.mergedata.model.dto.InpReportRequestBody;
 import com.mergedata.model.dto.OutpReportRequestBody;
 import com.mergedata.model.dto.external.HisInpIncomeResponseDTO;
@@ -44,8 +41,6 @@ public class ReportServiceImpl implements ReportService {
     @Autowired
     OutpReportService outpReportService;
 
-    @Autowired
-    OutpReportMapper outpReportMapper;
 
     @Autowired
     YQHolidayService holidayService;
