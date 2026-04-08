@@ -159,7 +159,9 @@ public class ReportServiceImpl implements ReportService {
 
 //                List<YQOperatorEntity> operators = operatorService.findByCategory(Constant.TYPE_OUTP);
 
+                // 只构建 inputFlag 为 "0" 的 operatorMap
                 Map<String, YQOperatorEntity> operatorMap = operatorService.findByCategory(Constant.TYPE_OUTP).stream()
+                        .filter(op -> "0".equals(op.getInputFlag()))
                         .collect(Collectors.toMap(YQOperatorEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
 
                 // 预加载 HIS 数据和现金记录
@@ -235,7 +237,7 @@ public class ReportServiceImpl implements ReportService {
 //                    dto.setAtm(operator.getAtm());
 //                    dto.setRowNum(operator.getRowNum());
 
-                    if(!operatorMap.get(dto.getDbUser()).getInputFlag().equals("1")) {
+                    if (operatorMap.containsKey(dto.getDbUser())) {
                         // 1. 基础 HIS 收入赋值
                         HisOutpIncomeResponseDTO hisDto = hisDataMap.get(dto.getDbUser());
                         if (hisDto != null) {
