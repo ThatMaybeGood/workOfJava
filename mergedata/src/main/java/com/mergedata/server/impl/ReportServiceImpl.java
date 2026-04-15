@@ -94,8 +94,10 @@ public class ReportServiceImpl implements ReportService {
 
             // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
             if (count == 0 ) {
-                if (body.getReportDate().getDayOfMonth() == 1 && Constant.HOLIDAY_MONTH_FIRST.equals(body.getTotalFlag())) {   //判断是否月初数据并不报存到数据库
-                    main = getOutpReportMonthStartData(body,type);
+                if (Constant.HOLIDAY_MONTH_FIRST.equals(body.getTotalFlag())) {   //判断是否月初数据并不报存到数据库
+                    if (body.getReportDate().getDayOfMonth() == 1) {
+                        main = getOutpReportMonthStartData(body,type);
+                    }
                 }else {
                     main = getOutpReportData(body, type);
                     //无效查询，返回空列表
