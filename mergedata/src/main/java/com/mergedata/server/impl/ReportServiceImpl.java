@@ -175,8 +175,13 @@ public class ReportServiceImpl implements ReportService {
 
                 // 获取历史数据（昨日）
                 Map<String, OutpCashSubEntity> yesterdayMap = new HashMap<>();
-                OutpCashMainEntity yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1), body.getTotalFlag());
+                OutpCashMainEntity yesterdayMain = new OutpCashMainEntity();
 
+                if(currtDate.getDayOfMonth()==1&&Constant.HOLIDAY_MONTH_FIRST.equals(body.getTotalFlag())){
+                    yesterdayMain= outpReportService.findByDate(currtDate, Constant.HOLIDAY_MONTH_FIRST);   //月初情况，查询当月的当天数据
+                }else {
+                    yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1), body.getTotalFlag());
+                }
                 if (yesterdayMain == null || yesterdayMain.getSubs() == null || yesterdayMain.getSubs().isEmpty()) {
                     yesterdayMap = Collections.emptyMap();
                 } else {
@@ -349,7 +354,7 @@ public class ReportServiceImpl implements ReportService {
         main = outpExchangeViewToDb(reportDate, mainVO, remark);
 
 
-        if(!Constant.HOLIDAY_MONTH_FIRST.equals(mainVO.getTotalFlag())){  //非月初报表数据需要校验转换
+        if(!(Constant.HOLIDAY_MONTH_FIRST.equals(mainVO.getTotalFlag())&& reportDate.getDayOfMonth()==1)){  //非月初报表数据需要校验转换
             //转换为实体类的数据值需要验证，防止写入的数据有非修改的 而改动 校验方法
             //明细数据校验方法
             //判断是否符合特殊节假日需要进行回溯汇总计算
@@ -454,7 +459,14 @@ public class ReportServiceImpl implements ReportService {
 
             // 获取历史数据（昨日）
             Map<String, OutpCashSubEntity> yesterdayMap = new HashMap<>();
-            OutpCashMainEntity yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1), main.getTotalFlag());
+
+            OutpCashMainEntity yesterdayMain = new OutpCashMainEntity();
+            if(currtDate.getDayOfMonth()==1&&Constant.HOLIDAY_MONTH_FIRST.equals(main.getTotalFlag())){
+                yesterdayMain= outpReportService.findByDate(currtDate, Constant.HOLIDAY_MONTH_FIRST);   //月初情况，查询当月的当天数据
+            }else {
+                yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1), main.getTotalFlag());
+            }
+
             //  先判断 main 是否为 null
             if (yesterdayMain == null || yesterdayMain.getSubs() == null || yesterdayMain.getSubs().isEmpty()) {
                 yesterdayMap = Collections.emptyMap();
@@ -1189,7 +1201,13 @@ public class ReportServiceImpl implements ReportService {
 
             // 获取历史数据（昨日）
             Map<String, OutpCashSubEntity> yesterdayMap = new HashMap<>();
-            OutpCashMainEntity yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1), body.getTotalFlag());
+            OutpCashMainEntity yesterdayMain = new OutpCashMainEntity();
+
+            if(currtDate.getDayOfMonth()==1&&Constant.HOLIDAY_MONTH_FIRST.equals(body.getTotalFlag())){
+                yesterdayMain= outpReportService.findByDate(currtDate, Constant.HOLIDAY_MONTH_FIRST);   //月初情况，查询当月的当天数据
+            }else {
+                yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1), body.getTotalFlag());
+            }
             //  先判断 main 是否为 null
             if (yesterdayMain == null || yesterdayMain.getSubs() == null || yesterdayMain.getSubs().isEmpty()) {
                 yesterdayMap = Collections.emptyMap();
