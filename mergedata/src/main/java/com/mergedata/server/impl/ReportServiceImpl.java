@@ -67,7 +67,11 @@ public class ReportServiceImpl implements ReportService {
 
             Long count = outpReportService.countByDate(body.getReportDate(), body.getTotalFlag());
 
+
+
             int type = holidayService.isSpecialHolidaySum(body.getReportDate(), body.getTotalFlag());
+
+
 
             List<OutpReportSubVO> subList = new ArrayList<>();
 
@@ -77,7 +81,7 @@ public class ReportServiceImpl implements ReportService {
             /*
             当表中存在报表，需要对初始化的只获取his更新 其余的不改变
             */
-            if (isInitFlag && count >0 ){
+            if (isInitFlag && count >0 && !Constant.HOLIDAY_MONTH_FIRST.equals(body.getTotalFlag())){
 
                 main = isInitOutpReportData(body, type);
 
@@ -90,12 +94,16 @@ public class ReportServiceImpl implements ReportService {
 
             // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
             if (count == 0 ) {
-                main = getOutpReportData(body, type);
-                //无效查询，返回空列表
-                if (main == null) {
-                    return null;
+                if (body.getReportDate().getDayOfMonth() == 1 && Constant.HOLIDAY_MONTH_FIRST.equals(body.getTotalFlag())) {   //判断是否月初数据并不报存到数据库
+                    main = getOutpReportMonthStartData(body,type);
+                }else {
+                    main = getOutpReportData(body, type);
+                    //无效查询，返回空列表
+                    if (main == null) {
+                        return null;
+                    }
+                    outpReportService.insertOrUpdate(main);
                 }
-                outpReportService.insertOrUpdate(main);
             } else {
                 main = outpReportService.findByDate(body.getReportDate(), body.getTotalFlag());
             }
@@ -341,27 +349,22 @@ public class ReportServiceImpl implements ReportService {
         main = outpExchangeViewToDb(reportDate, mainVO, remark);
 
 
-
-        //转换为实体类的数据值需要验证，防止写入的数据有非修改的 而改动 校验方法
-        //明细数据校验方法
-        //判断是否符合特殊节假日需要进行回溯汇总计算
-        int calculationType = holidayService.isSpecialHolidaySum(reportDate, mainVO.getTotalFlag());
-        //如果是汇总查询，但是日期不符合特殊日期情况，不处理校验
-        if (calculationType != 2) {
-
-            ouptInsertVerityDetailData(reportDate, calculationType, main);
-
-            try {
-                //先作废目前已经有的报表数据
-                //在写入数据库
-                outpReportService.insertOrUpdate(main);
-
-                return Constant.SUCCESS;
-
-            } catch (Exception e) {
-                log.error("插入门诊报表数据异常", e);
-                throw new RuntimeException("插入门诊报表数据异常", e);
+        if(!Constant.HOLIDAY_MONTH_FIRST.equals(mainVO.getTotalFlag())){  //非月初报表数据需要校验转换
+            //转换为实体类的数据值需要验证，防止写入的数据有非修改的 而改动 校验方法
+            //明细数据校验方法
+            //判断是否符合特殊节假日需要进行回溯汇总计算
+            int calculationType = holidayService.isSpecialHolidaySum(reportDate, mainVO.getTotalFlag());
+            //如果是汇总查询，但是日期不符合特殊日期情况，不处理校验
+            if (calculationType != 2) {
+                ouptInsertVerityDetailData(reportDate, calculationType, main);
             }
+        }
+
+        try {
+            outpReportService.insertOrUpdate(main);
+        } catch (Exception e) {
+            log.error("保存门诊报表数据异常", e);
+            throw new RuntimeException("保存门诊报表数据异常", e);
         }
         return Constant.SUCCESS;
     }
@@ -1319,6 +1322,47 @@ public class ReportServiceImpl implements ReportService {
             return main;
         } catch (Exception e) {
             log.error("门诊报表生成失败", e);
+            return null;
+        }
+    }
+    /**
+     * 获取月初月初数据
+     * @param body            日期
+     * @param calculationType 计算类型 0：正常计算 1：特殊回溯计算 ,2 直接明细设空,3 月初数据
+     * @return 包含所有操作员计算结果的 ReportDTO 列表
+     */
+    public OutpCashMainEntity getOutpReportMonthStartData(OutpReportRequestBody body, int calculationType) {
+        try {
+            LocalDate currtDate = body.getReportDate();
+            String pk = PrimaryKeyGenerator.generateKey();
+            OutpCashMainEntity main = new OutpCashMainEntity();
+            main.setSerialNo(pk);
+            main.setReportDate(currtDate);
+            main.setReportYear(body.getReportDate().getYear());
+            main.setTotalFlag(Constant.HOLIDAY_MONTH_FIRST);
+            main.setValidFlag("1");
+            main.setCreateTime(LocalDateTime.now());
+            List<YQOperatorEntity> operators = operatorService.findByCategory(Constant.TYPE_OUTP);
+            // 增加历史日期查询缓存，避免 N+1 问题 ---
+            List<OutpCashSubEntity> resultList = new ArrayList<>();
+
+            for (YQOperatorEntity operator : operators) {
+                OutpCashSubEntity dto = new OutpCashSubEntity();
+                dto.setSerialNo(pk);
+                dto.setSerialSubNo(PrimaryKeyGenerator.generateKey());  //每一条生成唯一的编号
+                dto.setOperatorNo(operator.getOperatorNo());
+                dto.setDbUser(operator.getDbUser());
+                dto.setOperatorName(operator.getOperatorName());
+                dto.setPettyCash(operator.getPettyCash());
+                dto.setInpWindow(operator.getInpWindow());
+                dto.setAtm(operator.getAtm());
+                dto.setRowNum(operator.getRowNum());
+                resultList.add(dto);
+            }
+            main.setSubs(resultList);
+            return main;
+        } catch (Exception e) {
+            log.error("月初门诊报表生成失败", e);
             return null;
         }
     }

@@ -158,7 +158,10 @@ public class Constant {
      */
     public static final String HOLIDAY_NOT_TOTAL_TITLE = "门诊现金每日统计表";
 
-
+    /*
+     * 月初标题
+     */
+    public static final String HOLIDAY_MONTH_FIRST_TITLE = "门诊现金月初统计表";
 
     // 用于过滤掉不是操作员的行
     public static final List<String> EXCLUDE_OPERATOR_NAMES = Arrays.asList(
@@ -167,4 +170,19 @@ public class Constant {
             "门诊当日回款", "门诊当日实存金额", "审核："
     );
 
+
+    //===============月初数据/汇总/正常========================
+
+    /*
+     * 非汇总数据
+     */
+    public static final String HOLIDAY_NOT_TOTAL = "0";
+    /*
+     * 汇总数据
+     */
+    public static final String HOLIDAY_TOTAL = "1";
+    /*
+     * 初月数据
+     */
+    public static final String HOLIDAY_MONTH_FIRST = "2";
 }

@@ -31,7 +31,7 @@ public class OutpReportRequestBody {
     private Integer atm;
 
     /*
-     * 是否汇总
+     * 是否汇总  0：非汇总数据  1：汇总数据  2：月初数据
      */
     @JsonProperty("total_flag")
     private String totalFlag;
