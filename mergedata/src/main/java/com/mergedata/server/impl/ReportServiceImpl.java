@@ -95,9 +95,7 @@ public class ReportServiceImpl implements ReportService {
             // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
             if (count == 0 ) {
                 if (Constant.HOLIDAY_MONTH_FIRST.equals(body.getTotalFlag())) {   //判断是否月初数据并不报存到数据库
-                    if (body.getReportDate().getDayOfMonth() == 1) {
-                        main = getOutpReportMonthStartData(body,type);
-                    }
+                        main = getOutpReportMonthStartData(body);
                 }else {
                     main = getOutpReportData(body, type);
                     //无效查询，返回空列表
@@ -1347,11 +1345,11 @@ public class ReportServiceImpl implements ReportService {
     }
     /**
      * 获取月初月初数据
-     * @param body            日期
-     * @param calculationType 计算类型 0：正常计算 1：特殊回溯计算 ,2 直接明细设空,3 月初数据
+     * @param body  报表请求体
      * @return 包含所有操作员计算结果的 ReportDTO 列表
      */
-    public OutpCashMainEntity getOutpReportMonthStartData(OutpReportRequestBody body, int calculationType) {
+    public OutpCashMainEntity getOutpReportMonthStartData(OutpReportRequestBody body) {
+
         try {
             LocalDate currtDate = body.getReportDate();
             String pk = PrimaryKeyGenerator.generateKey();
@@ -1366,18 +1364,30 @@ public class ReportServiceImpl implements ReportService {
             // 增加历史日期查询缓存，避免 N+1 问题 ---
             List<OutpCashSubEntity> resultList = new ArrayList<>();
 
-            for (YQOperatorEntity operator : operators) {
-                OutpCashSubEntity dto = new OutpCashSubEntity();
-                dto.setSerialNo(pk);
-                dto.setSerialSubNo(PrimaryKeyGenerator.generateKey());  //每一条生成唯一的编号
-                dto.setOperatorNo(operator.getOperatorNo());
-                dto.setDbUser(operator.getDbUser());
-                dto.setOperatorName(operator.getOperatorName());
-                dto.setPettyCash(operator.getPettyCash());
-                dto.setInpWindow(operator.getInpWindow());
-                dto.setAtm(operator.getAtm());
-                dto.setRowNum(operator.getRowNum());
-                resultList.add(dto);
+            //判断是否是月初统计报表
+            if (body.getReportDate().getDayOfMonth() != 1) {
+                //构建特殊情况，返回子对象展示单个列表
+                OutpCashSubEntity sub = new OutpCashSubEntity();
+                sub.setSerialNo(pk);
+                sub.setSerialSubNo(PrimaryKeyGenerator.generateKey());
+                sub.setOperatorName("当日暂收款");
+                sub.setOperatorNo("当日暂收款");
+                sub.setRemarks("查询月初统计报表，对应的日期 [" + currtDate.toString() + "] 不符合月初条件");
+                resultList.add(sub);
+            }else {
+                for (YQOperatorEntity operator : operators) {
+                    OutpCashSubEntity dto = new OutpCashSubEntity();
+                    dto.setSerialNo(pk);
+                    dto.setSerialSubNo(PrimaryKeyGenerator.generateKey());  //每一条生成唯一的编号
+                    dto.setOperatorNo(operator.getOperatorNo());
+                    dto.setDbUser(operator.getDbUser());
+                    dto.setOperatorName(operator.getOperatorName());
+                    dto.setPettyCash(operator.getPettyCash());
+                    dto.setInpWindow(operator.getInpWindow());
+                    dto.setAtm(operator.getAtm());
+                    dto.setRowNum(operator.getRowNum());
+                    resultList.add(dto);
+                }
             }
             main.setSubs(resultList);
             return main;

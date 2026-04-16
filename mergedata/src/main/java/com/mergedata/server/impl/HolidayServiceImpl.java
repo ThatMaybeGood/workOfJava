@@ -293,7 +293,7 @@ public class HolidayServiceImpl implements YQHolidayService {
 
         String holidayType = queryDateType(localDate, Constant.TYPE_OUTP);
 
-        if (Constant.HOLIDAY_NOT_TOTAL.equals(totalFlag)) {
+        if (Constant.HOLIDAY_TOTAL.equals(totalFlag)) {
             if (Constant.HOLIDAY_AFTER.equals(holidayType) || Constant.HOLIDAY_MONTH_LASTDAY.equals(holidayType)) {
                 return 1;
             } else {

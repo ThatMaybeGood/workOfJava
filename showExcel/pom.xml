@@ -98,6 +98,17 @@
     </dependencies>
 
     <build>
+        <!-- 方式一：直接在build中配置resources -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <!-- 排除特定文件和文件夹 -->
+                <excludes>
+                    <exclude>config/dev/*.properties</exclude>
+                    <exclude>**/temp/**</exclude>
+                </excludes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
