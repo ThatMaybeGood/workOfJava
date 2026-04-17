@@ -177,7 +177,7 @@ public class ReportServiceImpl implements ReportService {
                 Map<String, OutpCashSubEntity> yesterdayMap = new HashMap<>();
                 OutpCashMainEntity yesterdayMain = new OutpCashMainEntity();
 
-                if(currtDate.getDayOfMonth()==1&&Constant.HOLIDAY_MONTH_FIRST.equals(body.getTotalFlag())){
+                if(currtDate.getDayOfMonth()==1){
                     yesterdayMain= outpReportService.findByDate(currtDate, Constant.HOLIDAY_MONTH_FIRST);   //月初情况，查询当月的当天数据
                 }else {
                     yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1), body.getTotalFlag());
@@ -1203,7 +1203,7 @@ public class ReportServiceImpl implements ReportService {
             Map<String, OutpCashSubEntity> yesterdayMap = new HashMap<>();
             OutpCashMainEntity yesterdayMain = new OutpCashMainEntity();
 
-            if(currtDate.getDayOfMonth()==1&&Constant.HOLIDAY_MONTH_FIRST.equals(body.getTotalFlag())){
+            if(currtDate.getDayOfMonth()==1){
                 yesterdayMain= outpReportService.findByDate(currtDate, Constant.HOLIDAY_MONTH_FIRST);   //月初情况，查询当月的当天数据
             }else {
                 yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1), body.getTotalFlag());
