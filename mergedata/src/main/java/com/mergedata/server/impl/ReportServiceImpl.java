@@ -342,16 +342,23 @@ public class ReportServiceImpl implements ReportService {
         }
 
 
-        //门诊接收的转换为对应实体类保存到数据库
-        OutpCashMainEntity main = new OutpCashMainEntity();
 
         //计算合计
 //        OutpReportSubVO calculateTotal = calculateTotal(mainVO.getSubList(), reportDate, Constant.EXCLUDE_OPERATOR_NAMES);
 
 
 
-        main = outpExchangeViewToDb(reportDate, mainVO, remark);
+        OutpCashMainEntity main   = outpExchangeViewToDb(reportDate, mainVO, remark);
 
+        // 剔除合计以后得sub明细
+        List<OutpCashSubEntity> subsUp = main.getSubs().stream()
+                .filter(dto -> dto.getOperatorName() != null)
+                .filter(dto -> ! Constant.EXCLUDE_OPERATOR_NAMES.contains(dto.getOperatorName()))
+                .collect(Collectors.toList());
+        List<OutpCashSubEntity> subsDown = main.getSubs().stream()
+                .filter(dto -> dto.getOperatorName() != null)
+                .filter(dto -> Constant.EXCLUDE_OPERATOR_NAMES.contains(dto.getOperatorName()))
+                .collect(Collectors.toList());
 
         if(!(Constant.HOLIDAY_MONTH_FIRST.equals(mainVO.getTotalFlag())&& reportDate.getDayOfMonth()==1)){  //非月初报表数据需要校验转换
             //转换为实体类的数据值需要验证，防止写入的数据有非修改的 而改动 校验方法
@@ -361,10 +368,10 @@ public class ReportServiceImpl implements ReportService {
             //如果是汇总查询，但是日期不符合特殊日期情况，不处理校验
             if (calculationType != 2) {
                 //用于校验对应数据修改的
-                ouptInsertVerityDetailData(reportDate, calculationType, main);
+                ouptInsertVerityDetailData(reportDate, calculationType, main.getTotalFlag(),subsUp);
 
                 //判断是否合计后金额替换组装
-                setSpecialRowsValues(main.getSubs());
+                setSpecialRowsValues(main,subsUp,subsDown);
             }
         }
 
@@ -379,18 +386,21 @@ public class ReportServiceImpl implements ReportService {
 
     /*
      * 用于门诊插入数据时候 合计之后的数据需要填写组装
+     *
      */
-    private void setSpecialRowsValues(List<OutpCashSubEntity> dtoList) {
-        OutpCashSubEntity calculatedTotal = calculateTotal(dtoList, Constant.EXCLUDE_OPERATOR_NAMES);
+    private void setSpecialRowsValues(OutpCashMainEntity main,List<OutpCashSubEntity> subsUpList,List<OutpCashSubEntity> subsDownList) {
+
+
+        OutpCashSubEntity calc = calculateTotal(subsUpList);
 
         // 先获取公式需要的原始值
-        BigDecimal 原当日暂收款 = calculatedTotal.getCurrentTemporaryReceipt(); //获取当日暂收款合计
-        BigDecimal 原日报表数 = calculatedTotal.getReportAmount();  //获取应交报表数合计
-        BigDecimal 原合计存款金额 = getHisAdvancePaymentByName(dtoList, "合计存款金额");
-        BigDecimal 原住院部当日回款 = getHisAdvancePaymentByName(dtoList, "住院部当日回款");
-        BigDecimal 原门诊当日回款 = getHisAdvancePaymentByName(dtoList, "门诊当日回款");
-        BigDecimal 原门诊当日借款 = getHisAdvancePaymentByName(dtoList, "门诊当日借款");
-        BigDecimal 原住院部当日借款 = getHisAdvancePaymentByName(dtoList, "住院部当日借款");
+        BigDecimal 原当日暂收款 = calc.getCurrentTemporaryReceipt(); //获取当日暂收款合计
+        BigDecimal 原日报表数 = calc.getReportAmount();  //获取应交报表数合计
+        BigDecimal 原合计存款金额 = getHisAdvancePaymentByName(subsUpList, "合计存款金额");
+        BigDecimal 原住院部当日回款 = getHisAdvancePaymentByName(subsUpList, "住院部当日回款");
+        BigDecimal 原门诊当日回款 = getHisAdvancePaymentByName(subsUpList, "门诊当日回款");
+        BigDecimal 原门诊当日借款 = getHisAdvancePaymentByName(subsUpList, "门诊当日借款");
+        BigDecimal 原住院部当日借款 = getHisAdvancePaymentByName(subsUpList, "住院部当日借款");
 
         // 计算公式值    门诊当日实存金额=当日暂收款+日报表数+合计存款金额+住院部当日回款+门诊当日回款-门诊当日借款-住院部当日借款
         BigDecimal 门诊当日实存金额 = 原当日暂收款.add(原日报表数)
@@ -401,36 +411,40 @@ public class ReportServiceImpl implements ReportService {
                 .subtract(原住院部当日借款);
 
         // 设置新值
-        for (OutpCashSubEntity dto : dtoList) {
+        for (OutpCashSubEntity dto : subsUpList) {
             String name = dto.getOperatorName();
             if (name == null) continue;
 
             switch (name) {
                 case "合计":
-                    dto.setHisAdvancePayment(calculatedTotal.getHisAdvancePayment());
-                    dto.setHisMedicalIncome(calculatedTotal.getHisMedicalIncome());
-                    dto.setHisRegistrationIncome(calculatedTotal.getHisRegistrationIncome());
-                    dto.setRetainedCash(calculatedTotal.getRetainedCash());
-                    dto.setReportAmount(calculatedTotal.getReportAmount());
-                    dto.setPreviousTemporaryReceipt(calculatedTotal.getPreviousTemporaryReceipt());
-                    dto.setHolidayTemporaryReceipt(calculatedTotal.getHolidayTemporaryReceipt());
-                    dto.setActualCashAmount(calculatedTotal.getActualCashAmount());
-                    dto.setCurrentTemporaryReceipt(calculatedTotal.getCurrentTemporaryReceipt());
-                    dto.setActualCashAmount(calculatedTotal.getActualCashAmount());
-                    dto.setRetainedDifference(calculatedTotal.getRetainedDifference());
-                    dto.setPettyCash(calculatedTotal.getPettyCash());
+                    dto.setHisAdvancePayment(calc.getHisAdvancePayment());
+                    dto.setHisMedicalIncome(calc.getHisMedicalIncome());
+                    dto.setHisRegistrationIncome(calc.getHisRegistrationIncome());
+                    dto.setRetainedCash(calc.getRetainedCash());
+                    dto.setReportAmount(calc.getReportAmount());
+                    dto.setPreviousTemporaryReceipt(calc.getPreviousTemporaryReceipt());
+                    dto.setHolidayTemporaryReceipt(calc.getHolidayTemporaryReceipt());
+                    dto.setActualCashAmount(calc.getActualCashAmount());
+                    dto.setCurrentTemporaryReceipt(calc.getCurrentTemporaryReceipt());
+                    dto.setActualCashAmount(calc.getActualCashAmount());
+                    dto.setRetainedDifference(calc.getRetainedDifference());
+                    dto.setPettyCash(calc.getPettyCash());
                     break;
                 case "当日暂收款":
-                    dto.setHisAdvancePayment(calculatedTotal.getCurrentTemporaryReceipt());
+                    dto.setHisAdvancePayment(calc.getCurrentTemporaryReceipt());
                     break;
                 case "日报表数":
-                    dto.setHisAdvancePayment(calculatedTotal.getReportAmount());
+                    dto.setHisAdvancePayment(calc.getReportAmount());
                     break;
                 case "门诊当日实存金额":
                     dto.setHisAdvancePayment(门诊当日实存金额);
                     break;
             }
         }
+        List<OutpCashSubEntity> mergedList = new ArrayList<>();
+        mergedList.addAll(subsUpList);
+        mergedList.addAll(subsDownList);
+        main.setSubs(mergedList);
     }
 
     private BigDecimal getHisAdvancePaymentByName(List<OutpCashSubEntity> dtoList, String name) {
@@ -446,7 +460,7 @@ public class ReportServiceImpl implements ReportService {
     /**
      * 门诊明细数据写入前校验方法,确保有些不能修改的字段值，修改后保存
      */
-    private void ouptInsertVerityDetailData(LocalDate currtDate, int calculationType, OutpCashMainEntity main) {
+    private void ouptInsertVerityDetailData(LocalDate currtDate, int calculationType, String totalFlag, List<OutpCashSubEntity> subList) {
         try {
             Map<String, YQOperatorEntity> operatorMap = operatorService.findByCategory(Constant.TYPE_OUTP).stream()
                     .collect(Collectors.toMap(YQOperatorEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
@@ -464,10 +478,10 @@ public class ReportServiceImpl implements ReportService {
             Map<String, OutpCashSubEntity> yesterdayMap = new HashMap<>();
 
             OutpCashMainEntity yesterdayMain = new OutpCashMainEntity();
-            if(currtDate.getDayOfMonth()==1&&Constant.HOLIDAY_MONTH_FIRST.equals(main.getTotalFlag())){
+            if(currtDate.getDayOfMonth()==1&&Constant.HOLIDAY_MONTH_FIRST.equals(totalFlag)){
                 yesterdayMain= outpReportService.findByDate(currtDate, Constant.HOLIDAY_MONTH_FIRST);   //月初情况，查询当月的当天数据
             }else {
-                yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1), main.getTotalFlag());
+                yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1), totalFlag);
             }
 
             //  先判断 main 是否为 null
@@ -503,7 +517,7 @@ public class ReportServiceImpl implements ReportService {
             }
 
 
-            for (OutpCashSubEntity dto : main.getSubs()) {
+            for (OutpCashSubEntity dto : subList) {
 
                 YQOperatorEntity operator = operatorMap.get(dto.getDbUser());
 
@@ -586,7 +600,7 @@ public class ReportServiceImpl implements ReportService {
                         .add(getSafeBigDecimal(dto.getActualReportAmount())));
             }
         } catch (Exception e) {
-            log.error("门诊报表写入数据校验失败", e);
+            log.error("门诊报表保存时，对于不需要修改的数据校验失败", e);
         }
 
     }
@@ -1038,15 +1052,11 @@ public class ReportServiceImpl implements ReportService {
     /*
      * 用于计算写入时候的操作员的数据合计
      */
-    private OutpCashSubEntity calculateTotal(List<OutpCashSubEntity> dtoList,List<String> excludeNames) {
+    private OutpCashSubEntity calculateTotal(List<OutpCashSubEntity> dtoList ) {
         final BigDecimal ZERO = BigDecimal.ZERO;
         BinaryOperator<BigDecimal> sumOperator = BigDecimal::add;
 
-        // 使用传入的排除列表
-        List<OutpCashSubEntity> filteredDtoList = dtoList.stream()
-                .filter(dto -> dto.getOperatorName() != null)
-                .filter(dto -> !excludeNames.contains(dto.getOperatorName()))
-                .collect(Collectors.toList());
+
         // 创建新的合计对象
         OutpCashSubEntity total = new OutpCashSubEntity();
         total.setOperatorNo(null);
@@ -1054,7 +1064,7 @@ public class ReportServiceImpl implements ReportService {
 
         // 定义求和函数
         Function<Function<OutpCashSubEntity, BigDecimal>, BigDecimal> sumByField =
-                getter -> filteredDtoList.stream()
+                getter -> dtoList.stream()
                         .map(getter)
                         .filter(Objects::nonNull)
                         .reduce(ZERO, sumOperator);
