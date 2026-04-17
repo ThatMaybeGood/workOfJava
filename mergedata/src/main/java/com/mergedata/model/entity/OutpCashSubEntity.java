@@ -210,4 +210,22 @@ public class OutpCashSubEntity {
     public void setRowNum(Integer rowNum) {
         this.rowNum = rowNum;
     }
+
+
+    /**
+     * 将实体的所有金额字段设置为 ZERO
+     */
+    public void resetAllAmountsToZero() {
+        this.hisMedicalIncome = BigDecimal.ZERO;
+        this.hisRegistrationIncome = BigDecimal.ZERO;
+        this.reportAmount = BigDecimal.ZERO;
+        this.previousTemporaryReceipt = BigDecimal.ZERO;
+        this.holidayTemporaryReceipt = BigDecimal.ZERO;
+        this.actualReportAmount = BigDecimal.ZERO;
+        this.currentTemporaryReceipt = BigDecimal.ZERO;
+        this.actualCashAmount = BigDecimal.ZERO;
+        this.retainedDifference = BigDecimal.ZERO;
+        this.retainedCash = BigDecimal.ZERO;
+        this.pettyCash = BigDecimal.ZERO;
+    }
 }

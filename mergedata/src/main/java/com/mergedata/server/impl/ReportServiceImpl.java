@@ -396,11 +396,11 @@ public class ReportServiceImpl implements ReportService {
         // 先获取公式需要的原始值
         BigDecimal 原当日暂收款 = calc.getCurrentTemporaryReceipt(); //获取当日暂收款合计
         BigDecimal 原日报表数 = calc.getReportAmount();  //获取应交报表数合计
-        BigDecimal 原合计存款金额 = getHisAdvancePaymentByName(subsUpList, "合计存款金额");
-        BigDecimal 原住院部当日回款 = getHisAdvancePaymentByName(subsUpList, "住院部当日回款");
-        BigDecimal 原门诊当日回款 = getHisAdvancePaymentByName(subsUpList, "门诊当日回款");
-        BigDecimal 原门诊当日借款 = getHisAdvancePaymentByName(subsUpList, "门诊当日借款");
-        BigDecimal 原住院部当日借款 = getHisAdvancePaymentByName(subsUpList, "住院部当日借款");
+        BigDecimal 原合计存款金额 = getHisAdvancePaymentByName(subsDownList, "合计存款金额");
+        BigDecimal 原住院部当日回款 = getHisAdvancePaymentByName(subsDownList, "住院部当日回款");
+        BigDecimal 原门诊当日回款 = getHisAdvancePaymentByName(subsDownList, "门诊当日回款");
+        BigDecimal 原门诊当日借款 = getHisAdvancePaymentByName(subsDownList, "门诊当日借款");
+        BigDecimal 原住院部当日借款 = getHisAdvancePaymentByName(subsDownList, "住院部当日借款");
 
         // 计算公式值    门诊当日实存金额=当日暂收款+日报表数+合计存款金额+住院部当日回款+门诊当日回款-门诊当日借款-住院部当日借款
         BigDecimal 门诊当日实存金额 = 原当日暂收款.add(原日报表数)
@@ -411,24 +411,26 @@ public class ReportServiceImpl implements ReportService {
                 .subtract(原住院部当日借款);
 
         // 设置新值
-        for (OutpCashSubEntity dto : subsUpList) {
+        for (OutpCashSubEntity dto : subsDownList) {
             String name = dto.getOperatorName();
             if (name == null) continue;
+            dto.resetAllAmountsToZero();
 
             switch (name) {
                 case "合计":
                     dto.setHisAdvancePayment(calc.getHisAdvancePayment());
                     dto.setHisMedicalIncome(calc.getHisMedicalIncome());
                     dto.setHisRegistrationIncome(calc.getHisRegistrationIncome());
-                    dto.setRetainedCash(calc.getRetainedCash());
                     dto.setReportAmount(calc.getReportAmount());
                     dto.setPreviousTemporaryReceipt(calc.getPreviousTemporaryReceipt());
                     dto.setHolidayTemporaryReceipt(calc.getHolidayTemporaryReceipt());
-                    dto.setActualCashAmount(calc.getActualCashAmount());
+                    dto.setActualReportAmount(calc.getActualReportAmount());
                     dto.setCurrentTemporaryReceipt(calc.getCurrentTemporaryReceipt());
                     dto.setActualCashAmount(calc.getActualCashAmount());
                     dto.setRetainedDifference(calc.getRetainedDifference());
+                    dto.setRetainedCash(calc.getRetainedCash());
                     dto.setPettyCash(calc.getPettyCash());
+
                     break;
                 case "当日暂收款":
                     dto.setHisAdvancePayment(calc.getCurrentTemporaryReceipt());
