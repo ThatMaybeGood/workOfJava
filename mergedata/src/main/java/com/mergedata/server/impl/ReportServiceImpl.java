@@ -348,8 +348,7 @@ public class ReportServiceImpl implements ReportService {
         //计算合计
 //        OutpReportSubVO calculateTotal = calculateTotal(mainVO.getSubList(), reportDate, Constant.EXCLUDE_OPERATOR_NAMES);
 
-        //判断是否合计后金额替换组装
-        setSpecialRowsValues(mainVO.getSubList());
+
 
         main = outpExchangeViewToDb(reportDate, mainVO, remark);
 
@@ -361,7 +360,11 @@ public class ReportServiceImpl implements ReportService {
             int calculationType = holidayService.isSpecialHolidaySum(reportDate, mainVO.getTotalFlag());
             //如果是汇总查询，但是日期不符合特殊日期情况，不处理校验
             if (calculationType != 2) {
+                //用于校验对应数据修改的
                 ouptInsertVerityDetailData(reportDate, calculationType, main);
+
+                //判断是否合计后金额替换组装
+                setSpecialRowsValues(main.getSubs());
             }
         }
 
@@ -377,12 +380,12 @@ public class ReportServiceImpl implements ReportService {
     /*
      * 用于门诊插入数据时候 合计之后的数据需要填写组装
      */
-    private void setSpecialRowsValues(List<OutpReportSubVO> dtoList) {
-        OutpReportSubVO calculatedTotal = calculateTotal(dtoList, Constant.EXCLUDE_OPERATOR_NAMES);
+    private void setSpecialRowsValues(List<OutpCashSubEntity> dtoList) {
+        OutpCashSubEntity calculatedTotal = calculateTotal(dtoList, Constant.EXCLUDE_OPERATOR_NAMES);
 
         // 先获取公式需要的原始值
-        BigDecimal 原当日暂收款 = getHisAdvancePaymentByName(dtoList, "当日暂收款");
-        BigDecimal 原日报表数 = getHisAdvancePaymentByName(dtoList, "日报表数");
+        BigDecimal 原当日暂收款 = calculatedTotal.getCurrentTemporaryReceipt(); //获取当日暂收款合计
+        BigDecimal 原日报表数 = calculatedTotal.getReportAmount();  //获取应交报表数合计
         BigDecimal 原合计存款金额 = getHisAdvancePaymentByName(dtoList, "合计存款金额");
         BigDecimal 原住院部当日回款 = getHisAdvancePaymentByName(dtoList, "住院部当日回款");
         BigDecimal 原门诊当日回款 = getHisAdvancePaymentByName(dtoList, "门诊当日回款");
@@ -398,7 +401,7 @@ public class ReportServiceImpl implements ReportService {
                 .subtract(原住院部当日借款);
 
         // 设置新值
-        for (OutpReportSubVO dto : dtoList) {
+        for (OutpCashSubEntity dto : dtoList) {
             String name = dto.getOperatorName();
             if (name == null) continue;
 
@@ -430,11 +433,11 @@ public class ReportServiceImpl implements ReportService {
         }
     }
 
-    private BigDecimal getHisAdvancePaymentByName(List<OutpReportSubVO> dtoList, String name) {
+    private BigDecimal getHisAdvancePaymentByName(List<OutpCashSubEntity> dtoList, String name) {
         return dtoList.stream()
                 .filter(dto -> name.equals(dto.getOperatorName()))
                 .findFirst()
-                .map(OutpReportSubVO::getHisAdvancePayment)
+                .map(OutpCashSubEntity::getHisAdvancePayment)
                 .filter(Objects::nonNull)
                 .orElse(BigDecimal.ZERO);
     }
@@ -1035,44 +1038,43 @@ public class ReportServiceImpl implements ReportService {
     /*
      * 用于计算写入时候的操作员的数据合计
      */
-    private OutpReportSubVO calculateTotal(List<OutpReportSubVO> dtoList,List<String> excludeNames) {
+    private OutpCashSubEntity calculateTotal(List<OutpCashSubEntity> dtoList,List<String> excludeNames) {
         final BigDecimal ZERO = BigDecimal.ZERO;
         BinaryOperator<BigDecimal> sumOperator = BigDecimal::add;
 
         // 使用传入的排除列表
-        List<OutpReportSubVO> filteredDtoList = dtoList.stream()
+        List<OutpCashSubEntity> filteredDtoList = dtoList.stream()
                 .filter(dto -> dto.getOperatorName() != null)
                 .filter(dto -> !excludeNames.contains(dto.getOperatorName()))
                 .collect(Collectors.toList());
         // 创建新的合计对象
-        OutpReportSubVO total = new OutpReportSubVO();
+        OutpCashSubEntity total = new OutpCashSubEntity();
         total.setOperatorNo(null);
         total.setOperatorName("合计");
 
         // 定义求和函数
-        Function<Function<OutpReportSubVO, BigDecimal>, BigDecimal> sumByField =
+        Function<Function<OutpCashSubEntity, BigDecimal>, BigDecimal> sumByField =
                 getter -> filteredDtoList.stream()
                         .map(getter)
                         .filter(Objects::nonNull)
                         .reduce(ZERO, sumOperator);
 
         // 更新合计行的各个金额字段
-        total.setHisAdvancePayment(sumByField.apply(OutpReportSubVO::getHisAdvancePayment));
-        total.setHisMedicalIncome(sumByField.apply(OutpReportSubVO::getHisMedicalIncome));
-        total.setHisRegistrationIncome(sumByField.apply(OutpReportSubVO::getHisRegistrationIncome));
-        total.setRetainedCash(sumByField.apply(OutpReportSubVO::getRetainedCash));
-        total.setReportAmount(sumByField.apply(OutpReportSubVO::getReportAmount));
-        total.setPreviousTemporaryReceipt(sumByField.apply(OutpReportSubVO::getPreviousTemporaryReceipt));
-        total.setHolidayTemporaryReceipt(sumByField.apply(OutpReportSubVO::getHolidayTemporaryReceipt));
-        total.setActualCashAmount(sumByField.apply(OutpReportSubVO::getActualCashAmount));
-        total.setCurrentTemporaryReceipt(sumByField.apply(OutpReportSubVO::getCurrentTemporaryReceipt));
-        total.setActualCashAmount(sumByField.apply(OutpReportSubVO::getActualCashAmount));
-        total.setRetainedDifference(sumByField.apply(OutpReportSubVO::getRetainedDifference));
-        total.setPettyCash(sumByField.apply(OutpReportSubVO::getPettyCash));
+        total.setHisAdvancePayment(sumByField.apply(OutpCashSubEntity::getHisAdvancePayment));
+        total.setHisMedicalIncome(sumByField.apply(OutpCashSubEntity::getHisMedicalIncome));
+        total.setHisRegistrationIncome(sumByField.apply(OutpCashSubEntity::getHisRegistrationIncome));
+        total.setRetainedCash(sumByField.apply(OutpCashSubEntity::getRetainedCash));
+        total.setReportAmount(sumByField.apply(OutpCashSubEntity::getReportAmount));
+        total.setPreviousTemporaryReceipt(sumByField.apply(OutpCashSubEntity::getPreviousTemporaryReceipt));
+        total.setHolidayTemporaryReceipt(sumByField.apply(OutpCashSubEntity::getHolidayTemporaryReceipt));
+        total.setActualCashAmount(sumByField.apply(OutpCashSubEntity::getActualCashAmount));
+        total.setCurrentTemporaryReceipt(sumByField.apply(OutpCashSubEntity::getCurrentTemporaryReceipt));
+        total.setRetainedDifference(sumByField.apply(OutpCashSubEntity::getRetainedDifference));
+        total.setPettyCash(sumByField.apply(OutpCashSubEntity::getPettyCash));
 
         total.setRemarks("合计行，不展示在报表中");
 //        total.setReportDate(reportdate);
-        total.setCreateTime(LocalDateTime.now());
+//        total.setCreateTime(LocalDateTime.now());
 
         return total;
     }
