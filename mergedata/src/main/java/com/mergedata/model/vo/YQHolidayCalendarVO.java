@@ -29,7 +29,7 @@ public class YQHolidayCalendarVO {
     /**
      * 回溯汇总时候的截止日期
      */
-    private LocalDate misDate;
+    private LocalDate minDate;
 
      /**
      * 汇总标志，0 不汇总 1 汇总

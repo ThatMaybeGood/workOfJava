@@ -169,7 +169,7 @@ public class HolidayServiceImpl implements YQHolidayService {
                         + currentDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd"))
                         + " " + Constant.OUTP_HOLIDAY_TOTAL_TITLE;
             }
-            vo.setMisDate(minDate);
+            vo.setMinDate(minDate);
             vo.setTotalFlag(Constant.HOLIDAY_NOT_TOTAL);
             vo.setTotalTitle(totalTitle);
         }else if (totalFlag.equals(Constant.HOLIDAY_MONTH_FIRST)){

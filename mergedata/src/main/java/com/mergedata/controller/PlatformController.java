@@ -1,21 +1,16 @@
 package com.mergedata.controller;
 
 import com.mergedata.model.dto.ApiRequest;
-import com.mergedata.model.dto.ApiRequestList;
 import com.mergedata.model.dto.CommonRequestBody;
-import com.mergedata.model.dto.HolidayRequestBody;
 import com.mergedata.model.entity.YQHolidayEntity;
 import com.mergedata.model.entity.YQOperatorEntity;
 import com.mergedata.model.vo.ApiResponse;
 import com.mergedata.model.vo.ApiResponseBodyList;
-import com.mergedata.model.vo.YQHolidayCalendarVO;
 import com.mergedata.server.YQHolidayService;
 import com.mergedata.server.YQOperatorService;
-import com.mergedata.util.PrimaryKeyGenerator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
