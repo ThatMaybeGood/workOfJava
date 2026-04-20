@@ -73,6 +73,7 @@ public class OutpReportServiceImpl implements OutpReportService {
 
         // 3. 在内存中进行分组并填充 (使用 Map 提高查找效率)
         Map<String, List<OutpCashSubEntity>> subMap = allSubs.stream()
+                .filter(d -> ! Constant.EXCLUDE_OPERATOR_NAMES.equals(d.getOperatorName()))
                 .collect(Collectors.groupingBy(OutpCashSubEntity::getSerialNo));
 
         mainList.forEach(main -> main.setSubs(subMap.getOrDefault(main.getSerialNo(), Collections.emptyList())));
@@ -179,6 +180,12 @@ public class OutpReportServiceImpl implements OutpReportService {
                     .orderByAsc(OutpCashSubEntity::getRowNum)
                     .orderByAsc(OutpCashSubEntity::getId)
                     .list();
+
+            // 过滤掉不是操作员的行
+            items = items.stream()
+                    .filter(d -> ! Constant.EXCLUDE_OPERATOR_NAMES.contains(d.getOperatorName()))
+                    .collect(Collectors.toList());
+
             main.setSubs(items);
         }
     }

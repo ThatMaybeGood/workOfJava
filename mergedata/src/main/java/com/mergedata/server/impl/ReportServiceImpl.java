@@ -1448,17 +1448,21 @@ public class ReportServiceImpl implements ReportService {
 
             OutpCashMainEntity dayMain = historyMap.get(current);
 
-            // 1. 数据缺失检查：断档处理
-            if (dayMain == null || CollectionUtils.isEmpty(dayMain.getSubs())) {
-                log.error("回溯在 {} 发生数据断档，无法完成完整计算", current);
+            if (dayMain == null) {
+                log.error("回溯在 {} 发生数据断档: dayMain is null", current);
                 break;
-                //throw new BusinessException("回溯数据缺失，请检查报表完整性");
             }
 
+            List<OutpCashSubEntity> subs = dayMain.getSubs();
+            if (subs == null || subs.isEmpty()) {
+                log.error("回溯在 {} 发生数据断档: subs is null or empty", current);
+                break;
+            }
 
-            OutpCashSubEntity hist = dayMain.getSubs().stream()
+            OutpCashSubEntity hist = subs.stream()
                     .filter(s -> opNo.equals(s.getDbUser()))
-                    .findFirst().orElse(null);
+                    .findFirst()
+                    .orElse(null);
 
             // 累加计算
             BigDecimal c1 = hist != null ? getSafeBigDecimal(hist.getHisAdvancePayment()) : BigDecimal.ZERO;
