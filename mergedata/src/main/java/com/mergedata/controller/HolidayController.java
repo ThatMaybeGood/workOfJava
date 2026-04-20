@@ -1,5 +1,6 @@
 package com.mergedata.controller;
 
+import com.mergedata.constants.Constant;
 import com.mergedata.model.dto.ApiRequest;
 import com.mergedata.model.dto.ApiRequestList;
 import com.mergedata.model.dto.HolidayRequestBody;
@@ -52,6 +53,7 @@ public class HolidayController {
     @Operation(summary = "通过日期查询节假日数据", description = "返回节假日的数据")
     @PostMapping("findbydate")
     public ApiResponse<ApiResponseBodyList<YQHolidayEntity>> findByDate(@Valid  @RequestBody ApiRequest<YQHolidayEntity> res)  {
+
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         List<YQHolidayEntity> resultList = holiday.findByDate(res.getBody().getHolidayDate());
         // 4. 返回结果
@@ -93,6 +95,10 @@ public class HolidayController {
     @Operation(summary = "查询日期的类型", description = "返回操作结果")
     @PostMapping("querydatetype/holidayDate")
     public ApiResponse<YQHolidayCalendarVO> queryType(@Valid @RequestBody ApiRequest<HolidayRequestBody> request) {
+
+        if ((Constant.HOLIDAY_MONTH_FIRST.equals(request.getBody().getTotalFlag()))){
+            request.getBody().setReportDate(request.getBody().getReportDate().plusDays(1));
+        }
 
         YQHolidayCalendarVO vo = holiday.queryHolidayTotalType
                 (request.getBody().getReportDate(), request.getBody().getQueryType(),request.getBody().getTotalFlag());

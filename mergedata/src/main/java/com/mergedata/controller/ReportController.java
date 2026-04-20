@@ -39,6 +39,10 @@ public class ReportController {
     @PostMapping("/findbydate")
     public ApiResponse<OutpReportMainVO> getOutpReport(@Valid @RequestBody ApiRequest<OutpReportRequestBody> request)  {
 
+        if ((Constant.HOLIDAY_MONTH_FIRST.equals(request.getBody().getTotalFlag()))){
+            request.getBody().setReportDate(request.getBody().getReportDate().plusDays(1));
+        }
+
         // 2. 避免重复调用服务，并使用转换后的 LocalDate
         OutpReportMainVO resultList = report.getOutpReport(request.getBody());
 
