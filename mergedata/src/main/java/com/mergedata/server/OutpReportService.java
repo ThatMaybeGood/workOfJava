@@ -23,6 +23,12 @@ public interface OutpReportService {
     OutpCashMainEntity findByDate(LocalDate date,String totalFlag)  ;
 
     /**
+     * 根据日期查询门诊报表数据,不包含合计之后的
+     */
+    OutpCashMainEntity findByDateExclude(LocalDate date,String totalFlag)  ;
+
+
+    /**
      * 根据日期查询门诊报表主表数量
      */
     Long countByDate(LocalDate date,String totalFlag)  ;

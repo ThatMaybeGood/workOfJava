@@ -47,6 +47,15 @@ public class OutpReportServiceImpl implements OutpReportService {
     }
 
     @Override
+    public OutpCashMainEntity findByDateExclude(LocalDate date,String totalFlag) {
+        OutpCashMainEntity main = queryMainByDate(date, totalFlag).one();
+
+        fillSubsExclude(main);
+
+        return main;
+    }
+
+    @Override
     public Long countByDate(LocalDate date, String totalFlag) {
 
         return queryMainByDate(date, totalFlag).count();
@@ -174,6 +183,19 @@ public class OutpReportServiceImpl implements OutpReportService {
 
     // 填充从表数据
     private void fillSubs(OutpCashMainEntity main) {
+        if (main != null) {
+            List<OutpCashSubEntity> items = Db.lambdaQuery(OutpCashSubEntity.class)
+                    .eq(OutpCashSubEntity::getSerialNo, main.getSerialNo())
+                    .orderByAsc(OutpCashSubEntity::getRowNum)
+                    .orderByAsc(OutpCashSubEntity::getId)
+                    .list();
+
+            main.setSubs(items);
+        }
+    }
+
+    // 填充从表数据,不包含合计之后的
+       private void fillSubsExclude(OutpCashMainEntity main) {
         if (main != null) {
             List<OutpCashSubEntity> items = Db.lambdaQuery(OutpCashSubEntity.class)
                     .eq(OutpCashSubEntity::getSerialNo, main.getSerialNo())

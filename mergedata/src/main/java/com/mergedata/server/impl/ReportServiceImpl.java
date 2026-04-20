@@ -143,7 +143,7 @@ public class ReportServiceImpl implements ReportService {
                 String type = holidayService.queryDateType(body.getReportDate(), Constant.TYPE_OUTP);
 
                 //提取当前已经有的报表数据
-                OutpCashMainEntity main = outpReportService.findByDate(body.getReportDate(), body.getTotalFlag());
+                OutpCashMainEntity main = outpReportService.findByDateExclude(body.getReportDate(), body.getTotalFlag());
                 main.setSerialNo(pk);
 
 
@@ -178,9 +178,9 @@ public class ReportServiceImpl implements ReportService {
                 OutpCashMainEntity yesterdayMain = new OutpCashMainEntity();
 
                 if(currtDate.getDayOfMonth()==1){
-                    yesterdayMain= outpReportService.findByDate(currtDate, Constant.HOLIDAY_MONTH_FIRST);   //月初情况，查询当月的当天数据
+                    yesterdayMain= outpReportService.findByDateExclude(currtDate, Constant.HOLIDAY_MONTH_FIRST);   //月初情况，查询当月的当天数据
                 }else {
-                    yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1), body.getTotalFlag());
+                    yesterdayMain = outpReportService.findByDateExclude(currtDate.minusDays(1), body.getTotalFlag());
                 }
                 if (yesterdayMain == null || yesterdayMain.getSubs() == null || yesterdayMain.getSubs().isEmpty()) {
                     yesterdayMap = Collections.emptyMap();
@@ -481,9 +481,9 @@ public class ReportServiceImpl implements ReportService {
 
             OutpCashMainEntity yesterdayMain = new OutpCashMainEntity();
             if(currtDate.getDayOfMonth()==1&&Constant.HOLIDAY_MONTH_FIRST.equals(totalFlag)){
-                yesterdayMain= outpReportService.findByDate(currtDate, Constant.HOLIDAY_MONTH_FIRST);   //月初情况，查询当月的当天数据
+                yesterdayMain= outpReportService.findByDateExclude(currtDate, Constant.HOLIDAY_MONTH_FIRST);   //月初情况，查询当月的当天数据
             }else {
-                yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1), totalFlag);
+                yesterdayMain = outpReportService.findByDateExclude(currtDate.minusDays(1), totalFlag);
             }
 
             //  先判断 main 是否为 null
@@ -1218,9 +1218,9 @@ public class ReportServiceImpl implements ReportService {
             OutpCashMainEntity yesterdayMain = new OutpCashMainEntity();
 
             if(currtDate.getDayOfMonth()==1){
-                yesterdayMain= outpReportService.findByDate(currtDate, Constant.HOLIDAY_MONTH_FIRST);   //月初情况，查询当月的当天数据
+                yesterdayMain= outpReportService.findByDateExclude(currtDate, Constant.HOLIDAY_MONTH_FIRST);   //月初情况，查询当月的当天数据
             }else {
-                yesterdayMain = outpReportService.findByDate(currtDate.minusDays(1), body.getTotalFlag());
+                yesterdayMain = outpReportService.findByDateExclude(currtDate.minusDays(1), body.getTotalFlag());
             }
             //  先判断 main 是否为 null
             if (yesterdayMain == null || yesterdayMain.getSubs() == null || yesterdayMain.getSubs().isEmpty()) {
