@@ -96,7 +96,7 @@ public class HolidayController {
     @PostMapping("querydatetype/holidayDate")
     public ApiResponse<YQHolidayCalendarVO> queryType(@Valid @RequestBody ApiRequest<HolidayRequestBody> request) {
 
-        if ((Constant.HOLIDAY_MONTH_FIRST.equals(request.getBody().getTotalFlag()))){
+        if ((Constant.HOLIDAY_MONTH_FIRST.equals(request.getBody().getTotalFlag())) || Constant.HOLIDAY_TOTAL.equals(request.getBody().getTotalFlag())){
             request.getBody().setReportDate(request.getBody().getReportDate().plusDays(1));
         }
 

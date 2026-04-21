@@ -140,7 +140,7 @@ public class HolidayServiceImpl implements YQHolidayService {
     public YQHolidayCalendarVO queryHolidayTotalType(LocalDate currentDate, String queryType, String totalFlag) {
         YQHolidayCalendarVO vo = new YQHolidayCalendarVO();
         String type = queryDateType(currentDate, queryType);
-        LocalDate minDate = findMinBacktrackDate(currentDate);
+        LocalDate minDate = findMinBacktrackDate(currentDate).plusDays(1);
 
         vo.setHolidayDate(currentDate);
         vo.setQueryType(queryType);
@@ -262,7 +262,7 @@ public class HolidayServiceImpl implements YQHolidayService {
         for (int i = 0; i < 30; i++) {
             // 如果是工作日，这就是我们要找的边界
             if (!holidaySet.contains(current)) {
-                return current;
+                break;//return current;
             }
             // 如果是月初 1 号，也必须停止
             if (current.getDayOfMonth() == 1) {
@@ -270,7 +270,7 @@ public class HolidayServiceImpl implements YQHolidayService {
             }
             current = current.minusDays(1);
         }
-        return current;
+        return current.minusDays(1);  //最小日期在减1天，因为现在是T-1日期
     }
 
     /**
@@ -278,7 +278,7 @@ public class HolidayServiceImpl implements YQHolidayService {
      *
      * @param localDate 日期
      * @param totalFlag 汇总标
-     * @return 0  不是汇总查询                正常计算
+     * @return 0  不是汇总查询    正常计算
      * 1  是汇总查询，且是特殊节假日     需要进行回溯汇总计算
      * 2  是汇总查询，但是不是特殊节假日  直接返回空列表
      */

@@ -155,8 +155,10 @@ public class ReportServiceImpl implements ReportService {
                 sub.setOperatorNo("当日暂收款");
                 //如果是汇总查询，但是日期不符合特殊日期情况，直接返回空
                 if (calculationType == 2) {
-                    sub.setRemarks("查询汇总，单对应的日期 [" + currtDate.toString() + "] 不符合特殊日期情况");
+                    String s = "初始化查询汇总，单对应的日期 [" + currtDate.toString() + "] 不符合特殊日期情况" ;
+                    sub.setRemarks(s);
                     main.setSubs(Collections.singletonList(sub));
+                    main.setRemark(s);
                     return main;
                 }
 
@@ -179,9 +181,13 @@ public class ReportServiceImpl implements ReportService {
 
                 if(currtDate.getDayOfMonth()==1){
                     yesterdayMain= outpReportService.findByDateExclude(currtDate, Constant.HOLIDAY_MONTH_FIRST);   //月初情况，查询当月的当天数据
+                } else if (calculationType == 0 && holidayService.isSpecialHolidaySum(currtDate, Constant.HOLIDAY_TOTAL)==1) {
+                    //判断是否周二，周二情况不能取值周一的正常的前日暂收款，应该取其汇总的站收款
+                    yesterdayMain= outpReportService.findByDateExclude(currtDate, Constant.HOLIDAY_TOTAL);
                 }else {
                     yesterdayMain = outpReportService.findByDateExclude(currtDate.minusDays(1), body.getTotalFlag());
                 }
+
                 if (yesterdayMain == null || yesterdayMain.getSubs() == null || yesterdayMain.getSubs().isEmpty()) {
                     yesterdayMap = Collections.emptyMap();
                 } else {
@@ -252,8 +258,13 @@ public class ReportServiceImpl implements ReportService {
                             dto.setHisAdvancePayment(getSafeBigDecimal(hisDto.getHisAdvancePayment()));
                             dto.setHisMedicalIncome(getSafeBigDecimal(hisDto.getHisMedicalIncome()));
                             dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
-                            dto.setAcctNo(hisDto.getAcctNo());
-                            dto.setAcctDate(hisDto.getAcctDate());
+                            dto.setAcctNo(null);
+                            dto.setAcctDate(null);
+                            if ( calculationType == 0) {
+                                dto.setAcctNo(hisDto.getAcctNo());
+                                dto.setAcctDate(hisDto.getAcctDate());
+                            }
+
                         }
                     }
 
@@ -436,7 +447,7 @@ public class ReportServiceImpl implements ReportService {
                     dto.setHisAdvancePayment(calc.getCurrentTemporaryReceipt());
                     break;
                 case "日报表数":
-                    dto.setHisAdvancePayment(calc.getReportAmount());
+                    dto.setHisAdvancePayment(calc.getActualReportAmount());
                     break;
                 case "门诊当日实存金额":
                     dto.setHisAdvancePayment(门诊当日实存金额);
@@ -1199,8 +1210,10 @@ public class ReportServiceImpl implements ReportService {
 
             //如果是汇总查询，但是日期不符合特殊日期情况，直接返回空
             if (calculationType == 2) {
-                sub.setRemarks("查询汇总，单对应的日期 [" + currtDate.toString() + "] 不符合特殊日期情况");
+                String s ="查询汇总，单对应的日期 [" + currtDate.toString() + "] 不符合特殊日期情况" ;
+                sub.setRemarks(s);
                 main.setSubs(Collections.singletonList(sub));
+                main.setRemark(s);
                 return main;
             }
 
@@ -1219,9 +1232,13 @@ public class ReportServiceImpl implements ReportService {
 
             if(currtDate.getDayOfMonth()==1){
                 yesterdayMain= outpReportService.findByDateExclude(currtDate, Constant.HOLIDAY_MONTH_FIRST);   //月初情况，查询当月的当天数据
+            } else if (calculationType == 0 && holidayService.isSpecialHolidaySum(currtDate, Constant.HOLIDAY_TOTAL)==1) {
+                //判断是否周二，周二情况不能取值周一的正常的前日暂收款，应该取其汇总的站收款
+                yesterdayMain= outpReportService.findByDateExclude(currtDate, Constant.HOLIDAY_TOTAL);
             }else {
                 yesterdayMain = outpReportService.findByDateExclude(currtDate.minusDays(1), body.getTotalFlag());
             }
+
             //  先判断 main 是否为 null
             if (yesterdayMain == null || yesterdayMain.getSubs() == null || yesterdayMain.getSubs().isEmpty()) {
                 yesterdayMap = Collections.emptyMap();
@@ -1295,8 +1312,12 @@ public class ReportServiceImpl implements ReportService {
                     dto.setHisAdvancePayment(getSafeBigDecimal(hisDto.getHisAdvancePayment()));
                     dto.setHisMedicalIncome(getSafeBigDecimal(hisDto.getHisMedicalIncome()));
                     dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
-                    dto.setAcctNo(hisDto.getAcctNo());
-                    dto.setAcctDate(hisDto.getAcctDate());
+                    dto.setAcctNo(null);
+                    dto.setAcctDate(null);
+                    if(calculationType == 0 ) {
+                        dto.setAcctNo(hisDto.getAcctNo());
+                        dto.setAcctDate(hisDto.getAcctDate());
+                    }
                 } else {
                     dto.setReportAmount(BigDecimal.ZERO);
                 }
@@ -1468,12 +1489,6 @@ public class ReportServiceImpl implements ReportService {
             BigDecimal c1 = hist != null ? getSafeBigDecimal(hist.getHisAdvancePayment()) : BigDecimal.ZERO;
             BigDecimal c2 = hist != null ? getSafeBigDecimal(hist.getHisMedicalIncome()) : BigDecimal.ZERO;
 
-//            BigDecimal c = hist != null ? getSafeBigDecimal(hist.getReportAmount()) : BigDecimal.ZERO;
-            result.backHisAdvancePayment = result.backHisAdvancePayment.add(c1);
-            result.backHisMedicalIncome = result.backHisMedicalIncome.add(c2);
-//            result.backReportAmount = result.backReportAmount.add(c);
-
-
             //节假日暂收款 = 周六+周末 节假日暂收款录入
             BigDecimal b = hist != null ? getSafeBigDecimal(hist.getHolidayTemporaryReceipt()) : BigDecimal.ZERO;
             // 2. 边界判定：如果这就是我们定位到的最小日期
@@ -1486,10 +1501,11 @@ public class ReportServiceImpl implements ReportService {
                 if (minDate.getDayOfMonth() != 1) {
                     b = BigDecimal.ZERO;
                 }
+            }else {
+                result.backHisAdvancePayment = result.backHisAdvancePayment.add(c1);
+                result.backHisMedicalIncome = result.backHisMedicalIncome.add(c2);
+                result.backHolidayTemporaryReceipt = result.backHolidayTemporaryReceipt.add(b);
             }
-
-            result.backHolidayTemporaryReceipt = result.backHolidayTemporaryReceipt.add(b);
-
 
             current = current.minusDays(1);
 
