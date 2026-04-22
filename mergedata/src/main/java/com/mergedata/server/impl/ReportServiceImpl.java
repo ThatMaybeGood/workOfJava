@@ -239,23 +239,39 @@ public class ReportServiceImpl implements ReportService {
                 }
 
 
-                //查询当前已有报表数据
-/*                List<OutpCashSubEntity> resultList = main.getSubs();
-                for (OutpCashSubEntity dto : resultList) {
+            //查询当前已有报表数据
+            List<OutpCashSubEntity> resultList = new ArrayList<>();
+
+            for (YQOperatorEntity operator : operators) {
+                //标识判断是否新增的操作员
+                String addFlag = "0";
+
+                OutpCashSubEntity dto = subsMap.get(operator.getDbUser());
+
+                    if (dto == null) {
+                        addFlag = "1";
+                        dto = new OutpCashSubEntity();
+                    }
+
+
+                    dto.setOperatorNo(operator.getDbUser());
+                    dto.setOperatorName(operator.getOperatorName());
+                    dto.setDbUser(operator.getDbUser());
+
                     dto.setSerialNo(pk);
                     dto.setSerialSubNo(PrimaryKeyGenerator.generateKey());
 
 
-                    if (operatorMap.containsKey(dto.getDbUser())) {
+                    if (operatorMap.containsKey(operator.getDbUser())) {
                         // 1. 基础 HIS 收入赋值
-                        HisOutpIncomeResponseDTO hisDto = hisDataMap.get(dto.getDbUser());
+                        HisOutpIncomeResponseDTO hisDto = hisDataMap.get(operator.getDbUser());
                         if (hisDto != null) {
                             dto.setHisAdvancePayment(getSafeBigDecimal(hisDto.getHisAdvancePayment()));
                             dto.setHisMedicalIncome(getSafeBigDecimal(hisDto.getHisMedicalIncome()));
                             dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
                             dto.setAcctNo(null);
                             dto.setAcctDate(null);
-                            if ( calculationType == 0) {
+                            if (calculationType == 0) {
                                 dto.setAcctNo(hisDto.getAcctNo());
                                 dto.setAcctDate(hisDto.getAcctDate());
                             }
@@ -264,21 +280,21 @@ public class ReportServiceImpl implements ReportService {
                     }
 
 
-                    *//*
+                    /*
                     1、判断是否汇总
                         1.1、是汇总 ，且对应日期 是节假日 且是月末最后一天
                         1.2、是汇总，且对应日期 是节假日后工作日第一天
-                    *//*
-                    if (calculationType == 1) {
-                        *//**
+                    */
+                    if (calculationType == 1  && addFlag.equals("0")) {
+                        /**
                          需要完善独立的方法，首先去判断找到回溯截止的日期，且回溯期间是否有日期中无数据的，那就回溯截止日期到对应无数据为准
-                         *//*
+                         */
                         handleOutpBacktrackLogic(dto, currtDate, minDate, historyMap, type);
                     }
 
                     if (calculationType == 0) {
                         //前日暂收款  =  前一天的 当日 暂收款
-                        OutpCashSubEntity yest = yesterdayMap.get(dto.getDbUser());
+                        OutpCashSubEntity yest = yesterdayMap.get(operator.getDbUser());
                         dto.setPreviousTemporaryReceipt(yest != null ? getSafeBigDecimal(yest.getCurrentTemporaryReceipt()) : BigDecimal.ZERO);
                     }
 
@@ -300,73 +316,6 @@ public class ReportServiceImpl implements ReportService {
                     dto.setRetainedDifference(getSafeBigDecimal(dto.getRetainedCash())
                             .subtract(getSafeBigDecimal(dto.getPettyCash()))
                             .add(getSafeBigDecimal(dto.getActualReportAmount())));
-
-                } */
-
-            //查询当前已有报表数据
-            List<OutpCashSubEntity> resultList = new ArrayList<>();
-
-            for (YQOperatorEntity operator : operators) {
-                OutpCashSubEntity dto = subsMap.getOrDefault(operator.getDbUser(), new OutpCashSubEntity());
-
-                dto.setSerialNo(pk);
-                dto.setSerialSubNo(PrimaryKeyGenerator.generateKey());
-
-
-                if (operatorMap.containsKey(dto.getDbUser())) {
-                    // 1. 基础 HIS 收入赋值
-                    HisOutpIncomeResponseDTO hisDto = hisDataMap.get(dto.getDbUser());
-                    if (hisDto != null) {
-                        dto.setHisAdvancePayment(getSafeBigDecimal(hisDto.getHisAdvancePayment()));
-                        dto.setHisMedicalIncome(getSafeBigDecimal(hisDto.getHisMedicalIncome()));
-                        dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
-                        dto.setAcctNo(null);
-                        dto.setAcctDate(null);
-                        if ( calculationType == 0) {
-                            dto.setAcctNo(hisDto.getAcctNo());
-                            dto.setAcctDate(hisDto.getAcctDate());
-                        }
-
-                    }
-                }
-
-
-                    /*
-                    1、判断是否汇总
-                        1.1、是汇总 ，且对应日期 是节假日 且是月末最后一天
-                        1.2、是汇总，且对应日期 是节假日后工作日第一天
-                    */
-                if (calculationType == 1) {
-                    /**
-                     需要完善独立的方法，首先去判断找到回溯截止的日期，且回溯期间是否有日期中无数据的，那就回溯截止日期到对应无数据为准
-                     */
-                    handleOutpBacktrackLogic(dto, currtDate, minDate, historyMap, type);
-                }
-
-                if (calculationType == 0) {
-                    //前日暂收款  =  前一天的 当日 暂收款
-                    OutpCashSubEntity yest = yesterdayMap.get(dto.getDbUser());
-                    dto.setPreviousTemporaryReceipt(yest != null ? getSafeBigDecimal(yest.getCurrentTemporaryReceipt()) : BigDecimal.ZERO);
-                }
-
-                //应交报表数  =  his预交金 + his医疗收入
-                dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
-
-                //汇总情况下，对应公式应该是  月末最后一天且非节假日也是如此
-                if (calculationType == 1 || Constant.HOLIDAY_NOT_MONTH_LASTDAY.equals(type)) {
-                    // 实交报表数据 = 应交报表数 - 前日暂收款 - 节假日暂收款
-                    dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()).subtract(dto.getHolidayTemporaryReceipt()));
-                } else {
-                    // 实交报表数据 = 应交报表数 - 前日暂收款
-                    dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()));
-                }
-                // 5.实收现金数 = 实收报表数 + 当日暂收款
-                dto.setActualCashAmount(getSafeBigDecimal(dto.getActualReportAmount()).add(getSafeBigDecimal(dto.getCurrentTemporaryReceipt())));
-
-                // 6.留存数差额 = 留存现金 - 备用金 + 实收报表数
-                dto.setRetainedDifference(getSafeBigDecimal(dto.getRetainedCash())
-                        .subtract(getSafeBigDecimal(dto.getPettyCash()))
-                        .add(getSafeBigDecimal(dto.getActualReportAmount())));
 
                 resultList.add(dto);
 
@@ -412,7 +361,7 @@ public class ReportServiceImpl implements ReportService {
 
         String remark = "";
         for (OutpReportSubVO sub : mainVO.getSubList()) {
-            if (sub.getOperatorName().equals("当日暂收款")) {
+            if ("当日暂收款".equals(sub.getOperatorName())) {
                 remark = sub.getRemarks();
             }
         }
