@@ -19,7 +19,7 @@ public class YQHolidayCalendarVO {
     @NotNull(message = "节假日日期不能为空")
     private LocalDate holidayDate;
     /**
-     * 节假日类型，周末，节假日，工作日 0，1，2
+     * 节假日类型， 0 工作日 1 节假日  2 节假日后第一天 3 节假日前一天 4 月末最后一天且是节假日 5 月末最后一天且非节假日
      */
     private String holidayType;
     /**
@@ -32,7 +32,7 @@ public class YQHolidayCalendarVO {
     private LocalDate minDate;
 
      /**
-     * 汇总标志，0 不汇总 1 汇总
+     * 汇总标志，0 不汇总 1 汇总 2 月初
      */
     private String totalFlag;
 
