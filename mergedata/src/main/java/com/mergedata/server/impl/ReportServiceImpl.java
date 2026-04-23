@@ -303,14 +303,20 @@ public class ReportServiceImpl implements ReportService {
                     dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
 
                     //汇总情况下，对应公式应该是  月末最后一天且非节假日也是如此
-                    if (calculationType == 1 || Constant.HOLIDAY_NOT_MONTH_LASTDAY.equals(type)) {
-                        // 实交报表数据 = 应交报表数 - 前日暂收款 - 节假日暂收款
-                        dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()).subtract(dto.getHolidayTemporaryReceipt()));
-                    } else {
-                        // 实交报表数据 = 应交报表数 - 前日暂收款
-                        dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()));
-                    }
-                    // 5.实收现金数 = 实收报表数 + 当日暂收款
+//                    if (calculationType == 1 || Constant.HOLIDAY_NOT_MONTH_LASTDAY.equals(type)) {
+//                        // 实交报表数据 = 应交报表数 - 前日暂收款 - 节假日暂收款
+//                        dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()).subtract(dto.getHolidayTemporaryReceipt()));
+//                    } else {
+//                        // 实交报表数据 = 应交报表数 - 前日暂收款
+//                        dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()));
+//                    }
+
+                    //2026.04.23 要求修改 实交报表数据 = 应交报表数 - 前日暂收款 - 节假日暂收款
+                    dto.setActualReportAmount(dto.getReportAmount()
+                            .subtract(dto.getPreviousTemporaryReceipt())
+                            .subtract(dto.getHolidayTemporaryReceipt()));
+
+                // 5.实收现金数 = 实收报表数 + 当日暂收款
                     dto.setActualCashAmount(getSafeBigDecimal(dto.getActualReportAmount()).add(getSafeBigDecimal(dto.getCurrentTemporaryReceipt())));
 
                     // 6.留存数差额 = 留存现金 - 备用金 + 实收报表数
@@ -615,15 +621,19 @@ public class ReportServiceImpl implements ReportService {
                     dto.setPreviousTemporaryReceipt(yest != null ? getSafeBigDecimal(yest.getCurrentTemporaryReceipt()) : BigDecimal.ZERO);
                 }
 
-                // 8. 实交报表数据计算
-                if (calculationType == 1 || Constant.HOLIDAY_NOT_MONTH_LASTDAY.equals(type)) {
-                    dto.setActualReportAmount(dto.getReportAmount()
-                            .subtract(dto.getPreviousTemporaryReceipt())
-                            .subtract(dto.getHolidayTemporaryReceipt()));
-                } else {
-                    dto.setActualReportAmount(dto.getReportAmount()
-                            .subtract(dto.getPreviousTemporaryReceipt()));
-                }
+//                // 8. 实交报表数据计算
+//                if (calculationType == 1 || Constant.HOLIDAY_NOT_MONTH_LASTDAY.equals(type)) {
+//                    dto.setActualReportAmount(dto.getReportAmount()
+//                            .subtract(dto.getPreviousTemporaryReceipt())
+//                            .subtract(dto.getHolidayTemporaryReceipt()));
+//                } else {
+//                    dto.setActualReportAmount(dto.getReportAmount()
+//                            .subtract(dto.getPreviousTemporaryReceipt()));
+//                }
+                //2026.04.23 要求修改 实交报表数据 = 应交报表数 - 前日暂收款 - 节假日暂收款
+                dto.setActualReportAmount(dto.getReportAmount()
+                        .subtract(dto.getPreviousTemporaryReceipt())
+                        .subtract(dto.getHolidayTemporaryReceipt()));
 
                 // 9. 实收现金数
                 dto.setActualCashAmount(getSafeBigDecimal(dto.getActualReportAmount())
@@ -1371,13 +1381,19 @@ public class ReportServiceImpl implements ReportService {
                 dto.setReportAmount(dto.getHisAdvancePayment().add(dto.getHisMedicalIncome()));
 
                 //汇总情况下，对应公式应该是  月末最后一天且非节假日也是如此
-                if (calculationType == 1 || Constant.HOLIDAY_NOT_MONTH_LASTDAY.equals(type)) {
-                    // 实交报表数据 = 应交报表数 - 前日暂收款 - 节假日暂收款
-                    dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()).subtract(dto.getHolidayTemporaryReceipt()));
-                } else {
-                    // 实交报表数据 = 应交报表数 - 前日暂收款
-                    dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()));
-                }
+//                if (calculationType == 1 || Constant.HOLIDAY_NOT_MONTH_LASTDAY.equals(type)) {
+//                    // 实交报表数据 = 应交报表数 - 前日暂收款 - 节假日暂收款
+//                    dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()).subtract(dto.getHolidayTemporaryReceipt()));
+//                } else {
+//                    // 实交报表数据 = 应交报表数 - 前日暂收款
+//                    dto.setActualReportAmount(dto.getReportAmount().subtract(dto.getPreviousTemporaryReceipt()));
+//                }
+
+                //2026.04.23 要求修改 实交报表数据 = 应交报表数 - 前日暂收款 - 节假日暂收款
+                dto.setActualReportAmount(dto.getReportAmount()
+                        .subtract(dto.getPreviousTemporaryReceipt())
+                        .subtract(dto.getHolidayTemporaryReceipt()));
+
                 // 5.实收现金数 = 实收报表数 + 当日暂收款
                 dto.setActualCashAmount(getSafeBigDecimal(dto.getActualReportAmount()).add(getSafeBigDecimal(dto.getCurrentTemporaryReceipt())));
 
