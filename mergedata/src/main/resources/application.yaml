@@ -44,6 +44,9 @@ logging:
     org.apache.ibatis.executor: debug
 
 #    com.mergedata.util: info
+#    DEBUG  # 开启 开启拦截器的打印日志
+    com.mergedata.config.RequestLoggingInterceptor: INFO   # 关闭
+
 
   #  告诉 Spring Boot 使用自定义的 Logback 配置文件
   config: classpath:logback-spring.xml
