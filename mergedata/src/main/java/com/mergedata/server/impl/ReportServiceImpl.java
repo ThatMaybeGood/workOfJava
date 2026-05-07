@@ -492,6 +492,7 @@ public class ReportServiceImpl implements ReportService {
                     dto.setHisMedicalIncome(calc.getHisMedicalIncome());
                     dto.setHisRegistrationIncome(calc.getHisRegistrationIncome());
                     dto.setReportAmount(calc.getReportAmount());
+
                     dto.setPreviousTemporaryReceipt(calc.getPreviousTemporaryReceipt());
                     dto.setHolidayTemporaryReceipt(calc.getHolidayTemporaryReceipt());
                     dto.setActualReportAmount(calc.getActualReportAmount());
@@ -589,20 +590,22 @@ public class ReportServiceImpl implements ReportService {
                     dto.setPettyCash(BigDecimal.ZERO);  // 设置默认值
                 } else {
                     dto.setPettyCash(operator.getPettyCash());
-
-                    // 如果是不可以输入的人，需要提取 his 数据
-                    if (!"1".equals(operator.getInputFlag())) {
-                        HisOutpIncomeResponseDTO hisDto = hisDataMap.get(dto.getDbUser());
-                        if (hisDto != null) {
-                            dto.setHisAdvancePayment(getSafeBigDecimal(hisDto.getHisAdvancePayment()));
-                            dto.setHisMedicalIncome(getSafeBigDecimal(hisDto.getHisMedicalIncome()));
-                            dto.setAcctNo(hisDto.getAcctNo());
-                            dto.setAcctDate(hisDto.getAcctDate());
-                        } else {
-                            dto.setHisAdvancePayment(BigDecimal.ZERO);
-                            dto.setHisMedicalIncome(BigDecimal.ZERO);
-                            dto.setAcctNo(null);
-                            dto.setAcctDate(null);
+                    //增加合计情况不
+                    if(calculationType != 1) {
+                        // 如果是不可以输入的人，需要提取 his 数据
+                        if (!"1".equals(operator.getInputFlag())) {
+                            HisOutpIncomeResponseDTO hisDto = hisDataMap.get(dto.getDbUser());
+                            if (hisDto != null) {
+                                dto.setHisAdvancePayment(getSafeBigDecimal(hisDto.getHisAdvancePayment()));
+                                dto.setHisMedicalIncome(getSafeBigDecimal(hisDto.getHisMedicalIncome()));
+                                dto.setAcctNo(hisDto.getAcctNo());
+                                dto.setAcctDate(hisDto.getAcctDate());
+                            } else {
+                                dto.setHisAdvancePayment(BigDecimal.ZERO);
+                                dto.setHisMedicalIncome(BigDecimal.ZERO);
+                                dto.setAcctNo(null);
+                                dto.setAcctDate(null);
+                            }
                         }
                     }
                 }
@@ -614,10 +617,11 @@ public class ReportServiceImpl implements ReportService {
                 YQCashRegRecordEntity cashRec = cashMap.get(dto.getDbUser());
                 dto.setRetainedCash(cashRec != null ? getSafeBigDecimal(cashRec.getRetainedCash()) : BigDecimal.ZERO);
 
-                // 6. 汇总回溯处理
-                if (calculationType == 1) {
-                    handleOutpBacktrackLogic(dto, currtDate, minDate, historyMap, type);
-                }
+                //保存数据时候取消汇总 2025。05.07
+//                // 6. 汇总回溯处理
+//                if (calculationType == 1) {
+//                    handleOutpBacktrackLogic(dto, currtDate, minDate, historyMap, type);
+//                }
 
                 // 7. 非汇总处理
                 if (calculationType == 0) {
