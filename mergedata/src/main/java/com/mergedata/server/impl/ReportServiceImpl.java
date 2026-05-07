@@ -1123,13 +1123,15 @@ public class ReportServiceImpl implements ReportService {
         total.setHisAdvancePayment(sumByField.apply(OutpCashSubEntity::getHisAdvancePayment));
         total.setHisMedicalIncome(sumByField.apply(OutpCashSubEntity::getHisMedicalIncome));
         total.setHisRegistrationIncome(sumByField.apply(OutpCashSubEntity::getHisRegistrationIncome));
-        total.setRetainedCash(sumByField.apply(OutpCashSubEntity::getRetainedCash));
+
         total.setReportAmount(sumByField.apply(OutpCashSubEntity::getReportAmount));
         total.setPreviousTemporaryReceipt(sumByField.apply(OutpCashSubEntity::getPreviousTemporaryReceipt));
         total.setHolidayTemporaryReceipt(sumByField.apply(OutpCashSubEntity::getHolidayTemporaryReceipt));
-        total.setActualCashAmount(sumByField.apply(OutpCashSubEntity::getActualCashAmount));
+        total.setActualReportAmount(sumByField.apply(OutpCashSubEntity::getActualReportAmount));
         total.setCurrentTemporaryReceipt(sumByField.apply(OutpCashSubEntity::getCurrentTemporaryReceipt));
+        total.setActualCashAmount(sumByField.apply(OutpCashSubEntity::getActualCashAmount));
         total.setRetainedDifference(sumByField.apply(OutpCashSubEntity::getRetainedDifference));
+        total.setRetainedCash(sumByField.apply(OutpCashSubEntity::getRetainedCash));
         total.setPettyCash(sumByField.apply(OutpCashSubEntity::getPettyCash));
 
         total.setRemarks("合计行，不展示在报表中");
