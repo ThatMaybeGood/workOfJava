@@ -138,7 +138,11 @@ public class ReportServiceImpl implements ReportService {
      */
     private OutpCashMainEntity isInitOutpReportData(OutpReportRequestBody body, int calculationType) {
         try {
+
                 LocalDate currtDate = body.getReportDate();
+                if(Constant.HOLIDAY_TOTAL.equals(body.getTotalFlag())){
+                    currtDate = currtDate.minusDays(1);
+                }
                 String pk = PrimaryKeyGenerator.generateKey();
                 //查询出具体的类型
                 String type = holidayService.queryDateType(body.getReportDate(), Constant.TYPE_OUTP);
@@ -258,6 +262,7 @@ public class ReportServiceImpl implements ReportService {
                     dto.setOperatorNo(operator.getDbUser());
                     dto.setOperatorName(operator.getOperatorName());
                     dto.setDbUser(operator.getDbUser());
+                    dto.setRowNum(operator.getRowNum());
 
                     dto.setSerialNo(pk);
                     dto.setSerialSubNo(PrimaryKeyGenerator.generateKey());
@@ -1538,7 +1543,12 @@ public class ReportServiceImpl implements ReportService {
                 //如果最小日期不是月初第一天，则需要对应节假日暂收款置为0
                 if (minDate.getDayOfMonth() != 1) {
                     b = BigDecimal.ZERO;
+                }else {
+                    result.backHisAdvancePayment = result.backHisAdvancePayment.add(c1);
+                    result.backHisMedicalIncome = result.backHisMedicalIncome.add(c2);
+                    result.backHolidayTemporaryReceipt = result.backHolidayTemporaryReceipt.add(b);
                 }
+
             }else {
                 result.backHisAdvancePayment = result.backHisAdvancePayment.add(c1);
                 result.backHisMedicalIncome = result.backHisMedicalIncome.add(c2);

@@ -1,0 +1,8 @@
+message:
+  routes:
+    /receive/order:
+      strategy: orderStrategy
+      targetUrl: http://vendor-a.com/api/order
+    /receive/user:
+      strategy: userStrategy
+      targetUrl: http://vendor-b.com/api/user

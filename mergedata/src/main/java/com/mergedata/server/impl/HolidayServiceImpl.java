@@ -144,7 +144,7 @@ public class HolidayServiceImpl implements YQHolidayService {
     public YQHolidayCalendarVO queryHolidayTotalType(LocalDate currentDate, String queryType, String totalFlag) {
         YQHolidayCalendarVO vo = new YQHolidayCalendarVO();
         String type = queryDateType(currentDate, queryType);
-        LocalDate minDate = findMinBacktrackDate(currentDate).plusDays(1);
+        LocalDate minDate = findMinBacktrackDate(currentDate);
 
         vo.setHolidayDate(currentDate);
         vo.setQueryType(queryType);
