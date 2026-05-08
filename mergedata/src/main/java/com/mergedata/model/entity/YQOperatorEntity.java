@@ -99,6 +99,9 @@ public class YQOperatorEntity {
      */
      private String inputFlag = "0";
 
-
+    /*
+     * 是否提取his数据
+     */
+    private String extractHisFlag = "1";
 }
 

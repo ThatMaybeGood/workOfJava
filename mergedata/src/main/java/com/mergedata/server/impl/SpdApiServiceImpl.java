@@ -59,7 +59,7 @@ public class SpdApiServiceImpl  implements SpdApiService {
                             request.getPrescNo(),
                             "1".equals(request.getIsExpress()) ? "快递" : "自取");
                 } else {
-                    log.warn("SPD接口调用失败，响应：{}", response);
+                    log.info("SPD接口调用失败，响应：{}", response);
                 }
             } else {
                 response.setResultInfo("9999");
