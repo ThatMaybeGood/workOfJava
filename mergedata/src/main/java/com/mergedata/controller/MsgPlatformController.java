@@ -106,9 +106,12 @@ public class MsgPlatformController {
         String drugStoreId = getJsonValue(dataNode, "drug_store_id");
         String registerFlowNo = getJsonValue(dataNode, "register_flow_no");
         String bizRecipeNo = getJsonValue(dataNode, "biz_recipe_no");
+        String patId = getJsonValue(dataNode, "patient_id");
+        String patName = getJsonValue(dataNode, "patient_name");
+
 
         // 打印日志
-        log.info("消息类型码: {} 消息名称: {}   biz_recipe_no: {}", msgCode, msgName, bizRecipeNo);
+        log.info("消息类型码: {} 消息名称: {} 姓名:{} 病人ID:{} biz_recipe_no: {}", msgCode, patName,patId,msgName, bizRecipeNo);
 
         // 解析并调用SPD接口
         if (!bizRecipeNo.isEmpty()) {
