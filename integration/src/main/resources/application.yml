@@ -1,0 +1,102 @@
+server:
+  # 项目启动端口
+  port: 8080
+
+
+integration:
+
+
+  # trace流水号配置
+  trace:
+
+    # 是否开启traceId
+    enabled: true
+
+    # 默认流水号前缀
+    default-prefix: YQ
+
+    # 流水号长度
+    id-length: 15
+
+    # 不同业务前缀
+    biz-prefix:
+
+      # SPD业务前缀
+      spd: SPD
+
+      # HIS业务前缀
+      his: HIS
+
+      # ERP业务前缀
+      erp: ERP
+
+
+
+  # 下游接口配置
+  apis:
+
+    # SPD接口配置
+    spd:
+
+      # 是否启用
+      enabled: true
+
+      # SPD目标地址
+      url: http://127.0.0.1:9001/spd
+
+      # 请求超时时间(毫秒)
+      timeout: 5000
+
+      # 是否打印请求日志
+      print-log: true
+
+      # 是否打印响应日志
+      print-response: true
+
+      # 是否打印异常日志
+      print-error: true
+
+      # 是否开启失败重试
+      retry-enabled: true
+
+      # 重试次数
+      retry-count: 3
+
+      # 重试间隔(毫秒)
+      retry-interval: 2000
+
+      # 是否保存消息
+      save-message: true
+
+      # 请求类型(JSON/XML)
+      content-type: application/json
+
+
+
+  # 接收接口配置
+  receives:
+
+    # SPD接收配置
+    spd:
+
+      # 是否开启接口
+      enabled: true
+
+      # 是否开启业务处理
+      process-enabled: true
+
+      # 是否打印请求报文
+      print-request: true
+
+      # 是否打印响应报文
+      print-response: true
+
+      # 是否保存原始报文
+      save-message: true
+
+      # 是否异步处理
+      async-enabled: false
+
+      # IP白名单
+      ip-white-list:
+        - 127.0.0.1
