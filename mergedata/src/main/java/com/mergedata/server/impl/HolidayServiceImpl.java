@@ -144,7 +144,7 @@ public class HolidayServiceImpl implements YQHolidayService {
     public YQHolidayCalendarVO queryHolidayTotalType(LocalDate currentDate, String queryType, String totalFlag) {
         YQHolidayCalendarVO vo = new YQHolidayCalendarVO();
         String type = queryDateType(currentDate, queryType);
-        LocalDate minDate = findMinBacktrackDate(currentDate);
+        LocalDate minDate = findMinBacktrackDate(currentDate,totalFlag).plusDays(1);
 
         vo.setHolidayDate(currentDate);
         vo.setQueryType(queryType);
@@ -255,7 +255,7 @@ public class HolidayServiceImpl implements YQHolidayService {
      * 查找最近的工作日或月初 1 号，作为回溯截止日期
      */
     @Override
-    public LocalDate findMinBacktrackDate(LocalDate localDate) {
+    public LocalDate findMinBacktrackDate(LocalDate localDate,String totalFlag) {
 
         Set<LocalDate> holidaySet = findByYear(localDate.getYear()).stream()
                 .map(YQHolidayEntity::getHolidayDate).collect(Collectors.toSet());

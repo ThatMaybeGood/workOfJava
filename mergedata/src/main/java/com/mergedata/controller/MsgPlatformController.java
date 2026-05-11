@@ -11,12 +11,10 @@ import com.mergedata.model.dto.SpdPrescExpressResponse;
 import com.mergedata.server.SpdApiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -26,6 +24,14 @@ public class MsgPlatformController {
 
     private final ObjectMapper objectMapper;
     private final SpdApiService spdApiService;  // 注入SPD服务
+
+    // SPD消息接收开关
+    @Value("${spd.msg.rcv:true}")
+    private boolean spdReceiveEnabled;
+
+    // SPD消息推送开关
+    @Value("${spd.msg.send:true}")
+    private boolean spdSendEnabled;
 
     @PostMapping("/prioPersonMessage")
     public MsgResponse<?> prioPersonMessage(@RequestBody MsgRequest request,
@@ -50,7 +56,7 @@ public class MsgPlatformController {
             log.error("接收消息失败: {}", e.getMessage(), e);
             return MsgResponse.failure("接收消息失败: " + e.getMessage());
         }
-        log.info("========== 接收消息完成，返回成功响应 ==========");
+        log.info("========== 优先人员 接收消息完成，返回成功响应 ==========");
         return MsgResponse.success("操作成功");
     }
 
@@ -60,6 +66,12 @@ public class MsgPlatformController {
             HttpServletRequest httpRequest) {
 
         log.info("========== SPD接口收到请求 ==========");
+
+        // 检查SPD接收开关
+        if (!spdReceiveEnabled) {
+            log.info("SPD消息接收已禁用，跳过处理");
+            return MsgResponse.success("SPD消息接收已禁用");
+        }
 
         try {
             if (rawRequestBody == null || rawRequestBody.isEmpty()) {
@@ -73,7 +85,7 @@ public class MsgPlatformController {
             log.error("处理请求失败", e);
             return MsgResponse.failure("接收消息失败: " + e.getMessage());
         }
-        log.info("========== 接收消息完成，返回成功响应 ==========");
+        log.info("========== SPD 接收消息完成，返回成功响应 ==========");
         return MsgResponse.success("操作成功");
     }
 
@@ -123,6 +135,12 @@ public class MsgPlatformController {
      * 调用SPD接口
      */
     private void callSpdApi(String drugStoreId, String registerFlowNo, String bizRecipeNo) {
+        // 检查SPD推送开关
+        if (!spdSendEnabled) {
+            log.info("SPD消息推送已禁用，跳过SPD接口调用。bizRecipeNo: {}", bizRecipeNo);
+            return;
+        }
+
         String[] parts = bizRecipeNo.split("\\|");
 
         if (parts.length < 4) {

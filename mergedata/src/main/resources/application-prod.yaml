@@ -75,7 +75,10 @@ druid:
 spd:
   api:
     url: http://168.168.230.220:8011/api/SpdOpWeb/outpDrugMasterStatus
-
+  #消息的接收和推送开关
+  msg:
+    rcv: true
+    send: false
 
 
 # 运行模式:  prod-生产模式(使用真实接口)

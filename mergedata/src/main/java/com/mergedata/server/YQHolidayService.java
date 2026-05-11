@@ -66,7 +66,7 @@ public interface YQHolidayService {
     /**
      * 查找最近的工作日或月初 1 号，作为回溯截止日期
      */
-    LocalDate findMinBacktrackDate(LocalDate localDate);
+    LocalDate findMinBacktrackDate(LocalDate localDate,String totalFlag);
 
 
     /**

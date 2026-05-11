@@ -138,9 +138,7 @@ public class ReportServiceImpl implements ReportService {
         try {
 
             LocalDate currtDate = body.getReportDate();
-            if (Constant.HOLIDAY_TOTAL.equals(body.getTotalFlag())) {
-                currtDate = currtDate.minusDays(1);
-            }
+
             String pk = PrimaryKeyGenerator.generateKey();
             //查询出具体的类型
             String type = holidayService.queryDateType(body.getReportDate(), Constant.TYPE_OUTP);
@@ -225,7 +223,7 @@ public class ReportServiceImpl implements ReportService {
             if (calculationType == 1) {
                 // 获取昨日数据对象
                 // 定位回溯的最远日期
-                minDate = holidayService.findMinBacktrackDate(currtDate);
+                minDate = holidayService.findMinBacktrackDate(currtDate, body.getTotalFlag());
 
                 List<OutpCashMainEntity> historyMains = outpReportService.findBatchByDateRange(minDate, currtDate.minusDays(1), "0");
                 if (Constant.HOLIDAY_MONTH_LASTDAY.equals(type)) {
@@ -576,7 +574,7 @@ public class ReportServiceImpl implements ReportService {
             LocalDate minDate = LocalDate.of(1900, 1, 1);
             Map<LocalDate, OutpCashMainEntity> historyMap = new HashMap<>();
             if (calculationType == 1) {
-                minDate = holidayService.findMinBacktrackDate(currtDate);
+                minDate = holidayService.findMinBacktrackDate(currtDate, totalFlag);
                 List<OutpCashMainEntity> historyMains = outpReportService.findBatchByDateRange(minDate, currtDate.minusDays(1), "0");
                 if (Constant.HOLIDAY_MONTH_LASTDAY.equals(type)) {
                     historyMains = outpReportService.findBatchByDateRange(minDate, currtDate, "0");
@@ -1312,7 +1310,7 @@ public class ReportServiceImpl implements ReportService {
             if (calculationType == 1) {
                 // 获取昨日数据对象
                 // 定位回溯的最远日期
-                minDate = holidayService.findMinBacktrackDate(currtDate);
+                minDate = holidayService.findMinBacktrackDate(currtDate, body.getTotalFlag());
                 //一次性查询范围内的所有报表（包含 Subs 明细）
                 // WHERE report_date >= minDate AND report_date < currtDate
                 List<OutpCashMainEntity> historyMains = outpReportService.findBatchByDateRange(minDate, currtDate.minusDays(1), "0");
@@ -1392,7 +1390,7 @@ public class ReportServiceImpl implements ReportService {
                     /**
                      需要完善独立的方法，首先去判断找到回溯截止的日期，且回溯期间是否有日期中无数据的，那就回溯截止日期到对应无数据为准
                      */
-                    handleOutpBacktrackLogic(dto, currtDate, minDate, historyMap, type);
+                    handleOutpBacktrackLogic(dto, currtDate.minusDays(1), minDate, historyMap, type);
                 }
 
                 if (calculationType == 0) {
@@ -1531,6 +1529,7 @@ public class ReportServiceImpl implements ReportService {
         // 没到 minDate 且 historyMap 有数据，就继续回溯
         while (!current.isBefore(minDate)) {
 
+
             OutpCashMainEntity dayMain = historyMap.get(current);
 
             if (dayMain == null) {
@@ -1555,6 +1554,8 @@ public class ReportServiceImpl implements ReportService {
 
             //节假日暂收款 = 周六+周末 节假日暂收款录入
             BigDecimal b = hist != null ? getSafeBigDecimal(hist.getHolidayTemporaryReceipt()) : BigDecimal.ZERO;
+
+
             // 2. 边界判定：如果这就是我们定位到的最小日期
             if (current.isEqual(minDate)) {
                 // --- 边界特殊处理 ---   取值周五的当日暂收款（4）
@@ -1571,10 +1572,11 @@ public class ReportServiceImpl implements ReportService {
                 }
 
             } else {
-                result.backHisAdvancePayment = result.backHisAdvancePayment.add(c1);
-                result.backHisMedicalIncome = result.backHisMedicalIncome.add(c2);
-                result.backHolidayTemporaryReceipt = result.backHolidayTemporaryReceipt.add(b);
+                    result.backHisAdvancePayment = result.backHisAdvancePayment.add(c1);
+                    result.backHisMedicalIncome = result.backHisMedicalIncome.add(c2);
+                    result.backHolidayTemporaryReceipt = result.backHolidayTemporaryReceipt.add(b);
             }
+
 
             current = current.minusDays(1);
 
