@@ -556,6 +556,9 @@ public class ReportServiceImpl implements ReportService {
             OutpCashMainEntity yesterdayMain = new OutpCashMainEntity();
             if (currtDate.getDayOfMonth() == 1 && Constant.HOLIDAY_MONTH_FIRST.equals(totalFlag)) {
                 yesterdayMain = outpReportService.findByDateExclude(currtDate, Constant.HOLIDAY_MONTH_FIRST);
+            }else if (calculationType == 0 && holidayService.isSpecialHolidaySum(currtDate, Constant.HOLIDAY_TOTAL) == 1) {
+                //判断是否周二，周二情况不能取值周一的正常的前日暂收款，应该取其汇总的站收款
+                yesterdayMain = outpReportService.findByDateExclude(currtDate, Constant.HOLIDAY_TOTAL);
             } else {
                 yesterdayMain = outpReportService.findByDateExclude(currtDate.minusDays(1), totalFlag);
             }
