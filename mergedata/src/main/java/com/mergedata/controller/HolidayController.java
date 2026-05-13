@@ -29,7 +29,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("api")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*") // ⚠️ VULN: 重复的CORS配置，与GlobalCorsFilter冲突
 @Tag(name = "节假日管理", description = "用于节假日相关的接口")
 public class HolidayController {
 

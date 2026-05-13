@@ -41,7 +41,8 @@ public class RequestLoggingInterceptor implements ClientHttpRequestInterceptor {
             log.debug("URI         : {}", request.getURI());
             log.debug("Method      : {}", request.getMethod());
             log.debug("Headers     : {}", request.getHeaders());
-            // 打印请求体
+            // ⚠️ VULN: 打印完整的请求体，可能包含敏感信息(密码、token、身份证号等)
+            // 建议：脱敏处理，过滤掉敏感字段后再记录
             log.debug("Request Body: {}", new String(body, StandardCharsets.UTF_8));
             log.debug("====================== REQUEST END ======================");
         }
@@ -54,7 +55,8 @@ public class RequestLoggingInterceptor implements ClientHttpRequestInterceptor {
             log.debug("Status Code : {}", response.getStatusCode());
             log.debug("Status Text : {}", response.getStatusText());
             log.debug("Headers     : {}", response.getHeaders());
-            // 由于请求工厂已做缓存，这里读取 body 是安全的
+            // ⚠️ VULN: 打印完整的响应体，可能泄露敏感业务数据
+            // 建议：脱敏处理或在生产环境关闭响应体日志
             String responseBody = StreamUtils.copyToString(response.getBody(), Charset.defaultCharset());
             log.debug("Response Body: {}", responseBody);
             log.debug("===================== RESPONSE END ======================");

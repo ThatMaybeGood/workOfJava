@@ -146,6 +146,8 @@ public class ReportServiceImpl implements ReportService {
 
             //提取当前已经有的报表数据
             OutpCashMainEntity main = outpReportService.findByDateExclude(body.getReportDate(), body.getTotalFlag());
+            // ⚠️ BUG: findByDateExclude可能返回null（当数据库无记录时），此处直接.setSerialNo(pk)会NPE
+            // 建议：增加null判断，若返回null则新建对象或直接抛出异常
             main.setSerialNo(pk);
 
 
@@ -554,6 +556,8 @@ public class ReportServiceImpl implements ReportService {
             Map<String, OutpCashSubEntity> yesterdayMap = new HashMap<>();
 
             OutpCashMainEntity yesterdayMain = new OutpCashMainEntity();
+            // ⚠️ BUG: new空对象导致下方的null判断(第569行)永远不会为true，findByDateExclude返回null时会被空对象替代
+            // 建议：初始化为null，让后续逻辑统一处理null情况
             if (currtDate.getDayOfMonth() == 1 && Constant.HOLIDAY_MONTH_FIRST.equals(totalFlag)) {
                 yesterdayMain = outpReportService.findByDateExclude(currtDate, Constant.HOLIDAY_MONTH_FIRST);
             }else if (calculationType == 0 && holidayService.isSpecialHolidaySum(currtDate, Constant.HOLIDAY_TOTAL) == 1) {
@@ -970,6 +974,8 @@ public class ReportServiceImpl implements ReportService {
 
             PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
             String pk = pks.generateKey();
+            // ⚠️ 注意: PrimaryKeyGenerator.generateKey()是静态方法，建议直接使用静态调用
+            // 且getOutpReportData方法中大量代码与isInitOutpReportData重复，约200行近乎相同的逻辑
 
             int count = 0;
             // 4. 以操作员为主，遍历构建报表数据
@@ -1047,6 +1053,7 @@ public class ReportServiceImpl implements ReportService {
     public Integer isInitInsertInp(InpCashMainEntity main, String isInitFlag) {
         PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
         String pk = pks.generateKey();
+        // ⚠️ 注意: PrimaryKeyGenerator.generateKey()是静态方法，建议统一使用静态调用
 
         //界面手工录入修改时候，保存数据重新计算明细的公式
         if (isInitFlag.equals(Constant.NO)) {

@@ -16,7 +16,7 @@ import javax.validation.Valid;
 
 @RestController
 @RequestMapping("api/audit")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*") // ⚠️ VULN: 重复的CORS配置，与GlobalCorsFilter冲突
 @Tag(name = "审核报表", description = "用于门诊报表审核相关的接口")
 public class AuditController {
 

@@ -28,7 +28,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("api/operators")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*") // ⚠️ VULN: 重复的CORS配置，与GlobalCorsFilter冲突
 @Tag(name = "操作员管理", description = "用于报表涉及操作员的接口")
 public class OperatorController {
  

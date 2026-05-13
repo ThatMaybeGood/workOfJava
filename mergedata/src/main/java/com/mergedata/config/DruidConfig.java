@@ -53,11 +53,12 @@ public class DruidConfig {
                 new ServletRegistrationBean<>(new StatViewServlet(), "/druid/*");
 
         Map<String, String> initParams = new HashMap<>();
-        // 监控页面登录用户名
+        // ⚠️ VULN: 硬编码弱密码 admin/admin123，且无IP白名单限制(=允许所有IP)
+        // 建议：使用更强的密码并配置IP白名单，生产环境建议关闭Druid监控
         initParams.put("loginUsername", "admin");
-        // 监控页面登录密码
         initParams.put("loginPassword", "admin123");
-        // IP白名单（没有配置或者为空，则允许所有访问）
+        // ⚠️ VULN: IP白名单为空，允许所有来源访问Druid监控页面
+        // 建议：配置具体IP或网段，如 initParams.put("allow", "127.0.0.1,192.168.")
         initParams.put("allow", "");
         // IP黑名单（存在共同时，deny优先于allow）
         // initParams.put("deny", "192.168.1.100");

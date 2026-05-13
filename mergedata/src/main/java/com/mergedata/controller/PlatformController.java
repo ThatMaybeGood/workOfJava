@@ -28,7 +28,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("paltform")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*") // ⚠️ VULN: 允许所有域名跨域；GlobalCorsFilter已全局配置CORS，此处重复且更宽松
 @Tag(name = "节假日管理", description = "用于节假日相关的接口")
 public class PlatformController {
 

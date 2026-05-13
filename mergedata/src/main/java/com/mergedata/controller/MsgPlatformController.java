@@ -39,6 +39,7 @@ public class MsgPlatformController {
 
         try {
             log.info(objectMapper.writeValueAsString(request));
+            // ⚠️ VULN: 日志记录完整请求体，可能包含病人隐私信息(姓名、ID等)
 
             if (request != null && request.getBody() != null) {
                 MsgRequestBody body = request.getBody();
@@ -124,6 +125,7 @@ public class MsgPlatformController {
 
         // 打印日志
         log.info("消息类型码: {} 消息名称: {} 姓名:{} 病人ID:{} biz_recipe_no: {}", msgCode, patName,patId,msgName, bizRecipeNo);
+        // ⚠️ VULN: 上面日志参数顺序错乱(patName和msgName位置颠倒)，且记录病人姓名+ID涉及隐私泄露风险
 
         // 解析并调用SPD接口
         if (!bizRecipeNo.isEmpty()) {

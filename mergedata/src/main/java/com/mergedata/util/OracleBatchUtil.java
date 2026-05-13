@@ -59,7 +59,8 @@ public class OracleBatchUtil {
             throw new RuntimeException("字段访问异常", e);
         }
 
-        // 3. 构建 SQL
+        // ⚠️ VULN: 表名直接拼接，未使用预编译参数，存在SQL注入风险
+        // 建议：对tableName做白名单校验，确保只传入预期的表名
         StringBuilder sql = new StringBuilder("INSERT INTO ").append(tableName).append(" (");
         StringBuilder placeholders = new StringBuilder("VALUES (");
         for (int i = 0; i < effectiveFields.size(); i++) {

@@ -27,7 +27,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("api/reports")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*") // ⚠️ VULN: 重复的CORS配置，与GlobalCorsFilter冲突
 @Tag(name = "报表管理", description = "用于报表查询的接口")
 public class ReportController {
 
@@ -81,7 +81,7 @@ public class ReportController {
 
     @Operation(summary = "写入住院表数据", description = "返回对应结果")
     @PostMapping("/inp_insert")
-    public ApiResponse insertInpReport(@RequestBody ApiRequest<InpReportVO> request)  {
+    public ApiResponse insertInpReport(@RequestBody ApiRequest<InpReportVO> request)  {  // ⚠️ VULN: 缺少@Valid校验注解，且没有参数校验，可接受任意数据
 
         InpReportVO vo = request.getBody();
         InpCashMainEntity main =  new InpCashMainEntity();

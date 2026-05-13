@@ -131,7 +131,7 @@ public class GlobalExceptionHandler {
         ApiResponseError<?> errorResponse = ApiResponseError.error(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "数据库连接错误",
-                "系统正在维护或数据库连接失败：" + ex.getMessage(),  // ✅ 包含具体的数据库错误信息
+                "系统正在维护或数据库连接失败：" + ex.getMessage(),  // ⚠️ VULN: 返回数据库错误详情给客户端，可能泄露服务器信息
                 request.getRequestURI(),
                 "5001"  // 数据库连接错误码
         );
@@ -148,7 +148,7 @@ public class GlobalExceptionHandler {
         logger.error("数据库访问异常: {}", ex.getMessage(), ex);
 
         String detailedMessage = "数据库操作失败，请检查数据权限或 SQL 语句。";
-        // 可以添加更具体的数据库错误信息
+        // ⚠️ VULN: 数据库异常详情返回给客户端，可能泄露SQL结构或表信息
         if (ex.getCause() != null) {
             detailedMessage += " 原因: " + ex.getCause().getMessage();
         }
@@ -156,7 +156,7 @@ public class GlobalExceptionHandler {
         ApiResponseError<?> errorResponse = ApiResponseError.error(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "数据库操作失败",
-                detailedMessage,  // ✅ 包含数据库操作的具体错误
+                detailedMessage,  // ⚠️ VULN: 同上，数据库异常详情泄露
                 request.getRequestURI(),
                 "5002"
         );

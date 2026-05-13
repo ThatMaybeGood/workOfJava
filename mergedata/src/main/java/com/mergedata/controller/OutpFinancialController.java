@@ -22,7 +22,7 @@ import javax.validation.Valid;
  */
 @RestController
 @RequestMapping("api/outp_financial")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*") // ⚠️ VULN: 重复的CORS配置，与GlobalCorsFilter冲突，且过于宽松
 @Tag(name = "门诊财务报表", description = "用于门诊财务报表相关的接口")
 public class OutpFinancialController {
 

@@ -139,12 +139,14 @@ public class OperatorServiceImpl implements YQOperatorService {
     @Transactional
     public Boolean batchInsert(List<YQOperatorEntity> entityList) {
         //查询出id
+        // ⚠️ BUG: 在for-each循环中直接调用entityList.remove()会触发ConcurrentModificationException
+        // 建议：使用Iterator.remove()或收集要删除的项在循环外删除
         for (YQOperatorEntity yqOperatorEntity : entityList) {
 
 
             if (findByID(yqOperatorEntity).size() > 0) {
                 //移除这个id的
-                entityList.remove(yqOperatorEntity);
+                entityList.remove(yqOperatorEntity);  // ⚠️ BUG: 遍历时修改列表，会抛出ConcurrentModificationException
             } else {
                 PrimaryKeyGenerator pk = new PrimaryKeyGenerator();
                 yqOperatorEntity.setSerialNo(pk.generateKey());

@@ -118,10 +118,12 @@ public class HisDataServiceImpl implements HisDataService {
 
         } catch (BusinessException e) {
             log.error("{} HIS API 调用失败: {}", apiType, e.getMessage());
-            // 根据业务需求，可以选择抛异常或返回空列表
+            // ⚠️ VULN: 吞掉BusinessException异常返回空列表，上层调用方无法感知HIS接口失败
+            // 建议：根据业务需要决定是否向上抛出异常，而不是静默返回空数据
             return Collections.emptyList();
         } catch (Exception e) {
             log.error("{} HIS API 调用发生未知异常: {}", apiType, e.getMessage(), e);
+            // ⚠️ VULN: 同上，吞掉所有未知异常，会导致报表数据异常时难以排查
             return Collections.emptyList();
         }
     }

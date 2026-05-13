@@ -35,12 +35,15 @@ public class JacksonConfig {
     public Jackson2ObjectMapperBuilderCustomizer customizer() {
         return builder -> {
 
-            // 允许 JSON 数字前导零
+            // ⚠️ VULN: 允许数字前导零，可绕过前端校验(如"001"可被某些系统解释为特殊含义)
+            // 建议：仅在兼容老旧系统时开启，否则关闭
             builder.featuresToEnable(JsonParser.Feature.ALLOW_NUMERIC_LEADING_ZEROS);
 
-            // 允许解析单引号
+            // ⚠️ VULN: 允许单引号字符串，可能绕过基于双引号的XSS/注入过滤
+            // 建议：保持严格JSON解析，关闭此特性
             builder.featuresToEnable(JsonParser.Feature.ALLOW_SINGLE_QUOTES);
-            // 允许解析非引号的字段名
+            // ⚠️ VULN: 允许无引号字段名，放宽JSON语法校验，可能增加注入攻击面
+            // 建议：关闭此特性以保持严格JSON解析
             builder.featuresToEnable(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES);
 
             // 设置驼峰转下划线命名策略 (如: createTime -> create_time)
