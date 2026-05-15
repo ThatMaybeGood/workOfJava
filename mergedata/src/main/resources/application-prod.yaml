@@ -77,7 +77,7 @@ spd:
     url: http://168.168.230.220:8011/api/SpdOpWeb/outpDrugMasterStatus
   #消息的接收和推送开关
   msg:
-    rcv: true
+    rcv: false
     send: false
 
 
