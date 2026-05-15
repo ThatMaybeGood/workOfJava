@@ -377,6 +377,8 @@ public class ReportServiceImpl implements ReportService {
             reportDate = LocalDate.now();
         }
 
+        //查询出具体的类型
+        String type = holidayService.queryDateType(reportDate, Constant.TYPE_OUTP);
 
         String remark = "";
         for (OutpReportSubVO sub : mainVO.getSubList()) {
@@ -409,7 +411,7 @@ public class ReportServiceImpl implements ReportService {
                 ouptInsertVerityDetailData(reportDate, calculationType, main.getTotalFlag(), subsUp);
 
                 //判断是否合计后金额替换组装
-                setSpecialRowsValues(main, subsUp, subsDown);
+                setSpecialRowsValues(main, subsUp, subsDown,mainVO.getTotalFlag(),type);
             }
         }
 
@@ -462,10 +464,11 @@ public class ReportServiceImpl implements ReportService {
      * 用于门诊插入数据时候 合计之后的数据需要填写组装
      *
      */
-    private void setSpecialRowsValues(OutpCashMainEntity main, List<OutpCashSubEntity> subsUpList, List<OutpCashSubEntity> subsDownList) {
+    private void setSpecialRowsValues(OutpCashMainEntity main, List<OutpCashSubEntity> subsUpList, List<OutpCashSubEntity> subsDownList,String totalFlag,String type) {
 
 
         OutpCashSubEntity calc = calculateTotal(subsUpList);
+
 
         // 先获取公式需要的原始值
         BigDecimal 原当日暂收款 = calc.getCurrentTemporaryReceipt(); //获取当日暂收款合计
@@ -475,6 +478,12 @@ public class ReportServiceImpl implements ReportService {
         BigDecimal 原门诊当日回款 = getHisAdvancePaymentByName(subsDownList, "门诊当日回款");
         BigDecimal 原门诊当日借款 = getHisAdvancePaymentByName(subsDownList, "门诊当日借款");
         BigDecimal 原住院部当日借款 = getHisAdvancePaymentByName(subsDownList, "住院部当日借款");
+
+        if (totalFlag.equals("0")&&(type.equals("1")||type.equals("4"))){
+             原当日暂收款 = calc.getHolidayTemporaryReceipt(); //获取节假日暂收款合计
+             原日报表数 = BigDecimal.ZERO;  //获取应交报表数合计
+        }
+
 
         // 计算公式值    门诊当日实存金额=当日暂收款+日报表数+合计存款金额+住院部当日回款+门诊当日回款-门诊当日借款-住院部当日借款
         BigDecimal 门诊当日实存金额 = 原当日暂收款.add(原日报表数)
