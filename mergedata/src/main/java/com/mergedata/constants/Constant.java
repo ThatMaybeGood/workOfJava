@@ -177,13 +177,13 @@ public class Constant {
     /*
      * 非汇总数据
      */
-    public static final String HOLIDAY_NOT_TOTAL = "0";
+    public static final String NOT_TOTAL = "0";
     /*
      * 汇总数据
      */
-    public static final String HOLIDAY_TOTAL = "1";
+    public static final String TOTAL = "1";
     /*
      * 初月数据
      */
-    public static final String HOLIDAY_MONTH_FIRST = "2";
+    public static final String MONTH_FIRST = "2";
 }

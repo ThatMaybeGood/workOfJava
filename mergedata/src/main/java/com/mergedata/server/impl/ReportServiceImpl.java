@@ -80,7 +80,7 @@ public class ReportServiceImpl implements ReportService {
             /*
             当表中存在报表，需要对初始化的只获取his更新 其余的不改变
             */
-            if (isInitFlag && count > 0 && !Constant.HOLIDAY_MONTH_FIRST.equals(body.getTotalFlag())) {
+            if (isInitFlag && count > 0 && !Constant.MONTH_FIRST.equals(body.getTotalFlag())) {
 
                 main = isInitOutpReportData(body, type);
 
@@ -93,7 +93,7 @@ public class ReportServiceImpl implements ReportService {
 
             // 判断结果集，判断是否平台有无数据，有则查询出返回，无则调用接口获取数据并返回
             if (count == 0) {
-                if (Constant.HOLIDAY_MONTH_FIRST.equals(body.getTotalFlag())) {   //判断是否月初数据并不报存到数据库
+                if (Constant.MONTH_FIRST.equals(body.getTotalFlag())) {   //判断是否月初数据并不报存到数据库
                     main = getOutpReportMonthStartData(body);
                 } else {
                     main = getOutpReportData(body, type);
@@ -199,10 +199,10 @@ public class ReportServiceImpl implements ReportService {
             OutpCashMainEntity yesterdayMain = new OutpCashMainEntity();
 
             if (currtDate.getDayOfMonth() == 1) {
-                yesterdayMain = outpReportService.findByDateExclude(currtDate, Constant.HOLIDAY_MONTH_FIRST);   //月初情况，查询当月的当天数据
-            } else if (calculationType == 0 && holidayService.isSpecialHolidaySum(currtDate, Constant.HOLIDAY_TOTAL) == 1) {
+                yesterdayMain = outpReportService.findByDateExclude(currtDate, Constant.MONTH_FIRST);   //月初情况，查询当月的当天数据
+            } else if (calculationType == 0 && holidayService.isSpecialHolidaySum(currtDate, Constant.TOTAL) == 1) {
                 //判断是否周二，周二情况不能取值周一的正常的前日暂收款，应该取其汇总的站收款
-                yesterdayMain = outpReportService.findByDateExclude(currtDate, Constant.HOLIDAY_TOTAL);
+                yesterdayMain = outpReportService.findByDateExclude(currtDate, Constant.TOTAL);
             } else {
                 yesterdayMain = outpReportService.findByDateExclude(currtDate.minusDays(1), body.getTotalFlag());
             }
@@ -401,7 +401,7 @@ public class ReportServiceImpl implements ReportService {
         List<OutpCashSubEntity> subsDown = splitDetailData(main.getSubs(), "2");
 
 
-        if (!(Constant.HOLIDAY_MONTH_FIRST.equals(mainVO.getTotalFlag()) && reportDate.getDayOfMonth() == 1)) {  //非月初报表数据需要校验转换
+        if (!(Constant.MONTH_FIRST.equals(mainVO.getTotalFlag()) && reportDate.getDayOfMonth() == 1)) {  //非月初报表数据需要校验转换
             //转换为实体类的数据值需要验证，防止写入的数据有非修改的 而改动 校验方法
             //明细数据校验方法
             //判断是否符合特殊节假日需要进行回溯汇总计算
@@ -480,7 +480,9 @@ public class ReportServiceImpl implements ReportService {
         BigDecimal 原门诊当日借款 = getHisAdvancePaymentByName(subsDownList, "门诊当日借款");
         BigDecimal 原住院部当日借款 = getHisAdvancePaymentByName(subsDownList, "住院部当日借款");
 
-        if (totalFlag.equals("0")&&(type.equals("1")||type.equals("4"))){
+        //非汇总且是节假日数据，周五、周六、周日
+        if (Constant.NOT_TOTAL.equals(totalFlag)&&
+                (Constant.HOLIDAY_IS.equals(type)||Constant.HOLIDAY_PRE.equals(type)||Constant.HOLIDAY_MONTH_LASTDAY.equals(type))){
              原当日暂收款 = calc.getHolidayTemporaryReceipt(); //获取节假日暂收款合计
              原日报表数 = BigDecimal.ZERO;  //获取实交报表数合计
         }
@@ -522,10 +524,10 @@ public class ReportServiceImpl implements ReportService {
 
                     break;
                 case "当日暂收款":
-                    dto.setHisAdvancePayment(calc.getCurrentTemporaryReceipt());
+                    dto.setHisAdvancePayment(原当日暂收款);
                     break;
                 case "日报表数":
-                    dto.setHisAdvancePayment(calc.getActualReportAmount());
+                    dto.setHisAdvancePayment(原日报表数);
                     break;
                 case "门诊当日实存金额":
                     dto.setHisAdvancePayment(门诊当日实存金额);
@@ -572,11 +574,11 @@ public class ReportServiceImpl implements ReportService {
             OutpCashMainEntity yesterdayMain = new OutpCashMainEntity();
             // ⚠️ BUG: new空对象导致下方的null判断(第569行)永远不会为true，findByDateExclude返回null时会被空对象替代
             // 建议：初始化为null，让后续逻辑统一处理null情况
-            if (currtDate.getDayOfMonth() == 1 && Constant.HOLIDAY_MONTH_FIRST.equals(totalFlag)) {
-                yesterdayMain = outpReportService.findByDateExclude(currtDate, Constant.HOLIDAY_MONTH_FIRST);
-            }else if (calculationType == 0 && holidayService.isSpecialHolidaySum(currtDate, Constant.HOLIDAY_TOTAL) == 1) {
+            if (currtDate.getDayOfMonth() == 1 && Constant.MONTH_FIRST.equals(totalFlag)) {
+                yesterdayMain = outpReportService.findByDateExclude(currtDate, Constant.MONTH_FIRST);
+            }else if (calculationType == 0 && holidayService.isSpecialHolidaySum(currtDate, Constant.TOTAL) == 1) {
                 //判断是否周二，周二情况不能取值周一的正常的前日暂收款，应该取其汇总的站收款
-                yesterdayMain = outpReportService.findByDateExclude(currtDate, Constant.HOLIDAY_TOTAL);
+                yesterdayMain = outpReportService.findByDateExclude(currtDate, Constant.TOTAL);
             } else {
                 yesterdayMain = outpReportService.findByDateExclude(currtDate.minusDays(1), totalFlag);
             }
@@ -1307,10 +1309,10 @@ public class ReportServiceImpl implements ReportService {
             OutpCashMainEntity yesterdayMain = new OutpCashMainEntity();
 
             if (currtDate.getDayOfMonth() == 1) {
-                yesterdayMain = outpReportService.findByDateExclude(currtDate, Constant.HOLIDAY_MONTH_FIRST);   //月初情况，查询当月的当天数据
-            } else if (calculationType == 0 && holidayService.isSpecialHolidaySum(currtDate, Constant.HOLIDAY_TOTAL) == 1) {
+                yesterdayMain = outpReportService.findByDateExclude(currtDate, Constant.MONTH_FIRST);   //月初情况，查询当月的当天数据
+            } else if (calculationType == 0 && holidayService.isSpecialHolidaySum(currtDate, Constant.TOTAL) == 1) {
                 //判断是否周二，周二情况不能取值周一的正常的前日暂收款，应该取其汇总的站收款
-                yesterdayMain = outpReportService.findByDateExclude(currtDate, Constant.HOLIDAY_TOTAL);
+                yesterdayMain = outpReportService.findByDateExclude(currtDate, Constant.TOTAL);
             } else {
                 yesterdayMain = outpReportService.findByDateExclude(currtDate.minusDays(1), body.getTotalFlag());
             }
@@ -1478,7 +1480,7 @@ public class ReportServiceImpl implements ReportService {
             main.setSerialNo(pk);
             main.setReportDate(currtDate);
             main.setReportYear(body.getReportDate().getYear());
-            main.setTotalFlag(Constant.HOLIDAY_MONTH_FIRST);
+            main.setTotalFlag(Constant.MONTH_FIRST);
             main.setValidFlag("1");
             main.setCreateTime(LocalDateTime.now());
             List<YQOperatorEntity> operators = operatorService.findByCategory(Constant.TYPE_OUTP);

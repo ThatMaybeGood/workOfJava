@@ -39,7 +39,7 @@ public class ReportController {
     @PostMapping("/findbydate")
     public ApiResponse<OutpReportMainVO> getOutpReport(@Valid @RequestBody ApiRequest<OutpReportRequestBody> request)  {
 
-        if ((Constant.HOLIDAY_MONTH_FIRST.equals(request.getBody().getTotalFlag())) || Constant.HOLIDAY_TOTAL.equals(request.getBody().getTotalFlag())){
+        if ((Constant.MONTH_FIRST.equals(request.getBody().getTotalFlag())) || Constant.TOTAL.equals(request.getBody().getTotalFlag())){
             request.getBody().setReportDate(request.getBody().getReportDate().plusDays(1));
         }
 

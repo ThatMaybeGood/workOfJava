@@ -153,7 +153,7 @@ public class HolidayServiceImpl implements YQHolidayService {
         //是否需要添加汇总标志 ，排除对应汇总时候，但是又不符合汇总条件的情况
 
         //type为 2 和 4 时 汇总
-        if (totalFlag.equals(Constant.HOLIDAY_TOTAL)) {
+        if (totalFlag.equals(Constant.TOTAL)) {
             // 汇总的标题
             String totalTitle = "";
             if (type.equals(Constant.HOLIDAY_AFTER)) {
@@ -174,13 +174,13 @@ public class HolidayServiceImpl implements YQHolidayService {
                         + " " + Constant.OUTP_HOLIDAY_TOTAL_TITLE;
             }
             vo.setMinDate(minDate);
-            vo.setTotalFlag(Constant.HOLIDAY_NOT_TOTAL);
+            vo.setTotalFlag(Constant.NOT_TOTAL);
             vo.setTotalTitle(totalTitle);
-        }else if (totalFlag.equals(Constant.HOLIDAY_MONTH_FIRST)){
-            vo.setTotalFlag(Constant.HOLIDAY_MONTH_FIRST);
+        }else if (totalFlag.equals(Constant.MONTH_FIRST)){
+            vo.setTotalFlag(Constant.MONTH_FIRST);
             vo.setTotalTitle(currentDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd")) + " " + Constant.HOLIDAY_MONTH_FIRST_TITLE);
         }else{
-            vo.setTotalFlag(Constant.HOLIDAY_TOTAL);
+            vo.setTotalFlag(Constant.TOTAL);
             vo.setTotalTitle(currentDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd")) + " " + Constant.HOLIDAY_NOT_TOTAL_TITLE);
         }
 
@@ -297,7 +297,7 @@ public class HolidayServiceImpl implements YQHolidayService {
 
         String holidayType = queryDateType(localDate, Constant.TYPE_OUTP);
 
-        if (Constant.HOLIDAY_TOTAL.equals(totalFlag)) {
+        if (Constant.TOTAL.equals(totalFlag)) {
             if (Constant.HOLIDAY_AFTER.equals(holidayType) || Constant.HOLIDAY_MONTH_LASTDAY.equals(holidayType)) {
                 return 1;
             } else {
