@@ -145,7 +145,7 @@ public class ReportServiceImpl implements ReportService {
             List<YQOperatorEntity> operators = operatorService.findByCategory(Constant.TYPE_OUTP);
 
             //提取当前已经有的报表数据
-            OutpCashMainEntity main = outpReportService.findByDateExclude(body.getReportDate(), body.getTotalFlag());
+            OutpCashMainEntity main = outpReportService.findByDate(body.getReportDate(), body.getTotalFlag());
             // ⚠️ BUG: findByDateExclude可能返回null（当数据库无记录时），此处直接.setSerialNo(pk)会NPE
             // 建议：增加null判断，若返回null则新建对象或直接抛出异常
             main.setSerialNo(pk);
@@ -184,8 +184,8 @@ public class ReportServiceImpl implements ReportService {
                             && op.getUpdateTime().compareTo(reportDateTime) >= 0))
                     .collect(Collectors.toMap(YQOperatorEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
 
-
-            Map<String, OutpCashSubEntity> subsMap = main.getSubs().stream()
+            List<OutpCashSubEntity> subsUp = splitDetailData(main.getSubs(), "1");
+            Map<String, OutpCashSubEntity> subsMap = subsUp.stream()
                     .collect(Collectors.toMap(OutpCashSubEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
 
             // 预加载 HIS 数据和现金记录
@@ -344,10 +344,11 @@ public class ReportServiceImpl implements ReportService {
             }
 
 
-            main.setSubs(resultList);
+//            main.setSubs(resultList);
 
+            List<OutpCashSubEntity> subsDown = splitDetailData(main.getSubs(), "2");
             //判断是否合计后金额替换组装
-//            setSpecialRowsValues(main,resultList,subsDown);
+            setSpecialRowsValues(main, resultList, subsDown,body.getTotalFlag(),type);
 
 
             return main;
@@ -472,7 +473,7 @@ public class ReportServiceImpl implements ReportService {
 
         // 先获取公式需要的原始值
         BigDecimal 原当日暂收款 = calc.getCurrentTemporaryReceipt(); //获取当日暂收款合计
-        BigDecimal 原日报表数 = calc.getReportAmount();  //获取应交报表数合计
+        BigDecimal 原日报表数 = calc.getReportAmount();  //获取实交报表数合计
         BigDecimal 原合计存款金额 = getHisAdvancePaymentByName(subsDownList, "合计存款金额");
         BigDecimal 原住院部当日回款 = getHisAdvancePaymentByName(subsDownList, "住院部当日回款");
         BigDecimal 原门诊当日回款 = getHisAdvancePaymentByName(subsDownList, "门诊当日回款");
@@ -481,7 +482,7 @@ public class ReportServiceImpl implements ReportService {
 
         if (totalFlag.equals("0")&&(type.equals("1")||type.equals("4"))){
              原当日暂收款 = calc.getHolidayTemporaryReceipt(); //获取节假日暂收款合计
-             原日报表数 = BigDecimal.ZERO;  //获取应交报表数合计
+             原日报表数 = BigDecimal.ZERO;  //获取实交报表数合计
         }
 
 
@@ -497,10 +498,14 @@ public class ReportServiceImpl implements ReportService {
         for (OutpCashSubEntity dto : subsDownList) {
             String name = dto.getOperatorName();
             if (name == null) continue;
-            dto.resetAllAmountsToZero();
+
+            dto.setSerialSubNo(PrimaryKeyGenerator.generateKey());
+            dto.setSerialNo(main.getSerialNo());
 
             switch (name) {
                 case "合计":
+                    dto.resetAllAmountsToZero(); //初始化为0 为了合计重新使用计算的
+
                     dto.setHisAdvancePayment(calc.getHisAdvancePayment());
                     dto.setHisMedicalIncome(calc.getHisMedicalIncome());
                     dto.setHisRegistrationIncome(calc.getHisRegistrationIncome());
