@@ -473,7 +473,7 @@ public class ReportServiceImpl implements ReportService {
 
         // 先获取公式需要的原始值
         BigDecimal 原当日暂收款 = calc.getCurrentTemporaryReceipt(); //获取当日暂收款合计
-        BigDecimal 原日报表数 = calc.getReportAmount();  //获取实交报表数合计
+        BigDecimal 原日报表数 = calc.getActualReportAmount();  //获取实交报表数合计
         BigDecimal 原合计存款金额 = getHisAdvancePaymentByName(subsDownList, "合计存款金额");
         BigDecimal 原住院部当日回款 = getHisAdvancePaymentByName(subsDownList, "住院部当日回款");
         BigDecimal 原门诊当日回款 = getHisAdvancePaymentByName(subsDownList, "门诊当日回款");
