@@ -490,12 +490,13 @@ public class ReportServiceImpl implements ReportService {
 
         // 计算公式值    门诊当日实存金额=当日暂收款+日报表数+合计存款金额+住院部当日回款+门诊当日回款-门诊当日借款-住院部当日借款
         BigDecimal 门诊当日实存金额 = 原当日暂收款.add(原日报表数)
-                .add(原合计存款金额)
+//                .add(原合计存款金额)
                 .add(原住院部当日回款)
                 .add(原门诊当日回款)
                 .subtract(原门诊当日借款)
                 .subtract(原住院部当日借款);
 
+        BigDecimal 合计存款金额 = 原当日暂收款.add(原日报表数);
         // 设置新值
         for (OutpCashSubEntity dto : subsDownList) {
             String name = dto.getOperatorName();
@@ -531,6 +532,9 @@ public class ReportServiceImpl implements ReportService {
                     break;
                 case "门诊当日实存金额":
                     dto.setHisAdvancePayment(门诊当日实存金额);
+                    break;
+                case "合计存款金额":
+                    dto.setHisAdvancePayment(合计存款金额);
                     break;
             }
         }
