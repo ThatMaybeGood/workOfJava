@@ -273,6 +273,7 @@ public class ReportServiceImpl implements ReportService {
                 dto.setOperatorName(operator.getOperatorName());
                 dto.setDbUser(operator.getDbUser());
                 dto.setRowNum(operator.getRowNum());
+                dto.setPettyCash(operator.getPettyCash());
 
                 dto.setSerialNo(pk);
                 dto.setSerialSubNo(PrimaryKeyGenerator.generateKey());
