@@ -296,6 +296,9 @@ public class ReportServiceImpl implements ReportService {
                     }
                 }
 
+                // 5. 设置留存现金
+                YQCashRegRecordEntity cashRec = cashMap.get(dto.getDbUser());
+                dto.setRetainedCash(cashRec != null ? getSafeBigDecimal(cashRec.getRetainedCash()) : BigDecimal.ZERO);
 
                     /*
                     1、判断是否汇总
