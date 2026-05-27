@@ -338,10 +338,10 @@ public class ReportServiceImpl implements ReportService {
                 // 5.实收现金数 = 实收报表数 + 当日暂收款
                 dto.setActualCashAmount(getSafeBigDecimal(dto.getActualReportAmount()).add(getSafeBigDecimal(dto.getCurrentTemporaryReceipt())));
 
-                // 6.留存数差额 = 留存现金 - 备用金 + 实收报表数
+                // 6.留存数差额 = 留存现金 - 备用金 - 实收报表数
                 dto.setRetainedDifference(getSafeBigDecimal(dto.getRetainedCash())
                         .subtract(getSafeBigDecimal(dto.getPettyCash()))
-                        .add(getSafeBigDecimal(dto.getActualReportAmount())));
+                        .subtract(getSafeBigDecimal(dto.getActualReportAmount())));
 
                 resultList.add(dto);
 
@@ -684,7 +684,7 @@ public class ReportServiceImpl implements ReportService {
                 // 10. 留存数差额
                 dto.setRetainedDifference(getSafeBigDecimal(dto.getRetainedCash())
                         .subtract(getSafeBigDecimal(dto.getPettyCash()))
-                        .add(getSafeBigDecimal(dto.getActualReportAmount())));
+                        .subtract(getSafeBigDecimal(dto.getActualReportAmount())));
             }
 
         } catch (Exception e) {
@@ -1453,10 +1453,10 @@ public class ReportServiceImpl implements ReportService {
                 // 5.实收现金数 = 实收报表数 + 当日暂收款
                 dto.setActualCashAmount(getSafeBigDecimal(dto.getActualReportAmount()).add(getSafeBigDecimal(dto.getCurrentTemporaryReceipt())));
 
-                // 6.留存数差额 = 留存现金 - 备用金 + 实收报表数
+                // 6.留存数差额 = 留存现金 - 备用金 - 实收报表数
                 dto.setRetainedDifference(getSafeBigDecimal(dto.getRetainedCash())
                         .subtract(getSafeBigDecimal(dto.getPettyCash()))
-                        .add(getSafeBigDecimal(dto.getActualReportAmount())));
+                        .subtract(getSafeBigDecimal(dto.getActualReportAmount())));
 
 
                 resultList.add(dto);
