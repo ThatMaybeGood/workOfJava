@@ -18,6 +18,7 @@ public interface ReportService {
      */
     Integer insertOutpReport(OutpReportMainVO mainVO);
 
+
     /**
      * 根据日期查询住院报表数据
      */

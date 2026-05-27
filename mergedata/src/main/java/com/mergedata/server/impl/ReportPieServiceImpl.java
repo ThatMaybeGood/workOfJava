@@ -1,0 +1,222 @@
+package com.mergedata.server.impl;
+
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.extension.toolkit.Db;
+import com.mergedata.constants.Constant;
+import com.mergedata.exception.BusinessException;
+import com.mergedata.model.dto.InpReportRequestBody;
+import com.mergedata.model.dto.OutpReportPieRequestBody;
+import com.mergedata.model.dto.OutpReportRequestBody;
+import com.mergedata.model.dto.external.HisInpIncomeResponseDTO;
+import com.mergedata.model.dto.external.HisOutpIncomeResponseDTO;
+import com.mergedata.model.entity.*;
+import com.mergedata.model.vo.OutpReportMainVO;
+import com.mergedata.model.vo.OutpReportSubVO;
+import com.mergedata.model.vo.pie.*;
+import com.mergedata.server.*;
+import com.mergedata.util.PrimaryKeyGenerator;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+@Service
+@Slf4j
+public class ReportPieServiceImpl implements ReportPieService {
+
+    @Autowired
+    HisDataService hisdata;
+
+    @Autowired
+    YQCashService cashService;
+
+
+    @Autowired
+    OutpReportService outpReportService;
+
+
+    @Autowired
+    YQHolidayService holidayService;
+
+    @Autowired
+    YQOperatorService operatorService;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
+    @Override
+    public OutReportPieDTO queryOutpReportPie(OutpReportPieRequestBody body) {
+        return queryReport(body.getStartDate(),body.getEndDate());
+    }
+
+
+    /**
+     * 查询财务报表数据
+     */
+    public OutReportPieDTO queryReport(LocalDate startDate, LocalDate endDate) {
+
+        OutReportPieDTO dto = new OutReportPieDTO();
+
+        // 1. 设置查询日期范围
+        DateRangeDTO dateRange = new DateRangeDTO();
+        dateRange.setStartDate(startDate.toString());
+        dateRange.setEndDate(endDate.toString());
+        long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        dateRange.setDays((int) days);
+        dto.setQueryDateRange(dateRange);
+
+        // 2. 获取核心5个项目数据（从数据库查询，这里模拟）
+        dto.setCoreItems(getCoreItems(startDate, endDate));
+
+        // 3. 获取辅助5个项目数据
+        dto.setAuxiliaryItems(getAuxiliaryItems(startDate, endDate));
+
+        // 4. 计算汇总统计
+        dto.setSummary(calculateSummary(dto.getCoreItems(), dto.getAuxiliaryItems()));
+
+        return dto;
+    }
+
+    /**
+     * 获取核心5个项目数据（预交金、门诊收入、暂收款、实交报表数、疫苗收入）
+     * 实际开发中这里应该查询数据库
+     */
+    private Map<String, ItemDetailDTO> getCoreItems(LocalDate startDate, LocalDate endDate) {
+        Map<String, ItemDetailDTO> coreItems = new LinkedHashMap<>();
+
+        // 从数据库查询各项目数据，这里用模拟数据示例
+        // 实际代码应该是:
+        // List<YourEntity> list = yourMapper.queryByDateRange(startDate, endDate, projectType);
+        // 然后聚合计算
+
+        coreItems.put("prepay", buildItemDetail("HIS预交金", startDate, endDate, 32680, 132, 4280, 18));
+        coreItems.put("clinicIncome", buildItemDetail("门诊医疗收入", startDate, endDate, 49650, 215, 2950, 24));
+        coreItems.put("tempReceive", buildItemDetail("当日暂收款", startDate, endDate, 15120, 84, 1380, 11));
+        coreItems.put("actualReport", buildItemDetail("实交报表数", startDate, endDate, 38250, 168, 2060, 16));
+        coreItems.put("vaccine", buildItemDetail("疫苗收入", startDate, endDate, 10280, 48, 580, 7));
+
+        return coreItems;
+    }
+
+    /**
+     * 构建单个项目的完整数据
+     */
+    private ItemDetailDTO buildItemDetail(String itemName, LocalDate startDate, LocalDate endDate,
+                                          double incomeAmt, int incomeCnt,
+                                          double refundAmt, int refundCnt) {
+        // 实际开发中，这些数据应该从数据库聚合查询得到
+        // 这里根据日期范围做个简单模拟，天数越多金额越大
+        long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        double factor = days;
+
+        ItemDetailDTO detail = new ItemDetailDTO();
+
+        // 收入
+        CoreMetricDTO income = new CoreMetricDTO();
+        income.setItemName(itemName);
+        income.setAmount(BigDecimal.valueOf(incomeAmt * factor));
+        income.setCount((int) (incomeCnt * factor));
+        detail.setIncome(income);
+
+        // 退款
+        CoreMetricDTO refund = new CoreMetricDTO();
+        refund.setItemName(itemName);
+        refund.setAmount(BigDecimal.valueOf(refundAmt * factor));
+        refund.setCount((int) (refundCnt * factor));
+        detail.setRefund(refund);
+
+        // 合计
+        CoreMetricDTO total = new CoreMetricDTO();
+        total.setItemName(itemName);
+        total.setAmount(income.getAmount().subtract(refund.getAmount()));
+        total.setCount(income.getCount() + refund.getCount());
+        detail.setTotal(total);
+
+        return detail;
+    }
+
+    /**
+     * 获取辅助5个项目数据（门诊借款、住院借款、门诊回款、住院回款、门诊实存）
+     */
+    private Map<String, AuxiliaryMetricDTO> getAuxiliaryItems(LocalDate startDate, LocalDate endDate) {
+        Map<String, AuxiliaryMetricDTO> auxiliaryItems = new LinkedHashMap<>();
+
+        long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        double factor = days;
+
+        auxiliaryItems.put("outpatientLoan", buildAuxiliaryItem("门诊借款", 6350 * factor));
+        auxiliaryItems.put("inpatientLoan", buildAuxiliaryItem("住院借款", 14500 * factor));
+        auxiliaryItems.put("outpatientRepay", buildAuxiliaryItem("门诊回款", 5600 * factor));
+        auxiliaryItems.put("inpatientRepay", buildAuxiliaryItem("住院回款", 11050 * factor));
+        auxiliaryItems.put("outpatientSave", buildAuxiliaryItem("门诊实存", 26800 * factor));
+
+        return auxiliaryItems;
+    }
+
+    /**
+     * 构建辅助项目
+     */
+    private AuxiliaryMetricDTO buildAuxiliaryItem(String itemName, double amount) {
+        AuxiliaryMetricDTO item = new AuxiliaryMetricDTO();
+        item.setItemName(itemName);
+        item.setAmount(BigDecimal.valueOf(amount));
+        return item;
+    }
+
+    /**
+     * 计算汇总统计
+     */
+    private SummaryDTO calculateSummary(Map<String, ItemDetailDTO> coreItems,
+                                        Map<String, AuxiliaryMetricDTO> auxiliaryItems) {
+        SummaryDTO summary = new SummaryDTO();
+
+        // 初始化汇总对象
+        CoreMetricDTO totalIncome = new CoreMetricDTO();
+        totalIncome.setAmount(BigDecimal.ZERO);
+        totalIncome.setCount(0);
+
+        CoreMetricDTO totalRefund = new CoreMetricDTO();
+        totalRefund.setAmount(BigDecimal.ZERO);
+        totalRefund.setCount(0);
+
+        CoreMetricDTO totalNet = new CoreMetricDTO();
+        totalNet.setAmount(BigDecimal.ZERO);
+        totalNet.setCount(0);
+
+        // 累加核心项目
+        for (ItemDetailDTO item : coreItems.values()) {
+            totalIncome.setAmount(totalIncome.getAmount().add(item.getIncome().getAmount()));
+            totalIncome.setCount(totalIncome.getCount() + item.getIncome().getCount());
+
+            totalRefund.setAmount(totalRefund.getAmount().add(item.getRefund().getAmount()));
+            totalRefund.setCount(totalRefund.getCount() + item.getRefund().getCount());
+
+            totalNet.setAmount(totalNet.getAmount().add(item.getTotal().getAmount()));
+            totalNet.setCount(totalNet.getCount() + item.getTotal().getCount());
+        }
+
+        summary.setTotalIncome(totalIncome);
+        summary.setTotalRefund(totalRefund);
+        summary.setTotalNet(totalNet);
+
+        // 累加辅助项目总金额
+        BigDecimal totalAuxiliary = BigDecimal.ZERO;
+        for (AuxiliaryMetricDTO item : auxiliaryItems.values()) {
+            totalAuxiliary = totalAuxiliary.add(item.getAmount());
+        }
+        summary.setTotalAuxiliary(totalAuxiliary);
+
+        return summary;
+    }
+
+}
