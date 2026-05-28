@@ -229,7 +229,7 @@ public class OperatorServiceImpl implements YQOperatorService {
      */
     private void convetRcv(YQOperatorEntity operator) {
         if (operator.getInputFlag() != null) {
-            operator.setInputFlag(operator.getInputFlag().equals("true") ? "1" : "0");
+            operator.setInputFlag(operator.getInputFlag());
         }
         if (operator.getAtm() != null) {
             operator.setAtm(operator.getAtm().equals("true") ? "1" : "0");
@@ -243,7 +243,7 @@ public class OperatorServiceImpl implements YQOperatorService {
      */
     private void convetSend(YQOperatorEntity operator) {
         if (operator.getInputFlag() != null) {
-            operator.setInputFlag(operator.getInputFlag().equals("1") ? "true" : "false");
+            operator.setInputFlag(operator.getInputFlag());
         }
         if (operator.getAtm() != null) {
             operator.setAtm(operator.getAtm().equals("1") ? "true" : "false");

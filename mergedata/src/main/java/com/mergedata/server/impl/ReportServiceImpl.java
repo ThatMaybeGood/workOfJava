@@ -274,6 +274,7 @@ public class ReportServiceImpl implements ReportService {
                 dto.setDbUser(operator.getDbUser());
                 dto.setRowNum(operator.getRowNum());
                 dto.setPettyCash(operator.getPettyCash());
+                dto.setInputFlag(operator.getInputFlag());
 
                 dto.setSerialNo(pk);
                 dto.setSerialSubNo(PrimaryKeyGenerator.generateKey());
@@ -576,6 +577,11 @@ public class ReportServiceImpl implements ReportService {
             //查询出具体的类型
             String type = holidayService.queryDateType(currtDate, Constant.TYPE_OUTP);
 
+            //获取当前数据库中
+            List<OutpCashSubEntity> curSubs = outpReportService.findByDateExclude(currtDate, totalFlag).getSubs();
+            Map<String,OutpCashSubEntity> curSubsMap = curSubs.stream().
+                   collect(Collectors.toMap(OutpCashSubEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
+
             // 获取历史数据（昨日）
             Map<String, OutpCashSubEntity> yesterdayMap = new HashMap<>();
 
@@ -617,6 +623,7 @@ public class ReportServiceImpl implements ReportService {
 
             for (OutpCashSubEntity dto : subList) {
                 YQOperatorEntity operator = operatorMap.get(dto.getDbUser());
+                OutpCashSubEntity curSub = curSubsMap.get(dto.getDbUser());
 
                 if (operator == null) {
                     log.error("操作员不存在, dbUser: {}", dto.getDbUser());
@@ -625,8 +632,8 @@ public class ReportServiceImpl implements ReportService {
                     dto.setPettyCash(operator.getPettyCash());
                     //增加合计情况不
                     if (calculationType != 1) {
-                        // 如果是不可以输入的人，需要提取 his 数据
-                        if (!"1".equals(operator.getInputFlag())) {
+                        // 如果是不可以输入的人或者前一天也是非人工录入的  需要提取 his 数据
+                        if (!"1".equals(curSub.getInputFlag())||!"1".equals(operator.getInputFlag())) {
                             HisOutpIncomeResponseDTO hisDto = hisDataMap.get(dto.getDbUser());
                             if (hisDto != null) {
                                 dto.setHisAdvancePayment(getSafeBigDecimal(hisDto.getHisAdvancePayment()));
@@ -1391,6 +1398,7 @@ public class ReportServiceImpl implements ReportService {
                 dto.setInpWindow(operator.getInpWindow());
                 dto.setAtm(operator.getAtm());
                 dto.setRowNum(operator.getRowNum());
+                dto.setInputFlag(operator.getInputFlag());
 
                 //添加05.08  添加对应his标志且修改之前的数据可以提取his数据
                 if (operatorExtractHisMap.containsKey(operator.getDbUser())) {
@@ -1517,6 +1525,7 @@ public class ReportServiceImpl implements ReportService {
                     dto.setInpWindow(operator.getInpWindow());
                     dto.setAtm(operator.getAtm());
                     dto.setRowNum(operator.getRowNum());
+                    dto.setInputFlag(operator.getInputFlag());
                     resultList.add(dto);
                 }
             }

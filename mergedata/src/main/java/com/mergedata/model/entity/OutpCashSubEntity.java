@@ -84,6 +84,11 @@ public class OutpCashSubEntity {
      */
     private  Integer auditFlag = 0;
 
+    /*
+     * 是否手工输入
+     */
+    private  Integer inputFlag = 0;
+
     // 统一处理BigDecimal类型的null值
     private BigDecimal safeBigDecimal(BigDecimal value) {
         return value != null ? value : BigDecimal.ZERO;

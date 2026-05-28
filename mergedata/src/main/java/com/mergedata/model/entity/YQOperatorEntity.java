@@ -97,7 +97,7 @@ public class YQOperatorEntity {
     /*
      * 是否可输入
      */
-     private String inputFlag = "0";
+     private Integer inputFlag = 0;
 
     /*
      * 是否提取his数据
