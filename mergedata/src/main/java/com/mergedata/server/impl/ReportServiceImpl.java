@@ -170,7 +170,7 @@ public class ReportServiceImpl implements ReportService {
 
             // 只构建 inputFlag 为 "0" 的 operatorMap
             Map<String, YQOperatorEntity> operatorMap = operatorService.findByCategory(Constant.TYPE_OUTP).stream()
-                    .filter(op -> "0".equals(op.getInputFlag()))
+                    .filter(op -> op.getInputFlag()==0)
                     .collect(Collectors.toMap(YQOperatorEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
 
 
@@ -624,6 +624,7 @@ public class ReportServiceImpl implements ReportService {
             for (OutpCashSubEntity dto : subList) {
                 YQOperatorEntity operator = operatorMap.get(dto.getDbUser());
                 OutpCashSubEntity curSub = curSubsMap.get(dto.getDbUser());
+                dto.setInputFlag(curSub.getInputFlag());
 
                 if (operator == null) {
                     log.error("操作员不存在, dbUser: {}", dto.getDbUser());
@@ -633,7 +634,7 @@ public class ReportServiceImpl implements ReportService {
                     //增加合计情况不
                     if (calculationType != 1) {
                         // 如果是不可以输入的人或者前一天也是非人工录入的  需要提取 his 数据
-                        if (!"1".equals(curSub.getInputFlag())||!"1".equals(operator.getInputFlag())) {
+                        if (curSub.getInputFlag()==0 && operator.getInputFlag()==0) {
                             HisOutpIncomeResponseDTO hisDto = hisDataMap.get(dto.getDbUser());
                             if (hisDto != null) {
                                 dto.setHisAdvancePayment(getSafeBigDecimal(hisDto.getHisAdvancePayment()));

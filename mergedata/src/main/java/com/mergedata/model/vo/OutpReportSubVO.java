@@ -188,5 +188,9 @@ public class OutpReportSubVO {
     @JsonProperty("audit_flag")
     private  Integer auditFlag ;
 
-
+    /*
+     * 手工输入标志
+     */
+    @JsonProperty("input_flag")
+    private  Integer inputFlag ;
 }
