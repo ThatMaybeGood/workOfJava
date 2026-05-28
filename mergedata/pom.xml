@@ -6,34 +6,33 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>2.7.18</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
     <groupId>com.mergedata</groupId>
     <artifactId>mergedata</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>mergedata</name>
     <description>for merge all data</description>
+
     <properties>
         <java.version>1.8</java.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <!-- 保持 mybatis-plus.version，但将 starter 改为 2.x 兼容版本 -->
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
     </properties>
+
     <dependencies>
+        <!-- 你原有的依赖保持不变 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- ⭐ 修正点 1：使用 MyBatis-Plus 2.x 兼容的 Starter ⭐ -->
-        <!-- artifactId 必须是 mybatis-plus-boot-starter -->
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-boot-starter</artifactId>
             <version>${mybatis-plus.version}</version>
         </dependency>
-
 
         <dependency>
             <groupId>org.springdoc</groupId>
@@ -41,7 +40,6 @@
             <version>1.6.15</version>
         </dependency>
 
-        <!-- 数据库驱动 -->
         <dependency>
             <groupId>com.oracle.database.jdbc</groupId>
             <artifactId>ojdbc8</artifactId>
@@ -54,18 +52,17 @@
             <version>21.8.0.0</version>
         </dependency>
 
-        <!-- ⭐ 修正点 2：使用 Druid 2.x 兼容的 Starter ⭐ -->
-        <!-- 移除 spring-boot-3-starter 后缀，使用 2.x 兼容版本，版本号也需要降级 -->
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>druid-spring-boot-starter</artifactId>
-            <version>1.2.18</version> <!-- 适用于 Spring Boot 2.x 的稳定版本 -->
+            <version>1.2.18</version>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
+
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-xml</artifactId>
@@ -83,15 +80,6 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- jackson-datatype-jsr310 由 starter-web 间接管理，通常不需要显式声明 -->
-        <!-- 如果出现序列化问题，可以保留，但我们先移除测试 -->
-        <!--
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
-        </dependency>
-        -->
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
@@ -107,8 +95,7 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- ⚠️ 警告：如果您不是在 WAR 包部署，通常不需要这个 provided 依赖，
-                  但为了兼容您原有的设置，我保留它。-->
+
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
@@ -118,9 +105,41 @@
 
     <build>
         <plugins>
+            <!-- Spring Boot 插件（必须放在 ClassFinal 之前） -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!-- ⭐ ClassFinal 加密插件（无密码模式）⭐ -->
+            <plugin>
+                <groupId>net.roseboy</groupId>
+                <artifactId>classfinal-maven-plugin</artifactId>
+                <version>1.2.1</version>
+                <configuration>
+                    <!-- 无密码模式：使用 # 号 -->
+                    <password>#</password>
+
+                    <!-- 需要加密的包（你的业务代码包） -->
+                    <packages>com.mergedata.**</packages>
+
+                    <!-- 加密配置文件（内网部署建议加密） -->
+                    <cfgfiles>application.yml,application-dev.yml,application-prod.yml</cfgfiles>
+
+                    <!-- 排除不需要加密的包（避免框架反射问题） -->
+                    <excludes>com.mergedata.entity.**,com.mergedata.dto.**,com.mergedata.enums.**</excludes>
+
+                    <!-- 可选：绑定机器码（更安全，但在内网可以不加） -->
+                    <!-- <code>你的机器码</code> -->
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>classFinal</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
