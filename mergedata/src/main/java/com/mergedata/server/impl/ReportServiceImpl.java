@@ -624,7 +624,7 @@ public class ReportServiceImpl implements ReportService {
             for (OutpCashSubEntity dto : subList) {
                 YQOperatorEntity operator = operatorMap.get(dto.getDbUser());
                 OutpCashSubEntity curSub = curSubsMap.get(dto.getDbUser());
-                dto.setInputFlag(curSub.getInputFlag());
+                dto.setInputFlag(operator.getInputFlag()==1 ? 1 : curSub.getInputFlag());
 
                 if (operator == null) {
                     log.error("操作员不存在, dbUser: {}", dto.getDbUser());
