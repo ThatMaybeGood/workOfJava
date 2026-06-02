@@ -59,4 +59,45 @@ public class ApiController {
             MDC.clear();
         }
     }
+
+    @RequestMapping(value = "/queryYbSetl", method = RequestMethod.POST)
+    public String queryYbSetl(@RequestBody String input) {
+
+        MDC.put("traceId", "YQ_" + System.currentTimeMillis());
+
+        try {
+
+            Log.trace("开始本次调用单边数据接口查询入参: {}", input);
+
+            Log.info("调用单边数据接口查询入参: {}", input);
+
+            JSONObject jsonObject = JSONObject.parseObject(input);
+            String billDate = jsonObject.getString("bill_date");
+            String fixmedinsCode = jsonObject.getString("fixmedinsCode");
+            String insuType = jsonObject.getString("insutype");
+            String psnNo = jsonObject.getString("psnNo");
+            String setlId = jsonObject.getString("setlId");
+
+            JSONArray list = apiLogic.getSetlList(setlId, fixmedinsCode, billDate, insuType, psnNo);
+
+            JSONObject result = new JSONObject();
+            result.put("rc", "1");
+            result.put("msg", "成功");
+            result.put("list", list);
+
+            Log.info("平台接口出参: {}", result.toJSONString());
+
+            Log.trace("结束本次调用单边数据接口查询出参: {}");
+
+            return result.toJSONString();
+
+        } catch (Exception e) {
+            Log.error("调用单边数据接口查询异常", e);
+            return "{\"rc\":\"0\",\"msg\":\"系统异常\"}";
+        }
+        finally {
+            MDC.clear();
+        }
+    }
+
 }

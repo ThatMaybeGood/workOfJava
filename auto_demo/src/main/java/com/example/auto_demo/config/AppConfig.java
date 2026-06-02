@@ -21,6 +21,9 @@ public class AppConfig {
     @Value("${yb.bill.url}")
     private String billUrl;
 
+    @Value("${yb.setl.url}")
+    private String setlUrl;
+
     @Value("${yb.token}")
     private String token;
 
@@ -32,6 +35,9 @@ public class AppConfig {
 
     @Value("${yb.frontUrl}")
     private String frontUrl;
+
+    @Value("${yb.frontSetlUrl}")
+    private String frontSetlUrl;
 
     @Value("${yb.fixmedinsCode}")
     private String fixmedinsCode;
@@ -106,6 +112,22 @@ public class AppConfig {
 
     public boolean isSaveExcel() {
         return isSaveExcel;
+    }
+
+    public String getSetlUrl() {
+        return setlUrl;
+    }
+
+    public void setSetlUrl(String setlUrl) {
+        this.setlUrl = setlUrl;
+    }
+
+    public String getFrontSetlUrl() {
+        return frontSetlUrl;
+    }
+
+    public void setFrontSetlUrl(String frontSetlUrl) {
+        this.frontSetlUrl = frontSetlUrl;
     }
 
     @Override

@@ -10,6 +10,7 @@ import com.example.auto_demo.model.ExportExcelDTO;
 import com.example.auto_demo.util.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.JsonArray;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +62,37 @@ public class ApiLogic {
         return allbillList;
     }
 
+    public JSONArray getSetlListByInsuType(String setlId, String fixmedinsCode, String insutype, String psnNo) {
+
+        int pageNum = 1;
+
+        Log.info("读取参数配置文件:" + config.toString());
+        int pageSize = Integer.valueOf(config.getPageSize());
+
+        String result = null;
+
+        result = getSetllDetail(insutype, pageNum, pageSize, psnNo);
+        JSONObject jsonObject = JSONObject.parseObject(result);
+        JSONObject data = jsonObject.getJSONObject("data");
+        JSONObject pageBean = data.getJSONObject("pageBean");
+        JSONArray billList = pageBean.getJSONArray("data");
+
+        JSONArray filteredList = new JSONArray();
+
+        for(int i =0 ;i<billList.size();i++){
+            JSONObject item = billList.getJSONObject(i);
+            if(setlId.equals(item.getString("setlId"))){
+                filteredList.add(item);
+            }
+        }
+
+
+        return filteredList;
+    }
+
+
+
+
     public JSONArray getBillList(String sessionId, String fixmedinsCode, String billDate, String insutype, String type) {
 
         if (StringUtils.isEmpty(insutype)) {
@@ -85,6 +117,76 @@ public class ApiLogic {
         }
         return allBillList;
     }
+
+    public JSONArray getSetlList(String setlId, String fixmedinsCode, String billDate, String insutype, String psnNo) {
+
+        if (StringUtils.isEmpty(insutype)) {
+            insutype = config.getInsuType();
+        }
+
+        if (StringUtils.isEmpty(fixmedinsCode)) {
+            fixmedinsCode = config.getFixmedinsCode();
+        }
+
+        if (StringUtils.isEmpty(fixmedinsCode)) {
+            fixmedinsCode = "H50010606446";
+        }
+
+        JSONArray allBillList = new JSONArray();
+
+        String[] insuTypes = insutype.split(",");
+        for (int i = 0; i < insuTypes.length; i++) {
+            JSONArray billList = getSetlListByInsuType(setlId, fixmedinsCode, insuTypes[i], psnNo);
+            JSONArray newBillList = convertSetlJSONArray(billList, insuTypes[i]);
+            allBillList.addAll(newBillList);
+        }
+        return allBillList;
+    }
+
+    public JSONArray convertSetlJSONArray(JSONArray orgList, String insutype) {
+        JSONArray list = new JSONArray();
+        for (int i = 0; i < orgList.size(); i++) {
+            JSONObject jsonObject = orgList.getJSONObject(i);
+            JSONObject newJsonObject = convertSetlJSONObject(jsonObject, insutype);
+            list.add(newJsonObject);
+        }
+        return list;
+    }
+
+
+    private JSONObject convertSetlJSONObject(JSONObject jsonObject, String insutype) {
+        JSONObject newJsonObject = new JSONObject();
+        newJsonObject.put("setl_id", jsonObject.getString("setlId"));
+        newJsonObject.put("mdtrt_id", jsonObject.getString("mdtrtId"));
+        newJsonObject.put("psn_no", jsonObject.getString("psnNo"));
+        newJsonObject.put("bill_date", jsonObject.getString("setlTime"));
+        newJsonObject.put("tran_type", jsonObject.getString("medfeeSumamt").contains("-") ? "2" : "1");
+        newJsonObject.put("data_source", "2");
+        newJsonObject.put("psn_name", jsonObject.getString("psnName"));
+        newJsonObject.put("insutype", insutype);
+        newJsonObject.put("medins_setl_id", jsonObject.getString("medinsSetlId"));
+        newJsonObject.put("msgid", jsonObject.getString("medinsSetlId"));
+        newJsonObject.put("med_type", MedType.nameOf(jsonObject.getString("medType")));  //返回医疗类别的中文
+        newJsonObject.put("med_type_code", jsonObject.getString("medType"));
+        newJsonObject.put("card_no", jsonObject.getString("certno"));
+
+        newJsonObject.put("medfee_sumamt", jsonObject.getString("medfeeSumamt"));
+        newJsonObject.put("fulamt_ownpay_amt", jsonObject.getString("fulamtOwnpayAmt"));
+        newJsonObject.put("inscp_amt", jsonObject.getString("inscpAmt"));
+        newJsonObject.put("crt_dedc", jsonObject.getString("crtDedc"));
+        newJsonObject.put("act_pay_dedc", jsonObject.getString("actPayDedc"));  //返回医疗类别的中文
+
+        newJsonObject.put("hi_agre_sumfee", jsonObject.getString("hiAgreSumfee"));
+        newJsonObject.put("hifp_pay", jsonObject.getString("fundPaySumamt"));
+        newJsonObject.put("fund_pay_sumamt", jsonObject.getString("hifpPay"));
+        newJsonObject.put("psn_pay", jsonObject.getString("psnPay"));
+        newJsonObject.put("acct_pay", jsonObject.getString("acctPay"));
+
+
+        return newJsonObject;
+    }
+
+
 
     public JSONArray convertJSONArray(JSONArray orgList, String insutype) {
         JSONArray list = new JSONArray();
@@ -113,9 +215,16 @@ public class ApiLogic {
         newJsonObject.put("med_type_code", jsonObject.getString("medType"));
         newJsonObject.put("card_no", jsonObject.getString("certno"));
 
-
         return newJsonObject;
     }
+
+
+
+
+
+
+
+
 
     public String getBillDetail(String sessionId, String fixmedinsCode, String billDate, String insutype,
                                 int pageNum, int pageSize, String type) {
@@ -151,6 +260,41 @@ public class ApiLogic {
 
         return result;
     }
+
+
+    public String getSetllDetail( String insutype,int pageNum, int pageSize, String psnNo) {
+        Map<String, Object> map = new HashMap<>();
+
+        map.put("psnNo", psnNo);
+        map.put("pageNum", pageNum);
+        map.put("pageSize", pageSize);
+        map.put("insutype", insutype);
+        map.put("_modulePartId_", "17-2-4");
+        map.put("frontUrl", config.getFrontSetlUrl());
+
+        String url = config.getSetlUrl();
+        String token = config.getToken();
+        String session = config.getSession();
+
+        Map<String, String> headerMap = new HashMap<>();
+        headerMap.put("Content-Type", "application/x-www-form-urlencoded");
+        headerMap.put("X-XSRF-TOKEN", token);
+        headerMap.put("Cookie", "XSRF-TOKEN=" + token + ";SESSION=" + session);
+
+        Log.info("调两定接口[" + insutype + "]入参:" + map.toString());
+
+        String result = "";
+
+        result = new HttpUtil().post(url, map, headerMap);
+
+
+//        Log.info("调两定接口[" + insutype + "]出参:" + result);
+
+        return result;
+    }
+
+
+
 
     /*
      * 调用两定平台接口，获取文件导出结果
