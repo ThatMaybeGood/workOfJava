@@ -67,9 +67,9 @@ public class ApiController {
 
         try {
 
-            Log.trace("开始本次调用单边数据接口查询入参: {}", input);
+            Log.trace("开始本次调用平台接口入参: {}", input);
 
-            Log.info("调用单边数据接口查询入参: {}", input);
+            Log.info("平台接口入参: {}", input);
 
             JSONObject jsonObject = JSONObject.parseObject(input);
             String billDate = jsonObject.getString("bill_date");
@@ -77,8 +77,9 @@ public class ApiController {
             String insuType = jsonObject.getString("insutype");
             String psnNo = jsonObject.getString("psnNo");
             String setlId = jsonObject.getString("setlId");
+            String isFilter = jsonObject.getString("isFilter");
 
-            JSONArray list = apiLogic.getSetlList(setlId, fixmedinsCode, billDate, insuType, psnNo);
+            JSONArray list = apiLogic.getSetlList(setlId, fixmedinsCode, billDate, insuType, psnNo,isFilter);
 
             JSONObject result = new JSONObject();
             result.put("rc", "1");
@@ -87,12 +88,12 @@ public class ApiController {
 
             Log.info("平台接口出参: {}", result.toJSONString());
 
-            Log.trace("结束本次调用单边数据接口查询出参: {}");
+            Log.trace("结束本次调用平台接口出参: {}");
 
             return result.toJSONString();
 
         } catch (Exception e) {
-            Log.error("调用单边数据接口查询异常", e);
+            Log.error("平台接口执行异常", e);
             return "{\"rc\":\"0\",\"msg\":\"系统异常\"}";
         }
         finally {

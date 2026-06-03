@@ -62,7 +62,7 @@ public class ApiLogic {
         return allbillList;
     }
 
-    public JSONArray getSetlListByInsuType(String setlId, String fixmedinsCode, String insutype, String psnNo) {
+        public JSONArray getSetlListByInsuType(String setlId, String fixmedinsCode, String insutype, String psnNo,String isFilter) {
 
         int pageNum = 1;
 
@@ -72,6 +72,7 @@ public class ApiLogic {
         String result = null;
 
         result = getSetllDetail(insutype, pageNum, pageSize, psnNo);
+
         JSONObject jsonObject = JSONObject.parseObject(result);
         JSONObject data = jsonObject.getJSONObject("data");
         JSONObject pageBean = data.getJSONObject("pageBean");
@@ -79,12 +80,19 @@ public class ApiLogic {
 
         JSONArray filteredList = new JSONArray();
 
-        for(int i =0 ;i<billList.size();i++){
-            JSONObject item = billList.getJSONObject(i);
-            if(setlId.equals(item.getString("setlId"))){
-                filteredList.add(item);
+            for (int i = 0; i < billList.size(); i++) {
+                JSONObject item = billList.getJSONObject(i);
+                if(fixmedinsCode.equals(item.getString("fixmedinsCode"))) {
+                    if ("1".equals(isFilter)) {
+                        if (setlId.equals(item.getString("setlId"))) {
+                            filteredList.add(item);
+                        }
+                    }else {
+                        filteredList.add(item);
+                    }
+                }
             }
-        }
+
 
 
         return filteredList;
@@ -118,7 +126,7 @@ public class ApiLogic {
         return allBillList;
     }
 
-    public JSONArray getSetlList(String setlId, String fixmedinsCode, String billDate, String insutype, String psnNo) {
+    public JSONArray getSetlList(String setlId, String fixmedinsCode, String billDate, String insutype, String psnNo,String isFilter) {
 
         if (StringUtils.isEmpty(insutype)) {
             insutype = config.getInsuType();
@@ -136,8 +144,12 @@ public class ApiLogic {
 
         String[] insuTypes = insutype.split(",");
         for (int i = 0; i < insuTypes.length; i++) {
-            JSONArray billList = getSetlListByInsuType(setlId, fixmedinsCode, insuTypes[i], psnNo);
+
+            JSONArray billList = getSetlListByInsuType(setlId, fixmedinsCode, insuTypes[i], psnNo,isFilter);
+            Log.info("调两定单边原始接口出参:" + billList.toString());
+
             JSONArray newBillList = convertSetlJSONArray(billList, insuTypes[i]);
+
             allBillList.addAll(newBillList);
         }
         return allBillList;
@@ -169,6 +181,10 @@ public class ApiLogic {
         newJsonObject.put("med_type", MedType.nameOf(jsonObject.getString("medType")));  //返回医疗类别的中文
         newJsonObject.put("med_type_code", jsonObject.getString("medType"));
         newJsonObject.put("card_no", jsonObject.getString("certno"));
+
+
+        newJsonObject.put("fixmedins_code", jsonObject.getString("fixmedinsCode"));
+        newJsonObject.put("fixmedins_name", jsonObject.getString("fixmedinsName"));
 
         newJsonObject.put("medfee_sumamt", jsonObject.getString("medfeeSumamt"));
         newJsonObject.put("fulamt_ownpay_amt", jsonObject.getString("fulamtOwnpayAmt"));
