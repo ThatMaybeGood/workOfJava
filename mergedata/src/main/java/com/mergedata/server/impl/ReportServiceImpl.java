@@ -588,7 +588,7 @@ public class ReportServiceImpl implements ReportService {
             OutpCashMainEntity yesterdayMain = new OutpCashMainEntity();
             // ⚠️ BUG: new空对象导致下方的null判断(第569行)永远不会为true，findByDateExclude返回null时会被空对象替代
             // 建议：初始化为null，让后续逻辑统一处理null情况
-            if (currtDate.getDayOfMonth() == 1 && Constant.MONTH_FIRST.equals(totalFlag)) {
+            if (currtDate.getDayOfMonth() == 1 && !Constant.TOTAL.equals(totalFlag)) {
                 yesterdayMain = outpReportService.findByDateExclude(currtDate, Constant.MONTH_FIRST);
             }else if (calculationType == 0 && holidayService.isSpecialHolidaySum(currtDate, Constant.TOTAL) == 1) {
                 //判断是否周二，周二情况不能取值周一的正常的前日暂收款，应该取其汇总的站收款
