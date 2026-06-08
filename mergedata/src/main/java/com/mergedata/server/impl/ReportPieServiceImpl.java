@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import javax.xml.soap.Detail;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -92,28 +93,80 @@ public class ReportPieServiceImpl implements ReportPieService {
      * 实际开发中这里应该查询数据库
      */
     private Map<String, ItemDetailDTO> getCoreItems(LocalDate startDate, LocalDate endDate) {
+        List<OutpCashSubEntity> allSubs = outpReportService.findBatchByDateRange(startDate, endDate, Constant.NO)
+                .stream()
+                .flatMap(main -> main.getSubs().stream())
+                .collect(Collectors.toList());
+
+        // 分组统计
+        Map<String, ItemStats> statsMap = new HashMap<>();
+
+        // 正常用户统计
+        List<OutpCashSubEntity> normalSubs = allSubs.stream()
+                .filter(sub -> !"TEST_LY2".equals(sub.getDbUser()))
+                .collect(Collectors.toList());
+
+        statsMap.put("prepay", calculateStats(normalSubs, OutpCashSubEntity::getHisAdvancePayment));
+        statsMap.put("medical", calculateStats(normalSubs, OutpCashSubEntity::getHisMedicalIncome));
+        statsMap.put("tempReceive", calculateStats(normalSubs, OutpCashSubEntity::getCurrentTemporaryReceipt));
+        statsMap.put("actualReport", calculateStats(normalSubs, OutpCashSubEntity::getActualReportAmount));
+
+        // 疫苗用户统计
+        List<OutpCashSubEntity> vaccineSubs = allSubs.stream()
+                .filter(sub -> "TEST_LY2".equals(sub.getDbUser()))
+                .collect(Collectors.toList());
+        statsMap.put("vaccine", calculateStats(vaccineSubs, OutpCashSubEntity::getHisMedicalIncome));
+
+        // 构建返回结果
         Map<String, ItemDetailDTO> coreItems = new LinkedHashMap<>();
-
-        // 从数据库查询各项目数据，这里用模拟数据示例
-        // 实际代码应该是:
-        // List<YourEntity> list = yourMapper.queryByDateRange(startDate, endDate, projectType);
-        // 然后聚合计算
-
-        coreItems.put("prepay", buildItemDetail("HIS预交金", startDate, endDate, 32680, 132, 4280, 18));
-        coreItems.put("clinicIncome", buildItemDetail("门诊医疗收入", startDate, endDate, 49650, 215, 2950, 24));
-        coreItems.put("tempReceive", buildItemDetail("当日暂收款", startDate, endDate, 15120, 84, 1380, 11));
-        coreItems.put("actualReport", buildItemDetail("实交报表数", startDate, endDate, 38250, 168, 2060, 16));
-        coreItems.put("vaccine", buildItemDetail("疫苗收入", startDate, endDate, 10280, 48, 580, 7));
+        coreItems.put("prepay", buildItemDetail("HIS预交金", startDate, endDate,
+                statsMap.get("prepay")));
+        coreItems.put("clinicIncome", buildItemDetail("his医疗收入", startDate, endDate,
+                statsMap.get("medical")));
+        coreItems.put("tempReceive", buildItemDetail("当日暂收款", startDate, endDate,
+                statsMap.get("tempReceive")));
+        coreItems.put("actualReport", buildItemDetail("实交报表数", startDate, endDate,
+                statsMap.get("actualReport")));
+        coreItems.put("vaccine", buildItemDetail("疫苗收入", startDate, endDate,
+                statsMap.get("vaccine")));
 
         return coreItems;
+    }
+
+    // 通用的统计方法
+    private ItemStats calculateStats(List<OutpCashSubEntity> subs,
+                                     Function<OutpCashSubEntity, BigDecimal> amountExtractor) {
+        ItemStats stats = new ItemStats();
+
+        for (OutpCashSubEntity sub : subs) {
+            BigDecimal amount = amountExtractor.apply(sub);
+            if (amount == null) {
+                continue;
+            }
+            if (amount.compareTo(BigDecimal.ZERO) > 0) {
+                stats.addIncome(amount);
+            } else if (amount.compareTo(BigDecimal.ZERO) < 0) {
+                stats.addRefund(amount);
+            }
+        }
+
+        return stats;
+    }
+
+    // 重载 buildItemDetail 方法，接受 ItemStats 对象
+    private ItemDetailDTO buildItemDetail(String itemName, LocalDate startDate,
+                                          LocalDate endDate, ItemStats stats) {
+        return buildItemDetail(itemName, startDate, endDate,
+                stats.getIncomeAmt(), stats.getIncomeCnt(),
+                stats.getRefundAmt(), stats.getRefundCnt());
     }
 
     /**
      * 构建单个项目的完整数据
      */
     private ItemDetailDTO buildItemDetail(String itemName, LocalDate startDate, LocalDate endDate,
-                                          double incomeAmt, int incomeCnt,
-                                          double refundAmt, int refundCnt) {
+                                          BigDecimal incomeAmt, int incomeCnt,
+                                          BigDecimal refundAmt, int refundCnt) {
         // 实际开发中，这些数据应该从数据库聚合查询得到
         // 这里根据日期范围做个简单模拟，天数越多金额越大
         long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
@@ -124,14 +177,14 @@ public class ReportPieServiceImpl implements ReportPieService {
         // 收入
         CoreMetricDTO income = new CoreMetricDTO();
         income.setItemName(itemName);
-        income.setAmount(BigDecimal.valueOf(incomeAmt * factor));
-        income.setCount((int) (incomeCnt * factor));
+        income.setAmount(incomeAmt);
+        income.setCount((int) (incomeCnt));
         detail.setIncome(income);
 
         // 退款
         CoreMetricDTO refund = new CoreMetricDTO();
         refund.setItemName(itemName);
-        refund.setAmount(BigDecimal.valueOf(refundAmt * factor));
+        refund.setAmount(refundAmt);
         refund.setCount((int) (refundCnt * factor));
         detail.setRefund(refund);
 

@@ -34,8 +34,8 @@ public class OutpCashSubEntity {
     @TableField("db_user")
     private String dbUser;
 
-    private BigDecimal hisAdvancePayment; //his
-    private BigDecimal hisMedicalIncome; //his
+    private BigDecimal hisAdvancePayment; //his预交金
+    private BigDecimal hisMedicalIncome; //his医疗收入
     private BigDecimal hisRegistrationIncome; //his
 
 
