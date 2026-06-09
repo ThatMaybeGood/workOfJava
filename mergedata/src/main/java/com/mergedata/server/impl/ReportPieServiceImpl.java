@@ -93,42 +93,51 @@ public class ReportPieServiceImpl implements ReportPieService {
      * 实际开发中这里应该查询数据库
      */
     private Map<String, ItemDetailDTO> getCoreItems(LocalDate startDate, LocalDate endDate) {
-        List<OutpCashSubEntity> allSubs = outpReportService.findBatchByDateRange(startDate, endDate, Constant.NO)
-                .stream()
-                .flatMap(main -> main.getSubs().stream())
-                .collect(Collectors.toList());
-
-        // 分组统计
-        Map<String, ItemStats> statsMap = new HashMap<>();
-
-        // 正常用户统计
-        List<OutpCashSubEntity> normalSubs = allSubs.stream()
-                .filter(sub -> !"TEST_LY2".equals(sub.getDbUser()))
-                .collect(Collectors.toList());
-
-        statsMap.put("prepay", calculateStats(normalSubs, OutpCashSubEntity::getHisAdvancePayment));
-        statsMap.put("medical", calculateStats(normalSubs, OutpCashSubEntity::getHisMedicalIncome));
-        statsMap.put("tempReceive", calculateStats(normalSubs, OutpCashSubEntity::getCurrentTemporaryReceipt));
-        statsMap.put("actualReport", calculateStats(normalSubs, OutpCashSubEntity::getActualReportAmount));
-
-        // 疫苗用户统计
-        List<OutpCashSubEntity> vaccineSubs = allSubs.stream()
-                .filter(sub -> "TEST_LY2".equals(sub.getDbUser()))
-                .collect(Collectors.toList());
-        statsMap.put("vaccine", calculateStats(vaccineSubs, OutpCashSubEntity::getHisMedicalIncome));
-
-        // 构建返回结果
+//        List<OutpCashSubEntity> allSubs = outpReportService.findBatchByDateRange(startDate, endDate, Constant.NO)
+//                .stream()
+//                .flatMap(main -> main.getSubs().stream())
+//                .collect(Collectors.toList());
+//
+//        // 分组统计
+//        Map<String, ItemStats> statsMap = new HashMap<>();
+//
+//        // 正常用户统计
+//        List<OutpCashSubEntity> normalSubs = allSubs.stream()
+//                .filter(sub -> !"TEST_LY2".equals(sub.getDbUser()))
+//                .collect(Collectors.toList());
+//
+//        statsMap.put("prepay", calculateStats(normalSubs, OutpCashSubEntity::getHisAdvancePayment));
+//        statsMap.put("medical", calculateStats(normalSubs, OutpCashSubEntity::getHisMedicalIncome));
+//        statsMap.put("tempReceive", calculateStats(normalSubs, OutpCashSubEntity::getCurrentTemporaryReceipt));
+//        statsMap.put("actualReport", calculateStats(normalSubs, OutpCashSubEntity::getActualReportAmount));
+//
+//        // 疫苗用户统计
+//        List<OutpCashSubEntity> vaccineSubs = allSubs.stream()
+//                .filter(sub -> "TEST_LY2".equals(sub.getDbUser()))
+//                .collect(Collectors.toList());
+//        statsMap.put("vaccine", calculateStats(vaccineSubs, OutpCashSubEntity::getHisMedicalIncome));
+//
+//        // 构建返回结果
         Map<String, ItemDetailDTO> coreItems = new LinkedHashMap<>();
-        coreItems.put("prepay", buildItemDetail("HIS预交金", startDate, endDate,
-                statsMap.get("prepay")));
-        coreItems.put("clinicIncome", buildItemDetail("his医疗收入", startDate, endDate,
-                statsMap.get("medical")));
-        coreItems.put("tempReceive", buildItemDetail("当日暂收款", startDate, endDate,
-                statsMap.get("tempReceive")));
-        coreItems.put("actualReport", buildItemDetail("实交报表数", startDate, endDate,
-                statsMap.get("actualReport")));
-        coreItems.put("vaccine", buildItemDetail("疫苗收入", startDate, endDate,
-                statsMap.get("vaccine")));
+//        coreItems.put("prepay", buildItemDetail("HIS预交金", startDate, endDate,
+//                statsMap.get("prepay")));
+//        coreItems.put("clinicIncome", buildItemDetail("his医疗收入", startDate, endDate,
+//                statsMap.get("medical")));
+//        coreItems.put("tempReceive", buildItemDetail("当日暂收款", startDate, endDate,
+//                statsMap.get("tempReceive")));
+//        coreItems.put("actualReport", buildItemDetail("实交报表数", startDate, endDate,
+//                statsMap.get("actualReport")));
+//        coreItems.put("vaccine", buildItemDetail("疫苗收入", startDate, endDate,
+//                statsMap.get("vaccine")));
+
+
+        // 模拟数据示例，实际开发中应该从数据库查询
+        coreItems.put("prepay", buildItemDetail("HIS预交金", startDate, endDate, new BigDecimal(32680), 132, new BigDecimal(4280), 18));
+        coreItems.put("clinicIncome", buildItemDetail("门诊医疗收入", startDate, endDate, new BigDecimal(49650), 215, new BigDecimal(2950), 24));
+        coreItems.put("tempReceive", buildItemDetail("当日暂收款", startDate, endDate, new BigDecimal(15120), 84, new BigDecimal(1380), 11));
+        coreItems.put("actualReport", buildItemDetail("实交报表数", startDate, endDate, new BigDecimal(38250), 168, new BigDecimal(2060), 16));
+        coreItems.put("vaccine", buildItemDetail("疫苗收入", startDate, endDate, new BigDecimal(10280), 48, new BigDecimal(580), 7));
+
 
         return coreItems;
     }
