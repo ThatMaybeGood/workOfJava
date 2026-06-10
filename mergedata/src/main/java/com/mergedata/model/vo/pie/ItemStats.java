@@ -62,7 +62,7 @@ public class ItemStats {
 
     // 添加收入
     public void addIncome(BigDecimal amount) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
             return;
         }
         this.incomeAmt = this.incomeAmt.add(amount);
@@ -71,7 +71,7 @@ public class ItemStats {
 
     // 添加退款
     public void addRefund(BigDecimal amount) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) >= 0) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) > 0) {
             return;
         }
         this.refundAmt = this.refundAmt.add(amount.abs());

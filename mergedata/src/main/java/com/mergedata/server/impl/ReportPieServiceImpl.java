@@ -93,51 +93,55 @@ public class ReportPieServiceImpl implements ReportPieService {
      * 实际开发中这里应该查询数据库
      */
     private Map<String, ItemDetailDTO> getCoreItems(LocalDate startDate, LocalDate endDate) {
-        List<OutpCashSubEntity> allSubs = outpReportService.findBatchByDateRange(startDate, endDate, Constant.NO)
-                .stream()
-                .flatMap(main -> main.getSubs().stream())
-                .collect(Collectors.toList());
-
-        // 分组统计
-        Map<String, ItemStats> statsMap = new HashMap<>();
-
-        // 正常用户统计
-        List<OutpCashSubEntity> normalSubs = allSubs.stream()
-                .filter(sub -> !"TEST_LY2".equals(sub.getDbUser()))
-                .collect(Collectors.toList());
-
-        statsMap.put("prepay", calculateStats(normalSubs, OutpCashSubEntity::getHisAdvancePayment));
-        statsMap.put("medical", calculateStats(normalSubs, OutpCashSubEntity::getHisMedicalIncome));
-        statsMap.put("tempReceive", calculateStats(normalSubs, OutpCashSubEntity::getCurrentTemporaryReceipt));
-        statsMap.put("actualReport", calculateStats(normalSubs, OutpCashSubEntity::getActualReportAmount));
-
-        // 疫苗用户统计
-        List<OutpCashSubEntity> vaccineSubs = allSubs.stream()
-                .filter(sub -> "TEST_LY2".equals(sub.getDbUser()))
-                .collect(Collectors.toList());
-        statsMap.put("vaccine", calculateStats(vaccineSubs, OutpCashSubEntity::getHisMedicalIncome));
-
-        // 构建返回结果
-        Map<String, ItemDetailDTO> coreItems = new LinkedHashMap<>();
-        coreItems.put("prepay", buildItemDetail("HIS预交金", startDate, endDate,
-                statsMap.get("prepay")));
-        coreItems.put("clinicIncome", buildItemDetail("his医疗收入", startDate, endDate,
-                statsMap.get("medical")));
-        coreItems.put("tempReceive", buildItemDetail("当日暂收款", startDate, endDate,
-                statsMap.get("tempReceive")));
-        coreItems.put("actualReport", buildItemDetail("实交报表数", startDate, endDate,
-                statsMap.get("actualReport")));
-        coreItems.put("vaccine", buildItemDetail("疫苗收入", startDate, endDate,
-                statsMap.get("vaccine")));
-
-
-//        // 模拟数据示例，实际开发中应该从数据库查询
+//        List<OutpCashSubEntity> allSubs = outpReportService.findBatchByDateRange(startDate, endDate, Constant.NO)
+//                .stream()
+//                .flatMap(main -> main.getSubs().stream())
+//                .collect(Collectors.toList());
+//
+//        // 分组统计
+//        Map<String, ItemStats> statsMap = new HashMap<>();
+//
+//        // 正常用户统计
+//        List<OutpCashSubEntity> normalSubs = allSubs.stream()
+//                .filter(sub -> !"TEST_LY2".equals(sub.getDbUser()))
+//                .collect(Collectors.toList());
+//
+//        statsMap.put("prepay", calculateStats(normalSubs, OutpCashSubEntity::getHisAdvancePayment));
+//        statsMap.put("medical", calculateStats(normalSubs, OutpCashSubEntity::getHisMedicalIncome));
+//        statsMap.put("tempReceive", calculateStats(normalSubs, OutpCashSubEntity::getCurrentTemporaryReceipt));
+//        statsMap.put("actualReport", calculateStats(normalSubs, OutpCashSubEntity::getActualReportAmount));
+//        statsMap.put("preTempReceive", calculateStats(normalSubs, OutpCashSubEntity::getPreviousTemporaryReceipt));
+//
+//        // 疫苗用户统计
+//        List<OutpCashSubEntity> vaccineSubs = allSubs.stream()
+//                .filter(sub -> "TEST_LY2".equals(sub.getDbUser()))
+//                .collect(Collectors.toList());
+//        statsMap.put("vaccine", calculateStats(vaccineSubs, OutpCashSubEntity::getHisMedicalIncome));
+//
+//        // 构建返回结果
 //        Map<String, ItemDetailDTO> coreItems = new LinkedHashMap<>();
-//        coreItems.put("prepay", buildItemDetail("HIS预交金", startDate, endDate, new BigDecimal(32680), 132, new BigDecimal(4280), 18));
-//        coreItems.put("clinicIncome", buildItemDetail("门诊医疗收入", startDate, endDate, new BigDecimal(49650), 215, new BigDecimal(2950), 24));
-//        coreItems.put("tempReceive", buildItemDetail("当日暂收款", startDate, endDate, new BigDecimal(15120), 84, new BigDecimal(1380), 11));
-//        coreItems.put("actualReport", buildItemDetail("实交报表数", startDate, endDate, new BigDecimal(38250), 168, new BigDecimal(2060), 16));
-//        coreItems.put("vaccine", buildItemDetail("疫苗收入", startDate, endDate, new BigDecimal(10280), 48, new BigDecimal(580), 7));
+//        coreItems.put("prepay", buildItemDetail("HIS预交金", startDate, endDate,
+//                statsMap.get("prepay")));
+//        coreItems.put("clinicIncome", buildItemDetail("his医疗收入", startDate, endDate,
+//                statsMap.get("medical")));
+//        coreItems.put("tempReceive", buildItemDetail("当日暂收款", startDate, endDate,
+//                statsMap.get("tempReceive")));
+//        coreItems.put("actualReport", buildItemDetail("实交报表数", startDate, endDate,
+//                statsMap.get("actualReport")));
+//        coreItems.put("vaccine", buildItemDetail("疫苗收入", startDate, endDate,
+//                statsMap.get("vaccine")));
+//        coreItems.put("preTempReceive", buildItemDetail("前日暂收款", startDate, endDate,
+//                statsMap.get("preTempReceive")));
+
+
+        // 模拟数据示例，实际开发中应该从数据库查询
+        Map<String, ItemDetailDTO> coreItems = new LinkedHashMap<>();
+        coreItems.put("prepay", buildItemDetail("HIS预交金", startDate, endDate, new BigDecimal(32680), 132, new BigDecimal(4280), 18));
+        coreItems.put("clinicIncome", buildItemDetail("门诊医疗收入", startDate, endDate, new BigDecimal(49650), 215, new BigDecimal(2950), 24));
+        coreItems.put("tempReceive", buildItemDetail("当日暂收款", startDate, endDate, new BigDecimal(15120), 84, new BigDecimal(1380), 11));
+        coreItems.put("actualReport", buildItemDetail("实交报表数", startDate, endDate, new BigDecimal(38250), 168, new BigDecimal(2060), 16));
+        coreItems.put("vaccine", buildItemDetail("疫苗收入", startDate, endDate, new BigDecimal(10280), 48, new BigDecimal(580), 7));
+        coreItems.put("preTempReceive", buildItemDetail("前日暂收款", startDate, endDate, new BigDecimal(15120), 48, new BigDecimal(1380), 352));
 
 
         return coreItems;
@@ -244,13 +248,13 @@ public class ReportPieServiceImpl implements ReportPieService {
         SummaryDTO summary = new SummaryDTO();
 
         // 初始化汇总对象
-        CoreMetricDTO totalIncome = new CoreMetricDTO();
-        totalIncome.setAmount(BigDecimal.ZERO);
-        totalIncome.setCount(0);
+        CoreMetricDTO totalRepay = new CoreMetricDTO();
+        totalRepay.setAmount(BigDecimal.ZERO);
+        totalRepay.setCount(0);
 
-        CoreMetricDTO totalRefund = new CoreMetricDTO();
-        totalRefund.setAmount(BigDecimal.ZERO);
-        totalRefund.setCount(0);
+        CoreMetricDTO totalLoan = new CoreMetricDTO();
+        totalLoan.setAmount(BigDecimal.ZERO);
+        totalLoan.setCount(0);
 
         CoreMetricDTO totalNet = new CoreMetricDTO();
         totalNet.setAmount(BigDecimal.ZERO);
@@ -258,18 +262,18 @@ public class ReportPieServiceImpl implements ReportPieService {
 
         // 累加核心项目
         for (ItemDetailDTO item : coreItems.values()) {
-            totalIncome.setAmount(totalIncome.getAmount().add(item.getIncome().getAmount()));
-            totalIncome.setCount(totalIncome.getCount() + item.getIncome().getCount());
+            totalRepay.setAmount(totalRepay.getAmount().add(item.getIncome().getAmount()));
+            totalRepay.setCount(totalRepay.getCount() + item.getIncome().getCount());
 
-            totalRefund.setAmount(totalRefund.getAmount().add(item.getRefund().getAmount()));
-            totalRefund.setCount(totalRefund.getCount() + item.getRefund().getCount());
+            totalLoan.setAmount(totalLoan.getAmount().add(item.getRefund().getAmount()));
+            totalLoan.setCount(totalLoan.getCount() + item.getRefund().getCount());
 
             totalNet.setAmount(totalNet.getAmount().add(item.getTotal().getAmount()));
             totalNet.setCount(totalNet.getCount() + item.getTotal().getCount());
         }
 
-        summary.setTotalIncome(totalIncome);
-        summary.setTotalRefund(totalRefund);
+        summary.setTotalRepay(totalRepay);
+        summary.setTotalLoan(totalLoan);
         summary.setTotalNet(totalNet);
 
         // 累加辅助项目总金额

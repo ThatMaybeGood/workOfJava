@@ -9,8 +9,8 @@ import java.math.BigDecimal;
  */
 @Data
 public class SummaryDTO {
-    private CoreMetricDTO totalIncome;      // 总收入汇总
-    private CoreMetricDTO totalRefund;      // 总退款汇总
+    private CoreMetricDTO totalRepay;      // 回款
+    private CoreMetricDTO totalLoan;      // 借款
     private CoreMetricDTO totalNet;         // 总合计汇总
     private BigDecimal totalAuxiliary;      // 辅助项总金额
 }
