@@ -38,6 +38,15 @@ public interface OutpReportService {
      */
      List<OutpCashMainEntity> findBatchByDateRange(LocalDate startDate, LocalDate endDate,String totalFlag)  ;
 
+    /**
+     * 查询时间范围内的所有门诊报表主表数据
+     */
+    List<OutpCashMainEntity> findBatchByDateRangeAll(LocalDate startDate, LocalDate endDate,String totalFlag)  ;
+
+    /**
+     * 查询时间范围内的下半部分数据,不包含合计之后的行
+     */
+    List<OutpCashMainEntity> findBatchByDateRangeForLowerValid(LocalDate startDate, LocalDate endDate,String totalFlag)  ;
 
 
     /**

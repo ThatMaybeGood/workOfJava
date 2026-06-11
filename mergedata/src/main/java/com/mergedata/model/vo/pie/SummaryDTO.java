@@ -11,6 +11,6 @@ import java.math.BigDecimal;
 public class SummaryDTO {
     private CoreMetricDTO totalRepay;      // 回款
     private CoreMetricDTO totalLoan;      // 借款
-    private CoreMetricDTO totalNet;         // 总合计汇总
+    private CoreMetricDTO totalNet;         //  单位存款凭条汇总
     private BigDecimal totalAuxiliary;      // 辅助项总金额
 }

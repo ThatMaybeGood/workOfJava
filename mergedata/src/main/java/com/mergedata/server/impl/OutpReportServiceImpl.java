@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -38,7 +39,7 @@ public class OutpReportServiceImpl implements OutpReportService {
     }
 
     @Override
-    public OutpCashMainEntity findByDate(LocalDate date,String totalFlag) {
+    public OutpCashMainEntity findByDate(LocalDate date, String totalFlag) {
         OutpCashMainEntity main = queryMainByDate(date, totalFlag).one();
 
         fillSubs(main);
@@ -47,7 +48,7 @@ public class OutpReportServiceImpl implements OutpReportService {
     }
 
     @Override
-    public OutpCashMainEntity findByDateExclude(LocalDate date,String totalFlag) {
+    public OutpCashMainEntity findByDateExclude(LocalDate date, String totalFlag) {
         OutpCashMainEntity main = queryMainByDate(date, totalFlag).one();
 
         fillSubsExclude(main);
@@ -57,13 +58,36 @@ public class OutpReportServiceImpl implements OutpReportService {
 
     @Override
     public Long countByDate(LocalDate date, String totalFlag) {
-
         return queryMainByDate(date, totalFlag).count();
     }
 
     @Override
-    public List<OutpCashMainEntity> findBatchByDateRange(LocalDate startDate, LocalDate endDate,String totalFlag) {
+    public List<OutpCashMainEntity> findBatchByDateRangeAll(LocalDate startDate, LocalDate endDate, String totalFlag) {
+        return findBatchByDateRangeCommon(startDate, endDate, totalFlag, 0);
+    }
 
+    @Override
+    public List<OutpCashMainEntity> findBatchByDateRange(LocalDate startDate, LocalDate endDate, String totalFlag) {
+        return findBatchByDateRangeCommon(startDate, endDate, totalFlag, 1);
+    }
+    /**
+     * 查询时间范围内的下半部分数据,不包含合计之后的行
+     */
+    @Override
+    public List<OutpCashMainEntity> findBatchByDateRangeForLowerValid  (LocalDate startDate, LocalDate endDate, String totalFlag) {
+        return findBatchByDateRangeCommon(startDate, endDate, totalFlag, 2);
+    }
+
+    /**
+     * 查询通用合并方法
+     *
+     * @param startDate 开始日期
+     * @param endDate   结束日期
+     * @param totalFlag 总结标志
+     * @param validFlag 有效标志 1 上半有效 2 下半有效 0 全部
+     * @return 主表实体列表
+     */
+    private List<OutpCashMainEntity> findBatchByDateRangeCommon(LocalDate startDate, LocalDate endDate, String totalFlag, long validFlag) {
         List<OutpCashMainEntity> mainList = Db.lambdaQuery(OutpCashMainEntity.class)
                 .between(OutpCashMainEntity::getReportDate, startDate, endDate)
                 .eq(OutpCashMainEntity::getTotalFlag, totalFlag)   //只查询不是汇总标志的
@@ -80,13 +104,27 @@ public class OutpReportServiceImpl implements OutpReportService {
                 .in(OutpCashSubEntity::getSerialNo, serialNos)
                 .list();
 
-        // 3. 在内存中进行分组并填充 (使用 Map 提高查找效率)
-        Map<String, List<OutpCashSubEntity>> subMap = allSubs.stream()
-                .filter(d -> ! Constant.EXCLUDE_OPERATOR_NAMES.equals(d.getOperatorName()))
-                .collect(Collectors.groupingBy(OutpCashSubEntity::getSerialNo));
+        final Map<String, List<OutpCashSubEntity>> subMap;
+
+        if (validFlag == 0) {
+            // 不过滤，全部保留
+            subMap = allSubs.stream()
+                    .collect(Collectors.groupingBy(OutpCashSubEntity::getSerialNo));
+        } else if (validFlag == 1) {
+            // 上半有效：排除操作员
+            subMap = allSubs.stream()
+                    .filter(d -> d.getOperatorName() != null)
+                    .filter(d -> !Constant.EXCLUDE_OPERATOR_NAMES.contains(d.getOperatorName()))
+                    .collect(Collectors.groupingBy(OutpCashSubEntity::getSerialNo));
+        } else {
+            // 下半有效：只保留排除项
+            subMap = allSubs.stream()
+                    .filter(d -> d.getOperatorName() != null)
+                    .filter(d -> Constant.EXCLUDE_DOWN_NAMES.contains(d.getOperatorName()))
+                    .collect(Collectors.groupingBy(OutpCashSubEntity::getSerialNo));
+        }
 
         mainList.forEach(main -> main.setSubs(subMap.getOrDefault(main.getSerialNo(), Collections.emptyList())));
-
         return mainList;
     }
 
@@ -113,7 +151,7 @@ public class OutpReportServiceImpl implements OutpReportService {
             Db.saveBatch(entity.getSubs());
         }
 
-     }
+    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -171,7 +209,7 @@ public class OutpReportServiceImpl implements OutpReportService {
                 remark = sub.getRemarks();
             }
         }
-        OutpCashMainEntity main = outpExchangeViewToDb(reportDate,mainVO,remark);
+        OutpCashMainEntity main = outpExchangeViewToDb(reportDate, mainVO, remark);
 
         main.getSubs().forEach(sub -> {
             Db.lambdaUpdate(OutpCashSubEntity.class)
@@ -195,7 +233,7 @@ public class OutpReportServiceImpl implements OutpReportService {
     }
 
     // 填充从表数据,不包含合计之后的
-       private void fillSubsExclude(OutpCashMainEntity main) {
+    private void fillSubsExclude(OutpCashMainEntity main) {
         if (main != null) {
             List<OutpCashSubEntity> items = Db.lambdaQuery(OutpCashSubEntity.class)
                     .eq(OutpCashSubEntity::getSerialNo, main.getSerialNo())
@@ -205,7 +243,7 @@ public class OutpReportServiceImpl implements OutpReportService {
 
             // 过滤掉不是操作员的行
             items = items.stream()
-                    .filter(d -> ! Constant.EXCLUDE_OPERATOR_NAMES.contains(d.getOperatorName()))
+                    .filter(d -> !Constant.EXCLUDE_OPERATOR_NAMES.contains(d.getOperatorName()))
                     .collect(Collectors.toList());
 
             main.setSubs(items);
@@ -276,7 +314,7 @@ public class OutpReportServiceImpl implements OutpReportService {
 
                 // 复制除 acctDate 外的所有字段
                 String[] ignoreProperties = {"acctDate"};
-                BeanUtils.copyProperties(subVO,subEntity, ignoreProperties);
+                BeanUtils.copyProperties(subVO, subEntity, ignoreProperties);
                 // 手动处理 LocalDateTime 到 LocalDate 的转换
                 if (subEntity.getAcctDate() != null) {
                     subEntity.setAcctDate(subVO.getAcctDate().atStartOfDay());
@@ -293,7 +331,6 @@ public class OutpReportServiceImpl implements OutpReportService {
 
         return mainEntity;
     }
-
 
 
 }
