@@ -240,7 +240,7 @@ public class ReportPieServiceImpl implements ReportPieService {
     }
 
     /**
-     * 获取辅助5个项目数据（门诊借款、住院借款、门诊回款、住院回款、门诊实存）
+     * 获取辅助5个项目数据（门诊当日借款、住院部当日借款、门诊当日回款、住院部当日回款、门诊当日实存金额）
      */
     private Map<String, AuxiliaryMetricDTO> getAuxiliaryItems(LocalDate startDate, LocalDate endDate, List<OutpCashSubEntity> subsDown) {
         Map<String, AuxiliaryMetricDTO> auxiliaryItems = new LinkedHashMap<>();
@@ -248,33 +248,22 @@ public class ReportPieServiceImpl implements ReportPieService {
         long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
         double factor = days;
 
-        // 使用 contains 模糊匹配
-        BigDecimal outpatientLoan = getAmountByContains(subsDown, "门诊借款");
-        BigDecimal inpatientLoan = getAmountByContains(subsDown, "住院借款");
-        BigDecimal outpatientRepay = getAmountByContains(subsDown, "门诊回款");
-        BigDecimal inpatientRepay = getAmountByContains(subsDown, "住院回款");
-        BigDecimal outpatientSave = getAmountByContains(subsDown, "门诊实存");
-
-        BigDecimal todayeTmp = getAmountByContains(subsDown, "当日暂收款");
-        BigDecimal dailyReport = getAmountByContains(subsDown, "日报表数");
-        BigDecimal totalDeposit = getAmountByContains(subsDown, "合计存款金额");
-
-
-        auxiliaryItems.put("outpatientLoan", buildAuxiliaryItem("门诊借款", outpatientLoan));
-        auxiliaryItems.put("inpatientLoan", buildAuxiliaryItem("住院借款", inpatientLoan));
-        auxiliaryItems.put("outpatientRepay", buildAuxiliaryItem("门诊回款", outpatientRepay));
-        auxiliaryItems.put("inpatientRepay", buildAuxiliaryItem("住院回款", inpatientRepay));
-        auxiliaryItems.put("outpatientSave", buildAuxiliaryItem("门诊实存", outpatientSave));
+        auxiliaryItems.put("outpatientLoan", buildAuxiliaryItem("门诊当日借款", subsDown));
+        auxiliaryItems.put("inpatientLoan", buildAuxiliaryItem("住院部当日借款", subsDown));
+        auxiliaryItems.put("outpatientRepay", buildAuxiliaryItem("门诊当日回款", subsDown));
+        auxiliaryItems.put("inpatientRepay", buildAuxiliaryItem("住院部当日回款", subsDown));
+        auxiliaryItems.put("outpatientSave", buildAuxiliaryItem("门诊当日实存金额", subsDown));
 
 
 
-        auxiliaryItems.put("todayeTmp", buildAuxiliaryItem("当日暂收款", todayeTmp));
-        auxiliaryItems.put("dailyReport", buildAuxiliaryItem("日报表数", dailyReport));
-        auxiliaryItems.put("totalDeposit", buildAuxiliaryItem("合计存款金额", totalDeposit));
+        auxiliaryItems.put("todayeTmp", buildAuxiliaryItem("当日暂收款", subsDown));
+        auxiliaryItems.put("dailyReport", buildAuxiliaryItem("日报表数", subsDown));
+        auxiliaryItems.put("totalDeposit", buildAuxiliaryItem("合计存款金额", subsDown));
 
 
         return auxiliaryItems;
     }
+
 
     // 模糊匹配：包含关键词，没有则返回0
     private BigDecimal getAmountByContains(List<OutpCashSubEntity> list, String keyword) {
@@ -283,14 +272,24 @@ public class ReportPieServiceImpl implements ReportPieService {
                 .findFirst()
                 .map(sub -> sub.getHisAdvancePayment() != null ? sub.getHisAdvancePayment() : BigDecimal.ZERO)
                 .orElse(BigDecimal.ZERO);
+
     }
 
     /**
      * 构建辅助项目
      */
-    private AuxiliaryMetricDTO buildAuxiliaryItem(String itemName, BigDecimal amount) {
+    private AuxiliaryMetricDTO buildAuxiliaryItem(String keyword, List<OutpCashSubEntity> list) {
         AuxiliaryMetricDTO item = new AuxiliaryMetricDTO();
-        item.setItemName(itemName);
+
+        List<OutpCashSubEntity> subs = list.stream()
+                .filter(sub -> sub.getOperatorName() != null && sub.getOperatorName().contains(keyword))
+                .collect(Collectors.toList());
+
+        BigDecimal amount = BigDecimal.ZERO;
+        for (OutpCashSubEntity sub : subs) {
+            amount = amount.add(sub.getHisAdvancePayment());
+        }
+        item.setItemName(keyword);
         item.setAmount(amount);
         return item;
     }
