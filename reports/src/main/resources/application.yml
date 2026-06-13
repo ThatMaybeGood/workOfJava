@@ -1,0 +1,28 @@
+server:
+  port: 18089
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: reports-gateway
+  profiles:
+    active: dev
+
+# 追踪号配置
+reports:
+  trace:
+    # 追踪号前缀规则: 字母组合+数字, 如 YQ, WM
+    prefix: "YQ"
+    # 追踪号数字长度
+    number-length: 9
+    # 是否包含方括号
+    include-brackets: true
+
+# 日志配置
+logging:
+  level:
+    com.reports: TRACE
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - [%X{traceId}] %msg%n"
