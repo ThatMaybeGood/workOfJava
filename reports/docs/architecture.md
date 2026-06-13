@@ -32,7 +32,8 @@ reports/
     │   ├── DynamicDataSource.java            # 动态数据源路由
     │   ├── DynamicDataSourceContextHolder.java # 数据源上下文
     │   ├── MybatisPlusConfig.java            # MyBatis-Plus 配置
-    │   └── TraceIdConfig.java                # 追踪号配置
+    │   ├── TraceIdConfig.java                # 追踪号配置
+    │   └── ReportDataConfig.java             # 数据模式配置（mock/jdbc/mybatis-plus）
     ├── controller/                           # 控制层
     │   └── GatewayController.java            # 统一网关入口
     ├── service/                              # 业务层
@@ -334,22 +335,37 @@ public interface InpatientOperationService {
 }
 ```
 
-4. **创建 Handler**
+4. **创建 Handler**（注意：`handle` 方法接收 `ApiRequest<Object>`，需要用 `ObjectMapper` 转换 body）
 
 ```java
 package com.reports.service.handler.impl;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
 public class InpatientOperationHandler implements ReportHandler<InpatientOperationRequest, InpatientOperationResponse> {
     
     public static final String METHOD = "reports.inp.inpatient-operation";
+    private final ObjectMapper objectMapper;
+    
+    public InpatientOperationHandler(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
     
     @Override
     public String getMethod() { return METHOD; }
     
     @Override
-    public ApiResponse<InpatientOperationResponse> handle(ApiRequest<InpatientOperationRequest> request) {
-        // 业务逻辑
+    public ApiResponse<InpatientOperationResponse> handle(ApiRequest<Object> request) {
+        // 将 LinkedHashMap 转换为具体类型
+        InpatientOperationRequest body;
+        if (request.getBody() instanceof InpatientOperationRequest) {
+            body = (InpatientOperationRequest) request.getBody();
+        } else {
+            body = objectMapper.convertValue(request.getBody(), InpatientOperationRequest.class);
+        }
+        
+        // 业务逻辑...
         return ApiResponse.success(response, "住院运行数据统计查询成功！");
     }
 }
@@ -362,6 +378,40 @@ public class InpatientOperationHandler implements ReportHandler<InpatientOperati
 public interface InpatientOperationMapper {
     @Select("SELECT * FROM INPATIENT_STAT WHERE ...")
     List<Map<String, Object>> query(Map<String, Object> params);
+}
+```
+
+---
+
+## 十、数据模式切换
+
+支持三种数据获取模式，通过 `application.yml` 配置：
+
+```yaml
+reports:
+  data:
+    mode: mock    # 可选值: mock / jdbc / mybatis-plus
+```
+
+| 模式 | 说明 |
+|------|------|
+| `mock` | 返回模拟数据（默认） |
+| `jdbc` | 在 Service 中直接写 SQL（JdbcTemplate） |
+| `mybatis-plus` | 通过实体 + QueryWrapper 操作 |
+
+### JdbcTemplate 示例
+
+```java
+@Autowired
+private JdbcTemplate jdbcTemplate;
+
+// 切换数据源
+DynamicDataSourceContextHolder.set("slave");
+try {
+    String sql = "SELECT * FROM outpatient_record WHERE visit_date BETWEEN ? AND ?";
+    List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, startDate, endDate);
+} finally {
+    DynamicDataSourceContextHolder.clear();
 }
 ```
 
@@ -382,6 +432,9 @@ curl -X POST http://localhost:18089/reports/gateway \
   -H "Content-Type: application/json" \
   -d '{
     "head": {
+        "charset": "utf-8",
+        "encrypt_type": "AES",
+        "language": "zh_CN",
         "method": "reports.outp.outpatient-operation"
     },
     "body": {

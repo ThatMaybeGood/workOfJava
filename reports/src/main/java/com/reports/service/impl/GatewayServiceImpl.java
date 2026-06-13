@@ -28,7 +28,7 @@ public class GatewayServiceImpl implements GatewayService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public ApiResponse<?> process(ApiRequest<?> request) {
+    public ApiResponse<?> process(ApiRequest request) {
         // 验证 method
         if (request == null || request.getHead() == null || !StringUtils.hasText(request.getMethod())) {
             throw new BusinessException(ResultCode.PARAM_MISSING, "请求报文或 method 不能为空");

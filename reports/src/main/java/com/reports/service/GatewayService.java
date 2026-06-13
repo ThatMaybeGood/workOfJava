@@ -11,6 +11,6 @@ public interface GatewayService {
     /**
      * 处理网关请求
      */
-    ApiResponse<?> process(ApiRequest<?> request);
+    ApiResponse<?> process(ApiRequest request);
 
 }

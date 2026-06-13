@@ -29,7 +29,7 @@ public class GatewayController {
      * 统一网关入口
      */
     @PostMapping
-    public ApiResponse<?> gateway(@RequestBody ApiRequest<?> request) {
+    public ApiResponse<?> gateway(@RequestBody ApiRequest<Object> request) {
         log.trace("接收到网关请求: {}", request);
         return gatewayService.process(request);
     }

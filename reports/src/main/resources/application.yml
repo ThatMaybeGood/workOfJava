@@ -18,6 +18,9 @@ reports:
     number-length: 9
     # 是否包含方括号
     include-brackets: true
+  data:
+    # 数据模式: mock(默认) / jdbc / mybatis-plus
+    mode: mock
 
 # 日志配置
 logging:

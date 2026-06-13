@@ -18,7 +18,8 @@ public interface ReportHandler<T, R> {
 
     /**
      * 处理请求
+     * @param request 统一请求对象（body 可能是 LinkedHashMap，需要手动转换）
      */
-    ApiResponse<R> handle(ApiRequest<T> request);
+    ApiResponse<R> handle(ApiRequest<Object> request);
 
 }

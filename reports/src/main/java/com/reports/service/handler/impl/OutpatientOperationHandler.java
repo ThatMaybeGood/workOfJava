@@ -1,5 +1,6 @@
 package com.reports.service.handler.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.reports.dto.common.ApiRequest;
 import com.reports.dto.common.ApiResponse;
 import com.reports.dto.common.PageResult;
@@ -21,10 +22,12 @@ public class OutpatientOperationHandler implements ReportHandler<OutpatientOpera
     public static final String METHOD = "reports.outp.outpatient-operation";
 
     private final OutpatientOperationService outpatientOperationService;
+    private final ObjectMapper objectMapper;
 
     @Autowired
-    public OutpatientOperationHandler(OutpatientOperationService outpatientOperationService) {
+    public OutpatientOperationHandler(OutpatientOperationService outpatientOperationService, ObjectMapper objectMapper) {
         this.outpatientOperationService = outpatientOperationService;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -33,10 +36,16 @@ public class OutpatientOperationHandler implements ReportHandler<OutpatientOpera
     }
 
     @Override
-    public ApiResponse<OutpatientOperationResponse> handle(ApiRequest<OutpatientOperationRequest> request) {
+    public ApiResponse<OutpatientOperationResponse> handle(ApiRequest<Object> request) {
         log.info("处理门诊运行数据统计请求");
 
-        OutpatientOperationRequest body = request.getBody();
+        // 将 body 从 LinkedHashMap 转换为具体类型
+        OutpatientOperationRequest body;
+        if (request.getBody() instanceof OutpatientOperationRequest) {
+            body = (OutpatientOperationRequest) request.getBody();
+        } else {
+            body = objectMapper.convertValue(request.getBody(), OutpatientOperationRequest.class);
+        }
         if (body == null) {
             body = new OutpatientOperationRequest();
         }
