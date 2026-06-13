@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>门诊管理质量控制</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <style>
+        .qc-table thead th {
+            font-size: 11px;
+            white-space: normal;
+            min-width: 90px;
+            vertical-align: middle;
+        }
+        .qc-table tbody td {
+            font-size: 12px;
+        }
+        .qc-card-col {
+            flex: 0 0 25%;
+            max-width: 25%;
+        }
+        @media (max-width: 1200px) {
+            .qc-card-col {
+                flex: 0 0 33.333%;
+                max-width: 33.333%;
+            }
+        }
+        .word-preview {
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            padding: 24px;
+            min-height: 300px;
+        }
+        .word-preview h4 {
+            text-align: center;
+            font-size: 16px;
+            margin-bottom: 16px;
+        }
+        .word-preview p {
+            font-size: 14px;
+            line-height: 1.8;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-2">
+        <div class="page-title">
+            <span class="title-bar"></span>
+            门诊管理质量控制
+        </div>
+
+        <div class="filter-section">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="filter-label">统计时间：</span>
+                    <div class="date-range-picker">
+                        <div class="date-input-wrapper range-wrapper">
+                            <input type="text" class="form-control form-control-sm date-input" id="monthRange" value="2025-01 ~ 2025-12" readonly>
+                            <i class="bi bi-calendar date-input-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 stats-row mb-3">
+            <div class="qc-card-col">
+                <div class="card stat-card lab-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="emrUsageRate">46.2%</div>
+                            <div class="stat-label">门诊电子病历使用率 <i class="bi bi-info-circle info-icon" title="门诊电子病历份数占同期门诊总人次数的比例"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="qc-card-col">
+                <div class="card stat-card lab-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="standardDiagnosisRate">46.2%</div>
+                            <div class="stat-label">门诊标准诊断使用率 <i class="bi bi-info-circle info-icon" title="使用标准诊断的门诊病历份数占同期门诊病历总份数的比例"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="qc-card-col">
+                <div class="card stat-card lab-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="onTimeRate">46.2%</div>
+                            <div class="stat-label">门诊准时出诊率 <i class="bi bi-info-circle info-icon" title="准时出诊的门诊单元数占同期出诊门诊单元总数的比例"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="qc-card-col">
+                <div class="card stat-card lab-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="stopRate">46.2%</div>
+                            <div class="stat-label">门诊停诊率 <i class="bi bi-info-circle info-icon" title="停诊且未安排替代医师的门诊单元数占计划门诊单元总数的比例"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="qc-card-col">
+                <div class="card stat-card lab-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="chemoRecordRate">46.2%</div>
+                            <div class="stat-label">门诊化疗病历记录完整率 <i class="bi bi-info-circle info-icon" title="记录完整的门诊化疗病历份数占同期化疗病历总数的比例"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="qc-card-col">
+                <div class="card stat-card lab-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="chemoAdverseRate">46.2%</div>
+                            <div class="stat-label">门诊化疗严重不良反应发生率 <i class="bi bi-info-circle info-icon" title="≥3级不良反应患者人次数/门诊化疗总人次数"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="qc-card-col">
+                <div class="card stat-card lab-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="chemoInfusionRate">46.2%</div>
+                            <div class="stat-label">门诊化疗患者静脉治疗相关不良事件发生率 <i class="bi bi-info-circle info-icon" title="发生给药错误、外渗、≥2级静脉炎等事件人次数/同期静脉治疗化疗人次数"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="qc-card-col">
+                <div class="card stat-card lab-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="criticalValueRate">46.2%</div>
+                            <div class="stat-label">门诊危急值30分钟内通报完成率 <i class="bi bi-info-circle info-icon" title="30分钟内通知到患者/家属的危急值例数/危急值总例数"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="qc-card-col">
+                <div class="card stat-card lab-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="bloodDrawErrorRate">46.2%</div>
+                            <div class="stat-label">门诊静脉采血相关差错发生率 <i class="bi bi-info-circle info-icon" title="标本类型/容器错误、量不足等差错例数/采血总例数"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="qc-card-col">
+                <div class="card stat-card lab-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="surgeryComplicationRate">46.2%</div>
+                            <div class="stat-label">门诊手术并发症发生率 <i class="bi bi-info-circle info-icon" title="门诊手术后发生感染、出血、裂开等并发症例数/门诊手术总例数"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="qc-card-col">
+                <div class="card stat-card lab-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="adverseEventRate">46.2%</div>
+                            <div class="stat-label">每千门诊诊疗人次不良事件发生率 <i class="bi bi-info-circle info-icon" title="门诊不良事件总数/门诊总人次数*1000"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-section">
+            <div class="table-header d-flex justify-content-between align-items-center">
+                <div class="table-title"><i class="bi bi-clipboard-data"></i>门诊管理治疗质量控制指标（2024年版）</div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#maintainModal"><i class="bi bi-pencil-square me-1"></i>数据维护</button>
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#wordModal"><i class="bi bi-file-earword me-1"></i>导出Word</button>
+                    <button class="btn btn-primary btn-sm" onclick="exportExcel()"><i class="bi bi-download me-1"></i>导出Excel</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered mb-0 qc-table" id="qualityControlTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>日期</th>
+                            <th>门诊电子病历使用率</th>
+                            <th>门诊标准诊断使用率</th>
+                            <th>门诊准时出诊率</th>
+                            <th>门诊停诊率</th>
+                            <th>门诊化疗病历记录完整率</th>
+                            <th>门诊化疗严重不良反应发生率</th>
+                            <th>门诊化疗患者静脉治疗相关不良事件发生率</th>
+                            <th>门诊危急值30分钟内通报完成率</th>
+                            <th>门诊静脉采血相关差错发生率</th>
+                            <th>门诊手术并发症发生率</th>
+                            <th>每千门诊诊疗人次不良事件发生率</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+
+            <div class="pagination-wrapper d-flex justify-content-center align-items-center mt-3 gap-3">
+                <div class="pagination-info"><span id="pageInfo">10条/页 共55条</span></div>
+                <nav aria-label="Page navigation"><ul class="pagination mb-0" id="pagination"></ul></nav>
+                <div class="pagination-controls d-flex align-items-center gap-1">
+                    <select class="form-select form-select-sm" id="pageSizeSelect">
+                        <option value="10" selected>10条/页</option>
+                        <option value="20">20条/页</option>
+                        <option value="50">50条/页</option>
+                    </select>
+                    <span>跳至</span>
+                    <input type="number" class="form-control form-control-sm page-jump-input" id="jumpPage" min="1">
+                    <span>页</span>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="jumpToPage()">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据维护弹窗 -->
+    <div class="modal fade" id="maintainModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">数据维护</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <span>时间：</span>
+                        <div class="date-input-wrapper">
+                            <input type="text" class="form-control form-control-sm date-input" value="2025-09" readonly>
+                            <i class="bi bi-calendar date-input-icon"></i>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="min-width:160px">指标</th>
+                                    <th style="min-width:200px">公式</th>
+                                    <th>值</th>
+                                </tr>
+                            </thead>
+                            <tbody id="maintainTableBody">
+                                <tr>
+                                    <td rowspan="2">门诊电子病历使用率</td>
+                                    <td>门诊电子病历份数</td>
+                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                </tr>
+                                <tr>
+                                    <td>门诊总人次数</td>
+                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                </tr>
+                                <tr>
+                                    <td rowspan="2">门诊标准诊断使用率</td>
+                                    <td>使用标准诊断的病历数</td>
+                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                </tr>
+                                <tr>
+                                    <td>门诊病历总数</td>
+                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                </tr>
+                                <tr>
+                                    <td rowspan="2">门诊准时出诊率</td>
+                                    <td>准时出诊单元数</td>
+                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                </tr>
+                                <tr>
+                                    <td>出诊单元总数</td>
+                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                </tr>
+                                <tr>
+                                    <td rowspan="2">门诊停诊率</td>
+                                    <td>停诊且无替代的单元数</td>
+                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                </tr>
+                                <tr>
+                                    <td>计划门诊单元数</td>
+                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                </tr>
+                                <tr>
+                                    <td rowspan="2">门诊化疗病历记录完整率</td>
+                                    <td>完整化疗病例数</td>
+                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                </tr>
+                                <tr>
+                                    <td>化疗病历总数</td>
+                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导出Word弹窗 -->
+    <div class="modal fade" id="wordModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">导出Word</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">导出时间：</label>
+                                <div class="d-flex gap-3 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="exportPeriod" id="periodMonth" value="month" checked>
+                                        <label class="form-check-label" for="periodMonth">按月</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="exportPeriod" id="periodQuarter" value="quarter">
+                                        <label class="form-check-label" for="periodQuarter">按季度</label>
+                                    </div>
+                                </div>
+                                <div class="date-input-wrapper">
+                                    <input type="text" class="form-control form-control-sm date-input" value="2025-09" readonly>
+                                    <i class="bi bi-calendar date-input-icon"></i>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary btn-sm w-100" onclick="alert('导出Word功能开发中')">确认</button>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="word-preview">
+                                <h4>门诊质控指标情况</h4>
+                                <p><strong>一、国家《门诊管理治疗质量控制指标》2025年9月数据情况</strong></p>
+                                <p>（一）门诊电子病历使用率</p>
+                                <p>2025年9月我院门诊电子病历使用率为100%。</p>
+                                <p>（二）门诊标准诊断使用率</p>
+                                <p>2025年9月我院门诊标准诊断使用率为100%。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh.js"></script>
+    <script src="js/mock.js"></script>
+    <script src="js/api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="js/quality-control-app.js"></script>
+</body>
+</html>

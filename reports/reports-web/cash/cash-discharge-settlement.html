@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>出院结算报表</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid py-2">
+        <div class="page-title d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <span class="title-bar"></span>
+                出院结算报表
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="exportReport()"><i class="bi bi-download me-1"></i>导出Excel</button>
+        </div>
+
+        <div class="filter-section">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="filter-label">统计时间：</span>
+                    <div class="filter-buttons" id="timeDimensionFilter">
+                        <button class="filter-btn" data-value="month">按月统计</button>
+                        <button class="filter-btn active" data-value="day">按天统计</button>
+                    </div>
+                    <div class="date-range-picker">
+                        <div class="date-input-wrapper range-wrapper">
+                            <input type="text" class="form-control form-control-sm date-input" id="dateRange" value="2025/09/22 ~ 2025/10/22" readonly>
+                            <i class="bi bi-calendar date-input-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 stats-row mb-3">
+            <div class="col-md-3">
+                <div class="card stat-card overview-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="totalDischargeCount">10,726</div>
+                            <div class="stat-label">总出院人数 <i class="bi bi-info-circle info-icon"></i></div>
+                            <div class="stat-compare text-down" id="totalDischargeCompare">同比-8%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card overview-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon cyan"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-cyan" id="dischargedCount">10,726</div>
+                            <div class="stat-label">已出院人数 <i class="bi bi-info-circle info-icon"></i></div>
+                            <div class="stat-compare text-down" id="dischargedCompare">同比-8%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card overview-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon purple"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-purple" id="notDischargedCount">10,726</div>
+                            <div class="stat-label">未出院人数 <i class="bi bi-info-circle info-icon"></i></div>
+                            <div class="stat-compare text-down" id="notDischargedCompare">同比-8%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card overview-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon green"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-green" id="settlementAmount">10,726.00</div>
+                            <div class="stat-label">结算金额 <i class="bi bi-info-circle info-icon"></i></div>
+                            <div class="stat-compare text-up" id="settlementAmountCompare">同比+5%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 charts-row mb-3">
+            <div class="col-md-4">
+                <div class="chart-card">
+                    <div class="chart-card-title">结算渠道分析</div>
+                    <div id="channelChart" class="chart-container"></div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="chart-card">
+                    <div class="chart-card-title">结算费别人次分析</div>
+                    <div id="patientTypeChart" class="chart-container"></div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="chart-card">
+                    <div class="chart-card-title">结算费别金额分析</div>
+                    <div id="amountTypeChart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="table-section">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered mb-0" id="settlementTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th rowspan="2" class="align-middle">日期</th>
+                                    <th colspan="3" class="th-group-1">总出院人数</th>
+                                    <th colspan="3" class="th-group-2">已出院人数</th>
+                                    <th colspan="3" class="th-group-3">未出院人数</th>
+                                    <th colspan="3" class="th-group-0">结算金额</th>
+                                </tr>
+                                <tr>
+                                    <th class="th-group-1">去年同期</th>
+                                    <th class="th-group-1">当前日期</th>
+                                    <th class="th-group-1">同比</th>
+                                    <th class="th-group-2">去年同期</th>
+                                    <th class="th-group-2">当前日期</th>
+                                    <th class="th-group-2">同比</th>
+                                    <th class="th-group-3">去年同期</th>
+                                    <th class="th-group-3">当前日期</th>
+                                    <th class="th-group-3">同比</th>
+                                    <th class="th-group-0">去年同期</th>
+                                    <th class="th-group-0">当前日期</th>
+                                    <th class="th-group-0">同比</th>
+                                </tr>
+                            </thead>
+                            <tbody id="settlementTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-wrapper d-flex justify-content-center align-items-center mt-3 gap-3">
+                        <div class="pagination-info"><span id="settlementPageInfo">10条/页 共55条</span></div>
+                        <nav aria-label="Page navigation"><ul class="pagination mb-0" id="settlementPagination"></ul></nav>
+                        <div class="pagination-controls d-flex align-items-center gap-1">
+                            <select class="form-select form-select-sm" id="settlementPageSizeSelect">
+                                <option value="10" selected>10条/页</option>
+                                <option value="20">20条/页</option>
+                                <option value="50">50条/页</option>
+                            </select>
+                            <span>跳至</span>
+                            <input type="number" class="form-control form-control-sm page-jump-input" id="settlementJumpPage" min="1">
+                            <span>页</span>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="jumpToSettlementPage()">确定</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="js/mock.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/cash-discharge-settlement-app.js"></script>
+</body>
+</html>

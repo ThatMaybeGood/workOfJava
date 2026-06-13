@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"C:/Users/86156/Desktop/报表/.claude\")",
+      "mcp__Claude_Preview__preview_start",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(python3 -)",
+      "WebFetch(domain:58.49.75.14)"
+    ]
+  }
+}

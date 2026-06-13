@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>收费员结账统计</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid py-2">
+        <div class="page-title d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <span class="title-bar"></span>
+                收费员结账统计
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="exportCashierReport()">
+                <i class="bi bi-download me-1"></i>导出Excel
+            </button>
+        </div>
+
+        <div class="filter-section">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="service-tabs" id="tabFilter">
+                    <button class="service-tab active" data-tab="cashier">按收费员统计</button>
+                    <button class="service-tab" data-tab="source">按来源方式统计</button>
+                    <button class="service-tab" data-tab="workload">工作量报表</button>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="filter-label">统计日期：</span>
+                    <div class="filter-buttons" id="timeDimensionFilter">
+                        <button class="filter-btn" data-value="month">按月统计</button>
+                        <button class="filter-btn active" data-value="day">按天统计</button>
+                    </div>
+                    <div class="date-range-picker">
+                        <div class="date-input-wrapper range-wrapper">
+                            <input type="text" class="form-control form-control-sm date-input" id="dateRange" value="2025/09/22 ~ 2025/10/22" readonly>
+                            <i class="bi bi-calendar date-input-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="overviewSection" class="row g-3 stats-row mb-3"></div>
+
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="table-section">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered mb-0" id="cashierTable">
+                            <thead class="table-light" id="cashierTableHead"></thead>
+                            <tbody id="cashierTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-wrapper d-flex justify-content-center align-items-center mt-3 gap-3">
+                        <div class="pagination-info"><span id="cashierPageInfo">10条/页 共55条</span></div>
+                        <nav aria-label="Page navigation"><ul class="pagination mb-0" id="cashierPagination"></ul></nav>
+                        <div class="pagination-controls d-flex align-items-center gap-1">
+                            <select class="form-select form-select-sm" id="cashierPageSizeSelect">
+                                <option value="10" selected>10条/页</option>
+                                <option value="20">20条/页</option>
+                                <option value="50">50条/页</option>
+                            </select>
+                            <span>跳至</span>
+                            <input type="number" class="form-control form-control-sm page-jump-input" id="cashierJumpPage" min="1">
+                            <span>页</span>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="jumpToCashierPage()">确定</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="chartSection" class="row mb-3">
+            <div class="col-12">
+                <div class="chart-card">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <div class="chart-card-title mb-0" id="chartTitle">收费员业务工作量分析</div>
+                        <span class="text-secondary" id="chartDateRange">2025-01-12~2025-01-20</span>
+                        <span class="text-secondary" id="chartSubTitle">收费员1</span>
+                    </div>
+                    <div id="cashierChart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="js/mock.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/cash-cashier-settlement-app.js"></script>
+</body>
+</html>

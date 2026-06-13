@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>门诊运行数据统计</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid py-2">
+        <div class="page-title">
+            <span class="title-bar"></span>
+            门诊运行数据统计
+        </div>
+
+        <div class="filter-section">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="filter-label">统计时间：</span>
+                    <div class="filter-buttons" id="timeFilter">
+                        <button class="filter-btn" data-value="lastMonth">近一月</button>
+                        <button class="filter-btn" data-value="lastWeek">近一周</button>
+                        <button class="filter-btn" data-value="yesterday">昨日</button>
+                        <button class="filter-btn active" data-value="today">今日</button>
+                    </div>
+                    <div class="date-range-picker">
+                        <div class="date-input-wrapper range-wrapper">
+                            <input type="text" class="form-control form-control-sm date-input" id="dateRange" value="2025/09/22 ~ 2025/10/22" readonly>
+                            <i class="bi bi-calendar date-input-icon"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="filter-label">科室名称：</span>
+                    <select class="form-select form-select-sm dept-select" id="deptSelect">
+                        <option value="">全部</option>
+                        <option value="心血管内科">心血管内科</option>
+                        <option value="呼吸科">呼吸科</option>
+                        <option value="消化科">消化科</option>
+                        <option value="神经内科">神经内科</option>
+                        <option value="肾内科">肾内科</option>
+                        <option value="骨科">骨科</option>
+                        <option value="泌尿外科">泌尿外科</option>
+                        <option value="神经外科">神经外科</option>
+                        <option value="心脏血管外科">心脏血管外科</option>
+                        <option value="肝胆胰外科">肝胆胰外科</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-2 stats-row">
+            <div class="col-md-2">
+                <div class="card stat-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-people-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="totalVisits">12,536</div>
+                            <div class="stat-label">门诊量 <i class="bi bi-info-circle info-icon"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card stat-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon green"><i class="bi bi-calendar-check-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-green" id="appointmentRate">83.1%</div>
+                            <div class="stat-label">预约挂号率 <i class="bi bi-info-circle info-icon"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="card stat-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="d-flex align-items-center stat-main">
+                            <div class="stat-icon purple"><i class="bi bi-person-badge-fill"></i></div>
+                            <div class="ms-3">
+                                <div class="stat-value text-purple" id="visitCount">112</div>
+                                <div class="stat-label">出诊人次 <i class="bi bi-info-circle info-icon"></i></div>
+                            </div>
+                        </div>
+                        <div class="stat-detail-grid" id="visitCountDetail">
+                            <div class="detail-item"><div class="detail-label"><span class="dot blue"></span>名医专家</div><div class="detail-num text-blue">112</div></div>
+                            <div class="detail-item"><div class="detail-label"><span class="dot purple"></span>特需专家</div><div class="detail-num text-purple">112</div></div>
+                            <div class="detail-item"><div class="detail-label"><span class="dot cyan"></span>知名专家</div><div class="detail-num text-cyan">112</div></div>
+                            <div class="detail-item"><div class="detail-label"><span class="dot green"></span>专家A类</div><div class="detail-num text-green">112</div></div>
+                            <div class="detail-item"><div class="detail-label"><span class="dot orange"></span>专家B类</div><div class="detail-num text-orange">112</div></div>
+                            <div class="detail-item"><div class="detail-label"><span class="dot red"></span>普通门诊</div><div class="detail-num text-red">112</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card stat-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon cyan"><i class="bi bi-clipboard-check-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-cyan" id="examRate">56.5%</div>
+                            <div class="stat-label">预约诊察率 <i class="bi bi-info-circle info-icon"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card stat-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon orange"><i class="bi bi-speedometer2"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-orange" id="efficiency">27.5</div>
+                            <div class="stat-label">接诊效率 <i class="bi bi-info-circle info-icon"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="card stat-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="d-flex align-items-center stat-main">
+                            <div class="stat-icon red"><i class="bi bi-check-square-fill"></i></div>
+                            <div class="ms-3">
+                                <div class="stat-value text-red"><span id="effectiveUnits">112</span><span class="text-secondary fs-6">/</span><span id="totalUnits">251</span></div>
+                                <div class="stat-label">有效出诊单元/出诊单元 <i class="bi bi-info-circle info-icon"></i></div>
+                            </div>
+                        </div>
+                        <div class="stat-detail-grid" id="unitDetail">
+                            <div class="detail-item"><div class="detail-label"><span class="dot blue"></span>名医专家</div><div class="detail-num"><span class="text-blue">52</span><span class="text-secondary"> / 112</span></div></div>
+                            <div class="detail-item"><div class="detail-label"><span class="dot purple"></span>特需专家</div><div class="detail-num"><span class="text-purple">52</span><span class="text-secondary"> / 112</span></div></div>
+                            <div class="detail-item"><div class="detail-label"><span class="dot cyan"></span>知名专家</div><div class="detail-num"><span class="text-cyan">52</span><span class="text-secondary"> / 112</span></div></div>
+                            <div class="detail-item"><div class="detail-label"><span class="dot green"></span>专家A类</div><div class="detail-num"><span class="text-green">52</span><span class="text-secondary"> / 112</span></div></div>
+                            <div class="detail-item"><div class="detail-label"><span class="dot orange"></span>专家B类</div><div class="detail-num"><span class="text-orange">52</span><span class="text-secondary"> / 112</span></div></div>
+                            <div class="detail-item"><div class="detail-label"><span class="dot red"></span>普通门诊</div><div class="detail-num"><span class="text-red">52</span><span class="text-secondary"> / 112</span></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-section">
+            <div class="table-header d-flex justify-content-between align-items-center">
+                <div class="table-title"><i class="bi bi-hospital-fill"></i>各科室门诊量统计</div>
+                <button class="btn btn-primary btn-sm" onclick="exportData()"><i class="bi bi-download me-1"></i>导出Excel</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="th-group-0">科室</th>
+                            <th class="sortable th-group-1" data-column="visits" data-type="number">门诊量 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable th-group-1" data-column="appointmentRate" data-type="percent">预约挂号率 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable th-group-1" data-column="examRate" data-type="percent">预约诊察率 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable th-group-1" data-column="efficiency" data-type="number">接诊效率 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable th-group-2" data-column="visitCount" data-type="number">出诊人次 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable th-group-2" data-column="famousExpert" data-type="number">名医专家 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable th-group-2" data-column="specialExpert" data-type="number">特需专家 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable th-group-2" data-column="knownExpert" data-type="number">知名专家 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable th-group-2" data-column="expertA" data-type="number">专家A类 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable th-group-2" data-column="expertB" data-type="number">专家B类 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable th-group-2" data-column="ordinary" data-type="number">普通门诊 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable th-group-3" data-column="effectiveUnits" data-type="ratio">有效出诊单元/出诊单元 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable th-group-3" data-column="unitFamous" data-type="ratio">名医专家 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable th-group-3" data-column="unitSpecial" data-type="ratio">特需专家 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable th-group-3" data-column="unitKnown" data-type="ratio">知名专家 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable th-group-3" data-column="unitExpertA" data-type="ratio">专家A类 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable th-group-3" data-column="unitExpertB" data-type="ratio">专家B类 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable th-group-3" data-column="unitOrdinary" data-type="ratio">普通门诊 <i class="bi bi-sort-up"></i></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+
+            <div class="pagination-wrapper d-flex justify-content-center align-items-center mt-3 gap-3">
+                <div class="pagination-info"><span id="pageInfo">10条/页 共55条</span></div>
+                <nav aria-label="Page navigation"><ul class="pagination mb-0" id="pagination"></ul></nav>
+                <div class="pagination-controls d-flex align-items-center gap-1">
+                    <select class="form-select form-select-sm" id="pageSizeSelect">
+                        <option value="10" selected>10条/页</option>
+                        <option value="20">20条/页</option>
+                        <option value="50">50条/页</option>
+                    </select>
+                    <span>跳至</span>
+                    <input type="number" class="form-control form-control-sm page-jump-input" id="jumpPage" min="1">
+                    <span>页</span>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="jumpToPage()">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh.js"></script>
+    <script src="js/mock.js"></script>
+    <script src="js/api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>住院预交金统计</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid py-2">
+        <div class="page-title d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <span class="title-bar"></span>
+                住院预交金统计
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="exportPrepaymentReport()">
+                <i class="bi bi-download me-1"></i>导出Excel
+            </button>
+        </div>
+
+        <div class="filter-section">
+            <div class="d-flex align-items-center gap-1 flex-wrap">
+                <div class="service-tabs" id="tabFilter">
+                    <button class="service-tab active" data-tab="summary">汇总统计</button>
+                    <button class="service-tab" data-tab="income">进项统计</button>
+                    <button class="service-tab" data-tab="refund">退项统计</button>
+                </div>
+                <div class="d-flex align-items-center gap-1">
+                    <span class="filter-label">统计时间：</span>
+                    <div class="filter-buttons" id="timeDimensionFilter">
+                        <button class="filter-btn" data-value="month">按月统计</button>
+                        <button class="filter-btn active" data-value="day">按天统计</button>
+                    </div>
+                    <div class="date-range-picker">
+                        <div class="date-input-wrapper range-wrapper">
+                            <input type="text" class="form-control form-control-sm date-input" id="dateRange" value="2025/09/22 ~ 2025/10/22" readonly>
+                            <i class="bi bi-calendar date-input-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="summarySection">
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="table-section">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered mb-0" id="summaryTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th rowspan="2" class="align-middle">日期</th>
+                                        <th colspan="3" class="th-group-1">缴费人次</th>
+                                        <th colspan="3" class="th-group-2">缴费金额</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="th-group-1">去年同期</th>
+                                        <th class="th-group-1">当前日期</th>
+                                        <th class="th-group-1">同比</th>
+                                        <th class="th-group-2">去年同期</th>
+                                        <th class="th-group-2">当前日期</th>
+                                        <th class="th-group-2">同比</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summaryTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="pagination-wrapper d-flex justify-content-center align-items-center mt-3 gap-3">
+                            <div class="pagination-info"><span id="summaryPageInfo">10条/页 共55条</span></div>
+                            <nav aria-label="Page navigation"><ul class="pagination mb-0" id="summaryPagination"></ul></nav>
+                            <div class="pagination-controls d-flex align-items-center gap-1">
+                                <select class="form-select form-select-sm" id="summaryPageSizeSelect">
+                                    <option value="10" selected>10条/页</option>
+                                    <option value="20">20条/页</option>
+                                    <option value="50">50条/页</option>
+                                </select>
+                                <span>跳至</span>
+                                <input type="number" class="form-control form-control-sm page-jump-input" id="summaryJumpPage" min="1">
+                                <span>页</span>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="jumpToSummaryPage()">确定</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="service-tabs mb-3" id="summaryChartTabFilter">
+                <button class="service-tab active" data-tab="count">缴费人次分析</button>
+                <button class="service-tab" data-tab="amount">缴费金额分析</button>
+            </div>
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="chart-card">
+                        <div class="chart-card-title" id="summaryTrendChartTitle">缴费人次分析</div>
+                        <div id="summaryTrendChart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3 charts-row mb-3">
+                <div class="col-md-4">
+                    <div class="chart-card">
+                        <div class="chart-card-title" id="summaryChannelPieTitle">缴费人次渠道分析</div>
+                        <div id="summaryChannelPieChart" class="chart-container"></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="chart-card">
+                        <div class="chart-card-title" id="summaryPayTypePieTitle">缴费人次支付方式分析</div>
+                        <div id="summaryPayTypePieChart" class="chart-container"></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="chart-card">
+                        <div class="chart-card-title" id="summaryChannelBarTitle">缴费人次渠道支付方式分析</div>
+                        <div id="summaryChannelBarChart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="incomeSection" style="display: none;">
+            <div class="row g-3 stats-row mb-3">
+                <div class="col-md-6">
+                    <div class="card stat-card overview-card">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                            <div class="ms-3">
+                                <div class="stat-value text-blue" id="incomePrepaymentCount">10,726</div>
+                                <div class="stat-label">预缴人次 <i class="bi bi-info-circle info-icon"></i></div>
+                                <div class="stat-compare text-down" id="incomePrepaymentCountCompare">同比-8%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card stat-card overview-card">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="stat-icon cyan"><i class="bi bi-bar-chart-fill"></i></div>
+                            <div class="ms-3">
+                                <div class="stat-value text-cyan" id="incomePrepaymentAmount">10,726.00</div>
+                                <div class="stat-label">预缴金额 <i class="bi bi-info-circle info-icon"></i></div>
+                                <div class="stat-compare text-up" id="incomePrepaymentAmountCompare">同比+5%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="table-section">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered mb-0" id="incomeTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th rowspan="2" class="align-middle">日期</th>
+                                        <th colspan="3" class="th-group-1">缴费人次</th>
+                                        <th colspan="3" class="th-group-2">缴费金额</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="th-group-1">去年同期</th>
+                                        <th class="th-group-1">当前日期</th>
+                                        <th class="th-group-1">同比</th>
+                                        <th class="th-group-2">去年同期</th>
+                                        <th class="th-group-2">当前日期</th>
+                                        <th class="th-group-2">同比</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="incomeTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="pagination-wrapper d-flex justify-content-center align-items-center mt-3 gap-3">
+                            <div class="pagination-info"><span id="incomePageInfo">10条/页 共55条</span></div>
+                            <nav aria-label="Page navigation"><ul class="pagination mb-0" id="incomePagination"></ul></nav>
+                            <div class="pagination-controls d-flex align-items-center gap-1">
+                                <select class="form-select form-select-sm" id="incomePageSizeSelect">
+                                    <option value="10" selected>10条/页</option>
+                                    <option value="20">20条/页</option>
+                                    <option value="50">50条/页</option>
+                                </select>
+                                <span>跳至</span>
+                                <input type="number" class="form-control form-control-sm page-jump-input" id="incomeJumpPage" min="1">
+                                <span>页</span>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="jumpToIncomePage()">确定</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="service-tabs mb-3" id="incomeTabFilter">
+                <button class="service-tab active" data-tab="count">缴费人次分析</button>
+                <button class="service-tab" data-tab="amount">缴费金额分析</button>
+            </div>
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="chart-card">
+                        <div class="chart-card-title" id="incomeTrendChartTitle">缴费人次分析</div>
+                        <div id="incomeTrendChart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3 charts-row mb-3">
+                <div class="col-md-4">
+                    <div class="chart-card">
+                        <div class="chart-card-title" id="incomeChannelPieTitle">缴费人次渠道分析</div>
+                        <div id="incomeChannelPieChart" class="chart-container"></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="chart-card">
+                        <div class="chart-card-title" id="incomePayTypePieTitle">缴费人次支付方式分析</div>
+                        <div id="incomePayTypePieChart" class="chart-container"></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="chart-card">
+                        <div class="chart-card-title" id="incomeChannelBarTitle">缴费人次渠道支付方式分析</div>
+                        <div id="incomeChannelBarChart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="refundSection" style="display: none;">
+            <div class="row g-3 stats-row mb-3">
+                <div class="col-md-6">
+                    <div class="card stat-card overview-card">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                            <div class="ms-3">
+                                <div class="stat-value text-blue" id="refundCount">10,726</div>
+                                <div class="stat-label">退院人次 <i class="bi bi-info-circle info-icon"></i></div>
+                                <div class="stat-compare text-down" id="refundCountCompare">同比-8%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card stat-card overview-card">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="stat-icon cyan"><i class="bi bi-bar-chart-fill"></i></div>
+                            <div class="ms-3">
+                                <div class="stat-value text-cyan" id="refundAmount">10,726.00</div>
+                                <div class="stat-label">退院金额 <i class="bi bi-info-circle info-icon"></i></div>
+                                <div class="stat-compare text-up" id="refundAmountCompare">同比+5%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="table-section">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered mb-0" id="refundTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th rowspan="2" class="align-middle">日期</th>
+                                        <th colspan="3" class="th-group-1">退院人次</th>
+                                        <th colspan="3" class="th-group-2">退院金额</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="th-group-1">去年同期</th>
+                                        <th class="th-group-1">当前日期</th>
+                                        <th class="th-group-1">同比</th>
+                                        <th class="th-group-2">去年同期</th>
+                                        <th class="th-group-2">当前日期</th>
+                                        <th class="th-group-2">同比</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="refundTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="pagination-wrapper d-flex justify-content-center align-items-center mt-3 gap-3">
+                            <div class="pagination-info"><span id="refundPageInfo">10条/页 共55条</span></div>
+                            <nav aria-label="Page navigation"><ul class="pagination mb-0" id="refundPagination"></ul></nav>
+                            <div class="pagination-controls d-flex align-items-center gap-1">
+                                <select class="form-select form-select-sm" id="refundPageSizeSelect">
+                                    <option value="10" selected>10条/页</option>
+                                    <option value="20">20条/页</option>
+                                    <option value="50">50条/页</option>
+                                </select>
+                                <span>跳至</span>
+                                <input type="number" class="form-control form-control-sm page-jump-input" id="refundJumpPage" min="1">
+                                <span>页</span>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="jumpToRefundPage()">确定</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="service-tabs mb-3" id="refundTabFilter">
+                <button class="service-tab active" data-tab="count">退院人次分析</button>
+                <button class="service-tab" data-tab="amount">退院金额分析</button>
+            </div>
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="chart-card">
+                        <div class="chart-card-title" id="refundTrendChartTitle">退院人次分析</div>
+                        <div id="refundTrendChart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3 charts-row mb-3">
+                <div class="col-md-4">
+                    <div class="chart-card">
+                        <div class="chart-card-title" id="refundPayTypePieTitle">退院人次支付方式分析</div>
+                        <div id="refundPayTypePieChart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="js/mock.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/cash-inpatient-prepayment-app.js"></script>
+</body>
+</html>

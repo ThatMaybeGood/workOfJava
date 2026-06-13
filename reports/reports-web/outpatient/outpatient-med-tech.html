@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医技统计</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid py-2">
+        <div class="page-title">
+            <span class="title-bar"></span>
+            医技统计
+        </div>
+
+        <div class="filter-section">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="filter-label">统计时间：</span>
+                    <div class="filter-buttons" id="timeFilter">
+                        <button class="filter-btn" data-value="lastMonth">近一月</button>
+                        <button class="filter-btn" data-value="lastWeek">近一周</button>
+                        <button class="filter-btn" data-value="yesterday">昨日</button>
+                        <button class="filter-btn active" data-value="today">今日</button>
+                    </div>
+                    <div class="date-range-picker">
+                        <div class="date-input-wrapper range-wrapper">
+                            <input type="text" class="form-control form-control-sm date-input" id="dateRange" value="2025/09/22 ~ 2025/10/22" readonly>
+                            <i class="bi bi-calendar date-input-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 stats-row mb-3">
+            <div class="col-md-2">
+                <div class="card stat-card lab-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="checkCount">12,536</div>
+                            <div class="stat-label">检查量</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card stat-card lab-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="onTimeRate">73.2%</div>
+                            <div class="stat-label">按时检查率 <i class="bi bi-info-circle info-icon" title="按时检查/（按时检查+未按时检查）"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card stat-card lab-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="waitTime">26.6分</div>
+                            <div class="stat-label">预约等候时间 <i class="bi bi-info-circle info-icon" title="从检查预约创建时间到实际检查时间"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card lab-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="avgWaitLate">216.7分</div>
+                            <div class="stat-label">平均等候时长（未按时） <i class="bi bi-info-circle info-icon" title="未按时检查的患者，从预约时间段结束时间点到实际检查时间"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card lab-card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="stat-icon blue"><i class="bi bi-bar-chart-fill"></i></div>
+                        <div class="ms-3">
+                            <div class="stat-value text-blue" id="avgReportTime">216.7分</div>
+                            <div class="stat-label">平均出报告时间 <i class="bi bi-info-circle info-icon" title="从项目已执行到出报告时间"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-section">
+            <div class="table-header d-flex justify-content-between align-items-center">
+                <div class="table-title"><i class="bi bi-hospital-fill"></i>各检查项目统计</div>
+                <button class="btn btn-primary btn-sm" onclick="exportData()"><i class="bi bi-download me-1"></i>导出Excel</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered mb-0" id="medTechTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>科室</th>
+                            <th class="sortable" data-column="checkCount" data-type="number">检查量 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable" data-column="onTimeRate" data-type="percent">按时检查率 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable" data-column="waitTime" data-type="number">预约等候时间 <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable" data-column="avgWaitLate" data-type="number">平均等候时长（未按时） <i class="bi bi-sort-up"></i></th>
+                            <th class="sortable" data-column="avgReportTime" data-type="number">平均出报告时间 <i class="bi bi-sort-up"></i></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+
+            <div class="pagination-wrapper d-flex justify-content-center align-items-center mt-3 gap-3">
+                <div class="pagination-info"><span id="pageInfo">10条/页 共55条</span></div>
+                <nav aria-label="Page navigation"><ul class="pagination mb-0" id="pagination"></ul></nav>
+                <div class="pagination-controls d-flex align-items-center gap-1">
+                    <select class="form-select form-select-sm" id="pageSizeSelect">
+                        <option value="10" selected>10条/页</option>
+                        <option value="20">20条/页</option>
+                        <option value="50">50条/页</option>
+                    </select>
+                    <span>跳至</span>
+                    <input type="number" class="form-control form-control-sm page-jump-input" id="jumpPage" min="1">
+                    <span>页</span>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="jumpToPage()">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh.js"></script>
+    <script src="js/mock.js"></script>
+    <script src="js/api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="js/med-tech-app.js"></script>
+</body>
+</html>
