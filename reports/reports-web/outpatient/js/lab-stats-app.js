@@ -71,15 +71,15 @@ class LabStatsController {
 
     async loadData() {
         try {
-            const result = await ReportAPI.getLabStats({
+            const body = await ReportAPI.getLabStats({
                 timeRange: this.state.timeRange,
                 startDate: this.state.startDate,
                 endDate: this.state.endDate
             });
-            if (result.code === 200) {
-                this.renderOverview(result.data.overview);
-                this.renderTimeChart(result.data.timeAnalysis);
-                this.renderRankChart(result.data.reportRank);
+            if (body && body.overview) {
+                this.renderOverview(body.overview);
+                this.renderTimeChart(body.timeAnalysis);
+                this.renderRankChart(body.reportRank);
             }
         } catch (error) {
             console.error('Load lab stats data failed:', error);

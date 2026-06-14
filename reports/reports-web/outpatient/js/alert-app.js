@@ -156,13 +156,13 @@ class AlertController {
 
     async loadOverview() {
         try {
-            const result = await ReportAPI.getAlertStats({
+            const body = await ReportAPI.getAlertStats({
                 timeRange: this.filter.timeRange,
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate
             });
-            if (result.code === 200) {
-                this.renderOverview(result.data.overview);
+            if (body && body.overview) {
+                this.renderOverview(body.overview);
             }
         } catch (error) {
             console.error('Load overview failed:', error);
@@ -177,16 +177,16 @@ class AlertController {
 
     async loadDeptData() {
         try {
-            const result = await ReportAPI.getAlertStats({
+            const body = await ReportAPI.getAlertStats({
                 page: this.deptState.currentPage,
                 pageSize: this.deptState.pageSize,
                 deptName: this.filter.deptName,
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate
             });
-            if (result.code === 200) {
-                this.deptState.data = result.data.deptTable.list;
-                this.deptState.total = result.data.deptTable.total;
+            if (body && body.deptTable) {
+                this.deptState.data = body.deptTable.list;
+                this.deptState.total = body.deptTable.total;
                 this.renderDeptTable();
                 this.renderDeptPagination();
                 this.updateDeptPageInfo();
@@ -198,16 +198,16 @@ class AlertController {
 
     async loadDoctorData() {
         try {
-            const result = await ReportAPI.getAlertStats({
+            const body = await ReportAPI.getAlertStats({
                 page: this.doctorState.currentPage,
                 pageSize: this.doctorState.pageSize,
                 deptName: this.filter.deptName,
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate
             });
-            if (result.code === 200) {
-                this.doctorState.data = result.data.doctorTable.list;
-                this.doctorState.total = result.data.doctorTable.total;
+            if (body && body.doctorTable) {
+                this.doctorState.data = body.doctorTable.list;
+                this.doctorState.total = body.doctorTable.total;
                 this.renderDoctorTable();
                 this.renderDoctorPagination();
                 this.updateDoctorPageInfo();

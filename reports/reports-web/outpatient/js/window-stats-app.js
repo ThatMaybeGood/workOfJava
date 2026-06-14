@@ -72,17 +72,17 @@ class WindowStatsController {
 
     async loadData() {
         try {
-            const result = await ReportAPI.getWindowStats({
+            const body = await ReportAPI.getWindowStats({
                 timeRange: this.state.timeRange,
                 startDate: this.state.startDate,
                 endDate: this.state.endDate
             });
-            if (result.code === 200) {
-                this.renderOverview(result.data.overview);
-                this.renderOriginChart(result.data.originAnalysis);
-                this.renderAgeChart(result.data.ageAnalysis);
-                this.renderTimeChart(result.data.timeAnalysis);
-                this.renderTable(result.data.workloadTable);
+            if (body && body.overview) {
+                this.renderOverview(body.overview);
+                this.renderOriginChart(body.originAnalysis);
+                this.renderAgeChart(body.ageAnalysis);
+                this.renderTimeChart(body.timeAnalysis);
+                this.renderTable(body.workloadTable);
             }
         } catch (error) {
             console.error('Load window stats data failed:', error);

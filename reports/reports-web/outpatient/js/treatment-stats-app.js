@@ -148,7 +148,7 @@ class TreatmentStatsController {
 
     async loadData() {
         try {
-            const result = await ReportAPI.getTreatmentStats({
+            const body = await ReportAPI.getTreatmentStats({
                 page: this.state.currentPage,
                 pageSize: this.state.pageSize,
                 startDate: this.state.filter.startDate,
@@ -157,12 +157,12 @@ class TreatmentStatsController {
                 patientSource: this.state.filter.patientSource,
                 ageRange: this.state.filter.ageRange
             });
-            if (result.code === 200) {
-                this.renderOverview(result.data.overview);
-                this.renderTrendChart(result.data.trend);
-                this.renderTopProjectsChart(result.data.topProjects);
-                this.state.data = result.data.table.list;
-                this.state.total = result.data.table.total;
+            if (body && body.overview) {
+                this.renderOverview(body.overview);
+                this.renderTrendChart(body.trend);
+                this.renderTopProjectsChart(body.topProjects);
+                this.state.data = body.table.list;
+                this.state.total = body.table.total;
                 this.renderTable();
                 this.renderPagination();
                 this.updatePageInfo();

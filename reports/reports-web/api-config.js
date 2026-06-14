@@ -6,7 +6,7 @@
 const API_CONFIG = {
     // ==================== 全局开关 ====================
     // 是否使用 Mock 数据（true = 走 MockService，false = 请求真实接口）
-    useMock: true,
+    useMock: false,
 
     // 真实接口基础地址
     baseUrl: 'http://localhost:18089/reports/gateway',
@@ -109,47 +109,47 @@ const API_CONFIG = {
 /**
  * 统一请求封装
  * 根据 useMock 开关决定走 Mock 还是真实接口
+ * 后端统一 POST 接口规范：请求格式 {head: {method: 'xxx'}, body: {...}}，响应格式 {result: {...}, body: {...}}
  * @param {string} methodKey - API_CONFIG.methods 中的 key
- * @param {string} endpointKey - 接口子路径 key
- * @param {Object} body - 请求体（POST 时用）
- * @param {Object} queryParams - URL 查询参数（GET 时用）
+ * @param {string} endpointKey - 接口子路径 key（Mock 路由用）
+ * @param {Object} requestBody - 业务请求体（body 部分）
  * @returns {Promise}
  */
-async function apiRequest(methodKey, endpointKey, body = null, queryParams = null) {
+async function apiRequest(methodKey, endpointKey, requestBody = null) {
     // 如果开启 Mock，直接返回 MockService 数据
     if (API_CONFIG.useMock) {
-        return callMockService(methodKey, endpointKey, body || queryParams);
+        return callMockService(methodKey, endpointKey, requestBody);
     }
 
-    // 真实接口请求
-    const methodConfig = API_CONFIG.methods[methodKey];
-    if (!methodConfig) {
-        throw new Error(`Unknown method key: ${methodKey}`);
-    }
-
-    const endpoint = methodConfig[endpointKey] || methodConfig.endpoint;
-    if (!endpoint) {
-        throw new Error(`Unknown endpoint key: ${endpointKey} for method: ${methodKey}`);
-    }
-
-    const url = API_CONFIG.baseUrl + endpoint;
-    const options = {
-        method: body ? 'POST' : 'GET',
-        headers: {
-            'Content-Type': 'application/json'
-        }
+    // 真实接口请求：统一 POST 到 baseUrl，构建 head + body 格式
+    const payload = {
+        head: {
+            charset: 'utf-8',
+            encrypt_type: 'AES',
+            language: 'zh_CN',
+            method: methodKey
+        },
+        body: requestBody || {}
     };
 
-    if (body) {
-        options.body = JSON.stringify(body);
+    const options = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    };
+
+    const response = await fetchData(API_CONFIG.baseUrl, options);
+
+    // 解析后端响应格式 {result: {...}, body: {...}}
+    if (response.result && response.result.code === '10000' && response.result.success) {
+        return response.body;
     }
 
-    if (queryParams) {
-        const queryString = new URLSearchParams(queryParams).toString();
-        return fetchData(`${url}?${queryString}`, options);
-    }
-
-    return fetchData(url, options);
+    // 业务错误
+    const errorMsg = response.result ? (response.result.sub_msg || response.result.msg || '请求失败') : '未知错误';
+    throw new Error(errorMsg);
 }
 
 /**
@@ -158,7 +158,6 @@ async function apiRequest(methodKey, endpointKey, body = null, queryParams = nul
 async function fetchData(url, options = {}) {
     try {
         const response = await fetch(url, {
-            method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
             },

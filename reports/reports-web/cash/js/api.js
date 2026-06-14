@@ -1,28 +1,29 @@
 /**
  * 现金报表 API 接口层
  * 基于统一 api-config.js 配置，支持 Mock / 真实接口切换
+ * 后端统一 POST 接口规范：请求格式 {head: {method: 'xxx'}, body: {...}}
  */
 
 const ReportAPI = {
     /**
      * 获取出院结算概览数据
-     * GET /api/cash/discharge-settlement/overview
+     * method: reports.cash.cash-discharge-settlement
      */
-    getDischargeSettlementOverview() {
-        return apiRequest('reports.cash.cash-discharge-settlement', 'overview');
+    getDischargeSettlementOverview(params) {
+        return apiRequest('reports.cash.cash-discharge-settlement', 'overview', params);
     },
 
     /**
      * 获取出院结算图表分析数据
-     * GET /api/cash/discharge-settlement/charts
+     * method: reports.cash.cash-discharge-settlement
      */
-    getDischargeSettlementCharts() {
-        return apiRequest('reports.cash.cash-discharge-settlement', 'charts');
+    getDischargeSettlementCharts(params) {
+        return apiRequest('reports.cash.cash-discharge-settlement', 'charts', params);
     },
 
     /**
      * 获取出院结算表格数据
-     * GET /api/cash/discharge-settlement/table
+     * method: reports.cash.cash-discharge-settlement
      */
     getDischargeSettlementTable(params) {
         return apiRequest('reports.cash.cash-discharge-settlement', 'table', params);
@@ -30,7 +31,7 @@ const ReportAPI = {
 
     /**
      * 导出出院结算 Excel
-     * POST /api/cash/discharge-settlement/export
+     * method: reports.cash.cash-discharge-settlement
      */
     exportDischargeSettlement(params) {
         return apiRequest('reports.cash.cash-discharge-settlement', 'export', params);
@@ -38,15 +39,15 @@ const ReportAPI = {
 
     /**
      * 获取收费员结账统计概览数据
-     * GET /api/cash/cashier-settlement/overview
+     * method: reports.cash.cash-cashier-settlement
      */
-    getCashierSettlementOverview() {
-        return apiRequest('reports.cash.cash-cashier-settlement', 'overview');
+    getCashierSettlementOverview(params) {
+        return apiRequest('reports.cash.cash-cashier-settlement', 'overview', params);
     },
 
     /**
      * 获取收费员结账统计表格数据
-     * GET /api/cash/cashier-settlement/table
+     * method: reports.cash.cash-cashier-settlement
      */
     getCashierSettlementTable(params) {
         return apiRequest('reports.cash.cash-cashier-settlement', 'table', params);
@@ -54,7 +55,7 @@ const ReportAPI = {
 
     /**
      * 获取收费员结账统计图表数据
-     * GET /api/cash/cashier-settlement/chart
+     * method: reports.cash.cash-cashier-settlement
      */
     getCashierSettlementChart(params) {
         return apiRequest('reports.cash.cash-cashier-settlement', 'chart', params);
@@ -62,7 +63,7 @@ const ReportAPI = {
 
     /**
      * 导出收费员结账统计 Excel
-     * POST /api/cash/cashier-settlement/export
+     * method: reports.cash.cash-cashier-settlement
      */
     exportCashierSettlement(params) {
         return apiRequest('reports.cash.cash-cashier-settlement', 'export', params);
@@ -70,15 +71,15 @@ const ReportAPI = {
 
     /**
      * 获取住院预交金统计概览数据
-     * GET /api/cash/inpatient-prepayment/overview
+     * method: reports.cash.cash-inpatient-prepayment
      */
-    getInpatientPrepaymentOverview() {
-        return apiRequest('reports.cash.cash-inpatient-prepayment', 'overview');
+    getInpatientPrepaymentOverview(params) {
+        return apiRequest('reports.cash.cash-inpatient-prepayment', 'overview', params);
     },
 
     /**
      * 获取住院预交金汇总表格数据
-     * GET /api/cash/inpatient-prepayment/summary-table
+     * method: reports.cash.cash-inpatient-prepayment
      */
     getInpatientPrepaymentSummaryTable(params) {
         return apiRequest('reports.cash.cash-inpatient-prepayment', 'summaryTable', params);
@@ -86,7 +87,7 @@ const ReportAPI = {
 
     /**
      * 获取住院预交金进项表格数据
-     * GET /api/cash/inpatient-prepayment/income-table
+     * method: reports.cash.cash-inpatient-prepayment
      */
     getInpatientPrepaymentIncomeTable(params) {
         return apiRequest('reports.cash.cash-inpatient-prepayment', 'incomeTable', params);
@@ -94,7 +95,7 @@ const ReportAPI = {
 
     /**
      * 获取住院预交金退项表格数据
-     * GET /api/cash/inpatient-prepayment/refund-table
+     * method: reports.cash.cash-inpatient-prepayment
      */
     getInpatientPrepaymentRefundTable(params) {
         return apiRequest('reports.cash.cash-inpatient-prepayment', 'refundTable', params);
@@ -102,7 +103,7 @@ const ReportAPI = {
 
     /**
      * 获取住院预交金趋势图表数据
-     * GET /api/cash/inpatient-prepayment/trend-chart
+     * method: reports.cash.cash-inpatient-prepayment
      */
     getInpatientPrepaymentTrendChart(params) {
         return apiRequest('reports.cash.cash-inpatient-prepayment', 'trendChart', params);
@@ -110,7 +111,7 @@ const ReportAPI = {
 
     /**
      * 获取住院预交金渠道图表数据（进项）
-     * GET /api/cash/inpatient-prepayment/channel-chart
+     * method: reports.cash.cash-inpatient-prepayment
      */
     getInpatientPrepaymentChannelChart(params) {
         return apiRequest('reports.cash.cash-inpatient-prepayment', 'channelChart', params);
@@ -118,7 +119,7 @@ const ReportAPI = {
 
     /**
      * 获取住院预交金支付方式图表数据（退项）
-     * GET /api/cash/inpatient-prepayment/pay-type-chart
+     * method: reports.cash.cash-inpatient-prepayment
      */
     getInpatientPrepaymentPayTypeChart(params) {
         return apiRequest('reports.cash.cash-inpatient-prepayment', 'payTypeChart', params);
@@ -126,7 +127,7 @@ const ReportAPI = {
 
     /**
      * 导出住院预交金统计 Excel
-     * POST /api/cash/inpatient-prepayment/export
+     * method: reports.cash.cash-inpatient-prepayment
      */
     exportInpatientPrepayment(params) {
         return apiRequest('reports.cash.cash-inpatient-prepayment', 'export', params);

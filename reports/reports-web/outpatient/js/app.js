@@ -189,9 +189,9 @@ class ReportController {
      */
     async loadOverview() {
         try {
-            const result = await ReportAPI.getOverview();
-            if (result.code === 200) {
-                this.renderOverview(result.data);
+            const body = await ReportAPI.getOverview(this.state.filter);
+            if (body && body.overview) {
+                this.renderOverview(body.overview);
             }
         } catch (error) {
             console.error('Load overview failed:', error);
@@ -255,7 +255,7 @@ class ReportController {
      */
     async loadTableData() {
         try {
-            const result = await ReportAPI.getDepartmentStats({
+            const body = await ReportAPI.getDepartmentStats({
                 page: this.state.currentPage,
                 pageSize: this.state.pageSize,
                 deptName: this.state.filter.deptName,
@@ -263,9 +263,9 @@ class ReportController {
                 endDate: this.state.filter.endDate
             });
 
-            if (result.code === 200) {
-                this.state.data = result.data.list;
-                this.state.total = result.data.total;
+            if (body && body.table) {
+                this.state.data = body.table.list;
+                this.state.total = body.table.total;
                 this.renderTable();
                 this.renderPagination();
                 this.updatePageInfo();

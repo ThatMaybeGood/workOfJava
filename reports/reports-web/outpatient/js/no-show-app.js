@@ -138,20 +138,20 @@ class NoShowController {
 
     async loadData() {
         try {
-            const result = await ReportAPI.getNoShowStats({
+            const body = await ReportAPI.getNoShowStats({
                 page: this.state.currentPage,
                 pageSize: this.state.pageSize,
                 deptName: this.state.filter.deptName,
                 startDate: this.state.filter.startDate,
                 endDate: this.state.filter.endDate
             });
-            if (result.code === 200) {
-                this.renderOverview(result.data.overview);
-                this.renderRefundOriginChart(result.data.refundOrigin);
-                this.renderRefundChannelChart(result.data.refundChannel);
-                this.renderAgeChart(result.data.ageAnalysis);
-                this.state.data = result.data.table.list;
-                this.state.total = result.data.table.total;
+            if (body && body.overview) {
+                this.renderOverview(body.overview);
+                this.renderRefundOriginChart(body.refundOrigin);
+                this.renderRefundChannelChart(body.refundChannel);
+                this.renderAgeChart(body.ageAnalysis);
+                this.state.data = body.table.list;
+                this.state.total = body.table.total;
                 this.renderTable();
                 this.renderPagination();
                 this.updatePageInfo();

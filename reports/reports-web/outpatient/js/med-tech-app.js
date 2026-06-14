@@ -121,13 +121,13 @@ class MedTechController {
 
     async loadOverview() {
         try {
-            const result = await ReportAPI.getMedTechStats({
+            const body = await ReportAPI.getMedTechStats({
                 timeRange: this.state.filter.timeRange,
                 startDate: this.state.filter.startDate,
                 endDate: this.state.filter.endDate
             });
-            if (result.code === 200) {
-                this.renderOverview(result.data.overview);
+            if (body && body.overview) {
+                this.renderOverview(body.overview);
             }
         } catch (error) {
             console.error('Load overview failed:', error);
@@ -144,15 +144,15 @@ class MedTechController {
 
     async loadTableData() {
         try {
-            const result = await ReportAPI.getMedTechStats({
+            const body = await ReportAPI.getMedTechStats({
                 page: this.state.currentPage,
                 pageSize: this.state.pageSize,
                 startDate: this.state.filter.startDate,
                 endDate: this.state.filter.endDate
             });
-            if (result.code === 200) {
-                this.state.data = result.data.table.list;
-                this.state.total = result.data.table.total;
+            if (body && body.table) {
+                this.state.data = body.table.list;
+                this.state.total = body.table.total;
                 this.renderTable();
                 this.renderPagination();
                 this.updatePageInfo();

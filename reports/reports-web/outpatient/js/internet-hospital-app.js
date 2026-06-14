@@ -68,26 +68,26 @@ class InternetHospitalController {
 
     async loadData() {
         try {
-            const result = await ReportAPI.getInternetHospitalStats({
+            const body = await ReportAPI.getInternetHospitalStats({
                 month: this.state.filter.month,
                 deptPage: this.state.deptPage.currentPage,
                 deptPageSize: this.state.deptPage.pageSize,
                 doctorPage: this.state.doctorPage.currentPage,
                 doctorPageSize: this.state.doctorPage.pageSize
             });
-            if (result.code === 200) {
-                this.renderOverview(result.data.overview);
-                this.renderOperationTable(result.data.operationTable);
-                this.renderBusinessChart(result.data.businessChart);
-                this.state.deptPage.total = result.data.deptRanking.total;
-                this.renderDeptRanking(result.data.deptRanking.list);
+            if (body && body.overview) {
+                this.renderOverview(body.overview);
+                this.renderOperationTable(body.operationTable);
+                this.renderBusinessChart(body.businessChart);
+                this.state.deptPage.total = body.deptRanking.total;
+                this.renderDeptRanking(body.deptRanking.list);
                 this.renderDeptPagination();
                 this.updateDeptPageInfo();
-                this.state.doctorPage.total = result.data.doctorRanking.total;
-                this.renderDoctorRanking(result.data.doctorRanking.list);
+                this.state.doctorPage.total = body.doctorRanking.total;
+                this.renderDoctorRanking(body.doctorRanking.list);
                 this.renderDoctorPagination();
                 this.updateDoctorPageInfo();
-                this.renderGrowthChart(result.data.growthChart);
+                this.renderGrowthChart(body.growthChart);
             }
         } catch (error) {
             console.error('Load internet hospital data failed:', error);
@@ -96,16 +96,16 @@ class InternetHospitalController {
 
     async loadDeptRanking() {
         try {
-            const result = await ReportAPI.getInternetHospitalStats({
+            const body = await ReportAPI.getInternetHospitalStats({
                 month: this.state.filter.month,
                 deptPage: this.state.deptPage.currentPage,
                 deptPageSize: this.state.deptPage.pageSize,
                 doctorPage: this.state.doctorPage.currentPage,
                 doctorPageSize: this.state.doctorPage.pageSize
             });
-            if (result.code === 200) {
-                this.state.deptPage.total = result.data.deptRanking.total;
-                this.renderDeptRanking(result.data.deptRanking.list);
+            if (body && body.deptRanking) {
+                this.state.deptPage.total = body.deptRanking.total;
+                this.renderDeptRanking(body.deptRanking.list);
                 this.renderDeptPagination();
                 this.updateDeptPageInfo();
             }
@@ -116,16 +116,16 @@ class InternetHospitalController {
 
     async loadDoctorRanking() {
         try {
-            const result = await ReportAPI.getInternetHospitalStats({
+            const body = await ReportAPI.getInternetHospitalStats({
                 month: this.state.filter.month,
                 deptPage: this.state.deptPage.currentPage,
                 deptPageSize: this.state.deptPage.pageSize,
                 doctorPage: this.state.doctorPage.currentPage,
                 doctorPageSize: this.state.doctorPage.pageSize
             });
-            if (result.code === 200) {
-                this.state.doctorPage.total = result.data.doctorRanking.total;
-                this.renderDoctorRanking(result.data.doctorRanking.list);
+            if (body && body.doctorRanking) {
+                this.state.doctorPage.total = body.doctorRanking.total;
+                this.renderDoctorRanking(body.doctorRanking.list);
                 this.renderDoctorPagination();
                 this.updateDoctorPageInfo();
             }

@@ -113,9 +113,9 @@ class CashierSettlementController {
         }
 
         try {
-            const result = await ReportAPI.getCashierSettlementOverview();
-            if (result.code === 200) {
-                this.renderOverview(result.data);
+            const body = await ReportAPI.getCashierSettlementOverview(this.filter);
+            if (body && body.appointmentRegister !== undefined) {
+                this.renderOverview(body);
             }
         } catch (error) {
             console.error('Load overview failed:', error);
@@ -185,7 +185,7 @@ class CashierSettlementController {
 
     async loadTableData() {
         try {
-            const result = await ReportAPI.getCashierSettlementTable({
+            const body = await ReportAPI.getCashierSettlementTable({
                 tab: this.filter.tab,
                 page: this.tableState.currentPage,
                 pageSize: this.tableState.pageSize,
@@ -193,9 +193,9 @@ class CashierSettlementController {
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate
             });
-            if (result.code === 200) {
-                this.tableState.data = result.data.list;
-                this.tableState.total = result.data.total;
+            if (body && body.list) {
+                this.tableState.data = body.list;
+                this.tableState.total = body.total;
                 this.renderTable();
                 this.renderPagination();
                 this.updatePageInfo();
@@ -387,14 +387,14 @@ class CashierSettlementController {
         document.getElementById('chartSection').style.display = 'flex';
 
         try {
-            const result = await ReportAPI.getCashierSettlementChart({
+            const body = await ReportAPI.getCashierSettlementChart({
                 tab: this.filter.tab,
                 dimension: this.filter.dimension,
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate
             });
-            if (result.code === 200) {
-                this.renderChart(result.data);
+            if (body && body.categories) {
+                this.renderChart(body);
             }
         } catch (error) {
             console.error('Load chart failed:', error);
