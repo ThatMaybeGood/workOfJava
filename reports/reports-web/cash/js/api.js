@@ -1,28 +1,7 @@
 /**
- * 接口封装层
- * 出院结算报表统一接口
+ * 现金报表 API 接口层
+ * 基于统一 api-config.js 配置，支持 Mock / 真实接口切换
  */
-
-async function fetchData(url, options = {}) {
-    try {
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            ...options
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        return await response.json();
-    } catch (error) {
-        console.error('Fetch error:', error);
-        throw error;
-    }
-}
 
 const ReportAPI = {
     /**
@@ -30,7 +9,7 @@ const ReportAPI = {
      * GET /api/cash/discharge-settlement/overview
      */
     getDischargeSettlementOverview() {
-        return MockService.getDischargeSettlementOverview();
+        return apiRequest('reports.cash.cash-discharge-settlement', 'overview');
     },
 
     /**
@@ -38,7 +17,7 @@ const ReportAPI = {
      * GET /api/cash/discharge-settlement/charts
      */
     getDischargeSettlementCharts() {
-        return MockService.getDischargeSettlementCharts();
+        return apiRequest('reports.cash.cash-discharge-settlement', 'charts');
     },
 
     /**
@@ -46,20 +25,15 @@ const ReportAPI = {
      * GET /api/cash/discharge-settlement/table
      */
     getDischargeSettlementTable(params) {
-        return MockService.getDischargeSettlementTable(params);
+        return apiRequest('reports.cash.cash-discharge-settlement', 'table', params);
     },
 
     /**
-     * 导出 Excel
+     * 导出出院结算 Excel
      * POST /api/cash/discharge-settlement/export
      */
     exportDischargeSettlement(params) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                console.log('导出参数：', params);
-                resolve({ code: 200, message: '导出成功' });
-            }, 500);
-        });
+        return apiRequest('reports.cash.cash-discharge-settlement', 'export', params);
     },
 
     /**
@@ -67,7 +41,7 @@ const ReportAPI = {
      * GET /api/cash/cashier-settlement/overview
      */
     getCashierSettlementOverview() {
-        return MockService.getCashierSettlementOverview();
+        return apiRequest('reports.cash.cash-cashier-settlement', 'overview');
     },
 
     /**
@@ -75,7 +49,7 @@ const ReportAPI = {
      * GET /api/cash/cashier-settlement/table
      */
     getCashierSettlementTable(params) {
-        return MockService.getCashierSettlementTable(params);
+        return apiRequest('reports.cash.cash-cashier-settlement', 'table', params);
     },
 
     /**
@@ -83,7 +57,7 @@ const ReportAPI = {
      * GET /api/cash/cashier-settlement/chart
      */
     getCashierSettlementChart(params) {
-        return MockService.getCashierSettlementChart(params);
+        return apiRequest('reports.cash.cash-cashier-settlement', 'chart', params);
     },
 
     /**
@@ -91,12 +65,7 @@ const ReportAPI = {
      * POST /api/cash/cashier-settlement/export
      */
     exportCashierSettlement(params) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                console.log('导出参数：', params);
-                resolve({ code: 200, message: '导出成功' });
-            }, 500);
-        });
+        return apiRequest('reports.cash.cash-cashier-settlement', 'export', params);
     },
 
     /**
@@ -104,7 +73,7 @@ const ReportAPI = {
      * GET /api/cash/inpatient-prepayment/overview
      */
     getInpatientPrepaymentOverview() {
-        return MockService.getInpatientPrepaymentOverview();
+        return apiRequest('reports.cash.cash-inpatient-prepayment', 'overview');
     },
 
     /**
@@ -112,7 +81,7 @@ const ReportAPI = {
      * GET /api/cash/inpatient-prepayment/summary-table
      */
     getInpatientPrepaymentSummaryTable(params) {
-        return MockService.getInpatientPrepaymentSummaryTable(params);
+        return apiRequest('reports.cash.cash-inpatient-prepayment', 'summaryTable', params);
     },
 
     /**
@@ -120,7 +89,7 @@ const ReportAPI = {
      * GET /api/cash/inpatient-prepayment/income-table
      */
     getInpatientPrepaymentIncomeTable(params) {
-        return MockService.getInpatientPrepaymentIncomeTable(params);
+        return apiRequest('reports.cash.cash-inpatient-prepayment', 'incomeTable', params);
     },
 
     /**
@@ -128,7 +97,7 @@ const ReportAPI = {
      * GET /api/cash/inpatient-prepayment/refund-table
      */
     getInpatientPrepaymentRefundTable(params) {
-        return MockService.getInpatientPrepaymentRefundTable(params);
+        return apiRequest('reports.cash.cash-inpatient-prepayment', 'refundTable', params);
     },
 
     /**
@@ -136,15 +105,15 @@ const ReportAPI = {
      * GET /api/cash/inpatient-prepayment/trend-chart
      */
     getInpatientPrepaymentTrendChart(params) {
-        return MockService.getInpatientPrepaymentTrendChart(params);
+        return apiRequest('reports.cash.cash-inpatient-prepayment', 'trendChart', params);
     },
 
     /**
-     * 获取住院预交金渠道图表数据
+     * 获取住院预交金渠道图表数据（进项）
      * GET /api/cash/inpatient-prepayment/channel-chart
      */
     getInpatientPrepaymentChannelChart(params) {
-        return MockService.getInpatientPrepaymentChannelChart(params);
+        return apiRequest('reports.cash.cash-inpatient-prepayment', 'channelChart', params);
     },
 
     /**
@@ -152,7 +121,7 @@ const ReportAPI = {
      * GET /api/cash/inpatient-prepayment/pay-type-chart
      */
     getInpatientPrepaymentPayTypeChart(params) {
-        return MockService.getInpatientPrepaymentPayTypeChart(params);
+        return apiRequest('reports.cash.cash-inpatient-prepayment', 'payTypeChart', params);
     },
 
     /**
@@ -160,11 +129,6 @@ const ReportAPI = {
      * POST /api/cash/inpatient-prepayment/export
      */
     exportInpatientPrepayment(params) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                console.log('导出参数：', params);
-                resolve({ code: 200, message: '导出成功' });
-            }, 500);
-        });
+        return apiRequest('reports.cash.cash-inpatient-prepayment', 'export', params);
     }
 };

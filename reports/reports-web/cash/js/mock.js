@@ -584,5 +584,67 @@ const MockService = {
                 });
             }, 300);
         });
+    },
+
+    /**
+     * 导出出院结算 Excel（模拟）
+     */
+    exportDischargeSettlement(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve({ code: 200, data: { message: '导出成功' } });
+            }, 300);
+        });
+    },
+
+    /**
+     * 导出收费员结账统计 Excel（模拟）
+     */
+    exportCashierSettlement(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve({ code: 200, data: { message: '导出成功' } });
+            }, 300);
+        });
+    },
+
+    /**
+     * 导出住院预交金统计 Excel（模拟）
+     */
+    exportInpatientPrepayment(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve({ code: 200, data: { message: '导出成功' } });
+            }, 300);
+        });
+    },
+
+    /**
+     * 获取收费员结账统计图表数据
+     */
+    getCashierSettlementChart(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const tab = params.tab || 'cashier';
+                const categories = [];
+                const seriesData = [];
+                for (let i = 13; i >= 0; i--) {
+                    const d = new Date('2025-01-12');
+                    d.setDate(d.getDate() - i);
+                    categories.push(`${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+                    seriesData.push(Math.floor(Math.random() * 60) + 80);
+                }
+                resolve({
+                    code: 200,
+                    data: {
+                        title: tab === 'cashier' ? '收费员业务工作量分析' : (tab === 'source' ? '来源方式工作量分析' : '工作量分析'),
+                        dateRange: '2025-01-12~2025-01-20',
+                        subTitle: '收费员1',
+                        categories,
+                        series: [{ name: '业务量', data: seriesData }]
+                    }
+                });
+            }, 300);
+        });
     }
 };

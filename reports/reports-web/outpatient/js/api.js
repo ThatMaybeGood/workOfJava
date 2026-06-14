@@ -1,79 +1,31 @@
 /**
- * 接口封装层
- * 统一处理网络请求
+ * 门诊报表 API 接口层
+ * 基于统一 api-config.js 配置，支持 Mock / 真实接口切换
  */
 
-/**
- * 使用 fetch 获取数据
- * @param {string} url - 接口地址
- * @param {Object} options - 请求配置
- * @returns {Promise} 返回 Promise 对象
- */
-async function fetchData(url, options = {}) {
-    try {
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            ...options
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        return await response.json();
-    } catch (error) {
-        console.error('Fetch error:', error);
-        throw error;
-    }
-}
-
-/**
- * 报表页面 API 接口
- */
 const ReportAPI = {
     /**
      * 获取统计概览数据
      * GET /api/outpatient/overview
      */
     getOverview() {
-        // 生产环境调用真实接口
-        // return fetchData('/api/outpatient/overview');
-        return MockService.getOverviewData();
+        return apiRequest('reports.outp.outpatient-operation', 'overview');
     },
 
     /**
      * 获取科室门诊量统计数据
      * GET /api/outpatient/department-stats
-     * @param {Object} params - 查询参数
      */
     getDepartmentStats(params) {
-        // 生产环境调用真实接口
-        // const queryString = new URLSearchParams(params).toString();
-        // return fetchData(`/api/outpatient/department-stats?${queryString}`);
-        return MockService.getTableData(params);
+        return apiRequest('reports.outp.outpatient-operation', 'departmentStats', null, params);
     },
 
     /**
      * 导出 Excel
      * POST /api/outpatient/export
-     * @param {Object} params - 导出参数
      */
     exportExcel(params) {
-        // 生产环境调用真实接口
-        // return fetch('/api/outpatient/export', {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify(params)
-        // });
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                console.log('导出参数：', params);
-                resolve({ code: 200, message: '导出成功' });
-            }, 500);
-        });
+        return apiRequest('reports.outp.outpatient-operation', 'export', params);
     },
 
     /**
@@ -81,7 +33,7 @@ const ReportAPI = {
      * GET /api/outpatient/revenue-overview
      */
     getRevenueOverview() {
-        return MockService.getRevenueOverviewData();
+        return apiRequest('reports.outp.outpatient-revenue', 'endpoint');
     },
 
     /**
@@ -89,7 +41,7 @@ const ReportAPI = {
      * GET /api/outpatient/dept-revenue
      */
     getDeptRevenueStats(params) {
-        return MockService.getDeptRevenueData(params);
+        return apiRequest('reports.outp.outpatient-revenue', 'endpoint', { ...params, _type: 'dept' });
     },
 
     /**
@@ -97,7 +49,7 @@ const ReportAPI = {
      * GET /api/outpatient/doctor-revenue
      */
     getDoctorRevenueStats(params) {
-        return MockService.getDoctorRevenueData(params);
+        return apiRequest('reports.outp.outpatient-revenue', 'endpoint', { ...params, _type: 'doctor' });
     },
 
     /**
@@ -105,7 +57,7 @@ const ReportAPI = {
      * GET /api/outpatient/patient-portrait
      */
     getPatientPortrait(params) {
-        return MockService.getPatientPortraitData(params);
+        return apiRequest('reports.outp.outpatient-patient-portrait', 'endpoint', params);
     },
 
     /**
@@ -113,7 +65,7 @@ const ReportAPI = {
      * GET /api/outpatient/window-stats
      */
     getWindowStats(params) {
-        return MockService.getWindowStatsData(params);
+        return apiRequest('reports.outp.outpatient-window-stats', 'endpoint', params);
     },
 
     /**
@@ -121,7 +73,7 @@ const ReportAPI = {
      * GET /api/outpatient/lab-stats
      */
     getLabStats(params) {
-        return MockService.getLabStatsData(params);
+        return apiRequest('reports.outp.outpatient-lab-stats', 'endpoint', params);
     },
 
     /**
@@ -129,7 +81,7 @@ const ReportAPI = {
      * GET /api/outpatient/med-tech-stats
      */
     getMedTechStats(params) {
-        return MockService.getMedTechStatsData(params);
+        return apiRequest('reports.outp.outpatient-med-tech', 'endpoint', params);
     },
 
     /**
@@ -137,7 +89,7 @@ const ReportAPI = {
      * GET /api/outpatient/no-show-stats
      */
     getNoShowStats(params) {
-        return MockService.getNoShowStatsData(params);
+        return apiRequest('reports.outp.outpatient-no-show', 'endpoint', params);
     },
 
     /**
@@ -145,34 +97,62 @@ const ReportAPI = {
      * GET /api/outpatient/alert-stats
      */
     getAlertStats(params) {
-        return MockService.getAlertStatsData(params);
+        return apiRequest('reports.outp.outpatient-alert', 'endpoint', params);
     },
 
+    /**
+     * 获取诊室使用率统计数据
+     * GET /api/outpatient/room-usage-stats
+     */
     getRoomUsageStats(params) {
-        return MockService.getRoomUsageStatsData(params);
+        return apiRequest('reports.outp.outpatient-room-usage', 'endpoint', params);
     },
 
+    /**
+     * 获取专科治疗量统计数据
+     * GET /api/outpatient/specialty-treatment-stats
+     */
     getSpecialtyTreatmentStats(params) {
-        return MockService.getSpecialtyTreatmentStatsData(params);
+        return apiRequest('reports.outp.outpatient-specialty-treatment', 'endpoint', params);
     },
 
+    /**
+     * 获取治疗统计报表数据
+     * GET /api/outpatient/treatment-stats
+     */
     getTreatmentStats(params) {
-        return MockService.getTreatmentStatsData(params);
+        return apiRequest('reports.outp.outpatient-treatment-stats', 'endpoint', params);
     },
 
+    /**
+     * 获取预测门诊量统计数据
+     * GET /api/outpatient/forecast-stats
+     */
     getForecastStats(params) {
-        return MockService.getForecastStatsData(params);
+        return apiRequest('reports.outp.outpatient-forecast', 'endpoint', params);
     },
 
+    /**
+     * 获取门诊服务质量统计数据
+     * GET /api/outpatient/service-quality-stats
+     */
     getServiceQualityStats(params) {
-        return MockService.getServiceQualityStatsData(params);
+        return apiRequest('reports.outp.outpatient-service-quality', 'endpoint', params);
     },
 
+    /**
+     * 获取门诊管理质量控制统计数据
+     * GET /api/outpatient/quality-control-stats
+     */
     getQualityControlStats(params) {
-        return MockService.getQualityControlStatsData(params);
+        return apiRequest('reports.outp.outpatient-quality-control', 'endpoint', params);
     },
 
+    /**
+     * 获取互医质控运营月报数据
+     * GET /api/outpatient/internet-hospital-stats
+     */
     getInternetHospitalStats(params) {
-        return MockService.getInternetHospitalStatsData(params);
+        return apiRequest('reports.outp.outpatient-internet-hospital', 'endpoint', params);
     }
 };
