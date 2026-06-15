@@ -162,9 +162,9 @@ class RevenueController {
 
     async loadOverview() {
         try {
-            const result = await ReportAPI.getRevenueOverview();
-            if (result.code === 200) {
-                this.renderOverview(result.data);
+            const body = await ReportAPI.getRevenueOverview(this.filter);
+            if (body && body.overview) {
+                this.renderOverview(body.overview);
             }
         } catch (error) {
             console.error('Load overview failed:', error);
@@ -178,16 +178,16 @@ class RevenueController {
 
     async loadDeptData() {
         try {
-            const result = await ReportAPI.getDeptRevenueStats({
+            const body = await ReportAPI.getDeptRevenueStats({
                 page: this.deptState.currentPage,
                 pageSize: this.deptState.pageSize,
                 deptName: this.filter.deptName,
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate
             });
-            if (result.code === 200) {
-                this.deptState.data = result.data.list;
-                this.deptState.total = result.data.total;
+            if (body && body.deptTable) {
+                this.deptState.data = body.deptTable.list;
+                this.deptState.total = body.deptTable.total;
                 this.renderDeptTable();
                 this.renderDeptPagination();
                 this.updateDeptPageInfo();
@@ -199,16 +199,16 @@ class RevenueController {
 
     async loadDoctorData() {
         try {
-            const result = await ReportAPI.getDoctorRevenueStats({
+            const body = await ReportAPI.getDoctorRevenueStats({
                 page: this.doctorState.currentPage,
                 pageSize: this.doctorState.pageSize,
                 deptName: this.filter.deptName,
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate
             });
-            if (result.code === 200) {
-                this.doctorState.data = result.data.list;
-                this.doctorState.total = result.data.total;
+            if (body && body.doctorTable) {
+                this.doctorState.data = body.doctorTable.list;
+                this.doctorState.total = body.doctorTable.total;
                 this.renderDoctorTable();
                 this.renderDoctorPagination();
                 this.updateDoctorPageInfo();

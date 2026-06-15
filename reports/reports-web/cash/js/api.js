@@ -1,170 +1,135 @@
 /**
- * 接口封装层
- * 出院结算报表统一接口
+ * 现金报表 API 接口层
+ * 基于统一 api-config.js 配置，支持 Mock / 真实接口切换
+ * 后端统一 POST 接口规范：请求格式 {head: {method: 'xxx'}, body: {...}}
  */
-
-async function fetchData(url, options = {}) {
-    try {
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            ...options
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        return await response.json();
-    } catch (error) {
-        console.error('Fetch error:', error);
-        throw error;
-    }
-}
 
 const ReportAPI = {
     /**
      * 获取出院结算概览数据
-     * GET /api/cash/discharge-settlement/overview
+     * method: reports.cash.cash-discharge-settlement
      */
-    getDischargeSettlementOverview() {
-        return MockService.getDischargeSettlementOverview();
+    getDischargeSettlementOverview(params) {
+        return apiRequest('reports.cash.cash-discharge-settlement', 'overview', params);
     },
 
     /**
      * 获取出院结算图表分析数据
-     * GET /api/cash/discharge-settlement/charts
+     * method: reports.cash.cash-discharge-settlement
      */
-    getDischargeSettlementCharts() {
-        return MockService.getDischargeSettlementCharts();
+    getDischargeSettlementCharts(params) {
+        return apiRequest('reports.cash.cash-discharge-settlement', 'charts', params);
     },
 
     /**
      * 获取出院结算表格数据
-     * GET /api/cash/discharge-settlement/table
+     * method: reports.cash.cash-discharge-settlement
      */
     getDischargeSettlementTable(params) {
-        return MockService.getDischargeSettlementTable(params);
+        return apiRequest('reports.cash.cash-discharge-settlement', 'table', params);
     },
 
     /**
-     * 导出 Excel
-     * POST /api/cash/discharge-settlement/export
+     * 导出出院结算 Excel
+     * method: reports.cash.cash-discharge-settlement
      */
     exportDischargeSettlement(params) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                console.log('导出参数：', params);
-                resolve({ code: 200, message: '导出成功' });
-            }, 500);
-        });
+        return apiRequest('reports.cash.cash-discharge-settlement', 'export', params);
     },
 
     /**
      * 获取收费员结账统计概览数据
-     * GET /api/cash/cashier-settlement/overview
+     * method: reports.cash.cash-cashier-settlement
      */
-    getCashierSettlementOverview() {
-        return MockService.getCashierSettlementOverview();
+    getCashierSettlementOverview(params) {
+        return apiRequest('reports.cash.cash-cashier-settlement', 'overview', params);
     },
 
     /**
      * 获取收费员结账统计表格数据
-     * GET /api/cash/cashier-settlement/table
+     * method: reports.cash.cash-cashier-settlement
      */
     getCashierSettlementTable(params) {
-        return MockService.getCashierSettlementTable(params);
+        return apiRequest('reports.cash.cash-cashier-settlement', 'table', params);
     },
 
     /**
      * 获取收费员结账统计图表数据
-     * GET /api/cash/cashier-settlement/chart
+     * method: reports.cash.cash-cashier-settlement
      */
     getCashierSettlementChart(params) {
-        return MockService.getCashierSettlementChart(params);
+        return apiRequest('reports.cash.cash-cashier-settlement', 'chart', params);
     },
 
     /**
      * 导出收费员结账统计 Excel
-     * POST /api/cash/cashier-settlement/export
+     * method: reports.cash.cash-cashier-settlement
      */
     exportCashierSettlement(params) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                console.log('导出参数：', params);
-                resolve({ code: 200, message: '导出成功' });
-            }, 500);
-        });
+        return apiRequest('reports.cash.cash-cashier-settlement', 'export', params);
     },
 
     /**
      * 获取住院预交金统计概览数据
-     * GET /api/cash/inpatient-prepayment/overview
+     * method: reports.cash.cash-inpatient-prepayment
      */
-    getInpatientPrepaymentOverview() {
-        return MockService.getInpatientPrepaymentOverview();
+    getInpatientPrepaymentOverview(params) {
+        return apiRequest('reports.cash.cash-inpatient-prepayment', 'overview', params);
     },
 
     /**
      * 获取住院预交金汇总表格数据
-     * GET /api/cash/inpatient-prepayment/summary-table
+     * method: reports.cash.cash-inpatient-prepayment
      */
     getInpatientPrepaymentSummaryTable(params) {
-        return MockService.getInpatientPrepaymentSummaryTable(params);
+        return apiRequest('reports.cash.cash-inpatient-prepayment', 'summaryTable', params);
     },
 
     /**
      * 获取住院预交金进项表格数据
-     * GET /api/cash/inpatient-prepayment/income-table
+     * method: reports.cash.cash-inpatient-prepayment
      */
     getInpatientPrepaymentIncomeTable(params) {
-        return MockService.getInpatientPrepaymentIncomeTable(params);
+        return apiRequest('reports.cash.cash-inpatient-prepayment', 'incomeTable', params);
     },
 
     /**
      * 获取住院预交金退项表格数据
-     * GET /api/cash/inpatient-prepayment/refund-table
+     * method: reports.cash.cash-inpatient-prepayment
      */
     getInpatientPrepaymentRefundTable(params) {
-        return MockService.getInpatientPrepaymentRefundTable(params);
+        return apiRequest('reports.cash.cash-inpatient-prepayment', 'refundTable', params);
     },
 
     /**
      * 获取住院预交金趋势图表数据
-     * GET /api/cash/inpatient-prepayment/trend-chart
+     * method: reports.cash.cash-inpatient-prepayment
      */
     getInpatientPrepaymentTrendChart(params) {
-        return MockService.getInpatientPrepaymentTrendChart(params);
+        return apiRequest('reports.cash.cash-inpatient-prepayment', 'trendChart', params);
     },
 
     /**
-     * 获取住院预交金渠道图表数据
-     * GET /api/cash/inpatient-prepayment/channel-chart
+     * 获取住院预交金渠道图表数据（进项）
+     * method: reports.cash.cash-inpatient-prepayment
      */
     getInpatientPrepaymentChannelChart(params) {
-        return MockService.getInpatientPrepaymentChannelChart(params);
+        return apiRequest('reports.cash.cash-inpatient-prepayment', 'channelChart', params);
     },
 
     /**
      * 获取住院预交金支付方式图表数据（退项）
-     * GET /api/cash/inpatient-prepayment/pay-type-chart
+     * method: reports.cash.cash-inpatient-prepayment
      */
     getInpatientPrepaymentPayTypeChart(params) {
-        return MockService.getInpatientPrepaymentPayTypeChart(params);
+        return apiRequest('reports.cash.cash-inpatient-prepayment', 'payTypeChart', params);
     },
 
     /**
      * 导出住院预交金统计 Excel
-     * POST /api/cash/inpatient-prepayment/export
+     * method: reports.cash.cash-inpatient-prepayment
      */
     exportInpatientPrepayment(params) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                console.log('导出参数：', params);
-                resolve({ code: 200, message: '导出成功' });
-            }, 500);
-        });
+        return apiRequest('reports.cash.cash-inpatient-prepayment', 'export', params);
     }
 };

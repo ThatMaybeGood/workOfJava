@@ -94,9 +94,9 @@ class DischargeSettlementController {
 
     async loadOverview() {
         try {
-            const result = await ReportAPI.getDischargeSettlementOverview();
-            if (result.code === 200) {
-                this.renderOverview(result.data);
+            const body = await ReportAPI.getDischargeSettlementOverview(this.filter);
+            if (body && body.totalDischargeCount !== undefined) {
+                this.renderOverview(body);
             }
         } catch (error) {
             console.error('Load overview failed:', error);
@@ -123,9 +123,9 @@ class DischargeSettlementController {
 
     async loadCharts() {
         try {
-            const result = await ReportAPI.getDischargeSettlementCharts();
-            if (result.code === 200) {
-                this.renderCharts(result.data);
+            const body = await ReportAPI.getDischargeSettlementCharts(this.filter);
+            if (body && body.channelAnalysis) {
+                this.renderCharts(body);
             }
         } catch (error) {
             console.error('Load charts failed:', error);
@@ -206,16 +206,16 @@ class DischargeSettlementController {
 
     async loadTableData() {
         try {
-            const result = await ReportAPI.getDischargeSettlementTable({
+            const body = await ReportAPI.getDischargeSettlementTable({
                 page: this.tableState.currentPage,
                 pageSize: this.tableState.pageSize,
                 dimension: this.filter.dimension,
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate
             });
-            if (result.code === 200) {
-                this.tableState.data = result.data.list;
-                this.tableState.total = result.data.total;
+            if (body && body.list) {
+                this.tableState.data = body.list;
+                this.tableState.total = body.total;
                 this.renderTable();
                 this.renderPagination();
                 this.updatePageInfo();

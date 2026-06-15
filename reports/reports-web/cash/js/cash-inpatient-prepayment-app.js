@@ -204,9 +204,9 @@ class InpatientPrepaymentController {
 
     async loadIncomeOverview() {
         try {
-            const result = await ReportAPI.getInpatientPrepaymentOverview();
-            if (result.code === 200) {
-                this.renderIncomeOverview(result.data);
+            const body = await ReportAPI.getInpatientPrepaymentOverview(this.filter);
+            if (body && body.prepaymentCount !== undefined) {
+                this.renderIncomeOverview(body);
             }
         } catch (error) {
             console.error('Load income overview failed:', error);
@@ -225,9 +225,9 @@ class InpatientPrepaymentController {
 
     async loadRefundOverview() {
         try {
-            const result = await ReportAPI.getInpatientPrepaymentOverview();
-            if (result.code === 200) {
-                this.renderRefundOverview(result.data);
+            const body = await ReportAPI.getInpatientPrepaymentOverview(this.filter);
+            if (body && body.prepaymentCount !== undefined) {
+                this.renderRefundOverview(body);
             }
         } catch (error) {
             console.error('Load refund overview failed:', error);
@@ -246,16 +246,16 @@ class InpatientPrepaymentController {
 
     async loadSummaryTable() {
         try {
-            const result = await ReportAPI.getInpatientPrepaymentSummaryTable({
+            const body = await ReportAPI.getInpatientPrepaymentSummaryTable({
                 dimension: this.filter.dimension,
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate,
                 page: this.summaryTableState.currentPage,
                 pageSize: this.summaryTableState.pageSize
             });
-            if (result.code === 200) {
-                this.summaryTableState.data = result.data.list;
-                this.summaryTableState.total = result.data.total;
+            if (body && body.list) {
+                this.summaryTableState.data = body.list;
+                this.summaryTableState.total = body.total;
                 this.renderSummaryTable();
                 this.renderSummaryPagination();
                 this.updateSummaryPageInfo();
@@ -375,16 +375,16 @@ class InpatientPrepaymentController {
 
     async loadIncomeTable() {
         try {
-            const result = await ReportAPI.getInpatientPrepaymentIncomeTable({
+            const body = await ReportAPI.getInpatientPrepaymentIncomeTable({
                 dimension: this.filter.dimension,
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate,
                 page: this.incomeTableState.currentPage,
                 pageSize: this.incomeTableState.pageSize
             });
-            if (result.code === 200) {
-                this.incomeTableState.data = result.data.list;
-                this.incomeTableState.total = result.data.total;
+            if (body && body.list) {
+                this.incomeTableState.data = body.list;
+                this.incomeTableState.total = body.total;
                 this.renderIncomeTable();
                 this.renderIncomePagination();
                 this.updateIncomePageInfo();
@@ -504,16 +504,16 @@ class InpatientPrepaymentController {
 
     async loadRefundTable() {
         try {
-            const result = await ReportAPI.getInpatientPrepaymentRefundTable({
+            const body = await ReportAPI.getInpatientPrepaymentRefundTable({
                 dimension: this.filter.dimension,
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate,
                 page: this.refundTableState.currentPage,
                 pageSize: this.refundTableState.pageSize
             });
-            if (result.code === 200) {
-                this.refundTableState.data = result.data.list;
-                this.refundTableState.total = result.data.total;
+            if (body && body.list) {
+                this.refundTableState.data = body.list;
+                this.refundTableState.total = body.total;
                 this.renderRefundTable();
                 this.renderRefundPagination();
                 this.updateRefundPageInfo();
@@ -633,7 +633,7 @@ class InpatientPrepaymentController {
 
     async loadSummaryChart(type) {
         try {
-            const [trendResult, channelResult] = await Promise.all([
+            const [trendBody, channelBody] = await Promise.all([
                 ReportAPI.getInpatientPrepaymentTrendChart({
                     type: 'summary_' + type,
                     dimension: this.filter.dimension,
@@ -647,11 +647,11 @@ class InpatientPrepaymentController {
                     endDate: this.filter.endDate
                 })
             ]);
-            if (trendResult.code === 200) {
-                this.renderTrendChart(this.charts.summaryTrend, trendResult.data, 'summary');
+            if (trendBody && trendBody.categories) {
+                this.renderTrendChart(this.charts.summaryTrend, trendBody, 'summary');
             }
-            if (channelResult.code === 200) {
-                this.renderSummaryChannelChart(channelResult.data);
+            if (channelBody && channelBody.channelAnalysis) {
+                this.renderSummaryChannelChart(channelBody);
             }
         } catch (error) {
             console.error('Load summary chart failed:', error);
@@ -673,7 +673,7 @@ class InpatientPrepaymentController {
 
     async loadIncomeChart(type) {
         try {
-            const [trendResult, channelResult] = await Promise.all([
+            const [trendBody, channelBody] = await Promise.all([
                 ReportAPI.getInpatientPrepaymentTrendChart({
                     type: 'income_' + type,
                     dimension: this.filter.dimension,
@@ -687,11 +687,11 @@ class InpatientPrepaymentController {
                     endDate: this.filter.endDate
                 })
             ]);
-            if (trendResult.code === 200) {
-                this.renderTrendChart(this.charts.incomeTrend, trendResult.data, 'income');
+            if (trendBody && trendBody.categories) {
+                this.renderTrendChart(this.charts.incomeTrend, trendBody, 'income');
             }
-            if (channelResult.code === 200) {
-                this.renderIncomeChannelChart(channelResult.data);
+            if (channelBody && channelBody.channelAnalysis) {
+                this.renderIncomeChannelChart(channelBody);
             }
         } catch (error) {
             console.error('Load income chart failed:', error);
@@ -700,7 +700,7 @@ class InpatientPrepaymentController {
 
     async loadRefundChart(type) {
         try {
-            const [trendResult, payTypeResult] = await Promise.all([
+            const [trendBody, payTypeBody] = await Promise.all([
                 ReportAPI.getInpatientPrepaymentTrendChart({
                     type: 'refund_' + type,
                     dimension: this.filter.dimension,
@@ -714,11 +714,11 @@ class InpatientPrepaymentController {
                     endDate: this.filter.endDate
                 })
             ]);
-            if (trendResult.code === 200) {
-                this.renderTrendChart(this.charts.refundTrend, trendResult.data, 'refund');
+            if (trendBody && trendBody.categories) {
+                this.renderTrendChart(this.charts.refundTrend, trendBody, 'refund');
             }
-            if (payTypeResult.code === 200) {
-                this.renderRefundPayTypeChart(payTypeResult.data);
+            if (payTypeBody && payTypeBody.payTypeAnalysis) {
+                this.renderRefundPayTypeChart(payTypeBody);
             }
         } catch (error) {
             console.error('Load refund chart failed:', error);

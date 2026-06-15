@@ -37,13 +37,13 @@ class ForecastController {
 
     async loadData() {
         try {
-            const result = await ReportAPI.getForecastStats({
+            const body = await ReportAPI.getForecastStats({
                 deptName: this.state.filter.deptName
             });
-            if (result.code === 200) {
-                this.renderOverview(result.data.overview);
-                this.renderMonthForecastChart(result.data.monthForecast);
-                this.renderYearForecastChart(result.data.yearForecast);
+            if (body && body.overview) {
+                this.renderOverview(body.overview);
+                this.renderMonthForecastChart(body.monthForecast);
+                this.renderYearForecastChart(body.yearForecast);
             }
         } catch (error) {
             console.error('Load forecast data failed:', error);

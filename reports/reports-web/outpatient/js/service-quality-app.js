@@ -104,14 +104,14 @@ class ServiceQualityController {
 
     async loadOverview() {
         try {
-            const result = await ReportAPI.getServiceQualityStats({
+            const body = await ReportAPI.getServiceQualityStats({
                 timeRange: this.state.filter.timeRange,
                 startDate: this.state.filter.startDate,
                 endDate: this.state.filter.endDate,
                 deptName: this.state.filter.deptName
             });
-            if (result.code === 200) {
-                this.renderOverview(result.data.overview);
+            if (body && body.overview) {
+                this.renderOverview(body.overview);
             }
         } catch (error) {
             console.error('Load overview failed:', error);
@@ -125,7 +125,7 @@ class ServiceQualityController {
 
     async loadTableData() {
         try {
-            const result = await ReportAPI.getServiceQualityStats({
+            const body = await ReportAPI.getServiceQualityStats({
                 page: this.state.currentPage,
                 pageSize: this.state.pageSize,
                 tab: this.state.activeTab,
@@ -133,9 +133,9 @@ class ServiceQualityController {
                 startDate: this.state.filter.startDate,
                 endDate: this.state.filter.endDate
             });
-            if (result.code === 200) {
-                this.state.data = result.data[this.state.activeTab].list;
-                this.state.total = result.data[this.state.activeTab].total;
+            if (body && body[this.state.activeTab]) {
+                this.state.data = body[this.state.activeTab].list;
+                this.state.total = body[this.state.activeTab].total;
                 this.renderTable();
                 this.renderPagination();
                 this.updatePageInfo();

@@ -7,6 +7,7 @@ import com.reports.dto.common.PageResult;
 import com.reports.dto.request.OutpatientOperationRequest;
 import com.reports.dto.response.*;
 import com.reports.service.OutpatientOperationService;
+import com.reports.service.handler.MethodMapping;
 import com.reports.service.handler.ReportHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,9 +18,8 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
+@MethodMapping("reports.outp.outpatient-operation")
 public class OutpatientOperationHandler implements ReportHandler<OutpatientOperationRequest, OutpatientOperationResponse> {
-
-    public static final String METHOD = "reports.outp.outpatient-operation";
 
     private final OutpatientOperationService outpatientOperationService;
     private final ObjectMapper objectMapper;
@@ -28,11 +28,6 @@ public class OutpatientOperationHandler implements ReportHandler<OutpatientOpera
     public OutpatientOperationHandler(OutpatientOperationService outpatientOperationService, ObjectMapper objectMapper) {
         this.outpatientOperationService = outpatientOperationService;
         this.objectMapper = objectMapper;
-    }
-
-    @Override
-    public String getMethod() {
-        return METHOD;
     }
 
     @Override

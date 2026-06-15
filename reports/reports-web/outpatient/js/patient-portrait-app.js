@@ -96,14 +96,14 @@ class PatientPortraitController {
 
     async loadData() {
         try {
-            const result = await ReportAPI.getPatientPortrait({
+            const body = await ReportAPI.getPatientPortrait({
                 patientType: this.state.patientType,
                 startDate: this.state.startDate,
                 endDate: this.state.endDate,
                 deptName: this.state.deptName
             });
-            if (result.code === 200) {
-                this.renderCharts(result.data);
+            if (body) {
+                this.renderCharts(body);
             }
         } catch (error) {
             console.error('Load patient portrait data failed:', error);

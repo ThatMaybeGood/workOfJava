@@ -1012,5 +1012,16 @@ const MockService = {
                 });
             }, 300);
         });
+    },
+
+    /**
+     * 导出 Excel（模拟）
+     */
+    exportExcel(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve({ code: 200, data: { message: '导出成功' } });
+            }, 300);
+        });
     }
 };

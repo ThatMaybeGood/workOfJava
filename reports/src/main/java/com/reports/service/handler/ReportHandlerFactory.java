@@ -13,6 +13,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 报表处理器工厂 - 根据 method 路由分发
+ * <p>
+ * 自动扫描所有 {@link ReportHandler} 实现，从 {@link MethodMapping} 注解读取路由键进行注册。
  */
 @Slf4j
 @Component
@@ -29,12 +31,22 @@ public class ReportHandlerFactory {
     @PostConstruct
     public void init() {
         for (ReportHandler<?, ?> handler : handlers) {
-            String method = handler.getMethod();
+            Class<?> clazz = handler.getClass();
+            MethodMapping mapping = clazz.getAnnotation(MethodMapping.class);
+            if (mapping == null) {
+                throw new IllegalStateException(
+                        String.format("ReportHandler 实现类 [%s] 缺少 @MethodMapping 注解", clazz.getName()));
+            }
+            String method = mapping.value();
+            if (method.isEmpty()) {
+                throw new IllegalStateException(
+                        String.format("@MethodMapping value 不能为空，类: [%s]", clazz.getName()));
+            }
             if (handlerMap.containsKey(method)) {
                 log.warn("Method [{}] 已存在处理器，将被覆盖", method);
             }
             handlerMap.put(method, handler);
-            log.info("注册报表处理器: method=[{}], class=[{}]", method, handler.getClass().getSimpleName());
+            log.info("注册报表处理器: method=[{}], class=[{}]", method, clazz.getSimpleName());
         }
         log.info("共注册 {} 个报表处理器", handlerMap.size());
     }
