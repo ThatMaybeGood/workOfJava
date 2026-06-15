@@ -1,6 +1,7 @@
 package com.reports.aspect;
 
 import com.reports.util.MdcUtil;
+import com.reports.util.SeqUtil;
 import com.reports.util.TraceIdGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
@@ -43,8 +44,9 @@ public class LogAspect {
     public void doBefore(JoinPoint joinPoint) {
         String traceId = traceIdGenerator.generate();
         MdcUtil.setTraceId(traceId);
-        log.info("[TraceId={}] 接口请求进入: {}.{}, args={}",
-                traceId,
+        SeqUtil.init();
+        SeqUtil.next();
+        log.info("接口请求进入: {}.{}, args={}",
                 joinPoint.getTarget().getClass().getSimpleName(),
                 joinPoint.getSignature().getName(),
                 Arrays.toString(joinPoint.getArgs()));
@@ -55,9 +57,8 @@ public class LogAspect {
      */
     @AfterReturning(pointcut = "gatewayPointcut()", returning = "result")
     public void doAfterReturning(JoinPoint joinPoint, Object result) {
-        String traceId = MdcUtil.getTraceId();
-        log.info("[TraceId={}] 接口请求返回: {}", traceId, result);
         MdcUtil.clear();
+        SeqUtil.clear();
     }
 
     /**
@@ -65,9 +66,8 @@ public class LogAspect {
      */
     @AfterThrowing(pointcut = "gatewayPointcut()", throwing = "ex")
     public void doAfterThrowing(JoinPoint joinPoint, Throwable ex) {
-        String traceId = MdcUtil.getTraceId();
-        log.error("[TraceId={}] 接口请求异常: ", traceId, ex);
         MdcUtil.clear();
+        SeqUtil.clear();
     }
 
 }

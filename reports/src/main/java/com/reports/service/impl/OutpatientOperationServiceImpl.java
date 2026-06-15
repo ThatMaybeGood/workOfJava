@@ -1,11 +1,13 @@
 package com.reports.service.impl;
 
-import com.reports.config.DynamicDataSourceContextHolder;
+import com.reports.config.PageConfig;
 import com.reports.config.ReportDataConfig;
 import com.reports.dto.common.PageResult;
 import com.reports.dto.request.OutpatientOperationRequest;
 import com.reports.dto.response.*;
 import com.reports.service.OutpatientOperationService;
+import com.reports.util.OraclePageUtil;
+import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -75,6 +77,7 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
     // ==================== Mock 模式 ====================
 
     private OverviewData queryOverviewMock(OutpatientOperationRequest request) {
+        SeqUtil.next();
         log.info("使用 Mock 数据返回概览");
 
         OverviewData overview = new OverviewData();
@@ -109,6 +112,7 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
     }
 
     private PageResult<TableItem> queryTableMock(OutpatientOperationRequest request, Integer page, Integer pageSize) {
+        SeqUtil.next();
         log.info("使用 Mock 数据返回表格");
 
         List<TableItem> list = new ArrayList<>();
@@ -179,16 +183,20 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
     private PageResult<TableItem> queryTableByJdbc(OutpatientOperationRequest request, Integer page, Integer pageSize) {
         log.info("使用 JdbcTemplate 查询表格数据");
 
-        String sql = "SELECT DEPT_NAME, COUNT(*) AS VISITS, " +
+        // 原始 SQL（不含分页）
+        String baseSql = "SELECT DEPT_NAME, COUNT(*) AS VISITS, " +
                 "ROUND(COUNT(CASE WHEN appointment_flag = '1' THEN 1 END) * 100.0 / COUNT(*), 2) || '%' AS appointment_rate " +
                 "FROM outpatient_record " +
                 "WHERE visit_date BETWEEN ? AND ? " +
                 "GROUP BY DEPT_NAME " +
-                "ORDER BY COUNT(*) DESC " +
-                "OFFSET " + ((page - 1) * pageSize) + " ROWS FETCH NEXT " + pageSize + " ROWS ONLY";
+                "ORDER BY COUNT(*) DESC";
+
+        // 包装分页 SQL（Oracle 12c+ 用 OFFSET FETCH，11g 用 ROWNUM）
+        String pageSql = OraclePageUtil.wrapOffsetFetchPage(baseSql, page, pageSize);
+        // 如果是 Oracle 11g: String pageSql = OraclePageUtil.wrapRowNumPage(baseSql, page, pageSize);
 
         try {
-            List<TableItem> list = jdbcTemplate.query(sql, new RowMapper<TableItem>() {
+            List<TableItem> list = jdbcTemplate.query(pageSql, new RowMapper<TableItem>() {
                 @Override
                 public TableItem mapRow(ResultSet rs, int rowNum) throws SQLException {
                     TableItem item = new TableItem();

@@ -7,6 +7,7 @@ import com.reports.exception.BusinessException;
 import com.reports.service.GatewayService;
 import com.reports.service.handler.ReportHandler;
 import com.reports.service.handler.ReportHandlerFactory;
+import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class GatewayServiceImpl implements GatewayService {
         }
 
         String method = request.getMethod();
+        SeqUtil.next();
         log.info("开始处理请求，method=[{}]", method);
 
         // 获取处理器

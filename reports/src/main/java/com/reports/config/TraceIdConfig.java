@@ -27,6 +27,6 @@ public class TraceIdConfig {
     /**
      * 是否包含方括号
      */
-    private Boolean includeBrackets = true;
+    private Boolean includeBrackets = false;
 
 }

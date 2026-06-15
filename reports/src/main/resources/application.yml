@@ -17,10 +17,16 @@ reports:
     # 追踪号数字长度
     number-length: 9
     # 是否包含方括号
-    include-brackets: true
+    include-brackets: false
   data:
     # 数据模式: mock(默认) / jdbc / mybatis-plus
     mode: mock
+  # 分页默认配置
+  page:
+    # 默认当前页码
+    default-page: 1
+    # 默认每页条数
+    default-page-size: 10
 
 # 日志配置
 logging:
@@ -28,4 +34,4 @@ logging:
     com.reports: TRACE
     org.springframework.web: INFO
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - [%X{traceId}] %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - [%X{traceId}] [%X{seq}] %msg%n"

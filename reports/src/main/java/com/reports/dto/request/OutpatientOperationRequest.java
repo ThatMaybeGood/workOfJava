@@ -33,4 +33,14 @@ public class OutpatientOperationRequest extends BaseRequestBody {
      */
     private String deptName;
 
+    /**
+     * 当前页码（可选，默认第1页）
+     */
+    private Integer page;
+
+    /**
+     * 每页条数（可选，默认10条）
+     */
+    private Integer pageSize;
+
 }
