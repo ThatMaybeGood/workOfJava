@@ -6,7 +6,8 @@ import com.reports.dto.common.ApiResponse;
 import com.reports.dto.common.PageResult;
 import com.reports.config.PageConfig;
 import com.reports.dto.request.OutpatientOperationRequest;
-import com.reports.dto.response.*;
+import com.reports.dto.response.outpatient.operation.*;
+import com.reports.enums.ReportModule;
 import com.reports.service.OutpatientOperationService;
 import com.reports.service.handler.MethodMapping;
 import com.reports.service.handler.ReportHandler;
@@ -34,10 +35,12 @@ public class OutpatientOperationHandler implements ReportHandler<OutpatientOpera
         this.pageConfig = pageConfig;
     }
 
+    private static final ReportModule MODULE = ReportModule.OUTPATIENT_OPERATION;
+
     @Override
     public ApiResponse<OutpatientOperationResponse> handle(ApiRequest<Object> request) {
         SeqUtil.next();
-        log.info("处理门诊运行数据统计请求");
+        log.info("[{}] 处理请求", MODULE.getChineseName());
 
         // 将 body 从 LinkedHashMap 转换为具体类型
         OutpatientOperationRequest body;
@@ -63,7 +66,7 @@ public class OutpatientOperationHandler implements ReportHandler<OutpatientOpera
         response.setOverview(overview);
         response.setTable(table);
 
-        return ApiResponse.success(response, "门诊运行数据统计查询成功！");
+        return ApiResponse.success(response, MODULE.getChineseName() + "查询成功！");
     }
 
 }

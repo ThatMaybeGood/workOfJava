@@ -4,7 +4,7 @@ import com.reports.config.PageConfig;
 import com.reports.config.ReportDataConfig;
 import com.reports.dto.common.PageResult;
 import com.reports.dto.request.OutpatientOperationRequest;
-import com.reports.dto.response.*;
+import com.reports.dto.response.outpatient.operation.*;
 import com.reports.service.OutpatientOperationService;
 import com.reports.util.OraclePageUtil;
 import com.reports.util.SeqUtil;

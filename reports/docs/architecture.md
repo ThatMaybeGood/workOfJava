@@ -318,6 +318,9 @@ public class InpatientOperationRequest extends BaseRequestBody {
 ```java
 package com.reports.dto.response;
 
+import com.reports.dto.response.OutpatientOperation.OverviewData;
+import com.reports.dto.response.OutpatientOperation.TableItem;
+
 @Data
 public class InpatientOperationResponse {
     private OverviewData overview;

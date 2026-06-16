@@ -2,8 +2,8 @@ package com.reports.service;
 
 import com.reports.dto.common.PageResult;
 import com.reports.dto.request.OutpatientOperationRequest;
-import com.reports.dto.response.OverviewData;
-import com.reports.dto.response.TableItem;
+import com.reports.dto.response.outpatient.operation.OverviewData;
+import com.reports.dto.response.outpatient.operation.TableItem;
 
 /**
  * 门诊运行数据统计服务
