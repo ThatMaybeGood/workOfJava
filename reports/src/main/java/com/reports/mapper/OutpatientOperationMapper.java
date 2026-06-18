@@ -1,8 +1,12 @@
 package com.reports.mapper;
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.reports.entity.OutpatientOperationEntity;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -12,19 +16,28 @@ import java.util.Map;
  * 注：当前使用 Mock 数据，后续可在此编写个性化 SQL
  */
 @Mapper
-public interface OutpatientOperationMapper {
+public interface OutpatientOperationMapper extends BaseMapper<OutpatientOperationEntity> {
+    /**
+     * 查询指定时间范围和科室的统计数据汇总
+     *
+     * @param startDate 开始日期
+     * @param endDate   结束日期
+     * @param deptCode  科室编码（可为空，为空则查所有科室）
+     * @return 汇总数据
+     */
+    Map<String, Object> querySummaryByDateAndDept(@Param("startDate") Date startDate,
+                                                  @Param("endDate") Date endDate,
+                                                  @Param("deptCode") String deptCode);
 
     /**
-     * 示例：查询门诊统计数据（Oracle 分页）
-     * 可根据实际需求编写个性化 SQL
+     * 根据科室分组统计指定时间范围的数据
+     *
+     * @param startDate 开始日期
+     * @param endDate   结束日期
+     * @param deptCode  科室编码（可为空，为空则查所有科室）
+     * @return 按科室分组统计结果
      */
-    @Select("SELECT * FROM ( SELECT ROWNUM AS rn, t.* FROM ( SELECT DEPT_NAME, COUNT(*) AS VISITS FROM OUTPATIENT_RECORD WHERE VISIT_DATE BETWEEN #{startDate} AND #{endDate} GROUP BY DEPT_NAME ORDER BY COUNT(*) DESC ) t WHERE ROWNUM <= #{offset} + #{pageSize} ) WHERE rn > #{offset}")
-    List<Map<String, Object>> queryOutpatientStats(Map<String, Object> params);
-
-    /**
-     * 示例：查询总记录数
-     */
-    @Select("SELECT COUNT(DISTINCT DEPT_NAME) FROM OUTPATIENT_RECORD WHERE VISIT_DATE BETWEEN #{startDate} AND #{endDate}")
-    Long queryOutpatientStatsCount(Map<String, Object> params);
-
+    List<Map<String, Object>> queryGroupByDept(@Param("startDate") Date startDate,
+                                               @Param("endDate") Date endDate,
+                                               @Param("deptCode") String deptCode);
 }

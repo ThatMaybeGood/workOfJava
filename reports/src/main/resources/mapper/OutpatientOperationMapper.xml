@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.OutpatientOperationMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询指定时间范围和科室的统计数据汇总 -->
+    <!-- ============================================================ -->
+    <select id="querySummaryByDateAndDept" resultType="java.util.HashMap">
+        SELECT
+        SUM(NVL(total_visits, 0)) AS totalVisits,           <!-- 总就诊人次 -->
+        SUM(NVL(visit_count, 0)) AS visitCount,             <!-- 就诊人次 -->
+        ROUND(AVG(NVL(efficiency, 0)), 2) AS avgEfficiency, <!-- 平均接诊效率 -->
+        SUM(NVL(effective_units, 0)) AS effectiveUnits,    <!-- 有效出诊单元 -->
+        SUM(NVL(total_units, 0)) AS totalUnits,             <!-- 出诊单元总数 -->
+        COUNT(DISTINCT stat_date) AS daysCount,             <!-- 统计天数 -->
+        COUNT(1) AS recordCount                             <!-- 记录条数 -->
+        FROM TR_OUTP_OP
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="deptCode != null and deptCode != ''">
+            AND dept_code = #{deptCode}
+        </if>
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 根据科室分组统计指定时间范围的数据 -->
+    <!-- ============================================================ -->
+    <select id="queryGroupByDept" resultType="java.util.HashMap">
+        SELECT
+        dept_code AS deptCode,                              <!-- 科室编码 -->
+        dept_name AS deptName,                              <!-- 科室名称 -->
+        SUM(NVL(total_visits, 0)) AS totalVisits,           <!-- 总就诊人次 -->
+        SUM(NVL(visit_count, 0)) AS visitCount,             <!-- 就诊人次 -->
+        ROUND(AVG(NVL(efficiency, 0)), 2) AS avgEfficiency, <!-- 平均接诊效率 -->
+        SUM(NVL(effective_units, 0)) AS effectiveUnits,    <!-- 有效出诊单元 -->
+        SUM(NVL(total_units, 0)) AS totalUnits,             <!-- 出诊单元总数 -->
+        COUNT(DISTINCT stat_date) AS daysCount,             <!-- 统计天数 -->
+        COUNT(1) AS recordCount                             <!-- 记录条数 -->
+        FROM TR_OUTP_OP
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="deptCode != null and deptCode != ''">
+            AND dept_code = #{deptCode}
+        </if>
+        GROUP BY dept_code, dept_name
+        ORDER BY totalVisits DESC
+    </select>
+
+</mapper>
