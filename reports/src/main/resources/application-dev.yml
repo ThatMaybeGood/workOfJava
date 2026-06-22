@@ -3,9 +3,9 @@ spring:
     # 主数据源（默认）
     master:
       driver-class-name: oracle.jdbc.OracleDriver
-      url: jdbc:oracle:thin:@//localhost:1521/ORCL
-      username: reports_user
-      password: reports_pass
+      url: jdbc:oracle:thin:@//168.168.235.105:1521/yuanqi
+      username: powerihsp
+      password: yuanqi
       # Druid连接池配置
       type: com.alibaba.druid.pool.DruidDataSource
       initial-size: 5
@@ -19,23 +19,23 @@ spring:
       test-on-borrow: false
       test-on-return: false
     
-    # 第二个数据源实例（示例）
-    slave:
-      driver-class-name: oracle.jdbc.OracleDriver
-      url: jdbc:oracle:thin:@//localhost:1522/ORCL2
-      username: reports_user2
-      password: reports_pass2
-      type: com.alibaba.druid.pool.DruidDataSource
-      initial-size: 5
-      min-idle: 5
-      max-active: 20
-      max-wait: 60000
-      time-between-eviction-runs-millis: 60000
-      min-evictable-idle-time-millis: 300000
-      validation-query: SELECT 1 FROM DUAL
-      test-while-idle: true
-      test-on-borrow: false
-      test-on-return: false
+#    # 第二个数据源实例（示例）
+#    slave:
+#      driver-class-name: oracle.jdbc.OracleDriver
+#      url: jdbc:oracle:thin:@//localhost:1522/ORCL2
+#      username: reports_user2
+#      password: reports_pass2
+#      type: com.alibaba.druid.pool.DruidDataSource
+#      initial-size: 5
+#      min-idle: 5
+#      max-active: 20
+#      max-wait: 60000
+#      time-between-eviction-runs-millis: 60000
+#      min-evictable-idle-time-millis: 300000
+#      validation-query: SELECT 1 FROM DUAL
+#      test-while-idle: true
+#      test-on-borrow: false
+#      test-on-return: false
 
 mybatis-plus:
   configuration:

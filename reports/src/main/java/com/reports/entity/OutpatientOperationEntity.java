@@ -1,8 +1,8 @@
 package com.reports.entity;
 
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -10,8 +10,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 /**
- * 门诊运行数据统计-概览实体类
- * 对应表: TR_OUTP_OP
+ * 门诊运行数据统计-概览
  */
 @Data
 @TableName("TR_OUTP_OP")
@@ -32,7 +31,19 @@ public class OutpatientOperationEntity implements Serializable {
     private Date statDate;
 
     /**
-     * 总就诊人次
+     * 科室代码
+     */
+    @TableField(value = "dept_code")
+    private String deptCode;
+
+    /**
+     * 科室名称
+     */
+    @TableField(value = "dept_name")
+    private String deptName;
+
+    /**
+     * 门诊量
      */
     @TableField(value = "total_visits")
     private Integer totalVisits;
@@ -44,7 +55,7 @@ public class OutpatientOperationEntity implements Serializable {
     private String appointmentRate;
 
     /**
-     * 就诊人次
+     * 出诊人次
      */
     @TableField(value = "visit_count")
     private Integer visitCount;
