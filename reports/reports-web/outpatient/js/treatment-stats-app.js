@@ -157,16 +157,14 @@ class TreatmentStatsController {
                 patientSource: this.state.filter.patientSource,
                 ageRange: this.state.filter.ageRange
             });
-            if (body && body.overview) {
-                this.renderOverview(body.overview);
-                this.renderTrendChart(body.trend);
-                this.renderTopProjectsChart(body.topProjects);
-                this.state.data = body.table.list;
-                this.state.total = body.table.total;
-                this.renderTable();
-                this.renderPagination();
-                this.updatePageInfo();
-            }
+            this.renderOverview(body ? body.overview : null);
+            this.renderTrendChart(body ? body.trend : null);
+            this.renderTopProjectsChart(body ? body.topProjects : null);
+            this.state.data = (body && body.table && body.table.list) ? body.table.list : [];
+            this.state.total = (body && body.table && body.table.total) ? body.table.total : 0;
+            this.renderTable();
+            this.renderPagination();
+            this.updatePageInfo();
         } catch (error) {
             console.error('Load treatment stats failed:', error);
         }
@@ -177,13 +175,16 @@ class TreatmentStatsController {
     }
 
     renderOverview(data) {
-        document.getElementById('patientCount').textContent = data.patientCount.toLocaleString();
-        document.getElementById('treatmentCount').textContent = data.treatmentCount.toLocaleString();
-        document.getElementById('treatmentAmount').textContent = '¥' + data.treatmentAmount.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-        document.getElementById('avgAmount').textContent = '¥' + data.avgAmount.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+        const safe = (val) => val != null ? val : 0;
+        document.getElementById('patientCount').textContent = safe(data && data.patientCount).toLocaleString();
+        document.getElementById('treatmentCount').textContent = safe(data && data.treatmentCount).toLocaleString();
+        document.getElementById('treatmentAmount').textContent = '¥' + safe(data && data.treatmentAmount).toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+        document.getElementById('avgAmount').textContent = '¥' + safe(data && data.avgAmount).toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     }
 
     renderTrendChart(trendData) {
+        const dates = (trendData && trendData.dates) ? trendData.dates : [];
+        const data = (trendData && trendData.data) ? trendData.data : [];
         const option = {
             title: {
                 text: '治疗人次趋势',
@@ -204,7 +205,7 @@ class TreatmentStatsController {
             },
             xAxis: {
                 type: 'category',
-                data: trendData.dates,
+                data: dates,
                 axisLine: { lineStyle: { color: '#d9d9d9' } },
                 axisLabel: { color: '#8c8c8c', fontSize: 11 }
             },
@@ -234,7 +235,7 @@ class TreatmentStatsController {
                             ]
                         }
                     },
-                    data: trendData.data
+                    data: data
                 }
             ]
         };
@@ -242,6 +243,7 @@ class TreatmentStatsController {
     }
 
     renderTopProjectsChart(topProjects) {
+        const chartData = (topProjects && Array.isArray(topProjects)) ? topProjects : [];
         const option = {
             title: {
                 text: '治疗项目TOP10',
@@ -269,7 +271,7 @@ class TreatmentStatsController {
             },
             yAxis: {
                 type: 'category',
-                data: topProjects.map(item => item.name).reverse(),
+                data: chartData.map(item => item.name).reverse(),
                 axisLine: { lineStyle: { color: '#d9d9d9' } },
                 axisLabel: { color: '#595959', fontSize: 11 },
                 axisTick: { show: false }
@@ -295,7 +297,7 @@ class TreatmentStatsController {
                         color: '#595959',
                         fontSize: 11
                     },
-                    data: topProjects.map(item => item.value).reverse()
+                    data: chartData.map(item => item.value).reverse()
                 }
             ]
         };
@@ -331,6 +333,8 @@ class TreatmentStatsController {
                     <td>${summary.avgAmount.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</td>
                 </tr>
             `;
+        } else {
+            html += '<tr><td colspan="6" class="text-center text-muted py-4">暂无数据</td></tr>';
         }
 
         tbody.innerHTML = html;

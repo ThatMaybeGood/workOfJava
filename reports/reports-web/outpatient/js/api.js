@@ -6,19 +6,11 @@
 
 const ReportAPI = {
     /**
-     * 获取统计概览数据
+     * 获取门诊运行数据统计（概览 + 表格，单次请求）
      * method: reports.outp.outpatient-operation
      */
-    getOverview(params) {
-        return apiRequest('reports.outp.outpatient-operation', 'overview', params);
-    },
-
-    /**
-     * 获取科室门诊量统计数据
-     * method: reports.outp.outpatient-operation
-     */
-    getDepartmentStats(params) {
-        return apiRequest('reports.outp.outpatient-operation', 'departmentStats', params);
+    getOperationStats(params) {
+        return apiRequest('reports.outp.outpatient-operation', 'operationStats', params);
     },
 
     /**

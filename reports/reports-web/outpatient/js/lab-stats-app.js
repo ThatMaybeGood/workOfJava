@@ -3,14 +3,22 @@
  */
 class LabStatsController {
     constructor() {
+        const today = this.formatDate(new Date());
         this.state = {
             timeRange: 'today',
-            startDate: '2025-09-22',
-            endDate: '2025-10-22'
+            startDate: today,
+            endDate: today
         };
         this.charts = {};
 
         this.init();
+    }
+
+    formatDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
 
     init() {
@@ -39,22 +47,17 @@ class LabStatsController {
         const dateRangeInput = document.getElementById('dateRange');
         if (!dateRangeInput) return;
 
+        const today = this.formatDate(new Date()).replace(/-/g, '/');
         this.datePicker = flatpickr(dateRangeInput, {
             mode: 'range',
             dateFormat: 'Y/m/d',
-            defaultDate: ['2025/09/22', '2025/10/22'],
+            defaultDate: [today, today],
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {
                 if (selectedDates.length === 2) {
-                    const formatDate = (date) => {
-                        const y = date.getFullYear();
-                        const m = String(date.getMonth() + 1).padStart(2, '0');
-                        const d = String(date.getDate()).padStart(2, '0');
-                        return `${y}-${m}-${d}`;
-                    };
-                    this.state.startDate = formatDate(selectedDates[0]);
-                    this.state.endDate = formatDate(selectedDates[1]);
+                    this.state.startDate = this.formatDate(selectedDates[0]);
+                    this.state.endDate = this.formatDate(selectedDates[1]);
                     this.loadData();
                 }
             }
@@ -65,7 +68,13 @@ class LabStatsController {
         const btn = e.target;
         document.querySelectorAll('#timeFilter .filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        const range = getDateRangeByTimeRange(btn.dataset.value);
         this.state.timeRange = btn.dataset.value;
+        this.state.startDate = range.startDate;
+        this.state.endDate = range.endDate;
+        if (this.datePicker) {
+            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)]);
+        }
         this.loadData();
     }
 
@@ -76,7 +85,7 @@ class LabStatsController {
                 startDate: this.state.startDate,
                 endDate: this.state.endDate
             });
-            if (body && body.overview) {
+            if (body) {
                 this.renderOverview(body.overview);
                 this.renderTimeChart(body.timeAnalysis);
                 this.renderRankChart(body.reportRank);
@@ -87,12 +96,16 @@ class LabStatsController {
     }
 
     renderOverview(data) {
-        document.getElementById('bloodCollection').textContent = data.bloodCollection.toLocaleString();
-        document.getElementById('bloodEfficiency').textContent = data.bloodEfficiency;
-        document.getElementById('labEfficiency').textContent = data.labEfficiency;
+        const safe = (val) => val != null ? val : 0;
+        const safeRate = (val) => val != null ? val : '-';
+        document.getElementById('bloodCollection').textContent = safe(data && data.bloodCollection).toLocaleString();
+        document.getElementById('bloodEfficiency').textContent = safeRate(data && data.bloodEfficiency);
+        document.getElementById('labEfficiency').textContent = safeRate(data && data.labEfficiency);
     }
 
     renderTimeChart(timeData) {
+        const categories = (timeData && timeData.categories) ? timeData.categories : [];
+        const data = (timeData && timeData.data) ? timeData.data : [];
         const option = {
             title: {
                 text: '患者分时段分析',
@@ -114,7 +127,7 @@ class LabStatsController {
             xAxis: {
                 type: 'category',
                 boundaryGap: false,
-                data: timeData.categories,
+                data: categories,
                 axisLine: { lineStyle: { color: '#d9d9d9' } },
                 axisLabel: { color: '#8c8c8c', fontSize: 11 }
             },
@@ -138,7 +151,7 @@ class LabStatsController {
                             { offset: 1, color: 'rgba(19, 194, 194, 0.05)' }
                         ])
                     },
-                    data: timeData.data
+                    data: data
                 }
             ]
         };
@@ -146,6 +159,8 @@ class LabStatsController {
     }
 
     renderRankChart(rankData) {
+        const categories = (rankData && rankData.categories) ? rankData.categories : [];
+        const data = (rankData && rankData.data) ? rankData.data : [];
         const option = {
             title: {
                 text: '检验项目出具报告时间排行',
@@ -166,7 +181,7 @@ class LabStatsController {
             },
             xAxis: {
                 type: 'category',
-                data: rankData.categories,
+                data: categories,
                 axisLine: { lineStyle: { color: '#d9d9d9' } },
                 axisLabel: { color: '#8c8c8c', fontSize: 11 }
             },
@@ -183,7 +198,7 @@ class LabStatsController {
                     type: 'bar',
                     barWidth: '40%',
                     itemStyle: { color: '#1890ff' },
-                    data: rankData.data,
+                    data: data,
                     label: {
                         show: true,
                         position: 'top',

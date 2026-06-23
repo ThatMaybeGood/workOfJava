@@ -3,6 +3,8 @@ package com.reports.dto.request;
 import com.reports.dto.common.BaseRequestBody;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import java.util.Date;
 
 /**
  * 出院结算报表 - 请求体
@@ -21,12 +23,14 @@ public class CashDischargeSettlementRequest extends BaseRequestBody {
     /**
      * 开始日期，格式 yyyy-MM-dd
      */
-    private String startDate;
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
+    private Date startDate;
 
     /**
      * 结束日期，格式 yyyy-MM-dd
      */
-    private String endDate;
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
+    private Date endDate;
 
     /**
      * 当前页码（可选，默认第1页）

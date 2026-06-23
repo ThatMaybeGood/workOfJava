@@ -4,6 +4,70 @@
  */
 const MockService = {
     /**
+     * 获取门诊运行数据统计（概览 + 表格）
+     * @param {Object} params - 查询参数 { page, pageSize, deptName, startDate, endDate }
+     * @returns {Promise} 返回模拟数据
+     */
+    getOperationStats(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const allData = this.generateTableData();
+                const page = params.page || 1;
+                const pageSize = params.pageSize || 10;
+
+                // 科室筛选
+                let filteredData = allData;
+                if (params.deptName) {
+                    filteredData = allData.filter(item => item.deptName.includes(params.deptName));
+                }
+
+                const total = filteredData.length;
+                const startIndex = (page - 1) * pageSize;
+                const list = filteredData.slice(startIndex, startIndex + pageSize);
+
+                resolve({
+                    code: 200,
+                    data: {
+                        overview: {
+                            totalVisits: 12536,
+                            appointmentRate: '83.10%',
+                            visitCount: 112,
+                            examRate: '56.50%',
+                            efficiency: 27.5,
+                            effectiveUnits: 112,
+                            totalUnits: 251,
+                            famousExpert: 112,
+                            specialExpert: 112,
+                            knownExpert: 112,
+                            expertA: 112,
+                            expertB: 112,
+                            ordinary: 112,
+                            unitFamousEffective: 52,
+                            unitFamousTotal: 112,
+                            unitSpecialEffective: 52,
+                            unitSpecialTotal: 112,
+                            unitKnownEffective: 52,
+                            unitKnownTotal: 112,
+                            unitAEffective: 52,
+                            unitATotal: 112,
+                            unitBEffective: 52,
+                            unitBTotal: 112,
+                            unitOrdinaryEffective: 52,
+                            unitOrdinaryTotal: 112
+                        },
+                        table: {
+                            list,
+                            total,
+                            page,
+                            pageSize
+                        }
+                    }
+                });
+            }, 300);
+        });
+    },
+
+    /**
      * 获取统计概览数据
      * @returns {Promise} 返回模拟数据
      */
@@ -16,26 +80,28 @@ const MockService = {
                         totalVisits: 12536,
                         appointmentRate: '83.10%',
                         visitCount: 112,
-                        visitCountDetail: {
-                            famousExpert: 112,
-                            specialExpert: 112,
-                            knownExpert: 112,
-                            expertA: 112,
-                            expertB: 112,
-                            ordinary: 112
-                        },
                         examRate: '56.50%',
                         efficiency: 27.5,
                         effectiveUnits: 112,
                         totalUnits: 251,
-                        unitDetail: {
-                            famousExpert: { effective: 52, total: 112 },
-                            specialExpert: { effective: 52, total: 112 },
-                            knownExpert: { effective: 52, total: 112 },
-                            expertA: { effective: 52, total: 112 },
-                            expertB: { effective: 52, total: 112 },
-                            ordinary: { effective: 52, total: 112 }
-                        }
+                        famousExpert: 112,
+                        specialExpert: 112,
+                        knownExpert: 112,
+                        expertA: 112,
+                        expertB: 112,
+                        ordinary: 112,
+                        unitFamousEffective: 52,
+                        unitFamousTotal: 112,
+                        unitSpecialEffective: 52,
+                        unitSpecialTotal: 112,
+                        unitKnownEffective: 52,
+                        unitKnownTotal: 112,
+                        unitAEffective: 52,
+                        unitATotal: 112,
+                        unitBEffective: 52,
+                        unitBTotal: 112,
+                        unitOrdinaryEffective: 52,
+                        unitOrdinaryTotal: 112
                     }
                 });
             }, 200);
@@ -98,29 +164,31 @@ const MockService = {
 
         return deptNames.map((deptName, index) => ({
             deptName,
-            visits: 350 + Math.floor(Math.random() * 100),
+            totalVisits: 350 + Math.floor(Math.random() * 100),
             appointmentRate: (60 + Math.random() * 25).toFixed(2) + '%',
+            visitCount: 25 + Math.floor(Math.random() * 15),
             examRate: (70 + Math.random() * 20).toFixed(2) + '%',
             efficiency: (20 + Math.random() * 15).toFixed(2),
-            visitCount: 25 + Math.floor(Math.random() * 15),
+            effectiveUnits: 45 + Math.floor(Math.random() * 15),
+            totalUnits: 50 + Math.floor(Math.random() * 10),
             famousExpert: Math.floor(Math.random() * 5),
             specialExpert: Math.floor(Math.random() * 8),
             knownExpert: Math.floor(Math.random() * 6),
             expertA: Math.floor(Math.random() * 12),
             expertB: Math.floor(Math.random() * 10),
             ordinary: Math.floor(Math.random() * 6),
-            effectiveUnitsTotal: {
-                effective: 45 + Math.floor(Math.random() * 15),
-                total: 50 + Math.floor(Math.random() * 10)
-            },
-            unitDetail: {
-                famousExpert: { effective: Math.floor(Math.random() * 4), total: 4 },
-                specialExpert: { effective: Math.floor(Math.random() * 4), total: 4 },
-                knownExpert: { effective: Math.floor(Math.random() * 4), total: 4 },
-                expertA: { effective: Math.floor(Math.random() * 4), total: 4 },
-                expertB: { effective: Math.floor(Math.random() * 4), total: 4 },
-                ordinary: { effective: Math.floor(Math.random() * 4), total: 4 }
-            }
+            unitFamousEffective: Math.floor(Math.random() * 4),
+            unitFamousTotal: 4,
+            unitSpecialEffective: Math.floor(Math.random() * 4),
+            unitSpecialTotal: 4,
+            unitKnownEffective: Math.floor(Math.random() * 4),
+            unitKnownTotal: 4,
+            unitAEffective: Math.floor(Math.random() * 4),
+            unitATotal: 4,
+            unitBEffective: Math.floor(Math.random() * 4),
+            unitBTotal: 4,
+            unitOrdinaryEffective: Math.floor(Math.random() * 4),
+            unitOrdinaryTotal: 4
         }));
     },
 

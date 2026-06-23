@@ -3,14 +3,22 @@
  */
 class WindowStatsController {
     constructor() {
+        const today = this.formatDate(new Date());
         this.state = {
             timeRange: 'today',
-            startDate: '2025-09-22',
-            endDate: '2025-10-22'
+            startDate: today,
+            endDate: today
         };
         this.charts = {};
 
         this.init();
+    }
+
+    formatDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
 
     init() {
@@ -40,22 +48,17 @@ class WindowStatsController {
         const dateRangeInput = document.getElementById('dateRange');
         if (!dateRangeInput) return;
 
+        const today = this.formatDate(new Date()).replace(/-/g, '/');
         this.datePicker = flatpickr(dateRangeInput, {
             mode: 'range',
             dateFormat: 'Y/m/d',
-            defaultDate: ['2025/09/22', '2025/10/22'],
+            defaultDate: [today, today],
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {
                 if (selectedDates.length === 2) {
-                    const formatDate = (date) => {
-                        const y = date.getFullYear();
-                        const m = String(date.getMonth() + 1).padStart(2, '0');
-                        const d = String(date.getDate()).padStart(2, '0');
-                        return `${y}-${m}-${d}`;
-                    };
-                    this.state.startDate = formatDate(selectedDates[0]);
-                    this.state.endDate = formatDate(selectedDates[1]);
+                    this.state.startDate = this.formatDate(selectedDates[0]);
+                    this.state.endDate = this.formatDate(selectedDates[1]);
                     this.loadData();
                 }
             }
@@ -66,7 +69,13 @@ class WindowStatsController {
         const btn = e.target;
         document.querySelectorAll('#timeFilter .filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        const range = getDateRangeByTimeRange(btn.dataset.value);
         this.state.timeRange = btn.dataset.value;
+        this.state.startDate = range.startDate;
+        this.state.endDate = range.endDate;
+        if (this.datePicker) {
+            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)]);
+        }
         this.loadData();
     }
 
@@ -77,25 +86,25 @@ class WindowStatsController {
                 startDate: this.state.startDate,
                 endDate: this.state.endDate
             });
-            if (body && body.overview) {
-                this.renderOverview(body.overview);
-                this.renderOriginChart(body.originAnalysis);
-                this.renderAgeChart(body.ageAnalysis);
-                this.renderTimeChart(body.timeAnalysis);
-                this.renderTable(body.workloadTable);
-            }
+            this.renderOverview(body ? body.overview : null);
+            this.renderOriginChart(body ? body.originAnalysis : null);
+            this.renderAgeChart(body ? body.ageAnalysis : null);
+            this.renderTimeChart(body ? body.timeAnalysis : null);
+            this.renderTable(body ? (body.workloadTable || { headers: [], rows: [] }) : { headers: [], rows: [] });
         } catch (error) {
             console.error('Load window stats data failed:', error);
         }
     }
 
     renderOverview(data) {
-        document.getElementById('registerCount').textContent = data.registerCount.toLocaleString();
-        document.getElementById('paymentCount').textContent = data.paymentCount.toLocaleString();
-        document.getElementById('refundCount').textContent = data.refundCount.toLocaleString();
+        const safe = (val) => val != null ? val : 0;
+        document.getElementById('registerCount').textContent = safe(data && data.registerCount).toLocaleString();
+        document.getElementById('paymentCount').textContent = safe(data && data.paymentCount).toLocaleString();
+        document.getElementById('refundCount').textContent = safe(data && data.refundCount).toLocaleString();
     }
 
     renderOriginChart(data) {
+        const chartData = (data && Array.isArray(data)) ? data : [];
         const option = {
             title: {
                 text: '窗口患者归属地分析',
@@ -133,7 +142,7 @@ class WindowStatsController {
                         length: 10,
                         length2: 10
                     },
-                    data: data
+                    data: chartData
                 }
             ]
         };
@@ -141,6 +150,8 @@ class WindowStatsController {
     }
 
     renderAgeChart(ageData) {
+        const categories = (ageData && ageData.categories) ? ageData.categories : [];
+        const data = (ageData && ageData.data) ? ageData.data : [];
         const option = {
             title: {
                 text: '患者年龄区间分析',
@@ -161,7 +172,7 @@ class WindowStatsController {
             },
             xAxis: {
                 type: 'category',
-                data: ageData.categories,
+                data: categories,
                 axisLine: { lineStyle: { color: '#d9d9d9' } },
                 axisLabel: { color: '#8c8c8c', fontSize: 11 }
             },
@@ -178,7 +189,7 @@ class WindowStatsController {
                     type: 'bar',
                     barWidth: '50%',
                     itemStyle: { color: '#1890ff' },
-                    data: ageData.data,
+                    data: data,
                     label: {
                         show: true,
                         position: 'top',
@@ -192,6 +203,8 @@ class WindowStatsController {
     }
 
     renderTimeChart(timeData) {
+        const categories = (timeData && timeData.categories) ? timeData.categories : [];
+        const data = (timeData && timeData.data) ? timeData.data : [];
         const option = {
             title: {
                 text: '患者分时段分析',
@@ -213,7 +226,7 @@ class WindowStatsController {
             xAxis: {
                 type: 'category',
                 boundaryGap: false,
-                data: timeData.categories,
+                data: categories,
                 axisLine: { lineStyle: { color: '#d9d9d9' } },
                 axisLabel: { color: '#8c8c8c', fontSize: 11 }
             },
@@ -237,7 +250,7 @@ class WindowStatsController {
                             { offset: 1, color: 'rgba(24, 144, 255, 0.05)' }
                         ])
                     },
-                    data: timeData.data
+                    data: data
                 }
             ]
         };
@@ -247,6 +260,12 @@ class WindowStatsController {
     renderTable(tableData) {
         const thead = document.getElementById('workloadTableHead');
         const tbody = document.getElementById('workloadTableBody');
+
+        if (!tableData || !tableData.headers || tableData.headers.length === 0) {
+            thead.innerHTML = '<tr><th>业务</th></tr>';
+            tbody.innerHTML = '<tr><td colspan="1" class="text-center text-muted py-4">暂无数据</td></tr>';
+            return;
+        }
 
         // 渲染表头
         let headHtml = '<tr><th>业务</th>';

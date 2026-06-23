@@ -4,6 +4,7 @@
  */
 class ReportController {
     constructor() {
+        const today = this.formatDate(new Date());
         this.state = {
             currentPage: 1,
             pageSize: 10,
@@ -13,8 +14,8 @@ class ReportController {
             sortDirection: 'asc',
             filter: {
                 timeRange: 'today',
-                startDate: '2025-09-22',
-                endDate: '2025-10-22',
+                startDate: today,
+                endDate: today,
                 deptName: ''
             }
         };
@@ -23,13 +24,22 @@ class ReportController {
     }
 
     /**
+     * 格式化日期 yyyy-MM-dd
+     */
+    formatDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    /**
      * 初始化方法
      */
     init() {
         this.bindEvents();
         this.initDateRangePicker();
-        this.loadOverview();
-        this.loadTableData();
+        this.loadData();
     }
 
     /**
@@ -39,24 +49,21 @@ class ReportController {
         const dateRangeInput = document.getElementById('dateRange');
         if (!dateRangeInput) return;
 
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
+
         this.datePicker = flatpickr(dateRangeInput, {
             mode: 'range',
             dateFormat: 'Y/m/d',
-            defaultDate: ['2025/09/22', '2025/10/22'],
+            defaultDate: [todayStr, todayStr],
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {
                 if (selectedDates.length === 2) {
-                    const formatDate = (date) => {
-                        const y = date.getFullYear();
-                        const m = String(date.getMonth() + 1).padStart(2, '0');
-                        const d = String(date.getDate()).padStart(2, '0');
-                        return `${y}-${m}-${d}`;
-                    };
-                    this.state.filter.startDate = formatDate(selectedDates[0]);
-                    this.state.filter.endDate = formatDate(selectedDates[1]);
+                    this.state.filter.startDate = this.formatDate(selectedDates[0]);
+                    this.state.filter.endDate = this.formatDate(selectedDates[1]);
                     this.state.currentPage = 1;
-                    this.loadTableData();
+                    this.loadData();
                 }
             }
         });
@@ -75,14 +82,14 @@ class ReportController {
         document.getElementById('deptSelect').addEventListener('change', (e) => {
             this.state.filter.deptName = e.target.value;
             this.state.currentPage = 1;
-            this.loadTableData();
+            this.loadData();
         });
 
         // 分页大小变更
         document.getElementById('pageSizeSelect').addEventListener('change', (e) => {
             this.state.pageSize = parseInt(e.target.value);
             this.state.currentPage = 1;
-            this.loadTableData();
+            this.loadData();
         });
 
         // 表格排序事件
@@ -99,10 +106,15 @@ class ReportController {
         const btn = e.target;
         document.querySelectorAll('#timeFilter .filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        const range = getDateRangeByTimeRange(btn.dataset.value);
         this.state.filter.timeRange = btn.dataset.value;
+        this.state.filter.startDate = range.startDate;
+        this.state.filter.endDate = range.endDate;
+        if (this.datePicker) {
+            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)]);
+        }
         this.state.currentPage = 1;
-        this.loadOverview();
-        this.loadTableData();
+        this.loadData();
     }
 
     /**
@@ -162,7 +174,7 @@ class ReportController {
      */
     getColumnValue(row, column) {
         const valueMap = {
-            'visits': row.visits,
+            'totalVisits': row.totalVisits,
             'appointmentRate': row.appointmentRate,
             'examRate': row.examRate,
             'efficiency': row.efficiency,
@@ -173,28 +185,40 @@ class ReportController {
             'expertA': row.expertA,
             'expertB': row.expertB,
             'ordinary': row.ordinary,
-            'effectiveUnits': `${row.effectiveUnitsTotal.effective}/${row.effectiveUnitsTotal.total}`,
-            'unitFamous': `${row.unitDetail.famousExpert.effective}/${row.unitDetail.famousExpert.total}`,
-            'unitSpecial': `${row.unitDetail.specialExpert.effective}/${row.unitDetail.specialExpert.total}`,
-            'unitKnown': `${row.unitDetail.knownExpert.effective}/${row.unitDetail.knownExpert.total}`,
-            'unitExpertA': `${row.unitDetail.expertA.effective}/${row.unitDetail.expertA.total}`,
-            'unitExpertB': `${row.unitDetail.expertB.effective}/${row.unitDetail.expertB.total}`,
-            'unitOrdinary': `${row.unitDetail.ordinary.effective}/${row.unitDetail.ordinary.total}`
+            'effectiveUnits': `${row.effectiveUnits}/${row.totalUnits}`,
+            'unitFamous': `${row.unitFamousEffective}/${row.unitFamousTotal}`,
+            'unitSpecial': `${row.unitSpecialEffective}/${row.unitSpecialTotal}`,
+            'unitKnown': `${row.unitKnownEffective}/${row.unitKnownTotal}`,
+            'unitExpertA': `${row.unitAEffective}/${row.unitATotal}`,
+            'unitExpertB': `${row.unitBEffective}/${row.unitBTotal}`,
+            'unitOrdinary': `${row.unitOrdinaryEffective}/${row.unitOrdinaryTotal}`
         };
         return valueMap[column] || '';
     }
 
     /**
-     * 加载概览数据
+     * 加载门诊运行数据（概览 + 表格，单次请求）
      */
-    async loadOverview() {
+    async loadData() {
         try {
-            const body = await ReportAPI.getOverview(this.state.filter);
-            if (body && body.overview) {
+            const params = {
+                page: this.state.currentPage,
+                pageSize: this.state.pageSize,
+                deptName: this.state.filter.deptName,
+                startDate: this.state.filter.startDate,
+                endDate: this.state.filter.endDate
+            };
+            const body = await ReportAPI.getOperationStats(params);
+            if (body) {
+                this.state.data = (body.table && body.table.list) ? body.table.list : [];
+                this.state.total = (body.table && body.table.total) ? body.table.total : 0;
                 this.renderOverview(body.overview);
+                this.renderTable();
+                this.renderPagination();
+                this.updatePageInfo();
             }
         } catch (error) {
-            console.error('Load overview failed:', error);
+            console.error('Load data failed:', error);
         }
     }
 
@@ -202,13 +226,16 @@ class ReportController {
      * 渲染概览数据
      */
     renderOverview(data) {
-        document.getElementById('totalVisits').textContent = data.totalVisits.toLocaleString();
-        document.getElementById('appointmentRate').textContent = data.appointmentRate;
-        document.getElementById('visitCount').textContent = data.visitCount;
-        document.getElementById('examRate').textContent = data.examRate;
-        document.getElementById('efficiency').textContent = data.efficiency;
-        document.getElementById('effectiveUnits').textContent = data.effectiveUnits;
-        document.getElementById('totalUnits').textContent = data.totalUnits;
+        const safe = (val) => val != null ? val : 0;
+        const safeRate = (val) => val != null ? val : '-';
+
+        document.getElementById('totalVisits').textContent = safe(data && data.totalVisits).toLocaleString();
+        document.getElementById('appointmentRate').textContent = safeRate(data && data.appointmentRate);
+        document.getElementById('visitCount').textContent = safe(data && data.visitCount);
+        document.getElementById('examRate').textContent = safeRate(data && data.examRate);
+        document.getElementById('efficiency').textContent = safe(data && data.efficiency);
+        document.getElementById('effectiveUnits').textContent = safe(data && data.effectiveUnits);
+        document.getElementById('totalUnits').textContent = safe(data && data.totalUnits);
 
         const colorMap = {
             famousExpert: 'blue',
@@ -219,34 +246,36 @@ class ReportController {
             ordinary: 'red'
         };
 
+        const expertTypes = [
+            { key: 'famousExpert', label: '名医专家' },
+            { key: 'specialExpert', label: '特需专家' },
+            { key: 'knownExpert', label: '知名专家' },
+            { key: 'expertA', label: '专家A类' },
+            { key: 'expertB', label: '专家B类' },
+            { key: 'ordinary', label: '普通门诊' }
+        ];
+
         // 渲染出诊人次明细
         const visitDetailEl = document.getElementById('visitCountDetail');
-        visitDetailEl.innerHTML = Object.entries(data.visitCountDetail).map(([key, value]) => {
-            const labels = {
-                famousExpert: '名医专家',
-                specialExpert: '特需专家',
-                knownExpert: '知名专家',
-                expertA: '专家A类',
-                expertB: '专家B类',
-                ordinary: '普通门诊'
-            };
+        visitDetailEl.innerHTML = expertTypes.map(({ key, label }) => {
             const color = colorMap[key];
-            return `<div class="detail-item"><div class="detail-label"><span class="dot ${color}"></span>${labels[key]}</div><div class="detail-num text-${color}">${value}</div></div>`;
+            return `<div class="detail-item"><div class="detail-label"><span class="dot ${color}"></span>${label}</div><div class="detail-num text-${color}">${safe(data && data[key])}</div></div>`;
         }).join('');
+
+        const unitFields = [
+            { colorKey: 'famousExpert', label: '名医专家', effectiveKey: 'unitFamousEffective', totalKey: 'unitFamousTotal' },
+            { colorKey: 'specialExpert', label: '特需专家', effectiveKey: 'unitSpecialEffective', totalKey: 'unitSpecialTotal' },
+            { colorKey: 'knownExpert', label: '知名专家', effectiveKey: 'unitKnownEffective', totalKey: 'unitKnownTotal' },
+            { colorKey: 'expertA', label: '专家A类', effectiveKey: 'unitAEffective', totalKey: 'unitATotal' },
+            { colorKey: 'expertB', label: '专家B类', effectiveKey: 'unitBEffective', totalKey: 'unitBTotal' },
+            { colorKey: 'ordinary', label: '普通门诊', effectiveKey: 'unitOrdinaryEffective', totalKey: 'unitOrdinaryTotal' }
+        ];
 
         // 渲染出诊单元明细
         const unitDetailEl = document.getElementById('unitDetail');
-        unitDetailEl.innerHTML = Object.entries(data.unitDetail).map(([key, value]) => {
-            const labels = {
-                famousExpert: '名医专家',
-                specialExpert: '特需专家',
-                knownExpert: '知名专家',
-                expertA: '专家A类',
-                expertB: '专家B类',
-                ordinary: '普通门诊'
-            };
-            const color = colorMap[key];
-            return `<div class="detail-item"><div class="detail-label"><span class="dot ${color}"></span>${labels[key]}</div><div class="detail-num"><span class="text-${color}">${value.effective}</span><span class="text-secondary"> / ${value.total}</span></div></div>`;
+        unitDetailEl.innerHTML = unitFields.map(({ colorKey, label, effectiveKey, totalKey }) => {
+            const color = colorMap[colorKey];
+            return `<div class="detail-item"><div class="detail-label"><span class="dot ${color}"></span>${label}</div><div class="detail-num"><span class="text-${color}">${safe(data && data[effectiveKey])}</span><span class="text-secondary"> / ${safe(data && data[totalKey])}</span></div></div>`;
         }).join('');
     }
 
@@ -263,9 +292,9 @@ class ReportController {
                 endDate: this.state.filter.endDate
             });
 
-            if (body && body.table) {
-                this.state.data = body.table.list;
-                this.state.total = body.table.total;
+            if (body) {
+                this.state.data = (body.table && body.table.list) ? body.table.list : [];
+                this.state.total = (body.table && body.table.total) ? body.table.total : 0;
                 this.renderTable();
                 this.renderPagination();
                 this.updatePageInfo();
@@ -287,7 +316,7 @@ class ReportController {
             html += `
                 <tr>
                     <td>${row.deptName}</td>
-                    <td>${row.visits}</td>
+                    <td>${row.totalVisits}</td>
                     <td>${row.appointmentRate}</td>
                     <td>${row.examRate}</td>
                     <td>${row.efficiency}</td>
@@ -298,13 +327,13 @@ class ReportController {
                     <td>${row.expertA}</td>
                     <td>${row.expertB}</td>
                     <td>${row.ordinary}</td>
-                    <td>${row.effectiveUnitsTotal.effective}/${row.effectiveUnitsTotal.total}</td>
-                    <td>${row.unitDetail.famousExpert.effective}/${row.unitDetail.famousExpert.total}</td>
-                    <td>${row.unitDetail.specialExpert.effective}/${row.unitDetail.specialExpert.total}</td>
-                    <td>${row.unitDetail.knownExpert.effective}/${row.unitDetail.knownExpert.total}</td>
-                    <td>${row.unitDetail.expertA.effective}/${row.unitDetail.expertA.total}</td>
-                    <td>${row.unitDetail.expertB.effective}/${row.unitDetail.expertB.total}</td>
-                    <td>${row.unitDetail.ordinary.effective}/${row.unitDetail.ordinary.total}</td>
+                    <td>${row.effectiveUnits}/${row.totalUnits}</td>
+                    <td>${row.unitFamousEffective}/${row.unitFamousTotal}</td>
+                    <td>${row.unitSpecialEffective}/${row.unitSpecialTotal}</td>
+                    <td>${row.unitKnownEffective}/${row.unitKnownTotal}</td>
+                    <td>${row.unitAEffective}/${row.unitATotal}</td>
+                    <td>${row.unitBEffective}/${row.unitBTotal}</td>
+                    <td>${row.unitOrdinaryEffective}/${row.unitOrdinaryTotal}</td>
                 </tr>
             `;
         });
@@ -315,10 +344,10 @@ class ReportController {
             html += `
                 <tr>
                     <td>全列表数据合计</td>
-                    <td>${summary.visits}</td>
+                    <td>${summary.totalVisits}</td>
                     <td>${summary.appointmentRate}%</td>
                     <td>${summary.examRate}%</td>
-                    <td>${summary.efficiency.toFixed(1)}</td>
+                    <td>${summary.efficiency.toFixed(2)}</td>
                     <td>${summary.visitCount}</td>
                     <td>${summary.famousExpert}</td>
                     <td>${summary.specialExpert}</td>
@@ -326,15 +355,17 @@ class ReportController {
                     <td>${summary.expertA}</td>
                     <td>${summary.expertB}</td>
                     <td>${summary.ordinary}</td>
-                    <td>${summary.effectiveUnitsEffective}/${summary.effectiveUnitsTotal}</td>
+                    <td>${summary.effectiveUnits}/${summary.totalUnits}</td>
                     <td>${summary.unitFamousEffective}/${summary.unitFamousTotal}</td>
                     <td>${summary.unitSpecialEffective}/${summary.unitSpecialTotal}</td>
                     <td>${summary.unitKnownEffective}/${summary.unitKnownTotal}</td>
-                    <td>${summary.unitExpertAEffective}/${summary.unitExpertATotal}</td>
-                    <td>${summary.unitExpertBEffective}/${summary.unitExpertBTotal}</td>
+                    <td>${summary.unitAEffective}/${summary.unitATotal}</td>
+                    <td>${summary.unitBEffective}/${summary.unitBTotal}</td>
                     <td>${summary.unitOrdinaryEffective}/${summary.unitOrdinaryTotal}</td>
                 </tr>
             `;
+        } else {
+            html += `<tr><td colspan="19" class="text-center text-muted py-4">暂无数据</td></tr>`;
         }
 
         tbody.innerHTML = html;
@@ -345,7 +376,7 @@ class ReportController {
      */
     calculateSummary() {
         const summary = {
-            visits: 0,
+            totalVisits: 0,
             appointmentSum: 0,
             examSum: 0,
             efficiencySum: 0,
@@ -356,24 +387,24 @@ class ReportController {
             expertA: 0,
             expertB: 0,
             ordinary: 0,
-            effectiveUnitsEffective: 0,
-            effectiveUnitsTotal: 0,
+            effectiveUnits: 0,
+            totalUnits: 0,
             unitFamousEffective: 0,
             unitFamousTotal: 0,
             unitSpecialEffective: 0,
             unitSpecialTotal: 0,
             unitKnownEffective: 0,
             unitKnownTotal: 0,
-            unitExpertAEffective: 0,
-            unitExpertATotal: 0,
-            unitExpertBEffective: 0,
-            unitExpertBTotal: 0,
+            unitAEffective: 0,
+            unitATotal: 0,
+            unitBEffective: 0,
+            unitBTotal: 0,
             unitOrdinaryEffective: 0,
             unitOrdinaryTotal: 0
         };
 
         this.state.data.forEach(row => {
-            summary.visits += row.visits;
+            summary.totalVisits += row.totalVisits;
             summary.appointmentSum += parseFloat(row.appointmentRate);
             summary.examSum += parseFloat(row.examRate);
             summary.efficiencySum += parseFloat(row.efficiency);
@@ -384,20 +415,20 @@ class ReportController {
             summary.expertA += row.expertA;
             summary.expertB += row.expertB;
             summary.ordinary += row.ordinary;
-            summary.effectiveUnitsEffective += row.effectiveUnitsTotal.effective;
-            summary.effectiveUnitsTotal += row.effectiveUnitsTotal.total;
-            summary.unitFamousEffective += row.unitDetail.famousExpert.effective;
-            summary.unitFamousTotal += row.unitDetail.famousExpert.total;
-            summary.unitSpecialEffective += row.unitDetail.specialExpert.effective;
-            summary.unitSpecialTotal += row.unitDetail.specialExpert.total;
-            summary.unitKnownEffective += row.unitDetail.knownExpert.effective;
-            summary.unitKnownTotal += row.unitDetail.knownExpert.total;
-            summary.unitExpertAEffective += row.unitDetail.expertA.effective;
-            summary.unitExpertATotal += row.unitDetail.expertA.total;
-            summary.unitExpertBEffective += row.unitDetail.expertB.effective;
-            summary.unitExpertBTotal += row.unitDetail.expertB.total;
-            summary.unitOrdinaryEffective += row.unitDetail.ordinary.effective;
-            summary.unitOrdinaryTotal += row.unitDetail.ordinary.total;
+            summary.effectiveUnits += row.effectiveUnits;
+            summary.totalUnits += row.totalUnits;
+            summary.unitFamousEffective += row.unitFamousEffective;
+            summary.unitFamousTotal += row.unitFamousTotal;
+            summary.unitSpecialEffective += row.unitSpecialEffective;
+            summary.unitSpecialTotal += row.unitSpecialTotal;
+            summary.unitKnownEffective += row.unitKnownEffective;
+            summary.unitKnownTotal += row.unitKnownTotal;
+            summary.unitAEffective += row.unitAEffective;
+            summary.unitATotal += row.unitATotal;
+            summary.unitBEffective += row.unitBEffective;
+            summary.unitBTotal += row.unitBTotal;
+            summary.unitOrdinaryEffective += row.unitOrdinaryEffective;
+            summary.unitOrdinaryTotal += row.unitOrdinaryTotal;
         });
 
         const count = this.state.data.length;
@@ -472,7 +503,7 @@ class ReportController {
         const totalPages = Math.ceil(this.state.total / this.state.pageSize);
         if (page < 1 || page > totalPages) return;
         this.state.currentPage = page;
-        this.loadTableData();
+        this.loadData();
     }
 
     /**
@@ -509,7 +540,7 @@ function exportData() {
     // 数据行
     const rows = data.map(row => [
         row.deptName,
-        row.visits,
+        row.totalVisits,
         row.appointmentRate,
         row.examRate,
         row.efficiency,
@@ -520,20 +551,20 @@ function exportData() {
         row.expertA,
         row.expertB,
         row.ordinary,
-        `${row.effectiveUnitsTotal.effective}/${row.effectiveUnitsTotal.total}`,
-        `${row.unitDetail.famousExpert.effective}/${row.unitDetail.famousExpert.total}`,
-        `${row.unitDetail.specialExpert.effective}/${row.unitDetail.specialExpert.total}`,
-        `${row.unitDetail.knownExpert.effective}/${row.unitDetail.knownExpert.total}`,
-        `${row.unitDetail.expertA.effective}/${row.unitDetail.expertA.total}`,
-        `${row.unitDetail.expertB.effective}/${row.unitDetail.expertB.total}`,
-        `${row.unitDetail.ordinary.effective}/${row.unitDetail.ordinary.total}`
+        `${row.effectiveUnits}/${row.totalUnits}`,
+        `${row.unitFamousEffective}/${row.unitFamousTotal}`,
+        `${row.unitSpecialEffective}/${row.unitSpecialTotal}`,
+        `${row.unitKnownEffective}/${row.unitKnownTotal}`,
+        `${row.unitAEffective}/${row.unitATotal}`,
+        `${row.unitBEffective}/${row.unitBTotal}`,
+        `${row.unitOrdinaryEffective}/${row.unitOrdinaryTotal}`
     ]);
 
     // 合计行
     const summary = reportController.calculateSummary();
     rows.push([
         '全列表数据合计',
-        summary.visits,
+        summary.totalVisits,
         summary.appointmentRate + '%',
         summary.examRate + '%',
         summary.efficiency.toFixed(2),
@@ -544,12 +575,12 @@ function exportData() {
         summary.expertA,
         summary.expertB,
         summary.ordinary,
-        `${summary.effectiveUnitsEffective}/${summary.effectiveUnitsTotal}`,
+        `${summary.effectiveUnits}/${summary.totalUnits}`,
         `${summary.unitFamousEffective}/${summary.unitFamousTotal}`,
         `${summary.unitSpecialEffective}/${summary.unitSpecialTotal}`,
         `${summary.unitKnownEffective}/${summary.unitKnownTotal}`,
-        `${summary.unitExpertAEffective}/${summary.unitExpertATotal}`,
-        `${summary.unitExpertBEffective}/${summary.unitExpertBTotal}`,
+        `${summary.unitAEffective}/${summary.unitATotal}`,
+        `${summary.unitBEffective}/${summary.unitBTotal}`,
         `${summary.unitOrdinaryEffective}/${summary.unitOrdinaryTotal}`
     ]);
 

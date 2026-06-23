@@ -3,6 +3,7 @@
  */
 class ServiceQualityController {
     constructor() {
+        const today = this.formatDate(new Date());
         this.state = {
             currentPage: 1,
             pageSize: 10,
@@ -11,13 +12,20 @@ class ServiceQualityController {
             activeTab: 'complaint',
             filter: {
                 timeRange: 'today',
-                startDate: '2025-09-22',
-                endDate: '2025-10-22',
+                startDate: today,
+                endDate: today,
                 deptName: ''
             }
         };
 
         this.init();
+    }
+
+    formatDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
 
     init() {
@@ -31,22 +39,17 @@ class ServiceQualityController {
         const dateRangeInput = document.getElementById('dateRange');
         if (!dateRangeInput) return;
 
+        const today = this.formatDate(new Date()).replace(/-/g, '/');
         this.datePicker = flatpickr(dateRangeInput, {
             mode: 'range',
             dateFormat: 'Y/m/d',
-            defaultDate: ['2025/09/22', '2025/10/22'],
+            defaultDate: [today, today],
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {
                 if (selectedDates.length === 2) {
-                    const formatDate = (date) => {
-                        const y = date.getFullYear();
-                        const m = String(date.getMonth() + 1).padStart(2, '0');
-                        const d = String(date.getDate()).padStart(2, '0');
-                        return `${y}-${m}-${d}`;
-                    };
-                    this.state.filter.startDate = formatDate(selectedDates[0]);
-                    this.state.filter.endDate = formatDate(selectedDates[1]);
+                    this.state.filter.startDate = this.formatDate(selectedDates[0]);
+                    this.state.filter.endDate = this.formatDate(selectedDates[1]);
                     this.state.currentPage = 1;
                     this.loadTableData();
                 }
@@ -81,7 +84,13 @@ class ServiceQualityController {
         const btn = e.target;
         document.querySelectorAll('#timeFilter .filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        const range = getDateRangeByTimeRange(btn.dataset.value);
         this.state.filter.timeRange = btn.dataset.value;
+        this.state.filter.startDate = range.startDate;
+        this.state.filter.endDate = range.endDate;
+        if (this.datePicker) {
+            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)]);
+        }
         this.state.currentPage = 1;
         this.loadOverview();
         this.loadTableData();
@@ -110,17 +119,16 @@ class ServiceQualityController {
                 endDate: this.state.filter.endDate,
                 deptName: this.state.filter.deptName
             });
-            if (body && body.overview) {
-                this.renderOverview(body.overview);
-            }
+            this.renderOverview(body ? body.overview : null);
         } catch (error) {
             console.error('Load overview failed:', error);
         }
     }
 
     renderOverview(data) {
-        document.getElementById('complaintCount').textContent = data.complaintCount;
-        document.getElementById('praiseCount').textContent = data.praiseCount;
+        const safe = (val) => val != null ? val : 0;
+        document.getElementById('complaintCount').textContent = safe(data && data.complaintCount);
+        document.getElementById('praiseCount').textContent = safe(data && data.praiseCount);
     }
 
     async loadTableData() {
@@ -133,13 +141,12 @@ class ServiceQualityController {
                 startDate: this.state.filter.startDate,
                 endDate: this.state.filter.endDate
             });
-            if (body && body[this.state.activeTab]) {
-                this.state.data = body[this.state.activeTab].list;
-                this.state.total = body[this.state.activeTab].total;
-                this.renderTable();
-                this.renderPagination();
-                this.updatePageInfo();
-            }
+            const tabData = (body && body[this.state.activeTab]) ? body[this.state.activeTab] : { list: [], total: 0 };
+            this.state.data = tabData.list || [];
+            this.state.total = tabData.total || 0;
+            this.renderTable();
+            this.renderPagination();
+            this.updatePageInfo();
         } catch (error) {
             console.error('Load table data failed:', error);
         }
@@ -200,6 +207,10 @@ class ServiceQualityController {
                     </tr>
                 `;
             });
+        }
+
+        if (this.state.data.length === 0) {
+            html += '<tr><td colspan="7" class="text-center text-muted py-4">暂无数据</td></tr>';
         }
 
         tbody.innerHTML = html;

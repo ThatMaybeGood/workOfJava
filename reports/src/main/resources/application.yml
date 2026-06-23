@@ -20,7 +20,7 @@ reports:
     include-brackets: false
   data:
     # 数据模式: mock(默认) / jdbc / mybatis-plus
-    mode: MyBatis-Plus
+    mode: mock
   # 分页默认配置
   page:
     # 默认当前页码
@@ -31,7 +31,26 @@ reports:
 # 日志配置
 logging:
   level:
-    com.reports: TRACE
+    com.reports: INFO
+    com.reports.mapper: DEBUG
+
+    # MyBatis
+    org.apache.ibatis: INFO        # ✅ 不输出列信息
+    org.mybatis: INFO
+
+    # Spring
+    org.springframework: INFO
     org.springframework.web: INFO
+
+    # 根日志
+    root: INFO
+
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - [%X{traceId}] [%X{seq}] %msg%n"
+
+# MyBatis 日志
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    banner: false

@@ -63,23 +63,22 @@ class QualityControlController {
                 startDate: this.state.filter.startDate,
                 endDate: this.state.filter.endDate
             });
-            if (body && body.overview) {
-                this.renderOverview(body.overview);
-                this.state.data = body.table.list;
-                this.state.total = body.table.total;
-                this.renderTable();
-                this.renderPagination();
-                this.updatePageInfo();
-            }
+            this.renderOverview(body ? body.overview : null);
+            this.state.data = (body && body.table && body.table.list) ? body.table.list : [];
+            this.state.total = (body && body.table && body.table.total) ? body.table.total : 0;
+            this.renderTable();
+            this.renderPagination();
+            this.updatePageInfo();
         } catch (error) {
             console.error('Load quality control data failed:', error);
         }
     }
 
     renderOverview(data) {
+        const safe = (val) => val != null ? val : '-';
         this.indicatorConfig.forEach(ind => {
             const el = document.getElementById(ind.key);
-            if (el) el.textContent = data[ind.key];
+            if (el) el.textContent = safe(data && data[ind.key]);
         });
     }
 
@@ -101,6 +100,8 @@ class QualityControlController {
                 html += `<td>62.2%</td>`;
             });
             html += '</tr>';
+        } else {
+            html += `<tr><td colspan="${this.indicatorConfig.length + 1}" class="text-center text-muted py-4">暂无数据</td></tr>`;
         }
 
         tbody.innerHTML = html;

@@ -6,7 +6,7 @@
 const API_CONFIG = {
     // ==================== 全局开关 ====================
     // 是否使用 Mock 数据（true = 走 MockService，false = 请求真实接口）
-    useMock: false,
+    useMock: true,
 
     // 真实接口基础地址
     baseUrl: 'http://localhost:18089/reports/gateway',
@@ -118,7 +118,8 @@ const API_CONFIG = {
 async function apiRequest(methodKey, endpointKey, requestBody = null) {
     // 如果开启 Mock，直接返回 MockService 数据
     if (API_CONFIG.useMock) {
-        return callMockService(methodKey, endpointKey, requestBody);
+        const response = await callMockService(methodKey, endpointKey, requestBody);
+        return response.data || response;
     }
 
     // 真实接口请求：统一 POST 到 baseUrl，构建 head + body 格式
@@ -182,8 +183,7 @@ function callMockService(methodKey, endpointKey, params) {
     const mockRouter = {
         // 门诊运行数据统计
         'reports.outp.outpatient-operation': {
-            overview: () => MockService.getOverviewData(),
-            departmentStats: (p) => MockService.getTableData(p),
+            operationStats: (p) => MockService.getOperationStats(p),
             export: (p) => MockService.exportExcel(p)
         },
         // 门诊收入分析

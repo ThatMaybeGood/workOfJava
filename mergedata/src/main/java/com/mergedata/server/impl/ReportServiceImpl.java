@@ -146,8 +146,7 @@ public class ReportServiceImpl implements ReportService {
 
             //提取当前已经有的报表数据
             OutpCashMainEntity main = outpReportService.findByDate(body.getReportDate(), body.getTotalFlag());
-            // ⚠️ BUG: findByDateExclude可能返回null（当数据库无记录时），此处直接.setSerialNo(pk)会NPE
-            // 建议：增加null判断，若返回null则新建对象或直接抛出异常
+
             main.setSerialNo(pk);
 
 
@@ -348,10 +347,12 @@ public class ReportServiceImpl implements ReportService {
 
             }
 
-
-//            main.setSubs(resultList);
-
             List<OutpCashSubEntity> subsDown = splitDetailData(main.getSubs(), "2");
+
+            //避免数据缺失但是明细中又必须留一条无效明细影响
+            if( subsDown.size() <= 1) {
+                subsDown= new ArrayList<>();
+            }
             //判断是否合计后金额替换组装
             setSpecialRowsValues(main, resultList, subsDown,body.getTotalFlag(),type);
 

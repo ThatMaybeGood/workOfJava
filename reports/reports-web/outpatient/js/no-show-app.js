@@ -3,6 +3,7 @@
  */
 class NoShowController {
     constructor() {
+        const today = this.formatDate(new Date());
         this.state = {
             currentPage: 1,
             pageSize: 10,
@@ -12,14 +13,21 @@ class NoShowController {
             sortDirection: 'asc',
             filter: {
                 timeRange: 'today',
-                startDate: '2025-09-22',
-                endDate: '2025-10-22',
+                startDate: today,
+                endDate: today,
                 deptName: ''
             }
         };
         this.charts = {};
 
         this.init();
+    }
+
+    formatDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
 
     init() {
@@ -65,22 +73,17 @@ class NoShowController {
         const dateRangeInput = document.getElementById('dateRange');
         if (!dateRangeInput) return;
 
+        const today = this.formatDate(new Date()).replace(/-/g, '/');
         this.datePicker = flatpickr(dateRangeInput, {
             mode: 'range',
             dateFormat: 'Y/m/d',
-            defaultDate: ['2025/09/22', '2025/10/22'],
+            defaultDate: [today, today],
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {
                 if (selectedDates.length === 2) {
-                    const formatDate = (date) => {
-                        const y = date.getFullYear();
-                        const m = String(date.getMonth() + 1).padStart(2, '0');
-                        const d = String(date.getDate()).padStart(2, '0');
-                        return `${y}-${m}-${d}`;
-                    };
-                    this.state.filter.startDate = formatDate(selectedDates[0]);
-                    this.state.filter.endDate = formatDate(selectedDates[1]);
+                    this.state.filter.startDate = this.formatDate(selectedDates[0]);
+                    this.state.filter.endDate = this.formatDate(selectedDates[1]);
                     this.state.currentPage = 1;
                     this.loadData();
                 }
@@ -92,7 +95,13 @@ class NoShowController {
         const btn = e.target;
         document.querySelectorAll('#timeFilter .filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        const range = getDateRangeByTimeRange(btn.dataset.value);
         this.state.filter.timeRange = btn.dataset.value;
+        this.state.filter.startDate = range.startDate;
+        this.state.filter.endDate = range.endDate;
+        if (this.datePicker) {
+            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)]);
+        }
         this.state.currentPage = 1;
         this.loadData();
     }
@@ -145,17 +154,15 @@ class NoShowController {
                 startDate: this.state.filter.startDate,
                 endDate: this.state.filter.endDate
             });
-            if (body && body.overview) {
-                this.renderOverview(body.overview);
-                this.renderRefundOriginChart(body.refundOrigin);
-                this.renderRefundChannelChart(body.refundChannel);
-                this.renderAgeChart(body.ageAnalysis);
-                this.state.data = body.table.list;
-                this.state.total = body.table.total;
-                this.renderTable();
-                this.renderPagination();
-                this.updatePageInfo();
-            }
+            this.renderOverview(body ? body.overview : null);
+            this.renderRefundOriginChart(body ? body.refundOrigin : null);
+            this.renderRefundChannelChart(body ? body.refundChannel : null);
+            this.renderAgeChart(body ? body.ageAnalysis : null);
+            this.state.data = (body && body.table && body.table.list) ? body.table.list : [];
+            this.state.total = (body && body.table && body.table.total) ? body.table.total : 0;
+            this.renderTable();
+            this.renderPagination();
+            this.updatePageInfo();
         } catch (error) {
             console.error('Load no-show data failed:', error);
         }
@@ -166,14 +173,17 @@ class NoShowController {
     }
 
     renderOverview(data) {
-        document.getElementById('refundCount').textContent = data.refundCount.toLocaleString();
-        document.getElementById('refundRate').textContent = data.refundRate;
-        document.getElementById('noShowCount').textContent = data.noShowCount.toLocaleString();
-        document.getElementById('noShowRate').textContent = data.noShowRate;
+        const safe = (val) => val != null ? val : 0;
+        const safeRate = (val) => val != null ? val : '-';
+        document.getElementById('refundCount').textContent = safe(data && data.refundCount).toLocaleString();
+        document.getElementById('refundRate').textContent = safeRate(data && data.refundRate);
+        document.getElementById('noShowCount').textContent = safe(data && data.noShowCount).toLocaleString();
+        document.getElementById('noShowRate').textContent = safeRate(data && data.noShowRate);
     }
 
     renderPieChart(chart, data, title) {
         const colors = ['#1890ff', '#52c41a', '#13c2c2', '#faad14', '#f5222d', '#722ed1', '#eb2f96', '#fa541c'];
+        const chartData = (data && Array.isArray(data)) ? data : [];
         const option = {
             title: {
                 text: title,
@@ -211,7 +221,7 @@ class NoShowController {
                         length: 10,
                         length2: 10
                     },
-                    data: data
+                    data: chartData
                 }
             ]
         };
@@ -227,6 +237,8 @@ class NoShowController {
     }
 
     renderAgeChart(ageData) {
+        const categories = (ageData && ageData.categories) ? ageData.categories : [];
+        const data = (ageData && ageData.data) ? ageData.data : [];
         const option = {
             title: {
                 text: '退号患者年龄区间分析',
@@ -247,7 +259,7 @@ class NoShowController {
             },
             xAxis: {
                 type: 'category',
-                data: ageData.categories,
+                data: categories,
                 axisLine: { lineStyle: { color: '#d9d9d9' } },
                 axisLabel: { color: '#8c8c8c', fontSize: 11 }
             },
@@ -264,7 +276,7 @@ class NoShowController {
                     type: 'bar',
                     barWidth: '50%',
                     itemStyle: { color: '#1890ff' },
-                    data: ageData.data,
+                    data: data,
                     label: {
                         show: true,
                         position: 'top',
@@ -328,6 +340,8 @@ class NoShowController {
                     <td>${summary.noShowOrigin.other}</td>
                 </tr>
             `;
+        } else {
+            html += '<tr><td colspan="17" class="text-center text-muted py-4">暂无数据</td></tr>';
         }
 
         tbody.innerHTML = html;

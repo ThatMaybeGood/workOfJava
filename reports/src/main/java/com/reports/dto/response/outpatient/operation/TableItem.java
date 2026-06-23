@@ -9,73 +9,138 @@ import lombok.Data;
 public class TableItem {
 
     /**
+     * 科室代码
+     */
+    private String deptCode;
+
+    /**
      * 科室名称
      */
     private String deptName;
 
     /**
-     * 就诊人次
+     * 门诊量
      */
-    private Integer visits;
+    private Integer totalVisits;
 
     /**
-     * 预约率
+     * 预约挂号率
      */
     private String appointmentRate;
 
     /**
-     * 检查率
-     */
-    private String examRate;
-
-    /**
-     * 效率
-     */
-    private Double efficiency;
-
-    /**
-     * 就诊人次统计
+     * 出诊人次
      */
     private Integer visitCount;
 
     /**
-     * 名医
+     * 预约诊察率
+     */
+    private String examRate;
+
+    /**
+     * 接诊效率
+     */
+    private Double efficiency;
+
+    /**
+     * 有效出诊单元数
+     */
+    private Integer effectiveUnits;
+
+    /**
+     * 出诊单元总数
+     */
+    private Integer totalUnits;
+
+    /**
+     * 出诊人次-名医专家
      */
     private Integer famousExpert;
 
     /**
-     * 特需专家
+     * 出诊人次-特需专家
      */
     private Integer specialExpert;
 
     /**
-     * 知名专家
+     * 出诊人次-知名专家
      */
     private Integer knownExpert;
 
     /**
-     * 专家A
+     * 出诊人次-专家A
      */
     private Integer expertA;
 
     /**
-     * 专家B
+     * 出诊人次-专家B
      */
     private Integer expertB;
 
     /**
-     * 普通
+     * 出诊人次-普通门诊
      */
     private Integer ordinary;
 
     /**
-     * 有效单元总数
+     * 有效出诊单元-名医
      */
-    private UnitDetailItem effectiveUnitsTotal;
+    private Integer unitFamousEffective;
 
     /**
-     * 单元明细
+     * 出诊单元-名医
      */
-    private UnitDetail unitDetail;
+    private Integer unitFamousTotal;
+
+    /**
+     * 有效出诊单元-特需
+     */
+    private Integer unitSpecialEffective;
+
+    /**
+     * 出诊单元-特需
+     */
+    private Integer unitSpecialTotal;
+
+    /**
+     * 有效出诊单元-知名专家
+     */
+    private Integer unitKnownEffective;
+
+    /**
+     * 出诊单元-知名专家
+     */
+    private Integer unitKnownTotal;
+
+    /**
+     * 有效出诊单元-专家A
+     */
+    private Integer unitAEffective;
+
+    /**
+     * 出诊单元-专家A
+     */
+    private Integer unitATotal;
+
+    /**
+     * 有效出诊单元-专家B
+     */
+    private Integer unitBEffective;
+
+    /**
+     * 出诊单元-专家B
+     */
+    private Integer unitBTotal;
+
+    /**
+     * 有效出诊单元-普通
+     */
+    private Integer unitOrdinaryEffective;
+
+    /**
+     * 出诊单元-普通
+     */
+    private Integer unitOrdinaryTotal;
 
 }

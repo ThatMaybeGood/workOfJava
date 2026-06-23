@@ -9,48 +9,128 @@ import lombok.Data;
 public class OverviewData {
 
     /**
-     * 总就诊人次
+     * 门诊量
      */
     private Integer totalVisits;
 
     /**
-     * 预约率
+     * 预约挂号率
      */
     private String appointmentRate;
 
     /**
-     * 就诊人次
+     * 出诊人次
      */
     private Integer visitCount;
 
     /**
-     * 就诊人次明细
-     */
-    private VisitCountDetail visitCountDetail;
-
-    /**
-     * 检查率
+     * 预约诊察率
      */
     private String examRate;
 
     /**
-     * 效率
+     * 接诊效率
      */
     private Double efficiency;
 
     /**
-     * 有效单元数
+     * 有效出诊单元数
      */
     private Integer effectiveUnits;
 
     /**
-     * 总单元数
+     * 出诊单元总数
      */
     private Integer totalUnits;
 
     /**
-     * 单元明细
+     * 出诊人次-名医专家
      */
-    private UnitDetail unitDetail;
+    private Integer famousExpert;
+
+    /**
+     * 出诊人次-特需专家
+     */
+    private Integer specialExpert;
+
+    /**
+     * 出诊人次-知名专家
+     */
+    private Integer knownExpert;
+
+    /**
+     * 出诊人次-专家A
+     */
+    private Integer expertA;
+
+    /**
+     * 出诊人次-专家B
+     */
+    private Integer expertB;
+
+    /**
+     * 出诊人次-普通门诊
+     */
+    private Integer ordinary;
+
+    /**
+     * 有效出诊单元-名医
+     */
+    private Integer unitFamousEffective;
+
+    /**
+     * 出诊单元-名医
+     */
+    private Integer unitFamousTotal;
+
+    /**
+     * 有效出诊单元-特需
+     */
+    private Integer unitSpecialEffective;
+
+    /**
+     * 出诊单元-特需
+     */
+    private Integer unitSpecialTotal;
+
+    /**
+     * 有效出诊单元-知名专家
+     */
+    private Integer unitKnownEffective;
+
+    /**
+     * 出诊单元-知名专家
+     */
+    private Integer unitKnownTotal;
+
+    /**
+     * 有效出诊单元-专家A
+     */
+    private Integer unitAEffective;
+
+    /**
+     * 出诊单元-专家A
+     */
+    private Integer unitATotal;
+
+    /**
+     * 有效出诊单元-专家B
+     */
+    private Integer unitBEffective;
+
+    /**
+     * 出诊单元-专家B
+     */
+    private Integer unitBTotal;
+
+    /**
+     * 有效出诊单元-普通
+     */
+    private Integer unitOrdinaryEffective;
+
+    /**
+     * 出诊单元-普通
+     */
+    private Integer unitOrdinaryTotal;
 
 }

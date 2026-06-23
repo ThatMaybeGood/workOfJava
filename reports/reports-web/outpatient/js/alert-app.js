@@ -3,10 +3,11 @@
  */
 class AlertController {
     constructor() {
+        const today = this.formatDate(new Date());
         this.filter = {
             timeRange: 'today',
-            startDate: '2025-09-22',
-            endDate: '2025-10-22',
+            startDate: today,
+            endDate: today,
             deptName: ''
         };
         this.deptState = {
@@ -29,6 +30,13 @@ class AlertController {
         this.init();
     }
 
+    formatDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
     init() {
         this.bindEvents();
         this.initDateRangePicker();
@@ -41,22 +49,17 @@ class AlertController {
         const dateRangeInput = document.getElementById('dateRange');
         if (!dateRangeInput) return;
 
+        const today = this.formatDate(new Date()).replace(/-/g, '/');
         this.datePicker = flatpickr(dateRangeInput, {
             mode: 'range',
             dateFormat: 'Y/m/d',
-            defaultDate: ['2025/09/22', '2025/10/22'],
+            defaultDate: [today, today],
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {
                 if (selectedDates.length === 2) {
-                    const formatDate = (date) => {
-                        const y = date.getFullYear();
-                        const m = String(date.getMonth() + 1).padStart(2, '0');
-                        const d = String(date.getDate()).padStart(2, '0');
-                        return `${y}-${m}-${d}`;
-                    };
-                    this.filter.startDate = formatDate(selectedDates[0]);
-                    this.filter.endDate = formatDate(selectedDates[1]);
+                    this.filter.startDate = this.formatDate(selectedDates[0]);
+                    this.filter.endDate = this.formatDate(selectedDates[1]);
                     this.deptState.currentPage = 1;
                     this.doctorState.currentPage = 1;
                     this.loadDeptData();
@@ -104,7 +107,13 @@ class AlertController {
         const btn = e.target;
         document.querySelectorAll('#timeFilter .filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        const range = getDateRangeByTimeRange(btn.dataset.value);
         this.filter.timeRange = btn.dataset.value;
+        this.filter.startDate = range.startDate;
+        this.filter.endDate = range.endDate;
+        if (this.datePicker) {
+            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)]);
+        }
         this.deptState.currentPage = 1;
         this.doctorState.currentPage = 1;
         this.loadOverview();
@@ -161,7 +170,7 @@ class AlertController {
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate
             });
-            if (body && body.overview) {
+            if (body) {
                 this.renderOverview(body.overview);
             }
         } catch (error) {
@@ -170,9 +179,10 @@ class AlertController {
     }
 
     renderOverview(data) {
-        document.getElementById('remainAlert').textContent = data.remainAlert;
-        document.getElementById('appointmentAlert').textContent = data.appointmentAlert;
-        document.getElementById('earlyLeave').textContent = data.earlyLeave;
+        const safe = (val) => val != null ? val : 0;
+        document.getElementById('remainAlert').textContent = safe(data && data.remainAlert);
+        document.getElementById('appointmentAlert').textContent = safe(data && data.appointmentAlert);
+        document.getElementById('earlyLeave').textContent = safe(data && data.earlyLeave);
     }
 
     async loadDeptData() {
@@ -184,9 +194,9 @@ class AlertController {
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate
             });
-            if (body && body.deptTable) {
-                this.deptState.data = body.deptTable.list;
-                this.deptState.total = body.deptTable.total;
+            if (body) {
+                this.deptState.data = (body.deptTable && body.deptTable.list) ? body.deptTable.list : [];
+                this.deptState.total = (body.deptTable && body.deptTable.total) ? body.deptTable.total : 0;
                 this.renderDeptTable();
                 this.renderDeptPagination();
                 this.updateDeptPageInfo();
@@ -205,9 +215,9 @@ class AlertController {
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate
             });
-            if (body && body.doctorTable) {
-                this.doctorState.data = body.doctorTable.list;
-                this.doctorState.total = body.doctorTable.total;
+            if (body) {
+                this.doctorState.data = (body.doctorTable && body.doctorTable.list) ? body.doctorTable.list : [];
+                this.doctorState.total = (body.doctorTable && body.doctorTable.total) ? body.doctorTable.total : 0;
                 this.renderDoctorTable();
                 this.renderDoctorPagination();
                 this.updateDoctorPageInfo();
@@ -240,6 +250,8 @@ class AlertController {
                     <td>${summary.earlyLeave}</td>
                 </tr>
             `;
+        } else {
+            html += '<tr><td colspan="4" class="text-center text-muted py-4">暂无数据</td></tr>';
         }
         tbody.innerHTML = html;
     }
@@ -279,6 +291,8 @@ class AlertController {
                     <td>${summary.earlyLeave}</td>
                 </tr>
             `;
+        } else {
+            html += '<tr><td colspan="5" class="text-center text-muted py-4">暂无数据</td></tr>';
         }
         tbody.innerHTML = html;
     }

@@ -3,16 +3,24 @@
  */
 class PatientPortraitController {
     constructor() {
+        const today = this.formatDate(new Date());
         this.state = {
             patientType: 'outpatient',
             timeRange: 'today',
-            startDate: '2025-09-22',
-            endDate: '2025-10-22',
+            startDate: today,
+            endDate: today,
             deptName: ''
         };
         this.charts = {};
 
         this.init();
+    }
+
+    formatDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
 
     init() {
@@ -56,22 +64,17 @@ class PatientPortraitController {
         const dateRangeInput = document.getElementById('dateRange');
         if (!dateRangeInput) return;
 
+        const today = this.formatDate(new Date()).replace(/-/g, '/');
         this.datePicker = flatpickr(dateRangeInput, {
             mode: 'range',
             dateFormat: 'Y/m/d',
-            defaultDate: ['2025/09/22', '2025/10/22'],
+            defaultDate: [today, today],
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {
                 if (selectedDates.length === 2) {
-                    const formatDate = (date) => {
-                        const y = date.getFullYear();
-                        const m = String(date.getMonth() + 1).padStart(2, '0');
-                        const d = String(date.getDate()).padStart(2, '0');
-                        return `${y}-${m}-${d}`;
-                    };
-                    this.state.startDate = formatDate(selectedDates[0]);
-                    this.state.endDate = formatDate(selectedDates[1]);
+                    this.state.startDate = this.formatDate(selectedDates[0]);
+                    this.state.endDate = this.formatDate(selectedDates[1]);
                     this.loadData();
                 }
             }
@@ -90,7 +93,13 @@ class PatientPortraitController {
         const btn = e.target;
         document.querySelectorAll('#timeFilter .filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        const range = getDateRangeByTimeRange(btn.dataset.value);
         this.state.timeRange = btn.dataset.value;
+        this.state.startDate = range.startDate;
+        this.state.endDate = range.endDate;
+        if (this.datePicker) {
+            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)]);
+        }
         this.loadData();
     }
 
@@ -102,23 +111,24 @@ class PatientPortraitController {
                 endDate: this.state.endDate,
                 deptName: this.state.deptName
             });
-            if (body) {
-                this.renderCharts(body);
-            }
+            this.renderCharts(body || {});
         } catch (error) {
             console.error('Load patient portrait data failed:', error);
         }
     }
 
     renderCharts(data) {
-        this.renderAgeChart(data.ageAnalysis);
-        this.renderPieChart(this.charts.insurance, data.insuranceAnalysis, '患者医保身份构成分析');
-        this.renderPieChart(this.charts.identity, data.identityAnalysis, '患者身份类别构成分析');
-        this.renderPieChart(this.charts.registerOrigin, data.registerOriginAnalysis, '挂号患者归属地分析');
-        this.renderPieChart(this.charts.archiveOrigin, data.archiveOriginAnalysis, '建档患者归属地分析');
+        this.renderAgeChart(data.ageAnalysis || { categories: [], archiveData: [], outpatientData: [] });
+        this.renderPieChart(this.charts.insurance, data.insuranceAnalysis || [], '患者医保身份构成分析');
+        this.renderPieChart(this.charts.identity, data.identityAnalysis || [], '患者身份类别构成分析');
+        this.renderPieChart(this.charts.registerOrigin, data.registerOriginAnalysis || [], '挂号患者归属地分析');
+        this.renderPieChart(this.charts.archiveOrigin, data.archiveOriginAnalysis || [], '建档患者归属地分析');
     }
 
     renderAgeChart(ageData) {
+        const categories = (ageData && ageData.categories) ? ageData.categories : [];
+        const archiveData = (ageData && ageData.archiveData) ? ageData.archiveData : [];
+        const outpatientData = (ageData && ageData.outpatientData) ? ageData.outpatientData : [];
         const option = {
             tooltip: {
                 trigger: 'axis',
@@ -138,7 +148,7 @@ class PatientPortraitController {
             },
             xAxis: {
                 type: 'category',
-                data: ageData.categories,
+                data: categories,
                 axisLine: { lineStyle: { color: '#d9d9d9' } },
                 axisLabel: { color: '#8c8c8c' }
             },
@@ -168,7 +178,7 @@ class PatientPortraitController {
                     type: 'bar',
                     barWidth: '40%',
                     itemStyle: { color: '#1890ff' },
-                    data: ageData.archiveData,
+                    data: archiveData,
                     label: {
                         show: true,
                         position: 'top',
@@ -185,7 +195,7 @@ class PatientPortraitController {
                     lineStyle: { color: '#fa8c16', width: 2 },
                     symbol: 'circle',
                     symbolSize: 6,
-                    data: ageData.outpatientData
+                    data: outpatientData
                 }
             ]
         };
@@ -194,6 +204,7 @@ class PatientPortraitController {
 
     renderPieChart(chart, data, title) {
         const colors = ['#1890ff', '#52c41a', '#13c2c2', '#faad14', '#f5222d', '#722ed1', '#eb2f96', '#fa541c'];
+        const chartData = (data && Array.isArray(data)) ? data : [];
         const option = {
             title: {
                 text: title,
@@ -235,7 +246,7 @@ class PatientPortraitController {
                         length: 10,
                         length2: 10
                     },
-                    data: data
+                    data: chartData
                 }
             ]
         };

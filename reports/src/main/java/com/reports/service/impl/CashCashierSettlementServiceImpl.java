@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.text.SimpleDateFormat;
 
 /**
  * 收费员结账统计服务实现
@@ -115,7 +116,8 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
         ChartData chart = new ChartData();
         chart.setTitle("收费员结账统计图表");
         chart.setSubTitle("支付方式分布");
-        chart.setDateRange(request.getStartDate() + " ~ " + request.getEndDate());
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        chart.setDateRange(dateFormat.format(request.getStartDate()) + " ~ " + dateFormat.format(request.getEndDate()));
         List<String> categories = new ArrayList<>();
         categories.add("现金");
         categories.add("刷卡");

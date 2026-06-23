@@ -40,24 +40,25 @@ class ForecastController {
             const body = await ReportAPI.getForecastStats({
                 deptName: this.state.filter.deptName
             });
-            if (body && body.overview) {
-                this.renderOverview(body.overview);
-                this.renderMonthForecastChart(body.monthForecast);
-                this.renderYearForecastChart(body.yearForecast);
-            }
+            this.renderOverview(body ? body.overview : null);
+            this.renderMonthForecastChart(body ? body.monthForecast : null);
+            this.renderYearForecastChart(body ? body.yearForecast : null);
         } catch (error) {
             console.error('Load forecast data failed:', error);
         }
     }
 
     renderOverview(data) {
-        document.getElementById('tomorrowCount').textContent = data.tomorrow;
-        document.getElementById('nextWeekCount').textContent = data.nextWeek;
-        document.getElementById('nextMonthCount').textContent = data.nextMonth;
-        document.getElementById('nextYearCount').textContent = data.nextYear;
+        const safe = (val) => val != null ? val : 0;
+        document.getElementById('tomorrowCount').textContent = safe(data && data.tomorrow);
+        document.getElementById('nextWeekCount').textContent = safe(data && data.nextWeek);
+        document.getElementById('nextMonthCount').textContent = safe(data && data.nextMonth);
+        document.getElementById('nextYearCount').textContent = safe(data && data.nextYear);
     }
 
     renderMonthForecastChart(forecastData) {
+        const dates = (forecastData && forecastData.dates) ? forecastData.dates : [];
+        const data = (forecastData && forecastData.data) ? forecastData.data : [];
         const option = {
             title: {
                 text: '预测未来一个月门诊量',
@@ -78,7 +79,7 @@ class ForecastController {
             },
             xAxis: {
                 type: 'category',
-                data: forecastData.dates,
+                data: dates,
                 axisLine: { lineStyle: { color: '#d9d9d9' } },
                 axisLabel: { color: '#8c8c8c', fontSize: 10, interval: 0 }
             },
@@ -95,7 +96,7 @@ class ForecastController {
                     type: 'bar',
                     barWidth: '50%',
                     itemStyle: { color: '#1890ff' },
-                    data: forecastData.data
+                    data: data
                 }
             ]
         };
@@ -103,6 +104,8 @@ class ForecastController {
     }
 
     renderYearForecastChart(forecastData) {
+        const months = (forecastData && forecastData.months) ? forecastData.months : [];
+        const data = (forecastData && forecastData.data) ? forecastData.data : [];
         const option = {
             title: {
                 text: '预测未来一年门诊量',
@@ -123,7 +126,7 @@ class ForecastController {
             },
             xAxis: {
                 type: 'category',
-                data: forecastData.months,
+                data: months,
                 axisLine: { lineStyle: { color: '#d9d9d9' } },
                 axisLabel: { color: '#8c8c8c', fontSize: 11 }
             },
@@ -140,7 +143,7 @@ class ForecastController {
                     type: 'bar',
                     barWidth: '40%',
                     itemStyle: { color: '#1890ff' },
-                    data: forecastData.data,
+                    data: data,
                     label: {
                         show: true,
                         position: 'top',

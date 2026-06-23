@@ -3,6 +3,7 @@
  */
 class MedTechController {
     constructor() {
+        const today = this.formatDate(new Date());
         this.state = {
             currentPage: 1,
             pageSize: 10,
@@ -12,12 +13,19 @@ class MedTechController {
             sortDirection: 'asc',
             filter: {
                 timeRange: 'today',
-                startDate: '2025-09-22',
-                endDate: '2025-10-22'
+                startDate: today,
+                endDate: today
             }
         };
 
         this.init();
+    }
+
+    formatDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
 
     init() {
@@ -31,22 +39,17 @@ class MedTechController {
         const dateRangeInput = document.getElementById('dateRange');
         if (!dateRangeInput) return;
 
+        const today = this.formatDate(new Date()).replace(/-/g, '/');
         this.datePicker = flatpickr(dateRangeInput, {
             mode: 'range',
             dateFormat: 'Y/m/d',
-            defaultDate: ['2025/09/22', '2025/10/22'],
+            defaultDate: [today, today],
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {
                 if (selectedDates.length === 2) {
-                    const formatDate = (date) => {
-                        const y = date.getFullYear();
-                        const m = String(date.getMonth() + 1).padStart(2, '0');
-                        const d = String(date.getDate()).padStart(2, '0');
-                        return `${y}-${m}-${d}`;
-                    };
-                    this.state.filter.startDate = formatDate(selectedDates[0]);
-                    this.state.filter.endDate = formatDate(selectedDates[1]);
+                    this.state.filter.startDate = this.formatDate(selectedDates[0]);
+                    this.state.filter.endDate = this.formatDate(selectedDates[1]);
                     this.state.currentPage = 1;
                     this.loadTableData();
                 }
@@ -74,7 +77,13 @@ class MedTechController {
         const btn = e.target;
         document.querySelectorAll('#timeFilter .filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        const range = getDateRangeByTimeRange(btn.dataset.value);
         this.state.filter.timeRange = btn.dataset.value;
+        this.state.filter.startDate = range.startDate;
+        this.state.filter.endDate = range.endDate;
+        if (this.datePicker) {
+            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)]);
+        }
         this.state.currentPage = 1;
         this.loadOverview();
         this.loadTableData();
@@ -126,20 +135,20 @@ class MedTechController {
                 startDate: this.state.filter.startDate,
                 endDate: this.state.filter.endDate
             });
-            if (body && body.overview) {
-                this.renderOverview(body.overview);
-            }
+            this.renderOverview(body ? body.overview : null);
         } catch (error) {
             console.error('Load overview failed:', error);
         }
     }
 
     renderOverview(data) {
-        document.getElementById('checkCount').textContent = data.checkCount.toLocaleString();
-        document.getElementById('onTimeRate').textContent = data.onTimeRate;
-        document.getElementById('waitTime').textContent = data.waitTime;
-        document.getElementById('avgWaitLate').textContent = data.avgWaitLate;
-        document.getElementById('avgReportTime').textContent = data.avgReportTime;
+        const safe = (val) => val != null ? val : 0;
+        const safeRate = (val) => val != null ? val : '-';
+        document.getElementById('checkCount').textContent = safe(data && data.checkCount).toLocaleString();
+        document.getElementById('onTimeRate').textContent = safeRate(data && data.onTimeRate);
+        document.getElementById('waitTime').textContent = safe(data && data.waitTime);
+        document.getElementById('avgWaitLate').textContent = safe(data && data.avgWaitLate);
+        document.getElementById('avgReportTime').textContent = safe(data && data.avgReportTime);
     }
 
     async loadTableData() {
@@ -150,13 +159,11 @@ class MedTechController {
                 startDate: this.state.filter.startDate,
                 endDate: this.state.filter.endDate
             });
-            if (body && body.table) {
-                this.state.data = body.table.list;
-                this.state.total = body.table.total;
-                this.renderTable();
-                this.renderPagination();
-                this.updatePageInfo();
-            }
+            this.state.data = (body && body.table && body.table.list) ? body.table.list : [];
+            this.state.total = (body && body.table && body.table.total) ? body.table.total : 0;
+            this.renderTable();
+            this.renderPagination();
+            this.updatePageInfo();
         } catch (error) {
             console.error('Load table data failed:', error);
         }
@@ -191,6 +198,8 @@ class MedTechController {
                     <td>${summary.avgReportTime.toFixed(1)}</td>
                 </tr>
             `;
+        } else {
+            html += '<tr><td colspan="6" class="text-center text-muted py-4">暂无数据</td></tr>';
         }
 
         tbody.innerHTML = html;

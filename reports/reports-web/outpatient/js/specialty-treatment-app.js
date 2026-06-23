@@ -3,6 +3,7 @@
  */
 class SpecialtyTreatmentController {
     constructor() {
+        const today = this.formatDate(new Date());
         this.state = {
             currentPage: 1,
             pageSize: 10,
@@ -12,13 +13,20 @@ class SpecialtyTreatmentController {
             sortDirection: 'asc',
             filter: {
                 timeRange: 'today',
-                startDate: '2025-09-22',
-                endDate: '2025-10-22',
+                startDate: today,
+                endDate: today,
                 deptName: ''
             }
         };
 
         this.init();
+    }
+
+    formatDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
 
     init() {
@@ -32,22 +40,17 @@ class SpecialtyTreatmentController {
         const dateRangeInput = document.getElementById('dateRange');
         if (!dateRangeInput) return;
 
+        const today = this.formatDate(new Date()).replace(/-/g, '/');
         this.datePicker = flatpickr(dateRangeInput, {
             mode: 'range',
             dateFormat: 'Y/m/d',
-            defaultDate: ['2025/09/22', '2025/10/22'],
+            defaultDate: [today, today],
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {
                 if (selectedDates.length === 2) {
-                    const formatDate = (date) => {
-                        const y = date.getFullYear();
-                        const m = String(date.getMonth() + 1).padStart(2, '0');
-                        const d = String(date.getDate()).padStart(2, '0');
-                        return `${y}-${m}-${d}`;
-                    };
-                    this.state.filter.startDate = formatDate(selectedDates[0]);
-                    this.state.filter.endDate = formatDate(selectedDates[1]);
+                    this.state.filter.startDate = this.formatDate(selectedDates[0]);
+                    this.state.filter.endDate = this.formatDate(selectedDates[1]);
                     this.state.currentPage = 1;
                     this.loadTableData();
                 }
@@ -81,7 +84,13 @@ class SpecialtyTreatmentController {
         const btn = e.target;
         document.querySelectorAll('#timeFilter .filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        const range = getDateRangeByTimeRange(btn.dataset.value);
         this.state.filter.timeRange = btn.dataset.value;
+        this.state.filter.startDate = range.startDate;
+        this.state.filter.endDate = range.endDate;
+        if (this.datePicker) {
+            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)]);
+        }
         this.state.currentPage = 1;
         this.loadOverview();
         this.loadTableData();
@@ -130,18 +139,17 @@ class SpecialtyTreatmentController {
                 startDate: this.state.filter.startDate,
                 endDate: this.state.filter.endDate
             });
-            if (body && body.overview) {
-                this.renderOverview(body.overview);
-            }
+            this.renderOverview(body ? body.overview : null);
         } catch (error) {
             console.error('Load overview failed:', error);
         }
     }
 
     renderOverview(data) {
-        document.getElementById('treatmentCount').textContent = data.treatmentCount.toLocaleString();
-        document.getElementById('treatmentAmount').textContent = data.treatmentAmount.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '元';
-        document.getElementById('patientCount').textContent = data.patientCount.toLocaleString();
+        const safe = (val) => val != null ? val : 0;
+        document.getElementById('treatmentCount').textContent = safe(data && data.treatmentCount).toLocaleString();
+        document.getElementById('treatmentAmount').textContent = safe(data && data.treatmentAmount).toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '元';
+        document.getElementById('patientCount').textContent = safe(data && data.patientCount).toLocaleString();
     }
 
     async loadTableData() {
@@ -153,13 +161,11 @@ class SpecialtyTreatmentController {
                 startDate: this.state.filter.startDate,
                 endDate: this.state.filter.endDate
             });
-            if (body && body.table) {
-                this.state.data = body.table.list;
-                this.state.total = body.table.total;
-                this.renderTable();
-                this.renderPagination();
-                this.updatePageInfo();
-            }
+            this.state.data = (body && body.table && body.table.list) ? body.table.list : [];
+            this.state.total = (body && body.table && body.table.total) ? body.table.total : 0;
+            this.renderTable();
+            this.renderPagination();
+            this.updatePageInfo();
         } catch (error) {
             console.error('Load table data failed:', error);
         }
@@ -190,6 +196,8 @@ class SpecialtyTreatmentController {
                     <td>${summary.patientCount}</td>
                 </tr>
             `;
+        } else {
+            html += '<tr><td colspan="4" class="text-center text-muted py-4">暂无数据</td></tr>';
         }
 
         tbody.innerHTML = html;

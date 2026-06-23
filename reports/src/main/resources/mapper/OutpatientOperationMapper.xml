@@ -5,15 +5,35 @@
     <!-- ============================================================ -->
     <!-- 查询指定时间范围和科室的统计数据汇总 -->
     <!-- ============================================================ -->
-    <select id="querySummaryByDateAndDept" resultType="java.util.HashMap">
+    <select id="querySummaryByDateAndDept" resultType="com.reports.entity.OutpatientOperationEntity">
         SELECT
-        SUM(NVL(total_visits, 0)) AS totalVisits,           <!-- 总就诊人次 -->
-        SUM(NVL(visit_count, 0)) AS visitCount,             <!-- 就诊人次 -->
-        ROUND(AVG(NVL(efficiency, 0)), 2) AS avgEfficiency, <!-- 平均接诊效率 -->
-        SUM(NVL(effective_units, 0)) AS effectiveUnits,    <!-- 有效出诊单元 -->
-        SUM(NVL(total_units, 0)) AS totalUnits,             <!-- 出诊单元总数 -->
-        COUNT(DISTINCT stat_date) AS daysCount,             <!-- 统计天数 -->
-        COUNT(1) AS recordCount                             <!-- 记录条数 -->
+        SUM(NVL(total_visits, 0)) AS totalVisits,                       <!-- 门诊量 -->
+        ROUND(AVG(NVL(appointment_rate, 0)), 2) || '%' AS appointmentRate,  <!-- 预约挂号率 -->
+        SUM(NVL(visit_count, 0)) AS visitCount,                         <!-- 出诊人次 -->
+        ROUND(AVG(NVL(exam_rate, 0)), 2) || '%' AS examRate,            <!-- 预约诊察率 -->
+        ROUND(AVG(NVL(efficiency, 0)), 2) AS efficiency,                <!-- 接诊效率 -->
+        SUM(NVL(effective_units, 0)) AS effectiveUnits,                 <!-- 有效出诊单元 -->
+        SUM(NVL(total_units, 0)) AS totalUnits,                         <!-- 出诊单元总数 -->
+        SUM(NVL(famous_expert, 0)) AS famousExpert,                     <!-- 名医专家 -->
+        SUM(NVL(special_expert, 0)) AS specialExpert,                   <!-- 特需专家 -->
+        SUM(NVL(known_expert, 0)) AS knownExpert,                       <!-- 知名专家 -->
+        SUM(NVL(expert_a, 0)) AS expertA,                               <!-- 专家A -->
+        SUM(NVL(expert_b, 0)) AS expertB,                               <!-- 专家B -->
+        SUM(NVL(ordinary, 0)) AS ordinary,                              <!-- 普通门诊 -->
+        SUM(NVL(unit_famous_effective, 0)) AS unitFamousEffective,      <!-- 有效出诊单元-名医 -->
+        SUM(NVL(unit_famous_total, 0)) AS unitFamousTotal,              <!-- 出诊单元-名医 -->
+        SUM(NVL(unit_special_effective, 0)) AS unitSpecialEffective,    <!-- 有效出诊单元-特需 -->
+        SUM(NVL(unit_special_total, 0)) AS unitSpecialTotal,            <!-- 出诊单元-特需 -->
+        SUM(NVL(unit_known_effective, 0)) AS unitKnownEffective,        <!-- 有效出诊单元-知名专家 -->
+        SUM(NVL(unit_known_total, 0)) AS unitKnownTotal,                <!-- 出诊单元-知名专家 -->
+        SUM(NVL(unit_a_effective, 0)) AS unitAEffective,                <!-- 有效出诊单元-专家A -->
+        SUM(NVL(unit_a_total, 0)) AS unitATotal,                        <!-- 出诊单元-专家A -->
+        SUM(NVL(unit_b_effective, 0)) AS unitBEffective,                <!-- 有效出诊单元-专家B -->
+        SUM(NVL(unit_b_total, 0)) AS unitBTotal,                        <!-- 出诊单元-专家B -->
+        SUM(NVL(unit_ordinary_effective, 0)) AS unitOrdinaryEffective,  <!-- 有效出诊单元-普通 -->
+        SUM(NVL(unit_ordinary_total, 0)) AS unitOrdinaryTotal,          <!-- 出诊单元-普通 -->
+        COUNT(DISTINCT stat_date) AS daysCount,                         <!-- 统计天数 -->
+        COUNT(1) AS recordCount                                         <!-- 记录条数 -->
         FROM TR_OUTP_OP
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         <if test="deptCode != null and deptCode != ''">
@@ -24,17 +44,37 @@
     <!-- ============================================================ -->
     <!-- 根据科室分组统计指定时间范围的数据 -->
     <!-- ============================================================ -->
-    <select id="queryGroupByDept" resultType="java.util.HashMap">
+    <select id="queryGroupByDept" resultType="com.reports.entity.OutpatientOperationEntity">
         SELECT
-        dept_code AS deptCode,                              <!-- 科室编码 -->
-        dept_name AS deptName,                              <!-- 科室名称 -->
-        SUM(NVL(total_visits, 0)) AS totalVisits,           <!-- 总就诊人次 -->
-        SUM(NVL(visit_count, 0)) AS visitCount,             <!-- 就诊人次 -->
-        ROUND(AVG(NVL(efficiency, 0)), 2) AS avgEfficiency, <!-- 平均接诊效率 -->
-        SUM(NVL(effective_units, 0)) AS effectiveUnits,    <!-- 有效出诊单元 -->
-        SUM(NVL(total_units, 0)) AS totalUnits,             <!-- 出诊单元总数 -->
-        COUNT(DISTINCT stat_date) AS daysCount,             <!-- 统计天数 -->
-        COUNT(1) AS recordCount                             <!-- 记录条数 -->
+        dept_code AS deptCode,                                          <!-- 科室编码 -->
+        dept_name AS deptName,                                          <!-- 科室名称 -->
+        SUM(NVL(total_visits, 0)) AS totalVisits,                       <!-- 门诊量 -->
+        ROUND(AVG(NVL(appointment_rate, 0)), 2) || '%' AS appointmentRate,  <!-- 预约挂号率 -->
+        SUM(NVL(visit_count, 0)) AS visitCount,                         <!-- 出诊人次 -->
+        ROUND(AVG(NVL(exam_rate, 0)), 2) || '%' AS examRate,            <!-- 预约诊察率 -->
+        ROUND(AVG(NVL(efficiency, 0)), 2) AS efficiency,                <!-- 接诊效率 -->
+        SUM(NVL(effective_units, 0)) AS effectiveUnits,                 <!-- 有效出诊单元 -->
+        SUM(NVL(total_units, 0)) AS totalUnits,                         <!-- 出诊单元总数 -->
+        SUM(NVL(famous_expert, 0)) AS famousExpert,                     <!-- 名医专家 -->
+        SUM(NVL(special_expert, 0)) AS specialExpert,                   <!-- 特需专家 -->
+        SUM(NVL(known_expert, 0)) AS knownExpert,                       <!-- 知名专家 -->
+        SUM(NVL(expert_a, 0)) AS expertA,                               <!-- 专家A -->
+        SUM(NVL(expert_b, 0)) AS expertB,                               <!-- 专家B -->
+        SUM(NVL(ordinary, 0)) AS ordinary,                              <!-- 普通门诊 -->
+        SUM(NVL(unit_famous_effective, 0)) AS unitFamousEffective,      <!-- 有效出诊单元-名医 -->
+        SUM(NVL(unit_famous_total, 0)) AS unitFamousTotal,              <!-- 出诊单元-名医 -->
+        SUM(NVL(unit_special_effective, 0)) AS unitSpecialEffective,    <!-- 有效出诊单元-特需 -->
+        SUM(NVL(unit_special_total, 0)) AS unitSpecialTotal,            <!-- 出诊单元-特需 -->
+        SUM(NVL(unit_known_effective, 0)) AS unitKnownEffective,        <!-- 有效出诊单元-知名专家 -->
+        SUM(NVL(unit_known_total, 0)) AS unitKnownTotal,                <!-- 出诊单元-知名专家 -->
+        SUM(NVL(unit_a_effective, 0)) AS unitAEffective,                <!-- 有效出诊单元-专家A -->
+        SUM(NVL(unit_a_total, 0)) AS unitATotal,                        <!-- 出诊单元-专家A -->
+        SUM(NVL(unit_b_effective, 0)) AS unitBEffective,                <!-- 有效出诊单元-专家B -->
+        SUM(NVL(unit_b_total, 0)) AS unitBTotal,                        <!-- 出诊单元-专家B -->
+        SUM(NVL(unit_ordinary_effective, 0)) AS unitOrdinaryEffective,  <!-- 有效出诊单元-普通 -->
+        SUM(NVL(unit_ordinary_total, 0)) AS unitOrdinaryTotal,          <!-- 出诊单元-普通 -->
+        COUNT(DISTINCT stat_date) AS daysCount,                         <!-- 统计天数 -->
+        COUNT(1) AS recordCount                                         <!-- 记录条数 -->
         FROM TR_OUTP_OP
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         <if test="deptCode != null and deptCode != ''">

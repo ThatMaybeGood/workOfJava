@@ -75,20 +75,18 @@ class InternetHospitalController {
                 doctorPage: this.state.doctorPage.currentPage,
                 doctorPageSize: this.state.doctorPage.pageSize
             });
-            if (body && body.overview) {
-                this.renderOverview(body.overview);
-                this.renderOperationTable(body.operationTable);
-                this.renderBusinessChart(body.businessChart);
-                this.state.deptPage.total = body.deptRanking.total;
-                this.renderDeptRanking(body.deptRanking.list);
-                this.renderDeptPagination();
-                this.updateDeptPageInfo();
-                this.state.doctorPage.total = body.doctorRanking.total;
-                this.renderDoctorRanking(body.doctorRanking.list);
-                this.renderDoctorPagination();
-                this.updateDoctorPageInfo();
-                this.renderGrowthChart(body.growthChart);
-            }
+            this.renderOverview(body ? body.overview : null);
+            this.renderOperationTable(body ? (body.operationTable || []) : []);
+            this.renderBusinessChart(body ? body.businessChart : null);
+            this.state.deptPage.total = (body && body.deptRanking && body.deptRanking.total) ? body.deptRanking.total : 0;
+            this.renderDeptRanking(body ? (body.deptRanking && body.deptRanking.list ? body.deptRanking.list : []) : []);
+            this.renderDeptPagination();
+            this.updateDeptPageInfo();
+            this.state.doctorPage.total = (body && body.doctorRanking && body.doctorRanking.total) ? body.doctorRanking.total : 0;
+            this.renderDoctorRanking(body ? (body.doctorRanking && body.doctorRanking.list ? body.doctorRanking.list : []) : []);
+            this.renderDoctorPagination();
+            this.updateDoctorPageInfo();
+            this.renderGrowthChart(body ? body.growthChart : null);
         } catch (error) {
             console.error('Load internet hospital data failed:', error);
         }
@@ -103,12 +101,10 @@ class InternetHospitalController {
                 doctorPage: this.state.doctorPage.currentPage,
                 doctorPageSize: this.state.doctorPage.pageSize
             });
-            if (body && body.deptRanking) {
-                this.state.deptPage.total = body.deptRanking.total;
-                this.renderDeptRanking(body.deptRanking.list);
-                this.renderDeptPagination();
-                this.updateDeptPageInfo();
-            }
+            this.state.deptPage.total = (body && body.deptRanking && body.deptRanking.total) ? body.deptRanking.total : 0;
+            this.renderDeptRanking(body ? (body.deptRanking && body.deptRanking.list ? body.deptRanking.list : []) : []);
+            this.renderDeptPagination();
+            this.updateDeptPageInfo();
         } catch (error) {
             console.error('Load dept ranking failed:', error);
         }
@@ -123,46 +119,53 @@ class InternetHospitalController {
                 doctorPage: this.state.doctorPage.currentPage,
                 doctorPageSize: this.state.doctorPage.pageSize
             });
-            if (body && body.doctorRanking) {
-                this.state.doctorPage.total = body.doctorRanking.total;
-                this.renderDoctorRanking(body.doctorRanking.list);
-                this.renderDoctorPagination();
-                this.updateDoctorPageInfo();
-            }
+            this.state.doctorPage.total = (body && body.doctorRanking && body.doctorRanking.total) ? body.doctorRanking.total : 0;
+            this.renderDoctorRanking(body ? (body.doctorRanking && body.doctorRanking.list ? body.doctorRanking.list : []) : []);
+            this.renderDoctorPagination();
+            this.updateDoctorPageInfo();
         } catch (error) {
             console.error('Load doctor ranking failed:', error);
         }
     }
 
     renderOverview(data) {
-        document.getElementById('outpatientVolume').textContent = data.outpatientVolume.toLocaleString();
-        document.getElementById('doctorRatio').textContent = data.doctorRatio;
-        document.getElementById('receptionRate').textContent = data.receptionRate;
-        document.getElementById('prescriptionRate').textContent = data.prescriptionRate;
-        document.getElementById('recordRate').textContent = data.recordRate;
-        document.getElementById('reviewRate').textContent = data.reviewRate;
-        document.getElementById('executionRate').textContent = data.executionRate;
+        const safe = (val) => val != null ? val : 0;
+        const safeRate = (val) => val != null ? val : '-';
+        document.getElementById('outpatientVolume').textContent = safe(data && data.outpatientVolume).toLocaleString();
+        document.getElementById('doctorRatio').textContent = safeRate(data && data.doctorRatio);
+        document.getElementById('receptionRate').textContent = safeRate(data && data.receptionRate);
+        document.getElementById('prescriptionRate').textContent = safeRate(data && data.prescriptionRate);
+        document.getElementById('recordRate').textContent = safeRate(data && data.recordRate);
+        document.getElementById('reviewRate').textContent = safeRate(data && data.reviewRate);
+        document.getElementById('executionRate').textContent = safeRate(data && data.executionRate);
     }
 
     renderOperationTable(data) {
         const tbody = document.getElementById('operationTableBody');
         let html = '';
-        data.forEach(row => {
-            const isNegative = row.growth.includes('-');
+        const tableData = (data && Array.isArray(data)) ? data : [];
+        tableData.forEach(row => {
+            const isNegative = row.growth && row.growth.includes('-');
             const growthColor = isNegative ? 'text-danger' : 'text-success';
             html += `
                 <tr>
-                    <td>${row.name}</td>
-                    <td>${row.current}</td>
-                    <td>${row.last}</td>
-                    <td class="${growthColor}">${row.growth}</td>
+                    <td>${row.name || ''}</td>
+                    <td>${row.current || 0}</td>
+                    <td>${row.last || 0}</td>
+                    <td class="${growthColor}">${row.growth || '-'}</td>
                 </tr>
             `;
         });
+        if (tableData.length === 0) {
+            html += '<tr><td colspan="4" class="text-center text-muted py-4">暂无数据</td></tr>';
+        }
         tbody.innerHTML = html;
     }
 
     renderBusinessChart(chartData) {
+        const categories = (chartData && chartData.categories) ? chartData.categories : [];
+        const lastData = (chartData && chartData.last) ? chartData.last : [];
+        const currentData = (chartData && chartData.current) ? chartData.current : [];
         const option = {
             tooltip: {
                 trigger: 'axis',
@@ -182,7 +185,7 @@ class InternetHospitalController {
             },
             xAxis: {
                 type: 'category',
-                data: chartData.categories,
+                data: categories,
                 axisLine: { lineStyle: { color: '#d9d9d9' } },
                 axisLabel: { color: '#8c8c8c', fontSize: 11, rotate: 15 }
             },
@@ -199,14 +202,14 @@ class InternetHospitalController {
                     type: 'bar',
                     barWidth: '30%',
                     itemStyle: { color: '#1890ff' },
-                    data: chartData.last
+                    data: lastData
                 },
                 {
                     name: '2025-12',
                     type: 'bar',
                     barWidth: '30%',
                     itemStyle: { color: '#52c41a' },
-                    data: chartData.current
+                    data: currentData
                 }
             ]
         };
@@ -216,40 +219,50 @@ class InternetHospitalController {
     renderDeptRanking(data) {
         const tbody = document.getElementById('deptRankingBody');
         let html = '';
-        data.forEach(row => {
-            const isNegative = row.growth.includes('-');
+        const rankData = (data && Array.isArray(data)) ? data : [];
+        rankData.forEach(row => {
+            const isNegative = row.growth && row.growth.includes('-');
             const growthColor = isNegative ? 'text-danger' : 'text-success';
             html += `
                 <tr>
-                    <td>${row.rank}</td>
-                    <td>${row.deptName}</td>
-                    <td>${row.currentMonth}</td>
-                    <td>${row.lastMonth}</td>
-                    <td class="${growthColor}">${row.growth}</td>
+                    <td>${row.rank || ''}</td>
+                    <td>${row.deptName || ''}</td>
+                    <td>${row.currentMonth || 0}</td>
+                    <td>${row.lastMonth || 0}</td>
+                    <td class="${growthColor}">${row.growth || '-'}</td>
                 </tr>
             `;
         });
+        if (rankData.length === 0) {
+            html += '<tr><td colspan="5" class="text-center text-muted py-4">暂无数据</td></tr>';
+        }
         tbody.innerHTML = html;
     }
 
     renderDoctorRanking(data) {
         const tbody = document.getElementById('doctorRankingBody');
         let html = '';
-        data.forEach(row => {
+        const rankData = (data && Array.isArray(data)) ? data : [];
+        rankData.forEach(row => {
             html += `
                 <tr>
-                    <td>${row.rank}</td>
-                    <td>${row.doctorName}</td>
-                    <td>${row.deptName}</td>
-                    <td>${row.title}</td>
-                    <td>${row.currentMonth}</td>
+                    <td>${row.rank || ''}</td>
+                    <td>${row.doctorName || ''}</td>
+                    <td>${row.deptName || ''}</td>
+                    <td>${row.title || ''}</td>
+                    <td>${row.currentMonth || 0}</td>
                 </tr>
             `;
         });
+        if (rankData.length === 0) {
+            html += '<tr><td colspan="5" class="text-center text-muted py-4">暂无数据</td></tr>';
+        }
         tbody.innerHTML = html;
     }
 
     renderGrowthChart(chartData) {
+        const categories = (chartData && chartData.categories) ? chartData.categories : [];
+        const data = (chartData && chartData.data) ? chartData.data : [];
         const option = {
             title: {
                 text: '互联网医院患者增长科室TOP20',
@@ -270,7 +283,7 @@ class InternetHospitalController {
             },
             xAxis: {
                 type: 'category',
-                data: chartData.categories,
+                data: categories,
                 axisLine: { lineStyle: { color: '#d9d9d9' } },
                 axisLabel: { color: '#8c8c8c', fontSize: 10, rotate: 30 }
             },
@@ -299,7 +312,7 @@ class InternetHospitalController {
                             ]
                         }
                     },
-                    data: chartData.data
+                    data: data
                 }
             ]
         };
