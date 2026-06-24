@@ -20,7 +20,7 @@ reports:
     include-brackets: false
   data:
     # 数据模式: mock(默认) / jdbc / mybatis-plus
-    mode: mock
+    mode: mybatis-plus
   # 分页默认配置
   page:
     # 默认当前页码

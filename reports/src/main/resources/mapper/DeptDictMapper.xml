@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.DeptDictMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询科室字典                                                    -->
+    <!-- ============================================================ -->
+    <select id="queryDeptDict" resultType="com.reports.entity.DeptDictEntity">
+        SELECT
+            serial_no AS serialNo,
+            dept_code AS deptCode,
+            dept_name AS deptName,
+            dept_alias AS deptAlias,
+            clinic_attr AS clinicAttr,
+            outp_or_inp AS outpOrInp,
+            internal_or_sergery AS internalOrSergery,
+            input_code AS inputCode,
+            type_code AS typeCode,
+            group_unit_name AS groupUnitName
+        FROM TR_DEPT_DICT
+        <where>
+            <choose>
+                <when test="deptType == 0">
+                    outp_or_inp IN (0, 2) and internal_or_sergery = 0
+                </when>
+                <when test="deptType == 1">
+                    outp_or_inp IN (1, 2)
+                </when>
+                <when test="deptType == 2">
+                    outp_or_inp = 9
+                </when>
+                <otherwise>
+                    outp_or_inp IN (0, 1, 2, 9)
+                </otherwise>
+            </choose>
+            <if test="deptCode != null and deptCode != ''">
+                AND dept_code = #{deptCode}
+            </if>
+            <if test="deptName != null and deptName != ''">
+                AND (dept_name LIKE '%' || #{deptName} || '%' OR dept_alias LIKE '%' || #{deptName} || '%')
+            </if>
+        </where>
+        ORDER BY serial_no, dept_code
+    </select>
+
+</mapper>

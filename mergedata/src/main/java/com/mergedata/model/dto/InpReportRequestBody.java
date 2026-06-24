@@ -23,10 +23,11 @@ public class InpReportRequestBody {
      */
     private String initFlag;
 
-    /**
-     * 节假日汇总标志 0正常 1汇总
+    /*
+     * 是否汇总  0：非汇总数据  1：汇总数据  2：月初数据
      */
-    private String holidayTotalFlag;
+    @JsonProperty("total_flag")
+    private String totalFlag;
 
     private String extendParams1;
     private String extendParams2;

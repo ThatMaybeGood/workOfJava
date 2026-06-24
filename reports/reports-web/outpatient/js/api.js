@@ -142,10 +142,10 @@ const ReportAPI = {
     },
 
     /**
-     * 获取互医质控运营月报数据
-     * method: reports.outp.outpatient-internet-hospital
+     * 获取科室字典
+     * method: reports.common.dept-dict
      */
-    getInternetHospitalStats(params) {
-        return apiRequest('reports.outp.outpatient-internet-hospital', 'endpoint', params);
+    getDeptDict(params) {
+        return apiRequest('reports.common.dept-dict', 'endpoint', params);
     }
 };

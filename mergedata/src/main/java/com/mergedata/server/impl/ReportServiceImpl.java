@@ -787,7 +787,7 @@ public class ReportServiceImpl implements ReportService {
     public InpCashMainEntity getInpReport(InpReportRequestBody body) {
 
         LocalDate currentDate = body.getReportDate();
-        String holidayTotalFlag = body.getHolidayTotalFlag();
+        String totalFlag = body.getTotalFlag();
         //接收initFlag为1时，即初始化报表
         String initFlag = body.getInitFlag();
         Boolean isInitFlag = (initFlag != null && "1".equalsIgnoreCase(initFlag));
@@ -800,7 +800,7 @@ public class ReportServiceImpl implements ReportService {
             String holidayType = holidayService.queryDateType(currentDate, Constant.TYPE_INP);
 
             //是否节假日汇总
-            if (holidayTotalFlag.equals(Constant.YES)) {
+            if (totalFlag.equals(Constant.YES)) {
                 if (holidayType.equals(Constant.HOLIDAY_AFTER)) {
                     LocalDate startDate = currentDate;
                     //开始汇总计算

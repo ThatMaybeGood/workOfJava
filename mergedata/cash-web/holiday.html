@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>节假日维护系统 - 日历视图</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0f2f5 0%, #e4e9ef 100%);
+            min-height: 100vh;
+            padding: 24px 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .control-panel {
+            flex: 0 0 280px;
+            background: white;
+            border-radius: 28px;
+            padding: 24px 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .panel-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-left: 4px solid #ef4444;
+            padding-left: 14px;
+        }
+
+        .select-group {
+            margin-bottom: 20px;
+        }
+
+        .select-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .select-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .select-group select:focus {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
+        }
+
+        .info-stats {
+            background: #fef2f2;
+            border-radius: 20px;
+            padding: 14px;
+            margin: 16px 0;
+            text-align: center;
+        }
+
+        .stats-number {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #ef4444;
+        }
+
+        .stats-label {
+            font-size: 0.7rem;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.75rem;
+            color: #334155;
+        }
+
+        .legend-color {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .btn-refresh {
+            width: 100%;
+            margin-top: 20px;
+            background: #ef4444;
+            border: none;
+            padding: 10px;
+            border-radius: 40px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .btn-refresh:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239,68,68,0.3);
+        }
+
+        .calendar-container {
+            flex: 1;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            padding: 24px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .year-month-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #1e293b;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .nav-btn {
+            background: #f1f5f9;
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 30px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: bold;
+        }
+
+        .nav-btn:hover {
+            background: #e2e8f0;
+            transform: scale(1.02);
+        }
+
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            margin-bottom: 12px;
+            padding: 12px 0;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #475569;
+            background: #f8fafc;
+            border-radius: 20px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1 / 0.9;
+            background: white;
+            border-radius: 16px;
+            padding: 8px 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1.5px solid #eef2f6;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .calendar-day:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px -6px rgba(0, 0, 0, 0.15);
+            border-color: #ef4444;
+        }
+
+        .day-number {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-top: 4px;
+        }
+
+        /* 节假日标记（红色角标） */
+        .holiday-mark {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            border-radius: 20px;
+            padding: 2px 8px;
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        /* 节假日背景 */
+        .calendar-day.holiday-bg {
+            background: #fff5f5;
+            border-color: #fecaca;
+        }
+
+        /* 周末背景（浅灰色） */
+        .calendar-day.weekend-bg {
+            background: #f5f5f5;
+            border-color: #e5e7eb;
+        }
+
+        /* 今日边框 */
+        .calendar-day.today {
+            border: 2px solid #ef4444;
+            background: #fff5f0;
+            box-shadow: 0 2px 8px rgba(239,68,68,0.15);
+        }
+
+        .calendar-day.other-month {
+            opacity: 0.4;
+        }
+
+        .calendar-footer {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #eef2f6;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .status-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            z-index: 1000;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .toast-success { background: #10b981; }
+        .toast-error { background: #ef4444; }
+        .toast-info { background: #3b82f6; }
+
+        @media (max-width: 780px) {
+            .control-panel { flex: auto; position: static; }
+            .calendar-day { padding: 4px; }
+            .day-number { font-size: 0.85rem; }
+            .holiday-mark { font-size: 0.6rem; top: 3px; right: 4px; padding: 1px 5px; }
+            .status-toast { white-space: normal; max-width: 85%; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="main-layout">
+        <div class="control-panel">
+            <div class="panel-title">
+                📅 节假日参数维护
+            </div>
+            <div class="select-group">
+                <label>📆 年份</label>
+                <select id="yearSelect"></select>
+            </div>
+            <div class="select-group">
+                <label>🗓️ 月份</label>
+                <select id="monthSelect">
+                    <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+                    <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+                    <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+                    <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+                </select>
+            </div>
+            <div class="info-stats">
+                <div class="stats-number" id="holidayCount">0</div>
+                <div class="stats-label">本月节假日数量</div>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-color" style="background: #fee2e2; color:#dc2626;">休</div><span>节假日(接口返回或手动标记)</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #f5f5f5; border:1px solid #e5e7eb;"></div><span>周末</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: white; border:1px solid #cbd5e1;"></div><span>工作日</span></div>
+                <div class="legend-item"><div class="legend-color" style="background: #fff5f0; border:2px solid #ef4444;"></div><span>今日</span></div>
+            </div>
+            <button class="btn-refresh" id="refreshBtn">🔄 刷新数据</button>
+        </div>
+
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <div class="year-month-title" id="currentYearMonth">2026年3月</div>
+                <div class="nav-buttons">
+                    <button class="nav-btn" id="prevMonthBtn">◀</button>
+                    <button class="nav-btn" id="nextMonthBtn">▶</button>
+                </div>
+            </div>
+            <div class="weekdays">
+                <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+            <div class="calendar-footer">
+                💡 操作说明：<br>
+                • 点击任意日期可添加或取消“休”标记。（周末恢复灰色，工作日白色）
+            </div>
+        </div>
+    </div>
+</div>
+<div id="toastMessage" class="status-toast" style="display: none;"></div>
+
+<script>
+    // API配置
+    const BASE_URL = "http://168.168.235.209:18081/paltform/holidays";
+    
+    // 全局状态
+    let currentYear = 2026;
+    let currentMonth = 3;
+    let holidaySet = new Set();       // 所有节假日日期 YYYY-MM-DD
+    let holidayFullMap = new Map();   // 存储完整对象，用于删除
+    let isLoading = false;
+
+    // 辅助函数
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    function getBaseHead() {
+        return {
+            charset: "utf-8",
+            encrypt_type: "AES",
+            enterprise_id: "xinqiao",
+            language: "zh_CN",
+            method: "orgine.powermsp.service.overt.extend.SP_GetHisIncome_938",
+            sign: "1",
+            sign_type: "md5",
+            sys_track_code: generateUUID(),
+            timestamp: Date.now().toString(),
+            version: "1.0",
+            access_token: "123456",
+            app_id: "b16ff06f5fd44ab6b56e037d7ee1a6ed"
+        };
+    }
+
+    async function apiRequest(url, bodyData) {
+        const payload = { head: getBaseHead(), body: bodyData };
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            return { result: { code: "50000", msg: "网络异常", success: false }, error: error.message };
+        }
+    }
+
+    // 查询指定年月的节假日
+    async function fetchHolidays(year, month) {
+        const bodyParams = {
+            extend_params3: "",
+            extend_params2: month ? month.toString() : "",
+            extend_params1: year ? year.toString() : ""
+        };
+        const response = await apiRequest(`${BASE_URL}/findall`, bodyParams);
+        if (response.result && (response.result.code === "10000" || response.result.success === true) && response.body&&response.body.list) {
+            return { success: true, list: response.body.list };
+        }
+        return { success: false, list: [], msg: (response.result&&response.sub_msg) || "查询失败" };
+    }
+
+    // 新增休标记
+    async function addHolidayApi(holidayDate, category = "2", remark = "") {
+        const dateObj = new Date(holidayDate);
+        if (isNaN(dateObj.getTime())) return { success: false, msg: "日期无效" };
+        const year = dateObj.getFullYear().toString();
+        const month = (dateObj.getMonth() + 1).toString();
+        const newBody = {
+            serial_no: null,
+            holiday_date: holidayDate,
+            valid_flag: "1",
+            holiday_type: "0",
+            holiday_year: year,
+            holiday_month: month,
+            creator: null,
+            create_time: null,
+            update_time: null,
+            update_count: null,
+            remark: remark || "节假日标记",
+            category: category || "2"
+        };
+        const response = await apiRequest(`${BASE_URL}/insert`, newBody);
+        if (response.result && (response.result.code === "10000" || response.result.success === true)) {
+            return { success: true, msg: "标记为休成功", data: response.body };
+        }
+        return { success: false, msg: (response.result&&response.sub_msg) || "操作失败" };
+    }
+
+    // 删除休标记
+    async function deleteHolidayApi(holidayItem) {
+        if (!holidayItem.serial_no) return { success: false, msg: "缺少serial_no" };
+        const response = await apiRequest(`${BASE_URL}/update`, holidayItem);
+        if (response.result && (response.result.code === "10000" || response.result.success === true)) {
+            return { success: true, msg: "取消标记成功" };
+        }
+        return { success: false, msg: (response.result&&response.sub_msg) || "删除失败" };
+    }
+
+    function showToast(message, type = "info") {
+        const toast = document.getElementById('toastMessage');
+        toast.textContent = message;
+        toast.className = `status-toast ${type === 'success' ? 'toast-success' : (type === 'error' ? 'toast-error' : 'toast-info')}`;
+        toast.style.display = 'block';
+        if (window.toastTimeout) clearTimeout(window.toastTimeout);
+        window.toastTimeout = setTimeout(() => toast.style.display = 'none', 2500);
+    }
+
+    // 判断是否为周末
+    function isWeekend(dateStr) {
+        const date = new Date(dateStr);
+        const day = date.getDay();
+        return day === 0 || day === 6;
+    }
+
+    // 获取当前月份周末数量（用于统计，可保留）
+    function getWeekendCountInMonth(year, month) {
+        let count = 0;
+        const daysInMonth = new Date(year, month, 0).getDate();
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            if (isWeekend(dateStr)) count++;
+        }
+        return count;
+    }
+
+    // 渲染日历
+    function renderCalendar(year, month) {
+        const firstDay = new Date(year, month - 1, 1);
+        const startWeekday = firstDay.getDay();
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const prevMonthDate = new Date(year, month - 1, 0);
+        const daysInPrevMonth = prevMonthDate.getDate();
+        const calendarGrid = document.getElementById('calendarGrid');
+        calendarGrid.innerHTML = '';
+        
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+        
+        for (let i = 0; i < 42; i++) {
+            let displayDay, isCurrentMonth = true;
+            let cellYear = year, cellMonth = month;
+            
+            if (i < startWeekday) {
+                displayDay = daysInPrevMonth - (startWeekday - i) + 1;
+                isCurrentMonth = false;
+                let prevMonth = month - 1;
+                let prevYear = year;
+                if (prevMonth <= 0) { prevMonth = 12; prevYear = year - 1; }
+                cellYear = prevYear; cellMonth = prevMonth;
+            } else if (i >= startWeekday + daysInMonth) {
+                displayDay = i - (startWeekday + daysInMonth) + 1;
+                isCurrentMonth = false;
+                let nextMonth = month + 1;
+                let nextYear = year;
+                if (nextMonth > 12) { nextMonth = 1; nextYear = year + 1; }
+                cellYear = nextYear; cellMonth = nextMonth;
+            } else {
+                displayDay = i - startWeekday + 1;
+                isCurrentMonth = true;
+            }
+            
+            const fullDateStr = `${cellYear}-${String(cellMonth).padStart(2,'0')}-${String(displayDay).padStart(2,'0')}`;
+            const isToday = fullDateStr === todayStr;
+            const isHoliday = holidaySet.has(fullDateStr);
+            const isWeekendDay = isWeekend(fullDateStr);
+            
+            // 决定样式类
+            let dayClass = 'calendar-day';
+            if (!isCurrentMonth) dayClass += ' other-month';
+            if (isToday) dayClass += ' today';
+            if (isHoliday) {
+                dayClass += ' holiday-bg';      // 节假日背景
+            } else if (isWeekendDay && isCurrentMonth) {
+                dayClass += ' weekend-bg';       // 周末背景（仅当前月份周末）
+            }
+            
+            const dayDiv = document.createElement('div');
+            dayDiv.className = dayClass;
+            
+            const dayNumber = document.createElement('div');
+            dayNumber.className = 'day-number';
+            dayNumber.innerText = displayDay;
+            dayDiv.appendChild(dayNumber);
+            
+            if (isHoliday) {
+                const holidayMark = document.createElement('div');
+                holidayMark.className = 'holiday-mark';
+                holidayMark.innerText = '休';
+                dayDiv.appendChild(holidayMark);
+            }
+            
+            dayDiv.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (isLoading) {
+                    showToast("请稍后...", "info");
+                    return;
+                }
+                await handleDayClick(fullDateStr);
+            });
+            
+            calendarGrid.appendChild(dayDiv);
+        }
+        
+        document.getElementById('currentYearMonth').innerHTML = `${year}年 ${month}月`;
+    }
+
+    // 处理点击日期
+    async function handleDayClick(dateStr) {
+        const isHoliday = holidaySet.has(dateStr);
+        
+        if (isHoliday) {
+            if (!confirm(`日期 ${dateStr} 当前标记为“休”，确定要取消吗？`)) return;
+            const holidayItem = holidayFullMap.get(dateStr);
+            if (!holidayItem) {
+                showToast("错误：找不到对应的节假日记录", "error");
+                return;
+            }
+            const delRes = await deleteHolidayApi(holidayItem);
+            if (delRes.success) {
+                holidaySet.delete(dateStr);
+                holidayFullMap.delete(dateStr);
+                showToast(`✅ 已取消 ${dateStr} 的休标记`, "success");
+                updateStats();
+                renderCalendar(currentYear, currentMonth);
+            } else {
+                showToast(`取消失败: ${delRes.msg}`, "error");
+            }
+        } else {
+            if (!confirm(`确认将 ${dateStr} 标记为【休】(节假日)吗？`)) return;
+            const addRes = await addHolidayApi(dateStr, "2", "手动标记");
+            if (addRes.success) {
+                const newItem = {
+                    serial_no: (addRes.data&&addRes.serial_no) || `temp_${Date.now()}`,
+                    holiday_date: dateStr,
+                    holiday_type: "0",
+                    valid_flag: "1",
+                    holiday_year: dateStr.split('-')[0],
+                    holiday_month: dateStr.split('-')[1],
+                    category: "2",
+                    remark: "手动标记"
+                };
+                holidaySet.add(dateStr);
+                holidayFullMap.set(dateStr, newItem);
+                showToast(`✅ 已标记 ${dateStr} 为休`, "success");
+                updateStats();
+                renderCalendar(currentYear, currentMonth);
+            } else {
+                showToast(`标记失败: ${addRes.msg}`, "error");
+            }
+        }
+    }
+
+    // 更新统计（当前月份节假日数量）
+    function updateStats() {
+        const monthHolidays = Array.from(holidaySet).filter(date => {
+            const [y, m] = date.split('-');
+            return parseInt(y) === currentYear && parseInt(m) === currentMonth;
+        });
+        document.getElementById('holidayCount').innerText = monthHolidays.length;
+    }
+
+    // 加载数据（包含当前月、上个月、下个月，确保跨月日期也能正确显示节假日）
+    async function loadDataAndRender() {
+        if (isLoading) return;
+        isLoading = true;
+        const grid = document.getElementById('calendarGrid');
+        grid.style.opacity = '0.5';
+        grid.style.pointerEvents = 'none';
+        
+        try {
+            let prevYear = currentYear, prevMonth = currentMonth - 1;
+            if (prevMonth < 1) { prevMonth = 12; prevYear--; }
+            let nextYear = currentYear, nextMonth = currentMonth + 1;
+            if (nextMonth > 12) { nextMonth = 1; nextYear++; }
+            
+            const [currentRes, prevRes, nextRes] = await Promise.all([
+                fetchHolidays(currentYear, currentMonth),
+                fetchHolidays(prevYear, prevMonth),
+                fetchHolidays(nextYear, nextMonth)
+            ]);
+            
+            holidaySet.clear();
+            holidayFullMap.clear();
+            
+            const mergeData = (res) => {
+                if (res.success && res.list) {
+                    res.list.forEach(item => {
+                        if (item.holiday_date) {
+                            holidaySet.add(item.holiday_date);
+                            holidayFullMap.set(item.holiday_date, item);
+                        }
+                    });
+                }
+            };
+            mergeData(currentRes);
+            mergeData(prevRes);
+            mergeData(nextRes);
+            
+            updateStats();
+            renderCalendar(currentYear, currentMonth);
+            
+            let msg = `加载成功`;
+            if (currentRes.success) msg += `，当前月 ${(currentRes.list&&currentRes.length) || 0} 个节假日`;
+            if (!currentRes.success) msg += `，当前月查询失败: ${currentRes.msg}`;
+            showToast(msg, currentRes.success ? "success" : "error");
+        } catch (err) {
+            console.error(err);
+            showToast("网络错误", "error");
+        } finally {
+            isLoading = false;
+            grid.style.opacity = '1';
+            grid.style.pointerEvents = 'auto';
+        }
+    }
+
+    // 切换年月
+    function changeYearMonth(year, month) {
+        if (year === currentYear && month === currentMonth) return;
+        currentYear = year;
+        currentMonth = month;
+        document.getElementById('yearSelect').value = year;
+        document.getElementById('monthSelect').value = month;
+        loadDataAndRender();
+    }
+
+    // 初始化
+    function init() {
+        const yearSelect = document.getElementById('yearSelect');
+        for (let y = 2020; y <= 2032; y++) {
+            const option = document.createElement('option');
+            option.value = y;
+            option.textContent = `${y}年`;
+            if (y === currentYear) option.selected = true;
+            yearSelect.appendChild(option);
+        }
+        yearSelect.addEventListener('change', (e) => {
+            changeYearMonth(parseInt(e.target.value), currentMonth);
+        });
+        
+        document.getElementById('monthSelect').value = currentMonth;
+        document.getElementById('monthSelect').addEventListener('change', (e) => {
+            changeYearMonth(currentYear, parseInt(e.target.value));
+        });
+        
+        document.getElementById('prevMonthBtn').addEventListener('click', () => {
+            let newMonth = currentMonth - 1, newYear = currentYear;
+            if (newMonth < 1) { newMonth = 12; newYear--; }
+            changeYearMonth(newYear, newMonth);
+        });
+        
+        document.getElementById('nextMonthBtn').addEventListener('click', () => {
+            let newMonth = currentMonth + 1, newYear = currentYear;
+            if (newMonth > 12) { newMonth = 1; newYear++; }
+            changeYearMonth(newYear, newMonth);
+        });
+        
+        document.getElementById('refreshBtn').addEventListener('click', () => loadDataAndRender());
+        
+        loadDataAndRender();
+    }
+    
+    init();
+</script>
+</body>
+</html>

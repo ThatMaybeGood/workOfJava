@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>门诊现金统计看板</title>
+    <script src="./libs/echarts.min.js"></script>
+    <link rel="stylesheet" href="./libs/all.min.css">
+    <style>
+        :root {
+            --bg-main: #f4f7f9;
+            --card-bg: #ffffff;
+            --text-title: #11364a;
+            --text-main: #334e5e;
+            --text-muted: #78909c;
+            --medical-blue: #0b5e7e;
+            --medical-blue-light: #e6f0f5;
+            --income-green: #2c7a4d;
+            --refund-orange: #c96f3e;
+            --net-blue: #2c7da0;
+            --loan-purple: #6a5acd;
+            --repay-teal: #008080;
+            --border-color: #e2ecf3;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--text-main);
+            padding: 24px;
+        }
+
+        .dashboard-container { max-width: 1680px; margin: 0 auto; }
+
+        /* 顶部医疗信息控制栏 */
+        .header-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .title-section h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--medical-blue);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .title-section p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .date-panel {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .date-group {
+            display: flex;
+            align-items: center;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            padding: 6px 14px;
+            border-radius: 8px;
+            gap: 8px;
+        }
+
+        .date-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--medical-blue);
+        }
+
+        .date-group input {
+            border: none;
+            background: transparent;
+            color: var(--text-main);
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .btn-query {
+            background: var(--medical-blue);
+            color: white;
+            border: none;
+            padding: 9px 24px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-query:hover { background: #08475f; transform: translateY(-1px); }
+
+        /* KPI 布局调整：展示3张核心解耦卡片 */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 18px 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+            position: relative;
+        }
+        .kpi-card::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 12px 0 0 12px;
+        }
+        .kpi-card.net::before { background: var(--net-blue); }
+        .kpi-card.loan::before { background: var(--loan-purple); }
+        .kpi-card.repay::before { background: var(--repay-teal); }
+
+        .kpi-meta { font-size: 13px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
+        .kpi-num { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+        .kpi-sub { font-size: 11px; color: var(--text-muted); }
+
+        /* 核心图表区域 (2x2 网格布局) */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+            position: relative;
+        }
+        
+        .chart-card.net-highlight {
+            border: 2px solid #b9d5e3;
+            background: #f4fafc;
+        }
+
+        .chart-header {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-title);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        .chart-wrapper { width: 100%; height: 340px; }
+
+        /* 全宽表格区域 */
+        .section-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+        }
+
+        .section-header {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-title);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        /* 表格医疗级样式 */
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: #ffffff;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 1350px; 
+        }
+
+        .data-table th {
+            background: #f1f5f8;
+            color: var(--medical-blue);
+            font-weight: 700;
+            padding: 12px 10px;
+            border-bottom: 1px solid #d3e1eb;
+            border-right: 1px solid #e6ecf0;
+            text-align: right;
+        }
+        .data-table th:first-child, .data-table td:first-child {
+            text-align: left;
+            position: sticky; left: 0; background: #f8fafc; font-weight: 700; z-index: 10;
+            border-right: 2px solid #cbd5e1;
+        }
+
+        .data-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #edf2f6;
+            border-right: 1px solid #f1f5f8;
+            text-align: right;
+            color: #37474f;
+        }
+
+        .data-table tr:nth-child(even) { background-color: #fafbfc; }
+        .data-table tr:hover td { background-color: #f0f7fa; }
+
+        .money-pos { color: var(--income-green); font-weight: 700; }
+        .money-neg { color: var(--refund-orange); font-weight: 700; }
+        
+        .total-row {
+            background: #e6f2f7 !important;
+            font-weight: 700;
+            border-top: 2px solid var(--medical-blue);
+        }
+        .total-row td { color: var(--medical-blue); font-size: 13px; }
+
+        /* 加载动画 */
+        .loading-overlay {
+            position: fixed; inset: 0; background: rgba(255,255,255,0.85);
+            display: none; align-items: center; justify-content: center;
+            z-index: 2000; flex-direction: column; gap: 12px; backdrop-filter: blur(4px);
+        }
+        .spinner {
+            width: 44px; height: 44px; border: 4px solid var(--medical-blue-light);
+            border-top-color: var(--medical-blue); border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 1400px) {
+            .kpi-row { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 900px) {
+            .charts-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+    <div class="header-card">
+        <div class="title-section">
+            <h1><i class="fas fa-clinic-medical"></i> 门诊现金统计看板</h1>
+            <p><i class="fas fa-info-circle"></i> 门诊现金统计看板</p>
+        </div>
+        <div class="date-panel">
+            <div class="date-group">
+                <label><i class="far fa-calendar-alt"></i> 开始</label>
+                <input type="date" id="startDate">
+            </div>
+            <div class="date-group">
+                <label><i class="far fa-calendar-check"></i> 结束</label>
+                <input type="date" id="endDate">
+            </div>
+            <button class="btn-query" id="queryBtn"><i class="fas fa-sync-alt"></i> 查询</button>
+        </div>
+    </div>
+
+    <div class="kpi-row">
+        <div class="kpi-card net">
+            <div class="kpi-meta">单位存款凭条 (收 - 退)</div>
+            <div class="kpi-num" id="kpi_net" style="color:var(--net-blue);">¥0.00</div>
+            <div class="kpi-sub" id="kpi_net_cnt">业务对账共 0 笔</div>
+        </div>
+        <div class="kpi-card loan">
+            <div class="kpi-meta">借款</div>
+            <div class="kpi-num" id="kpi_loan" style="color:var(--loan-purple);">¥0.00</div>
+            <div class="kpi-sub">借款金额</div>
+        </div>
+        <div class="kpi-card repay">
+            <div class="kpi-meta">回款</div>
+            <div class="kpi-num" id="kpi_repay" style="color:var(--repay-teal);">¥0.00</div>
+            <div class="kpi-sub">回款金额</div>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-header">
+                <i class="fas fa-arrow-up" style="color:var(--income-green)"></i> 收入构成 
+            </div>
+            <div id="dom_inc" class="chart-wrapper"></div>
+        </div>
+        
+        <div class="chart-card">
+            <div class="chart-header">
+                <i class="fas fa-arrow-down" style="color:var(--refund-orange)"></i> 退款构成
+            </div>
+            <div id="dom_ref" class="chart-wrapper"></div>
+        </div>
+
+        <div class="chart-card net-highlight">
+            <div class="chart-header">
+                <i class="fas fa-equals" style="color:var(--net-blue)"></i> 单位存款凭条构成
+            </div>
+            <div id="dom_net" class="chart-wrapper"></div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <i class="fas fa-vault" style="color:var(--net-blue)"></i> 其他
+            </div>
+            <div id="dom_aux" class="chart-wrapper"></div>
+        </div>
+    </div>
+
+    <div class="section-card" style="margin-bottom: 0;">
+        <div class="section-header">
+            <i class="fas fa-table" style="color:var(--medical-blue)"></i> 表格明细
+        </div>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="text-align: left; min-width: 140px;">财务核算指标</th>
+                        <th>HIS预交金</th>
+                        <th>his医疗收入</th>
+                        <th>前日暂收款</th>
+                        <th>实交报表数</th>
+                        <th>疫苗收入</th>
+                        <th>门诊借款</th>
+                        <th>住院借款</th>
+                        <th>门诊回款</th>
+                        <th>住院回款</th>
+                        <th>门诊实存</th>
+                    </tr>
+                </thead>
+                <tbody id="financialTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="loading-overlay" id="loadingMask">
+    <div class="spinner"></div>
+    <div style="color: var(--medical-blue); font-weight: 700; font-size: 15px;">正与核心HIS财务系统同步账目...</div>
+</div>
+
+<script>
+    let chartObjects = {};
+    
+    const palette = {
+        inc: ['#2c7a4d', '#429a66', '#59ba82', '#73da9e', '#90fabd'],
+        ref: ['#c96f3e', '#db8453', '#ec9a6a', '#fbb183', '#ffc89d'],
+        net: ['#2c7da0', '#4196bd', '#5bb1da', '#79cdf7', '#9ee9ff'],
+        aux: ['#5a6e8a', '#7086a4', '#89a0be', '#a3bbd9', '#bdd7f5']
+    };
+
+    // 金额格式化公共函数（统一留2位小数）
+    function formatMoneyValue(val) {
+        return (val || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    function makeCleanChartOption(centerSum, dataset, colors) {
+        return {
+            title: {
+                text: `¥${formatMoneyValue(centerSum)}`,
+                top: '44%', left: '49%',
+                textStyle: {
+                    fontSize: 16, color: '#11364a', fontWeight: 'bold', align: 'center'
+                }
+            },
+            tooltip: {
+                trigger: 'item', backgroundColor: 'rgba(255,255,255,0.96)', borderColor: '#cfd8dc',
+                textStyle: { color: '#263238', fontSize: 12 }, boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                formatter: (p) => {
+                    let unit = p.data.count !== undefined ? `<br/>交易笔数: <b>${p.data.count.toLocaleString()} 笔</b>` : '';
+                    return `📊 <b>${p.data.name}</b><br/>核算金额: <b>¥${formatMoneyValue(p.data.value)}</b>${unit}<br/>分项占比: <b>${p.percent}%</b>`;
+                }
+            },
+            legend: {
+                bottom: '0', left: 'center', type: 'scroll', icon: 'circle',
+                itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 11, color: '#546e7a' }
+            },
+            color: colors,
+            series: [{
+                type: 'pie',
+                radius: ['45%', '62%'],
+                center: ['50%', '45%'],
+                avoidLabelOverlap: true,
+                itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+                label: {
+                    show: true, position: 'outside',
+                    formatter: (p) => {
+                        let valStr = `¥${formatMoneyValue(p.value)}`;
+                        return `${p.name}\n${valStr} (${p.percent}%)`;
+                    },
+                    fontSize: 12, color: '#37474f', lineHeight: 16
+                },
+                labelLine: { length: 12, length2: 10, minTurnAngle: 60, smooth: true },
+                data: dataset
+            }]
+        };
+    }
+
+    function processAndRender(body) {
+        const core = body.core_items || {};
+        const aux = body.auxiliary_items || {};
+        const sm = body.summary || {};
+
+        // 1. 更新顶部精简版看板数据
+        document.getElementById('kpi_net').innerText = `¥ ${formatMoneyValue(sm.total_net?.amount)}`;
+        document.getElementById('kpi_net_cnt').innerText = `业务对账共 ${(sm.total_net?.count || 0).toLocaleString()} 笔`;
+        document.getElementById('kpi_loan').innerText = `¥ ${formatMoneyValue(sm.total_loan?.amount)}`;
+        document.getElementById('kpi_repay').innerText = `¥ ${formatMoneyValue(sm.total_repay?.amount)}`;
+
+        // 2. 构造图表标准数据集
+        const coreKeys = ['prepay', 'clinicIncome', 'preTempReceive', 'actualReport', 'vaccine'];
+        const coreNames = ['HIS预交金', 'his医疗收入', '前日暂收款', '实交报表数', '疫苗收入'];
+
+        let dataInc = coreKeys.map((k, i) => ({ name: coreNames[i], value: core[k]?.income?.amount || 0, count: core[k]?.income?.count || 0 }));
+        let dataRef = coreKeys.map((k, i) => ({ name: coreNames[i], value: core[k]?.refund?.amount || 0, count: core[k]?.refund?.count || 0 }));
+        let dataNet = coreKeys.map((k, i) => ({ name: coreNames[i], value: Math.max(0, core[k]?.total?.amount || 0), count: core[k]?.total?.count || 0 }));
+        
+        let sumInc = dataInc.reduce((acc, curr) => acc + curr.value, 0);
+        let sumRef = dataRef.reduce((acc, curr) => acc + curr.value, 0);
+
+        let dataAux = [
+            { name: '门诊借款', value: aux.outpatientLoan?.amount || 0 },
+            { name: '住院借款', value: aux.inpatientLoan?.amount || 0 },
+            { name: '门诊回款', value: aux.outpatientRepay?.amount || 0 },
+            { name: '住院回款', value: aux.inpatientRepay?.amount || 0 },
+            { name: '门诊实存', value: aux.outpatientSave?.amount || 0 }
+        ];
+
+        // 3. 实例化与渲染
+        const draw = (id, opt) => {
+            if(!chartObjects[id]) chartObjects[id] = echarts.init(document.getElementById(id));
+            chartObjects[id].setOption(opt);
+        };
+
+        draw('dom_inc', makeCleanChartOption(sumInc, dataInc, palette.inc));
+        draw('dom_ref', makeCleanChartOption(sumRef, dataRef, palette.ref));
+        draw('dom_net', makeCleanChartOption(sm.total_net?.amount || 0, dataNet, palette.net));
+        draw('dom_aux', makeCleanChartOption(sm.total_auxiliary || 0, dataAux, palette.aux));
+
+        // 4. 填充明细账目表格
+        const tableBody = document.getElementById('financialTableBody');
+        const getV = (obj, p1, p2) => (obj?.[p1]?.[p2] !== undefined) ? obj[p1][p2] : 0;
+
+        let tableHTML = `
+            <tr>
+                <td>收入金额</td>
+                <td class="money-pos">¥ ${formatMoneyValue(getV(core.prepay,'income','amount'))}</td>
+                <td class="money-pos">¥ ${formatMoneyValue(getV(core.clinicIncome,'income','amount'))}</td>
+                <td class="money-pos">¥ ${formatMoneyValue(getV(core.preTempReceive,'income','amount'))}</td>
+                <td class="money-pos">¥ ${formatMoneyValue(getV(core.actualReport,'income','amount'))}</td>
+                <td class="money-pos">¥ ${formatMoneyValue(getV(core.vaccine,'income','amount'))}</td>
+                <td>¥ ${formatMoneyValue(aux.outpatientLoan?.amount)}</td>
+                <td>¥ ${formatMoneyValue(aux.inpatientLoan?.amount)}</td>
+                <td>¥ ${formatMoneyValue(aux.outpatientRepay?.amount)}</td>
+                <td>¥ ${formatMoneyValue(aux.inpatientRepay?.amount)}</td>
+                <td>¥ ${formatMoneyValue(aux.outpatientSave?.amount)}</td>
+            </tr>
+            <tr>
+                <td>收入笔数</td>
+                <td>${getV(core.prepay,'income','count').toLocaleString()} 笔</td>
+                <td>${getV(core.clinicIncome,'income','count').toLocaleString()} 笔</td>
+                <td>${getV(core.preTempReceive,'income','count').toLocaleString()} 笔</td>
+                <td>${getV(core.actualReport,'income','count').toLocaleString()} 笔</td>
+                <td>${getV(core.vaccine,'income','count').toLocaleString()} 笔</td>
+                <td>1 笔</td><td>1 笔</td><td>1 笔</td><td>1 笔</td><td>1 笔</td>
+            </tr>
+            <tr>
+                <td>退款金额</td>
+                <td class="money-neg">¥ ${formatMoneyValue(getV(core.prepay,'refund','amount'))}</td>
+                <td class="money-neg">¥ ${formatMoneyValue(getV(core.clinicIncome,'refund','amount'))}</td>
+                <td class="money-neg">¥ ${formatMoneyValue(getV(core.preTempReceive,'refund','amount'))}</td>
+                <td class="money-neg">¥ ${formatMoneyValue(getV(core.actualReport,'refund','amount'))}</td>
+                <td class="money-neg">¥ ${formatMoneyValue(getV(core.vaccine,'refund','amount'))}</td>
+                <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+            </tr>
+            <tr>
+                <td>退款笔数</td>
+                <td>${getV(core.prepay,'refund','count').toLocaleString()} 笔</td>
+                <td>${getV(core.clinicIncome,'refund','count').toLocaleString()} 笔</td>
+                <td>${getV(core.preTempReceive,'refund','count').toLocaleString()} 笔</td>
+                <td>${getV(core.actualReport,'refund','count').toLocaleString()} 笔</td>
+                <td>${getV(core.vaccine,'refund','count').toLocaleString()} 笔</td>
+                <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+            </tr>
+            <tr style="background: #f1f8fb; font-weight: 600;">
+                <td>单位存款</td>
+                <td>¥ ${formatMoneyValue(getV(core.prepay,'total','amount'))}</td>
+                <td>¥ ${formatMoneyValue(getV(core.clinicIncome,'total','amount'))}</td>
+                <td>¥ ${formatMoneyValue(getV(core.preTempReceive,'total','amount'))}</td>
+                <td>¥ ${formatMoneyValue(getV(core.actualReport,'total','amount'))}</td>
+                <td>¥ ${formatMoneyValue(getV(core.vaccine,'total','amount'))}</td>
+                <td>¥ ${formatMoneyValue(aux.outpatientLoan?.amount)}</td>
+                <td>¥ ${formatMoneyValue(aux.inpatientLoan?.amount)}</td>
+                <td>¥ ${formatMoneyValue(aux.outpatientRepay?.amount)}</td>
+                <td>¥ ${formatMoneyValue(aux.inpatientRepay?.amount)}</td>
+                <td>¥ ${formatMoneyValue(aux.outpatientSave?.amount)}</td>
+            </tr>
+            <tr>
+                <td>合计笔数</td>
+                <td>${getV(core.prepay,'total','count').toLocaleString()} 笔</td>
+                <td>${getV(core.clinicIncome,'total','count').toLocaleString()} 笔</td>
+                <td>${getV(core.preTempReceive,'total','count').toLocaleString()} 笔</td>
+                <td>${getV(core.actualReport,'total','count').toLocaleString()} 笔</td>
+                <td>${getV(core.vaccine,'total','count').toLocaleString()} 笔</td>
+                <td>1 笔</td><td>1 笔</td><td>1 笔</td><td>1 笔</td><td>1 笔</td>
+            </tr>
+            <tr class="total-row">
+                <td>🏥 全院财务汇总行</td>
+                <td colspan="5">核心总计 ➔ 净额: ¥ ${formatMoneyValue(sm.total_net?.amount)} | 业务笔数: ${(sm.total_net?.count || 0).toLocaleString()} 笔</td>
+                <td colspan="5">辅助总计 ➔ 运营总额: ¥ ${formatMoneyValue(sm.total_auxiliary)}</td>
+            </tr>
+        `;
+        tableBody.innerHTML = tableHTML;
+    }
+
+    async function executeLoad() {
+        const mask = document.getElementById('loadingMask');
+        mask.style.display = 'flex';
+        
+        const sDate = document.getElementById('startDate').value;
+        const eDate = document.getElementById('endDate').value;
+
+        const reqPayload = {
+            head: {
+                charset: "utf-8", encrypt_type: "AES", enterprise_id: "xinqiao", language: "zh_CN",
+                method: "orgine.powermsp.service.overt.extend.SP_GetHisIncome_938", sign: "1", sign_type: "md5",
+                sys_track_code: Math.random().toString(36).substring(2), timestamp: Date.now().toString(),
+                version: "1.0", access_token: "123456", app_id: "b16ff06f5fd44ab6b56e037d7ee1a6ed"
+            },
+            body: { start_date: sDate, end_date: eDate, extend_params1: null, extend_params2: null, extend_params3: null }
+        };
+
+        try {
+            const resp = await fetch('http://168.168.235.209:18081/pie/reports/outp-reports', {
+                method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                body: JSON.stringify(reqPayload)
+            });
+            if(!resp.ok) throw new Error(`HTTP 通讯状态异常: ${resp.status}`);
+            const json = await resp.json();
+            
+            let businessBody = json.body ? json.body : (json.result && json.code === "10000" ? json.body : null);
+            if(json.result?.code === "10000" && json.body) businessBody = json.body;
+
+            if (businessBody) {
+                processAndRender(businessBody);
+            } else {
+                throw new Error(json.result?.sub_msg || json.msg || "后端未吐出 body 体合法账目数据");
+            }
+        } catch (err) {
+            alert(`财务报表拉取失败:\n${err.message}\n提示：请确认本地服务是否正常开启，且无跨域问题。`);
+            console.error(err);
+        } finally {
+            mask.style.display = 'none';
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        // 设置默认日期为当前日期的前一天 (T-1)
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        const pad = (n) => String(n).padStart(2, '0');
+        const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+        
+        document.getElementById('startDate').value = fmt(yesterday);
+        document.getElementById('endDate').value = fmt(yesterday);
+
+        document.getElementById('queryBtn').addEventListener('click', executeLoad);
+
+        window.addEventListener('resize', () => {
+            Object.values(chartObjects).forEach(c => c && c.resize());
+        });
+
+        executeLoad();
+    });
+</script>
+</body>
+</html>

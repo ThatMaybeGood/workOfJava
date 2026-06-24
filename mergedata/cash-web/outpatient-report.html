@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>门诊财务报表</title>
+<script src="echarts.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #333; font-size: 14px; }
+.container { max-width: 1560px; margin: 0 auto; padding: 15px; background: #fff; }
+.title-bar { font-size: 16px; font-weight: bold; margin-bottom: 12px; border-left: 4px solid #1890ff; padding-left: 8px; }
+.title-bar span { font-size: 13px; color: #999; font-weight: normal; margin-left: 10px; }
+
+/* 外层标签 */
+.outer-tabs { display: flex; align-items: center; margin-bottom: 15px; flex-wrap: wrap; }
+.outer-tab { padding: 6px 16px; border: 1px solid #d9d9d9; background: #fff; cursor: pointer; font-size: 13px; color: #666; transition: all .2s; }
+.outer-tab:first-child { border-radius: 4px 0 0 4px; }
+.outer-tab:nth-child(3) { border-radius: 0 4px 4px 0; }
+.outer-tab.active { background: #1890ff; color: #fff; border-color: #1890ff; }
+.outer-tab:not(:first-child) { border-left: none; }
+.time-label { margin-left: 15px; color: #999; font-size: 13px; }
+.time-group { display: flex; align-items: center; margin-left: 10px; }
+.time-btn { padding: 6px 14px; border: 1px solid #d9d9d9; background: #fff; cursor: pointer; font-size: 13px; }
+.time-btn:first-child { border-radius: 4px 0 0 4px; }
+.time-btn:last-child { border-radius: 0 4px 4px 0; }
+.time-btn:not(:first-child) { border-left: none; }
+.time-btn.active { background: #1890ff; color: #fff; border-color: #1890ff; }
+.date-range { margin-left: 10px; display: flex; align-items: center; }
+.date-input { padding: 5px 10px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; width: 120px; cursor: pointer; }
+.date-input::-webkit-calendar-picker-indicator { cursor: pointer; }
+
+/* 自定义月份选择器 */
+.month-picker-wrap { position: relative; display: inline-block; }
+.month-picker-trigger { padding: 5px 10px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; cursor: pointer; background: #fff; text-align: left; display: flex; align-items: center; }
+.month-picker-trigger:hover { border-color: #1890ff; }
+.month-picker-trigger .cal-icon { color: #bbb; font-size: 14px; margin-right: 8px; }
+.month-picker-trigger .range-sep { color: #999; margin: 0 4px; }
+.month-picker-trigger .range-start, .month-picker-trigger .range-end { min-width: 70px; text-align: center; }
+.month-picker-trigger .range-start.picking, .month-picker-trigger .range-end.picking { color: #1890ff; border-bottom: 2px solid #1890ff; }
+.month-picker-dropdown { position: absolute; top: 100%; left: 0; z-index: 999; background: #fff; border: 1px solid #d9d9d9; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.15); padding: 10px; width: 260px; display: none; }
+.month-picker-dropdown.show { display: block; }
+.mp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.mp-header button { background: none; border: none; cursor: pointer; font-size: 16px; color: #666; padding: 2px 8px; border-radius: 4px; }
+.mp-header button:hover { background: #f0f0f0; }
+.mp-header .mp-year { font-size: 14px; font-weight: bold; }
+.mp-months { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.mp-month { padding: 6px 0; text-align: center; border-radius: 4px; cursor: pointer; font-size: 13px; border: 1px solid transparent; transition: all .15s; }
+.mp-month:hover { border-color: #1890ff; color: #1890ff; }
+.mp-month.selected { background: #1890ff; color: #fff; }
+.mp-month.current { border-color: #1890ff; }
+.mp-days-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px; }
+.mp-days-header span { text-align: center; font-size: 12px; color: #999; padding: 4px 0; }
+.mp-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.mp-day { padding: 5px 0; text-align: center; border-radius: 4px; cursor: pointer; font-size: 13px; border: 1px solid transparent; transition: all .15s; }
+.mp-day:hover { border-color: #1890ff; color: #1890ff; }
+.mp-day.selected { background: #1890ff; color: #fff; }
+.mp-day.current { border-color: #1890ff; }
+.mp-day.other-month { color: #ccc; }
+.mp-day.in-range { background: #e6f7ff; }
+.mp-month.in-range { background: #e6f7ff; }
+.mp-month-btn { cursor: pointer; padding: 2px 4px; border-radius: 4px; }
+.mp-month-btn:hover { background: #f0f0f0; }
+
+/* 卡片 */
+.card-row { display: flex; margin: 0 -7.5px 15px; }
+.stat-card { flex: 1; border: 1px solid #e0f0ff; border-radius: 6px; padding: 15px 20px; background: linear-gradient(135deg, #f0f8ff, #fff); display: flex; align-items: center; margin: 0 7.5px; }
+.card-icon { font-size: 32px; color: #1890ff; margin-right: 15px; }
+.card-icon svg { width: 36px; height: 36px; }
+.card-value { font-size: 28px; font-weight: bold; color: #1890ff; }
+.card-label { font-size: 12px; color: #1890ff; }
+.card-label a { color: #1890ff; text-decoration: none; }
+.card-yoy { font-size: 12px; color: #999; margin-left: 20px; }
+
+/* 表格 */
+.data-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+.data-table th, .data-table td { border: 1px solid #e8e8e8; padding: 8px 12px; text-align: center; font-size: 13px; }
+.data-table th { background: #f0f8ff; color: #1890ff; font-weight: normal; }
+.empty-data { text-align: center; padding: 40px; color: #ccc; }
+.empty-data .icon { font-size: 60px; margin-bottom: 8px; }
+.pagination { text-align: right; padding: 8px 0; color: #999; font-size: 13px; margin-bottom: 15px; display: flex; align-items: center; justify-content: flex-end; }
+.pagination button { margin-left: 8px; }
+.pagination .pagi-info { margin-right: 10px; }
+.pagination button { padding: 3px 10px; border: 1px solid #d9d9d9; background: #fff; cursor: pointer; border-radius: 4px; font-size: 13px; }
+.pagination button:hover:not(:disabled) { border-color: #1890ff; color: #1890ff; }
+.pagination button:disabled { color: #ccc; cursor: not-allowed; }
+.pagination .pagi-current { background: #1890ff; color: #fff; border-color: #1890ff; }
+.pagination select { padding: 3px 6px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; }
+.pagination .pagi-jump input { width: 40px; padding: 3px 6px; border: 1px solid #d9d9d9; border-radius: 4px; text-align: center; font-size: 13px; }
+
+/* 内层标签 */
+.inner-tabs { display: flex; margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; }
+.inner-tab { padding: 8px 18px; cursor: pointer; font-size: 13px; color: #666; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+.inner-tab.active { color: #fff; background: #1890ff; border-radius: 4px 4px 0 0; border-bottom-color: #1890ff; }
+
+/* 图表区域 */
+.chart-section { margin-bottom: 20px; }
+.chart-title { font-size: 15px; font-weight: bold; text-align: center; margin: 10px 0; }
+.chart-legend { display: flex; margin-bottom: 5px; font-size: 12px; color: #666; }
+.legend-item { display: flex; align-items: center; margin-right: 15px; }
+.legend-dot { width: 12px; height: 3px; border-radius: 1px; }
+.chart-box { width: 100%; height: 300px; }
+.pie-row { display: flex; margin-top: 15px; }
+.pie-row > div { margin-right: 20px; }
+.pie-row > div:last-child { margin-right: 0; }
+.pie-item { flex: 1; }
+.pie-title { font-size: 14px; font-weight: bold; margin-bottom: 5px; }
+.pie-chart { width: 100%; height: 250px; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* 全局加载遮罩 */
+.loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.6); z-index: 9999; justify-content: center; align-items: center; }
+.loading-overlay.show { display: flex; }
+.loading-spinner { text-align: center; }
+.loading-spinner .spinner { width: 36px; height: 36px; border: 3px solid #e0e0e0; border-top-color: #1890ff; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 8px; }
+.loading-spinner .spinner-text { font-size: 13px; color: #666; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<!-- 全局加载遮罩 -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner">
+    <div class="spinner"></div>
+    <div class="spinner-text">加载中...</div>
+  </div>
+</div>
+<div class="container">
+  <div class="title-bar">门诊财务报表</div>
+
+  <!-- 外层标签 + 时间控件 -->
+  <div class="outer-tabs">
+    <div class="outer-tab active" data-outer="summary">汇总统计</div>
+    <div class="outer-tab" data-outer="income">进项统计</div>
+    <div class="outer-tab" data-outer="refund">退项统计</div>
+    <span class="time-label">统计时间:</span>
+    <div class="time-group">
+      <div class="time-btn active" data-mode="month">按月统计</div>
+      <div class="time-btn" data-mode="day">按天统计</div>
+    </div>
+    <div class="date-range">
+      <div class="month-picker-wrap" id="rangePicker">
+        <div class="month-picker-trigger" onclick="toggleRangePicker()">
+          <span class="cal-icon">📅</span>
+          <span class="range-start picking" id="rangeStartDisplay">2026-04</span>
+          <span class="range-sep">—</span>
+          <span class="range-end" id="rangeEndDisplay">2026-04</span>
+        </div>
+        <div class="month-picker-dropdown" data-year="2026" data-month="4" data-day="1"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 汇总统计 ==================== -->
+  <div class="tab-content active" id="outer-summary">
+    <div class="card-row" id="cards-summary">
+      <div class="stat-card" title="门诊量：总订单数 - 总退号数"><div class="card-icon">📊</div><div><div class="card-value" data-field="outpatient_volume">000</div><div class="card-label"><a href="#">门诊量</a>◎</div></div><div class="card-yoy" data-field="outpatient_volume_yoy">同比</div></div>
+      <div class="stat-card" title="缴费人次：收费人次 - 退费人次按收费批次号统计，挂号 / 退号一次算一次，一次缴费 / 退要多张单据算一次"><div class="card-icon">📊</div><div><div class="card-value" data-field="number_charges">000</div><div class="card-label"><a href="#">缴费人次</a>◎</div></div><div class="card-yoy" data-field="number_charges_yoy">同比</div></div>
+      <div class="stat-card" title="收据张数：收费单据张数 - 退费单据张数"><div class="card-icon">📊</div><div><div class="card-value" data-field="number_receipt">000</div><div class="card-label"><a href="#">收据张数</a>◎</div></div><div class="card-yoy" data-field="number_receipt_yoy">同比</div></div>
+      <div class="stat-card" title="净收入金额：收费总金额 - 退费总金额"><div class="card-icon">📊</div><div><div class="card-value" data-field="amount">000</div><div class="card-label"><a href="#">净收入金额</a>◎</div></div><div class="card-yoy" data-field="amount_yoy">同比</div></div>
+    </div>
+    <table class="data-table" id="table-summary">
+      <thead>
+      <tr><th rowspan="2">日期</th><th colspan="3">门诊量</th><th colspan="3">缴费人次</th><th colspan="3">收据张数</th><th colspan="3">净收入金额</th></tr>
+      <tr><th>去年同期</th><th>当前日期</th><th>同比</th><th>去年同期</th><th>当前日期</th><th>同比</th><th>去年同期</th><th>当前日期</th><th>同比</th><th>去年同期</th><th>当前日期</th><th>同比</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="empty-data" id="empty-summary"><div class="icon">🖨️</div><div>暂无数据</div></div>
+    <div class="pagination" id="pagi-summary"></div>
+
+    <!-- 内层标签 -->
+    <div class="inner-tabs">
+      <div class="inner-tab active" data-inner="summary-visit">门诊量分析</div>
+      <div class="inner-tab" data-inner="summary-pay">缴费人次分析</div>
+      <div class="inner-tab" data-inner="summary-receipt">收据张数分析</div>
+      <div class="inner-tab" data-inner="summary-net">净收入金额分析</div>
+    </div>
+
+    <!-- 1. 汇总-门诊量分析 -->
+    <div class="tab-content active" id="inner-summary-visit">
+      <div class="chart-title">门诊量分析</div>
+      <div id="chart-summary-visit" class="chart-box"></div>
+      <div class="pie-row">
+        <div class="pie-item"><div class="pie-title">订单来源分析</div><div id="pie-summary-visit-1" class="pie-chart"></div></div>
+        <div class="pie-item"><div class="pie-title">取号渠道分析</div><div id="pie-summary-visit-2" class="pie-chart"></div></div>
+        <div class="pie-item"><div class="pie-title">订单渠道分析</div><div id="pie-summary-visit-3" class="pie-chart"></div></div>
+      </div>
+    </div>
+
+    <!-- 2. 汇总-缴费人次分析 -->
+    <div class="tab-content" id="inner-summary-pay">
+      <div class="chart-title">缴费人次分析</div>
+      <div id="chart-summary-pay" class="chart-box"></div>
+      <div class="pie-row">
+        <div class="pie-item"><div class="pie-title">缴费费人次渠道分析</div><div id="pie-summary-pay-1" class="pie-chart"></div></div>
+        <div class="pie-item"><div class="pie-title">缴费人次支付方式分析</div><div id="pie-summary-pay-2" class="pie-chart"></div></div>
+      </div>
+    </div>
+
+    <!-- 3. 汇总-收据张数分析 -->
+    <div class="tab-content" id="inner-summary-receipt">
+      <div class="chart-title">收据张数分析</div>
+      <div id="chart-summary-receipt" class="chart-box"></div>
+    </div>
+
+    <!-- 4. 汇总-净收入金额分析 -->
+    <div class="tab-content" id="inner-summary-net">
+      <div class="chart-title">净收入金额分析</div>
+      <div id="chart-summary-net" class="chart-box"></div>
+      <div class="pie-row">
+        <div class="pie-item"><div class="pie-title">净收入渠道金额分析</div><div id="pie-summary-net-1" class="pie-chart"></div></div>
+        <div class="pie-item"><div class="pie-title">净收入支付方式分析</div><div id="pie-summary-net-2" class="pie-chart"></div></div>
+        <div class="pie-item"><div class="pie-title">净收入业务类型金额分析</div><div id="pie-summary-net-3" class="pie-chart"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 进项统计 ==================== -->
+  <div class="tab-content" id="outer-income">
+    <div class="card-row" id="cards-income">
+      <div class="stat-card" title="门诊量：总订单数 - 总退号数"><div class="card-icon">📊</div><div><div class="card-value" data-field="outpatient_volume">000</div><div class="card-label"><a href="#">门诊量</a>◎</div></div><div class="card-yoy" data-field="outpatient_volume_yoy">同比</div></div>
+      <div class="stat-card" title="缴费人次：按收费批次号统计，挂号一次算一次，一次缴费多张单据算一次"><div class="card-icon">📊</div><div><div class="card-value" data-field="number_charges">000</div><div class="card-label"><a href="#">缴费人次</a>◎</div></div><div class="card-yoy" data-field="number_charges_yoy">同比</div></div>
+      <div class="stat-card" title="收据张数：收费单据张数"><div class="card-icon">📊</div><div><div class="card-value" data-field="number_receipt">000</div><div class="card-label"><a href="#">收据张数</a>◎</div></div><div class="card-yoy" data-field="number_receipt_yoy">同比</div></div>
+      <div class="stat-card" title="收入金额：收费总金额"><div class="card-icon">📊</div><div><div class="card-value" data-field="amount">000</div><div class="card-label"><a href="#">收入金额</a>◎</div></div><div class="card-yoy" data-field="amount_yoy">同比</div></div>
+    </div>
+    <table class="data-table" id="table-income">
+      <thead>
+      <tr><th rowspan="2">日期</th><th colspan="3">门诊量</th><th colspan="3">缴费人次</th><th colspan="3">收据张数</th><th colspan="3">收入金额</th></tr>
+      <tr><th>去年同期</th><th>当前日期</th><th>同比</th><th>去年同期</th><th>当前日期</th><th>同比</th><th>去年同期</th><th>当前日期</th><th>同比</th><th>去年同期</th><th>当前日期</th><th>同比</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="empty-data" id="empty-income"><div class="icon">🖨️</div><div>暂无数据</div></div>
+    <div class="pagination" id="pagi-income"></div>
+
+    <div class="inner-tabs">
+      <div class="inner-tab active" data-inner="income-visit">门诊量分析</div>
+      <div class="inner-tab" data-inner="income-pay">缴费人次分析</div>
+      <div class="inner-tab" data-inner="income-receipt">收据张数分析</div>
+      <div class="inner-tab" data-inner="income-amount">收入金额分析</div>
+    </div>
+
+    <!-- 5. 进项-门诊量分析 -->
+    <div class="tab-content active" id="inner-income-visit">
+      <div class="chart-title">门诊量分析</div>
+      <div id="chart-income-visit" class="chart-box"></div>
+      <div class="pie-row">
+        <div class="pie-item"><div class="pie-title">订单来源分析</div><div id="pie-income-visit-1" class="pie-chart"></div></div>
+        <div class="pie-item"><div class="pie-title">取号渠道分析</div><div id="pie-income-visit-2" class="pie-chart"></div></div>
+        <div class="pie-item"><div class="pie-title">订单渠道分析</div><div id="pie-income-visit-3" class="pie-chart"></div></div>
+      </div>
+    </div>
+
+    <!-- 6. 进项-缴费人次分析 -->
+    <div class="tab-content" id="inner-income-pay">
+      <div class="chart-title">缴费人次分析</div>
+      <div id="chart-income-pay" class="chart-box"></div>
+      <div class="pie-row">
+        <div class="pie-item"><div class="pie-title">缴费人次渠道分析</div><div id="pie-income-pay-1" class="pie-chart"></div></div>
+        <div class="pie-item"><div class="pie-title">缴费人次支付方式分析</div><div id="pie-income-pay-2" class="pie-chart"></div></div>
+      </div>
+    </div>
+
+    <!-- 7. 进项-收据张数分析 -->
+    <div class="tab-content" id="inner-income-receipt">
+      <div class="chart-title">收据张数分析</div>
+      <div id="chart-income-receipt" class="chart-box"></div>
+    </div>
+
+    <!-- 8. 进项-收入金额分析 -->
+    <div class="tab-content" id="inner-income-amount">
+      <div class="chart-title">收入金额分析</div>
+      <div id="chart-income-amount" class="chart-box"></div>
+      <div class="pie-row">
+        <div class="pie-item"><div class="pie-title">收入金额渠道分析</div><div id="pie-income-amount-1" class="pie-chart"></div></div>
+        <div class="pie-item"><div class="pie-title">收入金额支付方式分析</div><div id="pie-income-amount-2" class="pie-chart"></div></div>
+        <div class="pie-item"><div class="pie-title">收入金额业务类型分析</div><div id="pie-income-amount-3" class="pie-chart"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 退项统计 ==================== -->
+  <div class="tab-content" id="outer-refund">
+    <div class="card-row" id="cards-refund">
+      <div class="stat-card" title="门诊量：总订单数 - 总退号数"><div class="card-icon">📊</div><div><div class="card-value" data-field="outpatient_volume">000</div><div class="card-label"><a href="#">门诊量</a>◎</div></div><div class="card-yoy" data-field="outpatient_volume_yoy">同比</div></div>
+      <div class="stat-card" title="退费人次：按退费批次号统计，退号一次算一次，一次退费多张单据算一次"><div class="card-icon">📊</div><div><div class="card-value" data-field="number_charges">000</div><div class="card-label"><a href="#">退费人次</a>◎</div></div><div class="card-yoy" data-field="number_charges_yoy">同比</div></div>
+      <div class="stat-card" title="收据张数：退费单据张数"><div class="card-icon">📊</div><div><div class="card-value" data-field="number_receipt">000</div><div class="card-label"><a href="#">收据张数</a>◎</div></div><div class="card-yoy" data-field="number_receipt_yoy">同比</div></div>
+      <div class="stat-card" title="退费金额：收费总金额"><div class="card-icon">📊</div><div><div class="card-value" data-field="amount">000</div><div class="card-label"><a href="#">退费金额</a>◎</div></div><div class="card-yoy" data-field="amount_yoy">同比</div></div>
+    </div>
+    <table class="data-table" id="table-refund">
+      <thead>
+      <tr><th rowspan="2">日期</th><th colspan="3">门诊量</th><th colspan="3">缴费人次</th><th colspan="3">收据张数</th><th colspan="3">退费金额</th></tr>
+      <tr><th>去年同期</th><th>当前日期</th><th>同比</th><th>去年同期</th><th>当前日期</th><th>同比</th><th>去年同期</th><th>当前日期</th><th>同比</th><th>去年同期</th><th>当前日期</th><th>同比</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="empty-data" id="empty-refund"><div class="icon">🖨️</div><div>暂无数据</div></div>
+    <div class="pagination" id="pagi-refund"></div>
+
+    <div class="inner-tabs">
+      <div class="inner-tab active" data-inner="refund-visit">门诊量分析</div>
+      <div class="inner-tab" data-inner="refund-pay">退费人次分析</div>
+      <div class="inner-tab" data-inner="refund-receipt">收据张数分析</div>
+      <div class="inner-tab" data-inner="refund-amount">退费金额分析</div>
+    </div>
+
+    <!-- 9. 退项-门诊量分析 -->
+    <div class="tab-content active" id="inner-refund-visit">
+      <div class="chart-title">门诊量分析</div>
+      <div id="chart-refund-visit" class="chart-box"></div>
+      <div class="pie-row">
+        <div class="pie-item"><div class="pie-title">订单来源分析</div><div id="pie-refund-visit-1" class="pie-chart"></div></div>
+        <div class="pie-item"><div class="pie-title">取号渠道分析</div><div id="pie-refund-visit-2" class="pie-chart"></div></div>
+        <div class="pie-item"><div class="pie-title">订单渠道分析</div><div id="pie-refund-visit-3" class="pie-chart"></div></div>
+      </div>
+    </div>
+
+    <!-- 10. 退项-退费人次分析 -->
+    <div class="tab-content" id="inner-refund-pay">
+      <div class="chart-title">退费人次分析</div>
+      <div id="chart-refund-pay" class="chart-box"></div>
+      <div class="pie-row">
+        <div class="pie-item"><div class="pie-title">退费人次渠道分析</div><div id="pie-refund-pay-1" class="pie-chart"></div></div>
+        <div class="pie-item"><div class="pie-title">退费人次支付方式分析</div><div id="pie-refund-pay-2" class="pie-chart"></div></div>
+      </div>
+    </div>
+
+    <!-- 11. 退项-收据张数分析 -->
+    <div class="tab-content" id="inner-refund-receipt">
+      <div class="chart-title">收据张数分析</div>
+      <div id="chart-refund-receipt" class="chart-box"></div>
+    </div>
+
+    <!-- 12. 退项-退费金额分析 -->
+    <div class="tab-content" id="inner-refund-amount">
+      <div class="chart-title">退费金额分析</div>
+      <div id="chart-refund-amount" class="chart-box"></div>
+      <div class="pie-row">
+        <div class="pie-item"><div class="pie-title">退费金额渠道分析</div><div id="pie-refund-amount-1" class="pie-chart"></div></div>
+        <div class="pie-item"><div class="pie-title">退费金额支付方式分析</div><div id="pie-refund-amount-2" class="pie-chart"></div></div>
+        <div class="pie-item"><div class="pie-title">退费金额业务类型分析</div><div id="pie-refund-amount-3" class="pie-chart"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 日期范围选择器变量（提前声明，防止 onclick 调用时未初始化） =====
+var pickerMode = 'month';
+var monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+var weekDays = ['日','一','二','三','四','五','六'];
+var rangeStep = 'start';
+var rangeStart = { year: 2026, month: 4, day: 1 };
+var rangeEnd = { year: 2026, month: 4, day: 1 };
+
+// ===== 统计类型映射 =====
+var statisticTypeMap = { summary: '1', income: '2', refund: '3' };
+var cardsIdMap = { summary: 'cards-summary', income: 'cards-income', refund: 'cards-refund' };
+var currentOuter = 'summary';
+
+// ===== 接口调用 =====
+var API_URL = 'http://168.168.235.104:18117/orgine/poweretl/service/api';
+
+// 解析响应（兼容GBK/GB2312编码）
+function parseResponse(res) {
+  // 优先从 Content-Type 响应头中提取 charset
+  var ct = res.headers.get('Content-Type') || '';
+  var charsetMatch = ct.match(/charset\s*=\s*([\w\-]+)/i);
+  var headerCharset = charsetMatch ? charsetMatch[1].toLowerCase().replace(/^\s+|\s+$/g, '') : '';
+
+  return res.arrayBuffer().then(function(buf) {
+    // 如果响应头明确指定了编码，直接使用
+    if (headerCharset) {
+      var mapped = headerCharset;
+      // gb2312 / gbk / gb18030 统一用 gbk 解码
+      if (mapped === 'gb2312' || mapped === 'gb18030') mapped = 'gbk';
+      try {
+        var text = new TextDecoder(mapped).decode(buf);
+        return JSON.parse(text);
+      } catch(e) {
+        console.warn('[parseResponse] 按响应头charset=' + headerCharset + '解码失败，进入自动检测', e);
+      }
+    }
+    // 用 fatal:true 严格模式尝试 UTF-8，非法字节会直接抛错
+    try {
+      var utf8Text = new TextDecoder('utf-8', { fatal: true }).decode(buf);
+      return JSON.parse(utf8Text);
+    } catch(e) {}
+    // UTF-8 严格解码失败，用 GBK 解码
+    try {
+      var gbkText = new TextDecoder('gbk').decode(buf);
+      return JSON.parse(gbkText);
+    } catch(e2) {}
+    // 兜底（宽松 UTF-8）
+    var fallback = new TextDecoder('utf-8').decode(buf);
+    return JSON.parse(fallback);
+  });
+}
+
+// ===== 全局加载计数器 =====
+var loadingCount = 0;
+function showLoading() {
+  loadingCount++;
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading() {
+  loadingCount--;
+  if (loadingCount <= 0) {
+    loadingCount = 0;
+    document.getElementById('loadingOverlay').classList.remove('show');
+  }
+}
+
+function getDateRange() {
+  var startText = document.getElementById('rangeStartDisplay').textContent;
+  var endText = document.getElementById('rangeEndDisplay').textContent;
+  return { startTime: startText, endTime: endText };
+}
+
+function fetchIndicator(outerType) {
+  var dateRange = getDateRange();
+  var timeType = (pickerMode === 'day') ? '2' : '1';
+
+  console.log('[fetchIndicator] 请求:', outerType, { time_type: timeType, statistic_type: statisticTypeMap[outerType], start: dateRange.startTime, end: dateRange.endTime });
+
+  var reqBody = {
+    head: {
+      charset: 'utf-8',
+      encrypt_type: 'AES',
+      enterprise_id: 'jydxxqyy',
+      language: 'zh_CN',
+      method: 'orgine.poweretl.service.api.dataserve.getIndicator',
+      sign: '123',
+      sign_type: 'md5',
+      sys_track_code: '490a7c499c454e628244a4a633e0e8d1',
+      timestamp: String(Date.now()),
+      version: '1.0',
+      access_token: '8314111658654b3b897e53ed03bc7acc1775789150707642968',
+      app_id: '8314111658654b3b897e53ed03bc7acc'
+    },
+    body: {
+      info: {
+        time_type: timeType,
+        statistic_type: statisticTypeMap[outerType],
+        statistic_start_time: dateRange.startTime,
+        statistic_end_time: dateRange.endTime
+      }
+    }
+  };
+
+  showLoading();
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(reqBody)
+  })
+  .then(function(res) { return parseResponse(res); })
+  .then(function(data) {
+    console.log('[fetchIndicator] 响应:', data);
+    if (data && data.body && data.body.info) {
+      updateCards(outerType, data.body.info);
+    }
+  })
+  .catch(function(err) {
+    console.error('[fetchIndicator] 接口调用失败:', err);
+  })
+  .then(function() { hideLoading(); });
+}
+
+function updateCards(outerType, info) {
+  var container = document.getElementById(cardsIdMap[outerType]);
+  if (!container) return;
+  var fields = ['outpatient_volume', 'number_charges', 'number_receipt', 'amount'];
+  fields.forEach(function(field) {
+    var valEl = container.querySelector('[data-field="' + field + '"]');
+    var yoyEl = container.querySelector('[data-field="' + field + '_yoy"]');
+    if (valEl && info[field] !== undefined) {
+      valEl.textContent = info[field];
+    }
+    if (yoyEl && info[field + '_yoy'] !== undefined) {
+      yoyEl.textContent = '同比 ' + info[field + '_yoy'];
+    }
+  });
+}
+
+// ===== 列表接口 =====
+var tableIdMap = { summary: 'table-summary', income: 'table-income', refund: 'table-refund' };
+var emptyIdMap = { summary: 'empty-summary', income: 'empty-income', refund: 'empty-refund' };
+var pagiIdMap = { summary: 'pagi-summary', income: 'pagi-income', refund: 'pagi-refund' };
+
+// 每个标签页的列表数据和分页状态
+var listState = {
+  summary: { data: [], page: 1, pageSize: 10 },
+  income: { data: [], page: 1, pageSize: 10 },
+  refund: { data: [], page: 1, pageSize: 10 }
+};
+
+function calcYoy(current, lastYear) {
+  var cur = parseFloat(current) || 0;
+  var last = parseFloat(lastYear) || 0;
+  if (last === 0) return '--';
+  return ((cur - last) / last * 100).toFixed(2) + '%';
+}
+
+function fetchDetailList(outerType) {
+  var dateRange = getDateRange();
+  var timeType = (pickerMode === 'day') ? '2' : '1';
+
+  console.log('[fetchDetailList] 请求:', outerType, { time_type: timeType, statistic_type: statisticTypeMap[outerType], start: dateRange.startTime, end: dateRange.endTime });
+
+  var reqBody = {
+    head: {
+      charset: 'utf-8',
+      encrypt_type: 'AES',
+      enterprise_id: 'jydxxqyy',
+      language: 'zh_CN',
+      method: 'orgine.poweretl.service.api.dataserve.getIndicatorDetailList',
+      sign: '123',
+      sign_type: 'md5',
+      sys_track_code: 'c98fd8feeffe430d9fc9fe4b9408df91',
+      timestamp: String(Date.now()),
+      version: '1.0',
+      access_token: '8314111658654b3b897e53ed03bc7acc1776131087844967256',
+      app_id: '8314111658654b3b897e53ed03bc7acc'
+    },
+    body: {
+      info: {
+        time_type: timeType,
+        statistic_type: statisticTypeMap[outerType],
+        statistic_start_time: dateRange.startTime,
+        statistic_end_time: dateRange.endTime
+      }
+    }
+  };
+
+  console.log('[fetchDetailList] 请求:', outerType, reqBody.body.info);
+
+  showLoading();
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(reqBody)
+  })
+  .then(function(res) { return parseResponse(res); })
+  .then(function(data) {
+    console.log('[fetchDetailList] 响应:', data);
+    var list = (data && data.body && data.body.info) ? data.body.info : [];
+    if (!Array.isArray(list)) list = [];
+    listState[outerType].data = list;
+    listState[outerType].page = 1;
+    renderTable(outerType);
+  })
+  .catch(function(err) {
+    console.error('[fetchDetailList] 接口调用失败:', err);
+    listState[outerType].data = [];
+    listState[outerType].page = 1;
+    renderTable(outerType);
+  })
+  .then(function() { hideLoading(); });
+}
+
+function renderTable(outerType) {
+  var state = listState[outerType];
+  var allData = state.data;
+  var page = state.page;
+  var pageSize = state.pageSize;
+  var total = allData.length;
+  var totalPages = Math.max(1, Math.ceil(total / pageSize));
+  if (page > totalPages) page = totalPages;
+  state.page = page;
+
+  var tbody = document.querySelector('#' + tableIdMap[outerType] + ' tbody');
+  var emptyEl = document.getElementById(emptyIdMap[outerType]);
+  var pagiEl = document.getElementById(pagiIdMap[outerType]);
+
+  if (total === 0) {
+    tbody.innerHTML = '';
+    emptyEl.style.display = 'block';
+    pagiEl.innerHTML = '<span class="pagi-info">' + pageSize + '条/页 共 0 条</span>';
+    return;
+  }
+
+  emptyEl.style.display = 'none';
+  var start = (page - 1) * pageSize;
+  var end = Math.min(start + pageSize, total);
+  var pageData = allData.slice(start, end);
+
+  var html = '';
+  pageData.forEach(function(row) {
+    var ovYoy = calcYoy(row.current_date_outpatient_volume, row.last_year_outpatient_volume);
+    var ncYoy = calcYoy(row.current_date_number_charges, row.last_year_number_charges);
+    var nrYoy = calcYoy(row.current_date_number_receipt, row.last_year_number_receipt);
+    var amYoy = calcYoy(row.current_date_amount, row.last_year_amount);
+
+    html += '<tr>';
+    html += '<td>' + (row.date_time || '') + '</td>';
+    // 门诊量
+    html += '<td>' + (row.last_year_outpatient_volume || '0') + '</td>';
+    html += '<td>' + (row.current_date_outpatient_volume || '0') + '</td>';
+    html += '<td>' + ovYoy + '</td>';
+    // 缴费人次
+    html += '<td>' + (row.last_year_number_charges || '0') + '</td>';
+    html += '<td>' + (row.current_date_number_charges || '0') + '</td>';
+    html += '<td>' + ncYoy + '</td>';
+    // 收据张数
+    html += '<td>' + (row.last_year_number_receipt || '0') + '</td>';
+    html += '<td>' + (row.current_date_number_receipt || '0') + '</td>';
+    html += '<td>' + nrYoy + '</td>';
+    // 金额
+    html += '<td>' + (row.last_year_amount || '0') + '</td>';
+    html += '<td>' + (row.current_date_amount || '0') + '</td>';
+    html += '<td>' + amYoy + '</td>';
+    html += '</tr>';
+  });
+  tbody.innerHTML = html;
+
+  // 分页
+  var ph = '';
+  ph += '<span class="pagi-info">' + pageSize + '条/页 共 ' + total + ' 条</span>';
+  ph += '<button ' + (page <= 1 ? 'disabled' : '') + ' onclick="gotoPage(\'' + outerType + '\', ' + (page - 1) + ')">&lt;</button>';
+  for (var p = 1; p <= totalPages; p++) {
+    if (totalPages > 7 && Math.abs(p - page) > 2 && p !== 1 && p !== totalPages) {
+      if (p === 2 || p === totalPages - 1) ph += '<span>...</span>';
+      continue;
+    }
+    ph += '<button class="' + (p === page ? 'pagi-current' : '') + '" onclick="gotoPage(\'' + outerType + '\', ' + p + ')">' + p + '</button>';
+  }
+  ph += '<button ' + (page >= totalPages ? 'disabled' : '') + ' onclick="gotoPage(\'' + outerType + '\', ' + (page + 1) + ')">&gt;</button>';
+  ph += '<select onchange="changePageSize(\'' + outerType + '\', this.value)">';
+  [10, 20, 50].forEach(function(s) {
+    ph += '<option value="' + s + '"' + (s === pageSize ? ' selected' : '') + '>' + s + ' 条/页</option>';
+  });
+  ph += '</select>';
+  ph += '<span class="pagi-jump">跳至 <input type="number" min="1" max="' + totalPages + '" value="' + page + '" onkeydown="if(event.key===\'Enter\')gotoPage(\'' + outerType + '\',parseInt(this.value))"> 页</span>';
+  ph += '<button onclick="var v=this.previousElementSibling.querySelector(\'input\').value;gotoPage(\'' + outerType + '\',parseInt(v))">确定</button>';
+  pagiEl.innerHTML = ph;
+}
+
+function gotoPage(outerType, page) {
+  var state = listState[outerType];
+  var totalPages = Math.max(1, Math.ceil(state.data.length / state.pageSize));
+  if (page < 1) page = 1;
+  if (page > totalPages) page = totalPages;
+  state.page = page;
+  renderTable(outerType);
+}
+
+function changePageSize(outerType, size) {
+  listState[outerType].pageSize = parseInt(size);
+  listState[outerType].page = 1;
+  renderTable(outerType);
+}
+
+// 统一查询函数：查询指标卡片、列表，以及当前激活内层tab的柱状图
+function fetchAll(outerType) {
+  fetchIndicator(outerType);
+  fetchDetailList(outerType);
+  // 获取当前激活的内层tab对应的柱状图
+  var outerEl = document.getElementById('outer-' + outerType);
+  var activeInner = outerEl ? outerEl.querySelector('.inner-tab.active') : null;
+  if (activeInner) {
+    var id = activeInner.dataset.inner;
+    var suffix = id.split('-').pop();
+    var bt = innerTabBusinessMap[suffix];
+    if (bt) fetchBarData(outerType, bt);
+    // 获取当前激活内层tab的饼图
+    fetchPiesForInnerTab(outerType, suffix);
+  }
+}
+document.querySelectorAll('.outer-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.outer-tab').forEach(function(t) { t.classList.remove('active'); });
+    this.classList.add('active');
+    var id = this.dataset.outer;
+    currentOuter = id;
+    document.querySelectorAll('.container > .tab-content').forEach(function(c) { c.classList.remove('active'); });
+    document.getElementById('outer-' + id).classList.add('active');
+    setTimeout(resizeAllCharts, 50);
+    fetchAll(id);
+  });
+});
+
+// 内层tab后缀 -> business_type 映射
+var innerTabBusinessMap = { 'visit': '1', 'pay': '2', 'receipt': '3', 'net': '4', 'amount': '4' };
+
+document.querySelectorAll('.inner-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    var parent = this.closest('.tab-content');
+    parent.querySelectorAll('.inner-tab').forEach(function(t) { t.classList.remove('active'); });
+    this.classList.add('active');
+    var id = this.dataset.inner;
+    // 兼容低版本Chrome，不使用 :scope 选择器
+    var children = parent.children;
+    for (var i = 0; i < children.length; i++) {
+      if (children[i].classList.contains('tab-content')) {
+        children[i].classList.remove('active');
+      }
+    }
+    document.getElementById('inner-' + id).classList.add('active');
+    setTimeout(resizeAllCharts, 50);
+    // 切换内层标签时获取对应柱状图数据
+    var parts = id.split('-');
+    var suffix = parts[parts.length - 1]; // visit/pay/receipt/net/amount
+    var bt = innerTabBusinessMap[suffix];
+    if (bt) fetchBarData(currentOuter, bt);
+    // 同时获取该内层tab下的饼图
+    fetchPiesForInnerTab(currentOuter, suffix);
+  });
+});
+
+
+// ===== 图表 =====
+var allCharts = [];
+var barChartInstances = {}; // 缓存柱状图实例 key: domId
+
+// 柱状图DOM ID映射: barChartMap[outerType][businessType] = domId
+var barChartMap = {
+  summary: { '1': 'chart-summary-visit', '2': 'chart-summary-pay', '3': 'chart-summary-receipt', '4': 'chart-summary-net' },
+  income:  { '1': 'chart-income-visit',  '2': 'chart-income-pay',  '3': 'chart-income-receipt',  '4': 'chart-income-amount' },
+  refund:  { '1': 'chart-refund-visit',  '2': 'chart-refund-pay',  '3': 'chart-refund-receipt',  '4': 'chart-refund-amount' }
+};
+
+function getOrCreateBarChart(domId) {
+  if (typeof echarts === 'undefined') { console.error('echarts 未加载'); return null; }
+  if (barChartInstances[domId]) return barChartInstances[domId];
+  var dom = document.getElementById(domId);
+  if (!dom) return null;
+  var chart = echarts.init(dom);
+  allCharts.push(chart);
+  barChartInstances[domId] = chart;
+  return chart;
+}
+
+function updateBarChart(domId, xData, lastYearData, currentData) {
+  var chart = getOrCreateBarChart(domId);
+  if (!chart) return;
+  chart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { data: ['去年同期', '当前日期'], top: 0, right: 20, textStyle: { fontSize: 12 } },
+    grid: { left: 50, right: 30, top: 35, bottom: 40 },
+    xAxis: { type: 'category', data: xData },
+    yAxis: { type: 'value' },
+    series: [
+      { name: '去年同期', type: 'bar', data: lastYearData, barWidth: 20, itemStyle: { color: '#1890ff' } },
+      { name: '当前日期', type: 'bar', data: currentData, barWidth: 20, itemStyle: { color: '#36cbcb' } }
+    ]
+  }, true);
+}
+
+function fetchBarData(outerType, businessType) {
+  var dateRange = getDateRange();
+  var timeType = (pickerMode === 'day') ? '2' : '1';
+  var domId = barChartMap[outerType][String(businessType)];
+  console.log('[fetchBarData] 请求:', outerType, 'business_type=' + businessType, domId);
+
+  var reqBody = {
+    head: {
+      charset: 'utf-8',
+      encrypt_type: 'AES',
+      enterprise_id: 'jydxxqyy',
+      language: 'zh_CN',
+      method: 'orgine.poweretl.service.api.dataserve.getBarList',
+      sign: '123',
+      sign_type: 'md5',
+      sys_track_code: '745f45e66153423b8791f10d8de513ba',
+      timestamp: String(Date.now()),
+      version: '1.0',
+      access_token: '8314111658654b3b897e53ed03bc7acc1776130709454530150',
+      app_id: '8314111658654b3b897e53ed03bc7acc'
+    },
+    body: {
+      info: {
+        time_type: timeType,
+        statistic_type: statisticTypeMap[outerType],
+        business_type: String(businessType),
+        statistic_start_time: dateRange.startTime,
+        statistic_end_time: dateRange.endTime
+      }
+    }
+  };
+
+  showLoading();
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(reqBody)
+  })
+  .then(function(res) { return parseResponse(res); })
+  .then(function(data) {
+    console.log('[fetchBarData] 响应:', outerType, businessType, data);
+    var list = (data && data.body && data.body.info) ? data.body.info : [];
+    if (!Array.isArray(list)) list = [];
+    var xData = [], lastYearData = [], currentData = [];
+    list.forEach(function(item) {
+      xData.push(item.date_time || '');
+      lastYearData.push(parseInt(item.last_year_number) || 0);
+      currentData.push(parseInt(item.current_date_number) || 0);
+    });
+    updateBarChart(domId, xData, lastYearData, currentData);
+  })
+  .catch(function(err) {
+    console.error('[fetchBarData] 接口调用失败:', outerType, businessType, err);
+    updateBarChart(domId, [], [], []);
+  })
+  .then(function() { hideLoading(); });
+}
+
+function fetchAllBarCharts(outerType) {
+  for (var bt = 1; bt <= 4; bt++) {
+    fetchBarData(outerType, bt);
+  }
+}
+
+// ===== 圆环图（饼图）接口 =====
+var pieChartInstances = {};
+var PIE_COLORS = ['#1890ff', '#36cbcb', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#eb2f96'];
+
+// 圆环图 DOM ID -> business_type 映射
+// 门诊量(visit): 1,2,3; 缴费人次(pay): 4,5; 收据(receipt): 无; 金额(net/amount): 6,7,8
+var pieChartMap = {
+  summary: {
+    'pie-summary-visit-1': '1', 'pie-summary-visit-2': '2', 'pie-summary-visit-3': '3',
+    'pie-summary-pay-1': '4', 'pie-summary-pay-2': '5',
+    'pie-summary-net-1': '6', 'pie-summary-net-2': '7', 'pie-summary-net-3': '8'
+  },
+  income: {
+    'pie-income-visit-1': '1', 'pie-income-visit-2': '2', 'pie-income-visit-3': '3',
+    'pie-income-pay-1': '4', 'pie-income-pay-2': '5',
+    'pie-income-amount-1': '6', 'pie-income-amount-2': '7', 'pie-income-amount-3': '8'
+  },
+  refund: {
+    'pie-refund-visit-1': '1', 'pie-refund-visit-2': '2', 'pie-refund-visit-3': '3',
+    'pie-refund-pay-1': '4', 'pie-refund-pay-2': '5',
+    'pie-refund-amount-1': '6', 'pie-refund-amount-2': '7', 'pie-refund-amount-3': '8'
+  }
+};
+
+// 内层tab后缀 -> 该tab下的饼图序号列表
+var innerTabPieMap = {
+  'visit': ['1','2','3'],
+  'pay': ['1','2'],
+  'receipt': [],
+  'net': ['1','2','3'],
+  'amount': ['1','2','3']
+};
+
+function calcPer(curr, prev) {
+  var c = parseFloat(curr) || 0;
+  var p = parseFloat(prev) || 0;
+  if (p === 0) return c === 0 ? '0.00%' : '+100.00%';
+  var val = ((c - p) / Math.abs(p) * 100).toFixed(2);
+  return (val >= 0 ? '+' : '') + val + '%';
+}
+
+function getOrCreatePieChart(domId) {
+  if (typeof echarts === 'undefined') { console.error('echarts 未加载'); return null; }
+  if (pieChartInstances[domId]) return pieChartInstances[domId];
+  var dom = document.getElementById(domId);
+  if (!dom) return null;
+  var chart = echarts.init(dom);
+  allCharts.push(chart);
+  pieChartInstances[domId] = chart;
+  return chart;
+}
+
+function updatePieChart(domId, pieData) {
+  var chart = getOrCreatePieChart(domId);
+  if (!chart) return;
+  var overLimit = pieData.length > 5;
+  // pieData: [{ name, value, per }]
+  var seriesData = [];
+  var legendData = [];
+  pieData.forEach(function(item, idx) {
+    var perText = item.per || '';
+    var color = PIE_COLORS[idx % PIE_COLORS.length];
+    seriesData.push({
+      value: parseFloat(item.value) || 0,
+      name: item.name || '未知',
+      itemStyle: { color: color },
+      per: perText
+    });
+    legendData.push(item.name || '未知');
+  });
+  chart.setOption({
+    tooltip: {
+      trigger: 'item',
+      formatter: function(params) {
+        var d = params.data;
+        return d.name + ': ' + params.value + ' (' + params.percent + '%)<br/>同比: ' + (d.per || '-');
+      }
+    },
+    legend: overLimit ? { show: false } : {
+      show: true,
+      orient: 'vertical', right: 10, top: 'center',
+      textStyle: { fontSize: 11, rich: {
+        name: { fontSize: 11, color: '#333' },
+        red: { fontSize: 11, color: '#f5222d' },
+        green: { fontSize: 11, color: '#52c41a' }
+      }},
+      formatter: function(name) {
+        var item = seriesData.find(function(d) { return d.name === name; });
+        if (!item || !item.per) return name;
+        var perColor = item.per.indexOf('-') === 0 ? 'red' : 'green';
+        return name + '  {' + perColor + '|(同比' + item.per + ')}';
+      }
+    },
+    series: [{
+      type: 'pie', radius: ['45%', '70%'],
+      center: overLimit ? ['50%', '50%'] : ['35%', '50%'],
+      label: overLimit ? { show: false } : { show: true, formatter: '{b} {c} ({d}%)', fontSize: 11 },
+      emphasis: overLimit ? {
+        label: { show: true, fontSize: 13, fontWeight: 'bold',
+          formatter: '{b}\n{c} ({d}%)'
+        }
+      } : {},
+      data: seriesData
+    }]
+  }, true);
+}
+
+function fetchPieData(outerType, domId, businessType) {
+  var dateRange = getDateRange();
+  var timeType = (pickerMode === 'day') ? '2' : '1';
+
+  console.log('[fetchPieData] 请求:', outerType, domId, 'business_type=' + businessType);
+
+  var reqBody = {
+    head: {
+      charset: 'utf-8',
+      encrypt_type: 'AES',
+      enterprise_id: 'jydxxqyy',
+      language: 'zh_CN',
+      method: 'orgine.poweretl.service.api.dataserve.getPieList',
+      sign: '123',
+      sign_type: 'md5',
+      sys_track_code: '75202ed97e9c430b8adebbce513a5ad4',
+      timestamp: String(Date.now()),
+      version: '1.0',
+      access_token: '8314111658654b3b897e53ed03bc7acc1776131234275128938',
+      app_id: '8314111658654b3b897e53ed03bc7acc'
+    },
+    body: {
+      info: {
+        time_type: timeType,
+        statistic_type: statisticTypeMap[outerType],
+        business_type: String(businessType),
+        statistic_start_time: dateRange.startTime,
+        statistic_end_time: dateRange.endTime
+      }
+    }
+  };
+
+  console.log('[fetchPieData] 请求:', outerType, domId, 'business_type=' + businessType);
+
+  showLoading();
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(reqBody)
+  })
+  .then(function(res) { return parseResponse(res); })
+  .then(function(data) {
+    console.log('[fetchPieData] 响应:', domId, data);
+    var list = (data && data.body && data.body.info) ? data.body.info : [];
+    if (!Array.isArray(list)) list = [];
+    // 过滤掉没有name的项（如汇总行）
+    var pieData = [];
+    list.forEach(function(item) {
+      if (item.name && item.name.trim() !== '') {
+        pieData.push({
+          name: item.name,
+          value: Math.abs(item.curr_value) || '0',
+          per: calcPer(item.curr_value, item.prev_value)
+        });
+      }
+    });
+    updatePieChart(domId, pieData);
+  })
+  .catch(function(err) {
+    console.error('[fetchPieData] 接口调用失败:', domId, err);
+    updatePieChart(domId, []);
+  })
+  .then(function() { hideLoading(); });
+}
+
+// 根据外层tab + 内层tab后缀，获取该内层tab下所有饼图
+function fetchPiesForInnerTab(outerType, innerSuffix) {
+  var pieNums = innerTabPieMap[innerSuffix];
+  if (!pieNums || pieNums.length === 0) return;
+  var map = pieChartMap[outerType];
+  if (!map) return;
+  // 构造domId: pie-{outerType}-{innerSuffix}-{num}
+  // 特殊处理 summary 的金额tab后缀是 net
+  pieNums.forEach(function(num) {
+    var domId = 'pie-' + outerType + '-' + innerSuffix + '-' + num;
+    var bt = map[domId];
+    if (bt) fetchPieData(outerType, domId, bt);
+  });
+}
+
+// 初始化空柱状图（页面加载后由接口填充数据）
+['summary', 'income', 'refund'].forEach(function(ot) {
+  for (var bt = 1; bt <= 4; bt++) {
+    var domId = barChartMap[ot][String(bt)];
+    updateBarChart(domId, [], [], []);
+  }
+});
+
+// 饼图由内层tab切换时按需加载，初始不调用
+
+function resizeAllCharts() {
+  allCharts.forEach(function(c) { c.resize(); });
+}
+window.addEventListener('resize', resizeAllCharts);
+
+// ===== 日期范围选择器（月/天模式） =====
+
+// 切换按月/按天
+document.querySelectorAll('.time-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.time-btn').forEach(function(b) { b.classList.remove('active'); });
+    this.classList.add('active');
+    pickerMode = this.dataset.mode;
+    // 重置日期
+    var now = new Date();
+    var y = now.getFullYear(), m = now.getMonth() + 1, d = now.getDate();
+    rangeStart = { year: y, month: m, day: d };
+    rangeEnd = { year: y, month: m, day: d };
+    rangeStep = 'start';
+    updateRangeDisplay();
+    closeRangePicker();
+    fetchAll(currentOuter);
+  });
+});
+
+function formatRangeVal(obj) {
+  if (pickerMode === 'month') {
+    return obj.year + '-' + String(obj.month).padStart(2, '0');
+  } else {
+    return obj.year + '-' + String(obj.month).padStart(2, '0') + '-' + String(obj.day).padStart(2, '0');
+  }
+}
+
+function updateRangeDisplay() {
+  document.getElementById('rangeStartDisplay').textContent = formatRangeVal(rangeStart);
+  document.getElementById('rangeEndDisplay').textContent = formatRangeVal(rangeEnd);
+  // 高亮当前正在选的
+  var startEl = document.getElementById('rangeStartDisplay');
+  var endEl = document.getElementById('rangeEndDisplay');
+  startEl.classList.toggle('picking', rangeStep === 'start');
+  endEl.classList.toggle('picking', rangeStep === 'end');
+}
+
+function getDaysInMonth(year, month) {
+  return new Date(year, month, 0).getDate();
+}
+
+// 比较两个日期对象大小
+function compareDateObj(a, b) {
+  if (a.year !== b.year) return a.year - b.year;
+  if (a.month !== b.month) return a.month - b.month;
+  return (a.day || 1) - (b.day || 1);
+}
+
+function renderRangePicker() {
+  var wrap = document.getElementById('rangePicker');
+  var dropdown = wrap.querySelector('.month-picker-dropdown');
+  var year = parseInt(dropdown.dataset.year);
+  var selMonth = parseInt(dropdown.dataset.month);
+
+  if (pickerMode === 'month') {
+    var html = '<div class="mp-header">';
+    html += '<button onclick="event.stopPropagation();changePickerYear(-1)">&lsaquo;</button>';
+    html += '<span class="mp-year">' + year + '年</span>';
+    html += '<button onclick="event.stopPropagation();changePickerYear(1)">&rsaquo;</button>';
+    html += '</div><div class="mp-months">';
+    var now = new Date();
+    for (var i = 1; i <= 12; i++) {
+      var cls = 'mp-month';
+      var thisObj = { year: year, month: i, day: 1 };
+      // 判断是否是起止
+      if (year === rangeStart.year && i === rangeStart.month) cls += ' selected';
+      if (year === rangeEnd.year && i === rangeEnd.month) cls += ' selected';
+      // 判断是否在范围内
+      if (compareDateObj(thisObj, rangeStart) > 0 && compareDateObj(thisObj, rangeEnd) < 0) cls += ' in-range';
+      if (year === now.getFullYear() && i === now.getMonth() + 1) cls += ' current';
+      html += '<div class="' + cls + '" onclick="event.stopPropagation();pickRangeMonth(' + i + ')">' + monthNames[i-1] + '</div>';
+    }
+    html += '</div>';
+    dropdown.innerHTML = html;
+  } else {
+    // 天模式
+    var html = '<div class="mp-header">';
+    html += '<button onclick="event.stopPropagation();changePickerMonth(-1)">&lsaquo;</button>';
+    html += '<span class="mp-year"><span class="mp-month-btn" onclick="event.stopPropagation();showMonthSelectForDay()">' + year + '年' + selMonth + '月</span></span>';
+    html += '<button onclick="event.stopPropagation();changePickerMonth(1)">&rsaquo;</button>';
+    html += '</div>';
+    html += '<div class="mp-days-header">';
+    for (var w = 0; w < 7; w++) html += '<span>' + weekDays[w] + '</span>';
+    html += '</div><div class="mp-days">';
+    var daysInMonth = getDaysInMonth(year, selMonth);
+    var firstDow = new Date(year, selMonth - 1, 1).getDay();
+    var prevDays = getDaysInMonth(year, selMonth - 1);
+    var now = new Date();
+    // 上月填充
+    for (var p = firstDow - 1; p >= 0; p--) {
+      html += '<div class="mp-day other-month">' + (prevDays - p) + '</div>';
+    }
+    // 本月
+    for (var d = 1; d <= daysInMonth; d++) {
+      var cls = 'mp-day';
+      var thisObj = { year: year, month: selMonth, day: d };
+      if (year === rangeStart.year && selMonth === rangeStart.month && d === rangeStart.day) cls += ' selected';
+      if (year === rangeEnd.year && selMonth === rangeEnd.month && d === rangeEnd.day) cls += ' selected';
+      if (compareDateObj(thisObj, rangeStart) > 0 && compareDateObj(thisObj, rangeEnd) < 0) cls += ' in-range';
+      if (year === now.getFullYear() && selMonth === now.getMonth() + 1 && d === now.getDate()) cls += ' current';
+      html += '<div class="' + cls + '" onclick="event.stopPropagation();pickRangeDay(' + d + ')">' + d + '</div>';
+    }
+    var totalCells = firstDow + daysInMonth;
+    var remain = (7 - totalCells % 7) % 7;
+    for (var n = 1; n <= remain; n++) {
+      html += '<div class="mp-day other-month">' + n + '</div>';
+    }
+    html += '</div>';
+    dropdown.innerHTML = html;
+  }
+}
+
+function toggleRangePicker() {
+  var wrap = document.getElementById('rangePicker');
+  var dropdown = wrap.querySelector('.month-picker-dropdown');
+  if (!dropdown.classList.contains('show')) {
+    // 打开时重置到开始选择状态，日历定位到当前开始日期
+    rangeStep = 'start';
+    dropdown.dataset.year = rangeStart.year;
+    dropdown.dataset.month = rangeStart.month;
+    updateRangeDisplay();
+    renderRangePicker();
+    dropdown.classList.add('show');
+  } else {
+    closeRangePicker();
+  }
+}
+
+function closeRangePicker() {
+  var dropdown = document.querySelector('#rangePicker .month-picker-dropdown');
+  if (dropdown) dropdown.classList.remove('show');
+}
+
+function changePickerYear(delta) {
+  var dd = document.querySelector('#rangePicker .month-picker-dropdown');
+  dd.dataset.year = parseInt(dd.dataset.year) + delta;
+  renderRangePicker();
+}
+
+function changePickerMonth(delta) {
+  var dd = document.querySelector('#rangePicker .month-picker-dropdown');
+  var y = parseInt(dd.dataset.year), m = parseInt(dd.dataset.month);
+  m += delta;
+  if (m < 1) { m = 12; y--; }
+  if (m > 12) { m = 1; y++; }
+  dd.dataset.year = y;
+  dd.dataset.month = m;
+  renderRangePicker();
+}
+
+function showMonthSelectForDay() {
+  var dd = document.querySelector('#rangePicker .month-picker-dropdown');
+  var year = parseInt(dd.dataset.year);
+  var selMonth = parseInt(dd.dataset.month);
+  var now = new Date();
+  var html = '<div class="mp-header">';
+  html += '<button onclick="event.stopPropagation();changePickerYear(-1);showMonthSelectForDay()">&lsaquo;</button>';
+  html += '<span class="mp-year">' + year + '年</span>';
+  html += '<button onclick="event.stopPropagation();changePickerYear(1);showMonthSelectForDay()">&rsaquo;</button>';
+  html += '</div><div class="mp-months">';
+  for (var i = 1; i <= 12; i++) {
+    var cls = 'mp-month';
+    if (i === selMonth) cls += ' selected';
+    if (parseInt(dd.dataset.year) === now.getFullYear() && i === now.getMonth()+1) cls += ' current';
+    html += '<div class="' + cls + '" onclick="event.stopPropagation();pickMonthForDayMode(' + i + ')">' + monthNames[i-1] + '</div>';
+  }
+  html += '</div>';
+  dd.innerHTML = html;
+}
+
+function pickMonthForDayMode(month) {
+  var dd = document.querySelector('#rangePicker .month-picker-dropdown');
+  dd.dataset.month = month;
+  renderRangePicker();
+}
+
+// 校验时间范围：按月最多12个月，按天最多31天
+function checkRangeLimit(start, end) {
+  if (pickerMode === 'month') {
+    var diff = (end.year - start.year) * 12 + (end.month - start.month);
+    if (diff > 12) {
+      alert('按月统计时，开始时间与结束时间最多相差一年（12个月）');
+      return false;
+    }
+  } else {
+    var startDate = new Date(start.year, start.month - 1, start.day);
+    var endDate = new Date(end.year, end.month - 1, end.day);
+    var diffDays = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
+    if (diffDays > 31) {
+      alert('按天统计时，开始时间与结束时间最多相差一个月（31天）');
+      return false;
+    }
+  }
+  return true;
+}
+
+function pickRangeMonth(month) {
+  var dd = document.querySelector('#rangePicker .month-picker-dropdown');
+  var year = parseInt(dd.dataset.year);
+  var picked = { year: year, month: month, day: 1 };
+
+  if (rangeStep === 'start') {
+    rangeStart = picked;
+    rangeEnd = picked; // 暂时相同
+    rangeStep = 'end';
+    updateRangeDisplay();
+    renderRangePicker();
+  } else {
+    var tmpStart = rangeStart, tmpEnd = picked;
+    if (compareDateObj(picked, rangeStart) < 0) {
+      tmpStart = picked;
+      tmpEnd = rangeStart;
+    }
+    if (!checkRangeLimit(tmpStart, tmpEnd)) return;
+    rangeStart = tmpStart;
+    rangeEnd = tmpEnd;
+    rangeStep = 'start';
+    updateRangeDisplay();
+    closeRangePicker();
+    fetchAll(currentOuter);
+  }
+}
+
+function pickRangeDay(day) {
+  var dd = document.querySelector('#rangePicker .month-picker-dropdown');
+  var year = parseInt(dd.dataset.year);
+  var month = parseInt(dd.dataset.month);
+  var picked = { year: year, month: month, day: day };
+
+  if (rangeStep === 'start') {
+    rangeStart = picked;
+    rangeEnd = picked;
+    rangeStep = 'end';
+    updateRangeDisplay();
+    renderRangePicker();
+  } else {
+    var tmpStart = rangeStart, tmpEnd = picked;
+    if (compareDateObj(picked, rangeStart) < 0) {
+      tmpStart = picked;
+      tmpEnd = rangeStart;
+    }
+    if (!checkRangeLimit(tmpStart, tmpEnd)) return;
+    rangeStart = tmpStart;
+    rangeEnd = tmpEnd;
+    rangeStep = 'start';
+    updateRangeDisplay();
+    closeRangePicker();
+    fetchAll(currentOuter);
+  }
+}
+
+// 点击外部关闭
+document.addEventListener('click', function(ev) {
+  if (!ev.target.closest('.month-picker-wrap')) {
+    closeRangePicker();
+  }
+});
+
+// 页面加载时查询一次
+fetchAll(currentOuter);
+</script>
+</body>
+</html>

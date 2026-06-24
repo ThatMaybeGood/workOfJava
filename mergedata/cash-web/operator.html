@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>操作员参数管理维护 - 含HIS提取选项</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            padding: 24px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            padding: 24px 28px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 28px;
+            border-bottom: 2px solid #eef2f6;
+            padding-bottom: 20px;
+        }
+
+        .title-section h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #2c3e66, #1e4a6b);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .title-section p {
+            font-size: 0.85rem;
+            color: #5b6e8c;
+            margin-top: 4px;
+        }
+
+        .btn-add {
+            background: linear-gradient(95deg, #2c6e9e, #1e4a76);
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .btn-add:hover {
+            background: linear-gradient(95deg, #1e5a82, #143b59);
+            transform: translateY(-1px);
+        }
+
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 28px;
+            background: #f8fafc;
+            padding: 16px 20px;
+            border-radius: 60px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: white;
+            border: 1px solid #cbd5e1;
+            padding: 8px 24px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #334155;
+        }
+
+        .filter-btn.active {
+            background: #1e4a76;
+            border-color: #1e4a76;
+            color: white;
+            box-shadow: 0 2px 8px rgba(30,74,118,0.2);
+        }
+
+        .search-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            background: white;
+            padding: 4px 4px 4px 18px;
+            border-radius: 48px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .search-wrapper input {
+            border: none;
+            padding: 8px 0;
+            font-size: 0.9rem;
+            width: 220px;
+            outline: none;
+            background: transparent;
+        }
+
+        .search-wrapper button {
+            background: #2c6e9e;
+            border: none;
+            padding: 6px 18px;
+            border-radius: 40px;
+            color: white;
+            cursor: pointer;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+
+        .search-wrapper button:hover {
+            background: #1e5a7a;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 16px;
+            border: 1px solid #e9edf2;
+            background: white;
+            margin-bottom: 20px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 1200px;
+        }
+
+        .data-table th {
+            background: #f1f5f9;
+            padding: 14px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #1e2a44;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .data-table td {
+            padding: 12px 12px;
+            border-bottom: 1px solid #f0f2f5;
+            vertical-align: middle;
+        }
+
+        .data-table tr:hover {
+            background-color: #fafcff;
+        }
+
+        /* 是/否 凸出显示样式 */
+        .badge-yes {
+            display: inline-block;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            font-weight: bold;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            text-align: center;
+            min-width: 52px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .badge-no {
+            display: inline-block;
+            background: #e2e8f0;
+            color: #475569;
+            font-weight: 500;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            min-width: 52px;
+            text-align: center;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-edit {
+            background: #e9ecef;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #2c6e9e;
+            transition: 0.2s;
+        }
+
+        .btn-edit:hover {
+            background: #d4dee8;
+        }
+
+        .btn-delete {
+            background: #fee2e2;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #b91c1c;
+        }
+
+        .btn-delete:hover {
+            background: #fecaca;
+        }
+
+        .empty-row td {
+            text-align: center;
+            padding: 48px;
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        /* 分页样式 */
+        .pagination-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-top: 8px;
+            padding: 16px 8px 8px 8px;
+            border-top: 1px solid #eef2f6;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .page-btn {
+            background: white;
+            border: 1px solid #cbd5e1;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            color: #334155;
+            min-width: 36px;
+            text-align: center;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: #eef2ff;
+            border-color: #2c6e9e;
+        }
+
+        .page-btn.active {
+            background: #1e4a76;
+            border-color: #1e4a76;
+            color: white;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            font-size: 0.85rem;
+            color: #475569;
+            margin: 0 8px;
+        }
+
+        .page-size-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f8fafc;
+            padding: 4px 12px;
+            border-radius: 32px;
+        }
+
+        .page-size-selector select {
+            padding: 6px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: white;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .goto-page {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .goto-page input {
+            width: 70px;
+            padding: 6px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .goto-page button {
+            background: #e9ecef;
+            border: 1px solid #cbd5e1;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 28px;
+            width: 90%;
+            max-width: 680px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 40px rgba(0,0,0,0.2);
+            animation: fadeSlideUp 0.2s ease;
+        }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            padding: 20px 28px;
+            border-bottom: 1px solid #eef2f6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        .close-modal {
+            font-size: 28px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: #7e8b9f;
+        }
+
+        .form-grid {
+            padding: 24px 28px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px 24px;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-field label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: #334155;
+        }
+
+        .form-field input, .form-field select {
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            transition: 0.2s;
+        }
+
+        .form-field input:focus, .form-field select:focus {
+            outline: none;
+            border-color: #2c6e9e;
+            box-shadow: 0 0 0 2px rgba(44,110,158,0.2);
+        }
+
+        .modal-footer {
+            padding: 16px 28px 28px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 14px;
+            border-top: 1px solid #edf2f7;
+        }
+
+        .btn-save {
+            background: #2c6e9e;
+            color: white;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 32px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-cancel {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 10px 24px;
+            border-radius: 32px;
+            cursor: pointer;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            font-size: 1.2rem;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="title-section">
+            <h1>👩‍💼 操作员参数管理维护</h1>
+            <p>支持提取HIS数据开关 · 门诊/住院区分 · 备用金管理</p>
+        </div>
+        <button class="btn-add" id="openAddBtn">+ 新增操作员</button>
+    </div>
+
+    <div class="filter-bar">
+        <div class="btn-group">
+            <button class="filter-btn active" data-filter="all">全部</button>
+            <button class="filter-btn" data-filter="0">门诊</button>
+            <button class="filter-btn" data-filter="1">住院</button>
+        </div>
+        <div class="search-wrapper">
+            <input type="text" id="searchInput" placeholder="姓名 / 登录账号 搜索" autocomplete="off">
+            <button id="searchBtn">🔍 查询</button>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>序号</th><th>登录账号</th><th>姓名</th><th>备用金(元)</th>
+                    <th>非住院窗口</th><th>自助机</th><th>提取HIS数据(门诊/住院)</th><th>门诊/住院</th><th>创建时间</th>
+                    <th>输入标志</th><th>顺序号</th><th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr class="empty-row"><td colspan="12">加载数据中...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination-container">
+        <div class="page-size-selector">
+            <label>每页显示：</label>
+            <select id="pageSizeSelect">
+                <option value="10">10条/页</option>
+                <option value="20">20条/页</option>
+                <option value="50">50条/页</option>
+                <option value="100">100条/页</option>
+            </select>
+        </div>
+        <div class="pagination-controls" id="paginationControls"></div>
+        <div class="goto-page">
+            <span class="page-info" id="pageInfo">-/-</span>
+            <input type="number" id="gotoPageInput" placeholder="页码" min="1">
+            <button id="gotoPageBtn">跳转</button>
+        </div>
+    </div>
+</div>
+
+<!-- 模态框 - 新增/编辑，包含“提取HIS数据”下拉选项 -->
+<div id="operatorModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">新增操作员</h3>
+            <button class="close-modal" id="closeModalBtn">&times;</button>
+        </div>
+        <form id="operatorForm" onsubmit="return false;">
+            <div class="form-grid">
+                <input type="hidden" id="editSerialNo" value="">
+                <div class="form-field"><label>登录账号 *</label><input type="text" id="operatorNo" placeholder="例如: ORBILL_TEST" required></div>
+                <div class="form-field"><label>姓名 *</label><input type="text" id="operatorName" placeholder="操作员姓名" required></div>
+                <div class="form-field"><label>备用金(元)</label><input type="number" id="pettyCash" step="0.01" value="0"></div>
+                <div class="form-field"><label>非住院窗口</label>
+                    <select id="inpWindow"><option value="0">否</option><option value="1">是</option></select>
+                </div>
+                <div class="form-field"><label>自助机</label>
+                    <select id="atm"><option value="0">否</option><option value="1">是</option></select>
+                </div>
+                <!-- 新增字段: 是否提取HIS数据，默认“是”(值为1) -->
+                <div class="form-field"><label>提取HIS数据(门诊/住院)</label>
+                    <select id="extractHisFlag">
+                        <option value="1">门诊</option>
+                        <option value="0">住院</option>
+                    </select>
+                </div>
+                <div class="form-field"><label>门诊/住院 *</label>
+                    <select id="category"><option value="0">门诊</option><option value="1">住院</option></select>
+                </div>
+                <div class="form-field"><label>输入标志</label>
+                    <select id="inputFlag"><option value=0>否</option><option value=1>是</option></select>
+                </div>
+                <div class="form-field"><label>顺序号</label><input type="number" id="rowNum" value="0"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" id="cancelFormBtn">取消</button>
+                <button type="submit" class="btn-save">保存</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // ==================== 接口配置 ====================
+    const API_BASE = "http://168.168.235.209:18081/paltform/operators";
+
+    // 通用请求头 (固定参数)
+    const COMMON_HEAD = {
+        charset: "utf-8",
+        encrypt_type: "AES",
+        enterprise_id: "xinqiao",
+        language: "zh_CN",
+        method: "orgine.powermsp.service.overt.extend.SP_GetHisIncome_938",
+        sign: "1",
+        sign_type: "md5",
+        sys_track_code: "b307e1bf81e6482d9c1b3a6b45a79df7",
+        timestamp: Date.now().toString(),
+        version: "1.0",
+        access_token: "123456",
+        app_id: "b16ff06f5fd44ab6b56e037d7ee1a6ed"
+    };
+
+    // 全局数据
+    let allOperators = [];
+    let currentPage = 1;
+    let pageSize = 10;
+    let currentFilter = "all";
+    let currentKeyword = "";
+
+    // 获取当前时间字符串 (格式: YYYY-MM-DD HH:MM:SS)
+    function getCurrentDateTime() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+
+    // 格式化日期时间显示 (带时分秒)
+    function formatDateTime(dateTimeStr) {
+        if (!dateTimeStr) return '-';
+        if (dateTimeStr.includes(' ') && dateTimeStr.length >= 19) return dateTimeStr.substring(0, 19);
+        if (dateTimeStr.length === 10) return dateTimeStr + ' 00:00:00';
+        return dateTimeStr;
+    }
+
+    // ==================== API 调用 ====================
+    async function apiRequest(url, bodyData) {
+        const requestBody = {
+            head: { ...COMMON_HEAD, timestamp: Date.now().toString() },
+            body: bodyData
+        };
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+            const result = await response.json();
+            if (result.result && result.result.code === "10000") {
+                return result;
+            } else {
+                throw new Error((result.result && result.result.sub_msg) || "接口调用失败");
+            }
+        } catch (error) {
+            console.error("API请求错误:", error);
+            throw error;
+        }
+    }
+
+    async function fetchOperators() {
+        showLoading(true);
+        try {
+            let extendParams1 = (currentFilter !== "all") ? currentFilter : "";
+            const body = { 
+                extend_params1: extendParams1, 
+                extend_params2: currentKeyword, 
+                extend_params3: "" 
+            };
+            const result = await apiRequest(`${API_BASE}/findall`, body);
+            let list = (result && result.body && result.body.list) ? result.body.list : [];
+            // 映射字段，后端若未返回extract_his_flag则默认"1"；同时兼容已有数据
+            allOperators = list.map(item => ({
+                serial_no: item.serial_no,
+                operator_no: item.operator_no,
+                operator_name: item.operator_name,
+                category: item.category,
+                valid_status: item.valid_status,
+                create_time: item.create_time,
+                row_num: item.row_num,
+                inp_window: item.inp_window,
+                atm: item.atm,
+                petty_cash: item.petty_cash,
+                input_flag: item.input_flag,
+                db_user: item.db_user,
+                // 核心新增字段: 是否提取HIS数据，后端若不存在则默认"1"(是)
+                extract_his_flag: item.extract_his_flag !== undefined ? item.extract_his_flag : "1"
+            }));
+            currentPage = 1;
+            refreshDisplay();
+        } catch (error) {
+            console.error("查询失败", error);
+            showToast("查询失败: " + error.message, "error");
+            allOperators = [];
+            refreshDisplay();
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // 新增操作员
+    async function insertOperator(operatorData) {
+        showLoading(true);
+        try {
+            const body = {
+                serial_no: "",
+                operator_no: operatorData.operator_no,
+                operator_name: operatorData.operator_name,
+                category: operatorData.category,
+                department_id: null,
+                valid_status: "1",
+                creator: null,
+                create_time: null,
+                updator: null,
+                update_time: null,
+                update_count: 0,
+                row_num: operatorData.row_num || 0,
+                inp_window: operatorData.inp_window,
+                atm: operatorData.atm,
+                petty_cash: operatorData.petty_cash,
+                db_user: operatorData.operator_no,
+                input_flag: operatorData.input_flag,
+                extract_his_flag: operatorData.extract_his_flag   // 新增字段传到后端
+            };
+            await apiRequest(`${API_BASE}/insert`, body);
+            showToast("新增成功", "success");
+            await fetchOperators();
+            return true;
+        } catch (error) {
+            showToast(`新增失败: ${error.message}`, "error");
+            return false;
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // 修改操作员
+    async function updateOperator(operatorData) {
+        showLoading(true);
+        try {
+            const body = {
+                serial_no: operatorData.serial_no,
+                operator_no: operatorData.operator_no,
+                operator_name: operatorData.operator_name,
+                category: operatorData.category,
+                department_id: null,
+                valid_status: "1",
+                creator: null,
+                create_time: operatorData.original_create_time,
+                updator: null,
+                update_time: getCurrentDateTime(),
+                update_count: (operatorData.update_count || 0) + 1,
+                row_num: operatorData.row_num || 0,
+                inp_window: operatorData.inp_window,
+                atm: operatorData.atm,
+                petty_cash: operatorData.petty_cash,
+                db_user: operatorData.operator_no,
+                input_flag: operatorData.input_flag,
+                extract_his_flag: operatorData.extract_his_flag
+            };
+            await apiRequest(`${API_BASE}/insert`, body);
+            showToast("修改成功", "success");
+            await fetchOperators();
+            return true;
+        } catch (error) {
+            showToast(`修改失败: ${error.message}`, "error");
+            return false;
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // 删除操作员
+    async function deleteOperator(serial_no) {
+        if (!confirm("确定删除该操作员吗？")) return;
+        showLoading(true);
+        try {
+            const body = { serial_no: serial_no };
+            await apiRequest(`${API_BASE}/delete`, body);
+            showToast("删除成功", "success");
+            await fetchOperators();
+        } catch (error) {
+            showToast(`删除失败: ${error.message}`, "error");
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // ==================== 前端展示与分页逻辑 ====================
+    function getFilteredData() {
+        let filtered = [...allOperators];
+        if (currentKeyword.trim()) {
+            const kw = currentKeyword.trim().toLowerCase();
+            filtered = filtered.filter(item => {
+                const nameMatch = item.operator_name && typeof item.operator_name === 'string' && item.operator_name.toLowerCase().indexOf(kw) !== -1;
+                const noMatch = item.operator_no && typeof item.operator_no === 'string' && item.operator_no.toLowerCase().indexOf(kw) !== -1;
+                return nameMatch || noMatch;
+            });
+        }
+        if (currentFilter !== "all") {
+            filtered = filtered.filter(item => item.category === currentFilter);
+        }
+        filtered.sort((a,b) => (a.row_num || 0) - (b.row_num || 0));
+        return filtered;
+    }
+
+    function getCurrentPageData() {
+        const filtered = getFilteredData();
+        const start = (currentPage - 1) * pageSize;
+        return filtered.slice(start, start + pageSize);
+    }
+
+    function getTotalPages() {
+        const total = getFilteredData().length;
+        return Math.ceil(total / pageSize) || 1;
+    }
+
+    function adjustPage() {
+        const totalPages = getTotalPages();
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+    }
+
+    // 渲染表格，新增“提取HIS数据”列
+    function renderTable() {
+        const tbody = document.getElementById("tableBody");
+        const pageData = getCurrentPageData();
+        const startIndex = (currentPage - 1) * pageSize;
+        
+        if (!pageData.length) {
+            tbody.innerHTML = `<tr class="empty-row"><td colspan="12">暂无数据，请点击"新增操作员"添加</td></tr>`;
+            return;
+        }
+        
+        let html = "";
+        pageData.forEach((item, idx) => {
+            const serial = startIndex + idx + 1;
+            const categoryText = item.category === "0" ? "门诊" : "住院";
+            const inpWindowBadge = item.inp_window === "1" ? '<span class="badge-yes">是</span>' : '<span class="badge-no">否</span>';
+            const atmBadge = item.atm === "1" ? '<span class="badge-yes">是</span>' : '<span class="badge-no">否</span>';
+            const inputFlagBadge = item.input_flag === 1 ? '<span class="badge-yes">是</span>' : '<span class="badge-no">否</span>';
+            // 提取HIS数据徽章展示
+            const extractHisBadge = item.extract_his_flag === "1" ? '<span class="badge-yes">门诊</span>' : '<span class="badge-no">住院</span>';
+            const formattedCreateTime = formatDateTime(item.create_time);
+            
+            html += `<tr>
+                <td>${serial}</td>
+                <td>${escapeHtml(item.operator_no || '')}</td>
+                <td>${escapeHtml(item.operator_name || '')}</td>
+                <td>${parseFloat(item.petty_cash || 0).toFixed(2)}</td>
+                <td style="text-align:center">${inpWindowBadge}</td>
+                <td style="text-align:center">${atmBadge}</td>
+                <td style="text-align:center">${extractHisBadge}</td>
+                <td>${categoryText}</td>
+                <td>${formattedCreateTime}</td>
+                <td style="text-align:center">${inputFlagBadge}</td>
+                <td>${(item.row_num || 0)}</td>
+                <td class="action-buttons">
+                    <button class="btn-edit" data-serial="${item.serial_no}">✏️ 修改</button>
+                    <button class="btn-delete" data-serial="${item.serial_no}">🗑️ 删除</button>
+                </td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+        
+        document.querySelectorAll('.btn-edit').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const serial = btn.getAttribute('data-serial');
+                openEditModal(serial);
+            });
+        });
+        document.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const serial = btn.getAttribute('data-serial');
+                deleteOperator(serial);
+            });
+        });
+    }
+    
+    function renderPagination() {
+        const totalPages = getTotalPages();
+        const totalItems = getFilteredData().length;
+        const startItem = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+        const endItem = Math.min(currentPage * pageSize, totalItems);
+        document.getElementById("pageInfo").innerHTML = `${startItem}-${endItem} / 共 ${totalItems} 条`;
+        
+        const controlsDiv = document.getElementById("paginationControls");
+        controlsDiv.innerHTML = "";
+        
+        const prevBtn = document.createElement("button");
+        prevBtn.className = "page-btn";
+        prevBtn.innerText = "‹ 上一页";
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.onclick = () => { if(currentPage > 1) { currentPage--; refreshDisplay(); } };
+        controlsDiv.appendChild(prevBtn);
+        
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+        
+        for(let i = startPage; i <= endPage; i++) {
+            const pageBtn = document.createElement("button");
+            pageBtn.className = "page-btn" + (i === currentPage ? " active" : "");
+            pageBtn.innerText = i;
+            pageBtn.onclick = () => { currentPage = i; refreshDisplay(); };
+            controlsDiv.appendChild(pageBtn);
+        }
+        
+        const nextBtn = document.createElement("button");
+        nextBtn.className = "page-btn";
+        nextBtn.innerText = "下一页 ›";
+        nextBtn.disabled = currentPage === totalPages;
+        nextBtn.onclick = () => { if(currentPage < totalPages) { currentPage++; refreshDisplay(); } };
+        controlsDiv.appendChild(nextBtn);
+    }
+    
+    function refreshDisplay() {
+        adjustPage();
+        renderTable();
+        renderPagination();
+    }
+    
+    async function applyFilterAndSearch() {
+        await fetchOperators();
+    }
+    
+    function changePageSize() {
+        pageSize = parseInt(document.getElementById("pageSizeSelect").value);
+        currentPage = 1;
+        refreshDisplay();
+    }
+    
+    function gotoPage() {
+        let target = parseInt(document.getElementById("gotoPageInput").value);
+        const total = getTotalPages();
+        if (isNaN(target)) target = 1;
+        target = Math.min(Math.max(1, target), total);
+        currentPage = target;
+        refreshDisplay();
+        document.getElementById("gotoPageInput").value = target;
+    }
+    
+    // 模态框逻辑: 新增时 提取HIS数据默认值为“1”（是）
+    function openAddModal() {
+        document.getElementById("modalTitle").innerText = "新增操作员";
+        document.getElementById("editSerialNo").value = "";
+        document.getElementById("operatorForm").reset();
+        document.getElementById("pettyCash").value = "0";
+        document.getElementById("inpWindow").value = "0";
+        document.getElementById("atm").value = "0";
+        document.getElementById("extractHisFlag").value = "1";    // 默认 是
+        document.getElementById("category").value = "0";
+        document.getElementById("inputFlag").value = 0;
+        document.getElementById("rowNum").value = "0";
+        document.getElementById("operatorModal").style.display = "flex";
+    }
+    
+    function openEditModal(serial_no) {
+        const operator = allOperators.find(item => item.serial_no === serial_no);
+        if (!operator) return;
+        document.getElementById("modalTitle").innerText = "编辑操作员";
+        document.getElementById("editSerialNo").value = operator.serial_no;
+        document.getElementById("operatorNo").value = operator.operator_no || "";
+        document.getElementById("operatorName").value = operator.operator_name || "";
+        document.getElementById("pettyCash").value = operator.petty_cash || 0;
+        document.getElementById("inpWindow").value = operator.inp_window;
+        document.getElementById("atm").value = operator.atm;
+        document.getElementById("extractHisFlag").value = operator.extract_his_flag || "1";
+        document.getElementById("category").value = operator.category;
+        document.getElementById("inputFlag").value = operator.input_flag;
+        document.getElementById("rowNum").value = operator.row_num || 0;
+        document.getElementById("operatorModal").style.display = "flex";
+    }
+    
+    async function onSaveForm() {
+        const serial_no = document.getElementById("editSerialNo").value;
+        const operator_no = document.getElementById("operatorNo").value.trim();
+        const operator_name = document.getElementById("operatorName").value.trim();
+        if (!operator_no || !operator_name) {
+            showToast("登录账号和姓名不能为空", "warning");
+            return;
+        }
+        const extractHisFlag = document.getElementById("extractHisFlag").value;
+        const isEdit = !!serial_no;
+        
+        if (isEdit) {
+            const originalOperator = allOperators.find(item => item.serial_no === serial_no);
+            const operatorData = {
+                serial_no: serial_no,
+                operator_no: operator_no,
+                operator_name: operator_name,
+                category: document.getElementById("category").value,
+                original_create_time: (originalOperator && originalOperator.create_time) || getCurrentDateTime(),
+                row_num: parseInt(document.getElementById("rowNum").value) || 0,
+                inp_window: document.getElementById("inpWindow").value,
+                atm: document.getElementById("atm").value,
+                petty_cash: parseFloat(document.getElementById("pettyCash").value) || 0,
+                input_flag: document.getElementById("inputFlag").value,
+                extract_his_flag: extractHisFlag,
+                update_count: (originalOperator && originalOperator.update_count) || 0
+            };
+            const success = await updateOperator(operatorData);
+            if (success) closeModal();
+        } else {
+            const operatorData = {
+                operator_no: operator_no,
+                operator_name: operator_name,
+                category: document.getElementById("category").value,
+                row_num: parseInt(document.getElementById("rowNum").value) || 0,
+                inp_window: document.getElementById("inpWindow").value,
+                atm: document.getElementById("atm").value,
+                petty_cash: parseFloat(document.getElementById("pettyCash").value) || 0,
+                input_flag: document.getElementById("inputFlag").value,
+                extract_his_flag: extractHisFlag
+            };
+            const success = await insertOperator(operatorData);
+            if (success) closeModal();
+        }
+    }
+    
+    function closeModal() {
+        document.getElementById("operatorModal").style.display = "none";
+    }
+    
+    function showToast(msg, type) {
+        const toast = document.createElement("div");
+        toast.innerText = msg;
+        toast.style.position = "fixed";
+        toast.style.bottom = "30px";
+        toast.style.left = "50%";
+        toast.style.transform = "translateX(-50%)";
+        toast.style.backgroundColor = type === "error" ? "#dc2626" : (type === "warning" ? "#f59e0b" : "#2c6e9e");
+        toast.style.color = "white";
+        toast.style.padding = "10px 24px";
+        toast.style.borderRadius = "40px";
+        toast.style.zIndex = "9999";
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2800);
+    }
+    
+    let loadingDiv = null;
+    function showLoading(show) {
+        if (show && !loadingDiv) {
+            loadingDiv = document.createElement("div");
+            loadingDiv.className = "loading-overlay";
+            loadingDiv.innerHTML = '<div style="background:white; padding:16px 32px; border-radius:40px; color:#1e4a76;">⏳ 处理中...</div>';
+            document.body.appendChild(loadingDiv);
+        } else if (!show && loadingDiv) {
+            loadingDiv.remove();
+            loadingDiv = null;
+        }
+    }
+    
+    function escapeHtml(str) { 
+        if(!str) return ''; 
+        return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); 
+    }
+    
+    // 事件绑定
+    function bindEvents() {
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                currentFilter = btn.getAttribute('data-filter');
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                await applyFilterAndSearch();
+            });
+        });
+        document.getElementById("searchBtn").addEventListener("click", async () => {
+            currentKeyword = document.getElementById("searchInput").value;
+            await applyFilterAndSearch();
+        });
+        document.getElementById("searchInput").addEventListener("keypress", async (e) => {
+            if (e.key === "Enter") {
+                currentKeyword = document.getElementById("searchInput").value;
+                await applyFilterAndSearch();
+            }
+        });
+        document.getElementById("openAddBtn").addEventListener("click", openAddModal);
+        document.getElementById("closeModalBtn").addEventListener("click", closeModal);
+        document.getElementById("cancelFormBtn").addEventListener("click", closeModal);
+        document.getElementById("operatorForm").addEventListener("submit", (e) => { e.preventDefault(); onSaveForm(); });
+        document.getElementById("pageSizeSelect").addEventListener("change", changePageSize);
+        document.getElementById("gotoPageBtn").addEventListener("click", gotoPage);
+        document.getElementById("gotoPageInput").addEventListener("keypress", (e) => { if(e.key === "Enter") gotoPage(); });
+        window.addEventListener("click", (e) => { if (e.target === document.getElementById("operatorModal")) closeModal(); });
+    }
+    
+    async function init() {
+        bindEvents();
+        await fetchOperators();
+    }
+    init();
+</script>
+</body>
+</html>

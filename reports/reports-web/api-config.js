@@ -78,6 +78,10 @@ const API_CONFIG = {
         'reports.outp.outpatient-internet-hospital': {
             endpoint: '/api/outpatient/internet-hospital-stats'
         },
+        // 科室字典
+        'reports.common.dept-dict': {
+            endpoint: '/api/common/dept-dict'
+        },
         // 出院结算报表
         'reports.cash.cash-discharge-settlement': {
             overview: '/api/cash/discharge-settlement/overview',
@@ -247,6 +251,10 @@ function callMockService(methodKey, endpointKey, params) {
         // 互医质控运营月报
         'reports.outp.outpatient-internet-hospital': {
             endpoint: (p) => MockService.getInternetHospitalStatsData(p)
+        },
+        // 科室字典
+        'reports.common.dept-dict': {
+            endpoint: (p) => MockService.getDeptDict(p)
         },
         // 出院结算报表
         'reports.cash.cash-discharge-settlement': {

@@ -36,10 +36,34 @@ class ReportController {
     /**
      * 初始化方法
      */
-    init() {
+    async init() {
         this.bindEvents();
         this.initDateRangePicker();
+        await this.initDeptSelect({ triggerDefault: false });
         this.loadData();
+    }
+
+    /**
+     * 初始化科室下拉框
+     */
+    async initDeptSelect(options = {}) {
+        this.deptInfo = await initDeptSelect({
+            selectId: 'deptSelect',
+            deptType: 0,
+            showAll: true,
+            allCode: '0000',
+            allText: '全部',
+            onChange: (dept) => {
+                this.state.filter.deptName = dept.deptName === '全部' ? '' : dept.deptName;
+                this.state.filter.deptCode = dept.deptCode === '0000' ? '' : dept.deptCode;
+                this.state.currentPage = 1;
+                this.loadData();
+            },
+            ...options
+        });
+        // 默认选中全部时，不传给后端科室条件
+        this.state.filter.deptName = '';
+        this.state.filter.deptCode = '';
     }
 
     /**
@@ -55,7 +79,6 @@ class ReportController {
         this.datePicker = flatpickr(dateRangeInput, {
             mode: 'range',
             dateFormat: 'Y/m/d',
-            defaultDate: [todayStr, todayStr],
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {
@@ -67,6 +90,10 @@ class ReportController {
                 }
             }
         });
+        // 初始化日期但不触发 onChange
+        this.datePicker.setDate([todayStr, todayStr], false);
+        this.state.filter.startDate = this.formatDate(today);
+        this.state.filter.endDate = this.formatDate(today);
     }
 
     /**
@@ -76,13 +103,6 @@ class ReportController {
         // 时间筛选按钮事件
         document.querySelectorAll('#timeFilter .filter-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.handleTimeFilter(e));
-        });
-
-        // 科室筛选事件
-        document.getElementById('deptSelect').addEventListener('change', (e) => {
-            this.state.filter.deptName = e.target.value;
-            this.state.currentPage = 1;
-            this.loadData();
         });
 
         // 分页大小变更
@@ -204,7 +224,8 @@ class ReportController {
             const params = {
                 page: this.state.currentPage,
                 pageSize: this.state.pageSize,
-                deptName: this.state.filter.deptName,
+                deptCode: this.state.filter.deptCode || '',
+                deptName: this.state.filter.deptName || '',
                 startDate: this.state.filter.startDate,
                 endDate: this.state.filter.endDate
             };

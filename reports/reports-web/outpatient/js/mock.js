@@ -1083,6 +1083,75 @@ const MockService = {
     },
 
     /**
+     * 获取科室字典
+     * @param {Object} params - { deptType, deptCode, deptName, ...ext }
+     * @returns {Promise} 返回科室列表
+     */
+    getDeptDict(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const deptType = params.deptType != null ? params.deptType : 0;
+                const deptCode = params.deptCode || '';
+                const deptName = params.deptName || '';
+
+                // 门诊科室样例数据
+                const outpatientDepts = [
+                    { deptCode: '0000', deptName: '全部', deptType: 0, parentCode: '', level: 0 },
+                    { deptCode: '0101', deptName: '心血管内科门诊', deptType: 0, parentCode: '0100', level: 2 },
+                    { deptCode: '0102', deptName: '呼吸科门诊', deptType: 0, parentCode: '0100', level: 2 },
+                    { deptCode: '0103', deptName: '消化科门诊', deptType: 0, parentCode: '0100', level: 2 },
+                    { deptCode: '0104', deptName: '神经内科门诊', deptType: 0, parentCode: '0100', level: 2 },
+                    { deptCode: '0105', deptName: '肾内科门诊', deptType: 0, parentCode: '0100', level: 2 },
+                    { deptCode: '0201', deptName: '骨科门诊', deptType: 0, parentCode: '0200', level: 2 },
+                    { deptCode: '0202', deptName: '泌尿外科门诊', deptType: 0, parentCode: '0200', level: 2 },
+                    { deptCode: '0203', deptName: '神经外科门诊', deptType: 0, parentCode: '0200', level: 2 },
+                    { deptCode: '0204', deptName: '心脏血管外科门诊', deptType: 0, parentCode: '0200', level: 2 },
+                    { deptCode: '0205', deptName: '肝胆胰外科门诊', deptType: 0, parentCode: '0200', level: 2 }
+                ];
+
+                // 住院科室样例数据
+                const inpatientDepts = [
+                    { deptCode: '0000', deptName: '全部', deptType: 1, parentCode: '', level: 0 },
+                    { deptCode: '1101', deptName: '心血管内科病房', deptType: 1, parentCode: '1100', level: 2 },
+                    { deptCode: '1102', deptName: '呼吸科病房', deptType: 1, parentCode: '1100', level: 2 },
+                    { deptCode: '1103', deptName: '消化科病房', deptType: 1, parentCode: '1100', level: 2 }
+                ];
+
+                // 其他科室样例数据
+                const otherDepts = [
+                    { deptCode: '0000', deptName: '全部', deptType: 2, parentCode: '', level: 0 },
+                    { deptCode: '9001', deptName: '体检中心', deptType: 2, parentCode: '', level: 1 },
+                    { deptCode: '9002', deptName: '检验科', deptType: 2, parentCode: '', level: 1 }
+                ];
+
+                let list = [];
+                if (deptType === 0) list = outpatientDepts;
+                else if (deptType === 1) list = inpatientDepts;
+                else if (deptType === 2) list = otherDepts;
+                else list = [...outpatientDepts, ...inpatientDepts, ...otherDepts];
+
+                // 按 deptCode 精确筛选（0000 表示全部，保留所有）
+                if (deptCode && deptCode !== '0000') {
+                    list = list.filter(item => item.deptCode === deptCode);
+                }
+
+                // 按 deptName 模糊匹配
+                if (deptName) {
+                    list = list.filter(item => item.deptName.includes(deptName));
+                }
+
+                resolve({
+                    code: 200,
+                    data: {
+                        list,
+                        total: list.length
+                    }
+                });
+            }, 200);
+        });
+    },
+
+    /**
      * 导出 Excel（模拟）
      */
     exportExcel(params = {}) {
