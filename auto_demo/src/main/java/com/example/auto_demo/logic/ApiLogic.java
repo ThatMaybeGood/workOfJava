@@ -6,20 +6,14 @@ import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.PropertyNamingStrategy;
 import com.alibaba.fastjson.serializer.SerializeConfig;
 import com.example.auto_demo.config.AppConfig;
-import com.example.auto_demo.model.ExportExcelDTO;
 import com.example.auto_demo.util.*;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.JsonArray;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -165,45 +159,172 @@ public class ApiLogic {
         return list;
     }
 
+    // ========== 工具方法：安全获取JSON字段 ==========
+    private String s(JSONObject jsonObject, String key) {
+        String val = jsonObject.getString(key);
+        return val != null ? val : "";
+    }
+
+    private String s0(JSONObject jsonObject, String key) {
+        String val = jsonObject.getString(key);
+        return val != null ? val : "0";
+    }
+
+    private Double d(JSONObject jsonObject, String key) {
+        try {
+            return jsonObject.getDouble(key);
+        } catch (Exception e) {
+            return 0.0;
+        }
+    }
 
     private JSONObject convertSetlJSONObject(JSONObject jsonObject, String insutype) {
         JSONObject newJsonObject = new JSONObject();
-        newJsonObject.put("setl_id", jsonObject.getString("setlId"));
-        newJsonObject.put("mdtrt_id", jsonObject.getString("mdtrtId"));
-        newJsonObject.put("psn_no", jsonObject.getString("psnNo"));
-        newJsonObject.put("bill_date", jsonObject.getString("setlTime"));
-        newJsonObject.put("tran_type", jsonObject.getString("medfeeSumamt").contains("-") ? "2" : "1");
+
+        // ========== 你原有的字段 ==========
+        newJsonObject.put("setl_id", s(jsonObject, "setlId"));
+        newJsonObject.put("mdtrt_id", s(jsonObject, "mdtrtId"));
+        newJsonObject.put("psn_no", s(jsonObject, "psnNo"));
+        newJsonObject.put("bill_date", s(jsonObject, "setlTime"));
+
+        String medfeeSumamt = s0(jsonObject, "medfeeSumamt");
+        newJsonObject.put("tran_type", medfeeSumamt.contains("-") ? "2" : "1");
+
         newJsonObject.put("data_source", "2");
-        newJsonObject.put("psn_name", jsonObject.getString("psnName"));
-        newJsonObject.put("insutype", insutype);
-        newJsonObject.put("medins_setl_id", jsonObject.getString("medinsSetlId"));
-        newJsonObject.put("msgid", jsonObject.getString("medinsSetlId"));
-        newJsonObject.put("med_type", MedType.nameOf(jsonObject.getString("medType")));  //返回医疗类别的中文
-        newJsonObject.put("med_type_code", jsonObject.getString("medType"));
-        newJsonObject.put("card_no", jsonObject.getString("certno"));
+        newJsonObject.put("psn_name", s(jsonObject, "psnName"));
+        newJsonObject.put("insutype", insutype != null ? insutype : "");
+        newJsonObject.put("medins_setl_id", s(jsonObject, "medinsSetlId"));
+        newJsonObject.put("msgid", s(jsonObject, "medinsSetlId"));
 
+        String medType = s(jsonObject, "medType");
+        newJsonObject.put("med_type", medType.isEmpty() ? "" : MedType.nameOf(medType));
+        newJsonObject.put("med_type_code", medType);
+        newJsonObject.put("card_no", s(jsonObject, "certno"));
+        newJsonObject.put("fixmedins_code", s(jsonObject, "fixmedinsCode"));
+        newJsonObject.put("fixmedins_name", s(jsonObject, "fixmedinsName"));
+        newJsonObject.put("medfee_sumamt", s0(jsonObject, "medfeeSumamt"));
+        newJsonObject.put("fulamt_ownpay_amt", s0(jsonObject, "fulamtOwnpayAmt"));
+        newJsonObject.put("inscp_amt", s0(jsonObject, "inscpAmt"));
+        newJsonObject.put("crt_dedc", s0(jsonObject, "crtDedc"));
+        newJsonObject.put("act_pay_dedc", s0(jsonObject, "actPayDedc"));
+        newJsonObject.put("hi_agre_sumfee", s0(jsonObject, "hiAgreSumfee"));
+        newJsonObject.put("hifp_pay", s0(jsonObject, "fundPaySumamt"));
+        newJsonObject.put("fund_pay_sumamt", s0(jsonObject, "hifpPay"));
+        newJsonObject.put("psn_pay", s0(jsonObject, "psnPay"));
+        newJsonObject.put("acct_pay", s0(jsonObject, "acctPay"));
 
-        newJsonObject.put("fixmedins_code", jsonObject.getString("fixmedinsCode"));
-        newJsonObject.put("fixmedins_name", jsonObject.getString("fixmedinsName"));
+        // ========== 补全的字段 ==========
+        // 人员信息
+        newJsonObject.put("psn_insu_rlts_id", s(jsonObject, "psnInsuRltsId"));
+        newJsonObject.put("insu_admdvs", s(jsonObject, "insuAdmdvs"));
+        newJsonObject.put("psn_cert_type", s(jsonObject, "psnCertType"));
+        newJsonObject.put("certno", s(jsonObject, "certno"));
+        newJsonObject.put("gend", s(jsonObject, "gend"));
+        newJsonObject.put("naty", s(jsonObject, "naty"));
+        newJsonObject.put("brdy", s(jsonObject, "brdy"));
+        newJsonObject.put("age", d(jsonObject, "age"));
+        newJsonObject.put("psn_type", s(jsonObject, "psnType"));
+        newJsonObject.put("cvlserv_flag", s0(jsonObject, "cvlservFlag"));
+        newJsonObject.put("cvlserv_lv", s(jsonObject, "cvlservLv"));
+        newJsonObject.put("sp_psn_type", s(jsonObject, "spPsnType"));
+        newJsonObject.put("sp_psn_type_lv", s(jsonObject, "spPsnTypeLv"));
+        newJsonObject.put("clct_grde", s(jsonObject, "clctGrde"));
+        newJsonObject.put("flxempe_flag", s0(jsonObject, "flxempeFlag"));
+        newJsonObject.put("nwb_flag", s(jsonObject, "nwbFlag"));
 
-        newJsonObject.put("medfee_sumamt", jsonObject.getString("medfeeSumamt"));
-        newJsonObject.put("fulamt_ownpay_amt", jsonObject.getString("fulamtOwnpayAmt"));
-        newJsonObject.put("inscp_amt", jsonObject.getString("inscpAmt"));
-        newJsonObject.put("crt_dedc", jsonObject.getString("crtDedc"));
-        newJsonObject.put("act_pay_dedc", jsonObject.getString("actPayDedc"));  //返回医疗类别的中文
+        // 单位信息
+        newJsonObject.put("emp_no", s(jsonObject, "empNo"));
+        newJsonObject.put("emp_name", s(jsonObject, "empName"));
+        newJsonObject.put("emp_type", s(jsonObject, "empType"));
+        newJsonObject.put("econ_type", s(jsonObject, "econType"));
+        newJsonObject.put("afil_indu", s(jsonObject, "afilIndu"));
+        newJsonObject.put("afil_rlts", s(jsonObject, "afilRlts"));
+        newJsonObject.put("emp_mgt_type", s(jsonObject, "empMgtType"));
+        newJsonObject.put("pay_loc", s(jsonObject, "payLoc"));
 
-        newJsonObject.put("hi_agre_sumfee", jsonObject.getString("hiAgreSumfee"));
-        newJsonObject.put("hifp_pay", jsonObject.getString("fundPaySumamt"));
-        newJsonObject.put("fund_pay_sumamt", jsonObject.getString("hifpPay"));
-        newJsonObject.put("psn_pay", jsonObject.getString("psnPay"));
-        newJsonObject.put("acct_pay", jsonObject.getString("acctPay"));
+        // 医院信息
+        newJsonObject.put("hosp_lv", s(jsonObject, "hospLv"));
+        newJsonObject.put("fix_blng_admdvs", s(jsonObject, "fixBlngAdmdvs"));
+        newJsonObject.put("lmtpric_hosp_lv", s(jsonObject, "lmtpricHospLv"));
+        newJsonObject.put("dedc_hosp_lv", s(jsonObject, "dedcHospLv"));
 
+        // 时间日期
+        newJsonObject.put("begndate", s(jsonObject, "begndate"));
+        newJsonObject.put("enddate", s(jsonObject, "enddate"));
+        newJsonObject.put("setl_time", s(jsonObject, "setlTime"));
+        newJsonObject.put("begntime", s(jsonObject, "begntime"));
+        newJsonObject.put("endtime", s(jsonObject, "endtime"));
+        newJsonObject.put("updt_time", s(jsonObject, "updtTime"));
+        newJsonObject.put("crte_time", s(jsonObject, "crteTime"));
+        newJsonObject.put("opt_time", s(jsonObject, "optTime"));
+
+        // 业务类型/状态
+        newJsonObject.put("mdtrt_cert_type", s(jsonObject, "mdtrtCertType"));
+        newJsonObject.put("setl_type", s(jsonObject, "setlType"));
+        newJsonObject.put("clr_type", s(jsonObject, "clrType"));
+        newJsonObject.put("clr_way", s(jsonObject, "clrWay"));
+        newJsonObject.put("clr_optins", s(jsonObject, "clrOptins"));
+        newJsonObject.put("refd_setl_flag", s0(jsonObject, "refdSetlFlag"));
+        newJsonObject.put("mid_setl_flag", s(jsonObject, "midSetlFlag"));
+        newJsonObject.put("acct_used_flag", s(jsonObject, "acctUsedFlag"));
+        newJsonObject.put("vali_flag", s(jsonObject, "valiFlag"));
+        newJsonObject.put("rchk_flag", s(jsonObject, "rchkFlag"));
+        newJsonObject.put("reim_stas", s(jsonObject, "reimStas"));
+        newJsonObject.put("psn_setlway", s(jsonObject, "psnSetlway"));
+
+        // 金额补全
+        newJsonObject.put("overlmt_selfpay", s0(jsonObject, "overlmtSelfpay"));
+        newJsonObject.put("preselfpay_amt", s0(jsonObject, "preselfpayAmt"));
+        newJsonObject.put("dedc_std", s0(jsonObject, "dedcStd"));
+        newJsonObject.put("pool_prop_selfpay", s0(jsonObject, "poolPropSelfpay"));
+        newJsonObject.put("cvlserv_pay", s0(jsonObject, "cvlservPay"));
+        newJsonObject.put("hifes_pay", s0(jsonObject, "hifesPay"));
+        newJsonObject.put("hifmi_pay", s0(jsonObject, "hifmiPay"));
+        newJsonObject.put("hifob_pay", s0(jsonObject, "hifobPay"));
+        newJsonObject.put("hifdm_pay", s0(jsonObject, "hifdmPay"));
+        newJsonObject.put("maf_pay", s0(jsonObject, "mafPay"));
+        newJsonObject.put("othfund_pay", s0(jsonObject, "othfundPay"));
+        newJsonObject.put("cash_payamt", s0(jsonObject, "cashPayamt"));
+        newJsonObject.put("ownpay_hosp_part", s0(jsonObject, "ownpayHospPart"));
+
+        // 其他字段
+        newJsonObject.put("year", s(jsonObject, "year"));
+        newJsonObject.put("balc", d(jsonObject, "balc"));
+        newJsonObject.put("mdtrt_cert_no", s(jsonObject, "mdtrtCertNo"));
+        newJsonObject.put("rid", s(jsonObject, "rid"));
+        newJsonObject.put("crter_id", s(jsonObject, "crterId"));
+        newJsonObject.put("crter_name", s(jsonObject, "crterName"));
+        newJsonObject.put("crte_optins_no", s(jsonObject, "crteOptinsNo"));
+        newJsonObject.put("opter_id", s(jsonObject, "opterId"));
+        newJsonObject.put("opter_name", s(jsonObject, "opterName"));
+        newJsonObject.put("optins_no", s(jsonObject, "optinsNo"));
+        newJsonObject.put("poolarea_no", s(jsonObject, "poolareaNo"));
+        newJsonObject.put("evtsn", s(jsonObject, "evtsn"));
+        newJsonObject.put("serv_matt_inst_id", s(jsonObject, "servMattInstId"));
+        newJsonObject.put("serv_matt_node_inst_id", s(jsonObject, "servMattNodeInstId"));
+        newJsonObject.put("evt_inst_id", s(jsonObject, "evtInstId"));
+        newJsonObject.put("evt_type", s(jsonObject, "evtType"));
+        newJsonObject.put("med_fee_reg_id", s(jsonObject, "medFeeRegId"));
+        newJsonObject.put("manl_reim_rea", s(jsonObject, "manlReimRea"));
+        newJsonObject.put("dfr_obj", s(jsonObject, "dfrObj"));
+        newJsonObject.put("bankcode", s(jsonObject, "bankcode"));
+        newJsonObject.put("bank_type_code", s(jsonObject, "bankTypeCode"));
+        newJsonObject.put("bankacct", s(jsonObject, "bankacct"));
+        newJsonObject.put("acctname", s(jsonObject, "acctname"));
+        newJsonObject.put("bank_samecity_out_flag", s(jsonObject, "bankSamecityOutFlag"));
+        newJsonObject.put("cal_ipt_cnt", s(jsonObject, "calIptCnt"));
+        newJsonObject.put("att_val", s(jsonObject, "attVal"));
+        newJsonObject.put("invono", s(jsonObject, "invono"));
+        newJsonObject.put("sumfee", s(jsonObject, "sumfee"));
+        newJsonObject.put("init_setl_id", s(jsonObject, "initSetlId"));
+        newJsonObject.put("dise_no", s(jsonObject, "diseNo"));
+        newJsonObject.put("dise_name", s(jsonObject, "diseName"));
+        newJsonObject.put("memo", s(jsonObject, "memo"));
+        newJsonObject.put("setl_cashpay_way", s(jsonObject, "setlCashpayWay"));
+        newJsonObject.put("acct_mulaid_pay", s(jsonObject, "acctMulaidPay"));
 
         return newJsonObject;
     }
-
-
-
     public JSONArray convertJSONArray(JSONArray orgList, String insutype) {
         JSONArray list = new JSONArray();
         for (int i = 0; i < orgList.size(); i++) {

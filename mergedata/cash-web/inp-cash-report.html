@@ -421,13 +421,20 @@
         }
 
         @media print {
+            @page {
+                size: landscape;
+                margin: 10mm;
+            }
             body {
                 background: white;
                 padding: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
             .header-card,
             .report-title-bar,
             .control-panel,
+            .toggle-switch,
             .btn-print,
             .btn-save,
             .btn-init,
@@ -443,20 +450,30 @@
                 padding: 0;
                 margin: 0;
             }
-            .section-header {
-                border-bottom: 1px solid #000;
-                margin-bottom: 10px;
-            }
             .table-wrapper {
                 border: none;
                 overflow: visible;
+                width: 100%;
+                display: flex;
+                justify-content: center;
             }
             .data-table {
-                font-size: 10px;
+                font-size: 9px;
                 min-width: auto;
+                width: auto;
+                max-width: 100%;
+                margin: 0 auto;
+                transform-origin: top center;
             }
             .data-table th,
-            .data-table td { padding: 3px 4px; height: auto; }
+            .data-table td {
+                padding: 3px 4px;
+                height: auto;
+                border: 1px solid #000;
+                white-space: normal;
+                overflow: visible;
+                word-break: break-word;
+            }
             .data-table th:first-child,
             .data-table td:first-child,
             .data-table th:nth-child(2),
@@ -707,10 +724,10 @@
 
         const totals = calculateTotals(currentData);
         const groupClasses = [
-            "", "", "group-morning", "group-morning", "group-morning", "group-morning",
-            "group-morning", "group-morning", "group-morning",
+            "group-morning", "group-morning", "group-morning", "group-morning", "group-morning", "group-morning",
+            "group-morning", "group-morning", "group-morning", "group-morning",
             "group-afternoon", "group-afternoon", "group-afternoon", "group-afternoon",
-            "group-afternoon", "group-afternoon", "group-afternoon", "group-afternoon",
+            "group-afternoon", "group-afternoon", "group-afternoon",
             "group-retain", "group-retain", "group-retain", "group-retain", "group-retain", "group-retain"
         ];
         let html = "";
