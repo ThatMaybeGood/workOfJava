@@ -438,10 +438,15 @@ public class ReportServiceImpl implements ReportService {
      * @return 分明细数据
      */
     private List<OutpCashSubEntity> splitDetailData(List<OutpCashSubEntity> subs, String upOrDown) {
+
+        Map<String, YQOperatorEntity> operatorMap = operatorService.findByCategory(Constant.TYPE_OUTP).stream()
+                .collect(Collectors.toMap(YQOperatorEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
+
         if (upOrDown.equals("1")) {
             return subs.stream()
                     .filter(dto -> dto.getOperatorName() != null)
                     .filter(dto -> !Constant.EXCLUDE_OPERATOR_NAMES.contains(dto.getOperatorName()))
+                    .filter(dto -> operatorMap.containsKey(dto.getDbUser()))   //增加对前端多传入不存在的操作员过滤
                     .collect(Collectors.toList());
         } else {
             return subs.stream()
@@ -621,9 +626,13 @@ public class ReportServiceImpl implements ReportService {
                         .collect(Collectors.toMap(OutpCashMainEntity::getReportDate, Function.identity()));
             }
 
+            List<OutpCashSubEntity> validSubList = subList.stream()
+                    .filter(dto -> operatorMap.containsKey(dto.getDbUser()))
+                    .collect(Collectors.toList());
 
-            for (OutpCashSubEntity dto : subList) {
+            for (OutpCashSubEntity dto : validSubList) {
                 YQOperatorEntity operator = operatorMap.get(dto.getDbUser());
+
                 OutpCashSubEntity curSub = curSubsMap.get(dto.getDbUser());
                 dto.setInputFlag(operator.getInputFlag()==1 ? 1 : curSub.getInputFlag());
 
@@ -808,12 +817,12 @@ public class ReportServiceImpl implements ReportService {
 
                         startDate = startDate.minusDays(1);  //日期倒减
 
-                        inpResult = queryInpReportByDate(startDate, Constant.NO);
+                        inpResult = queryInpReportByDate(startDate, Constant.NOT_TOTAL);
 
                         // 1. 查主表单条 是否存在
                         if (inpResult == null) {
                             //获取初始化的数据
-                            inpResult = getInpReportData(startDate, holidayType, Constant.NO);
+                            inpResult = getInpReportData(startDate, holidayType, Constant.NOT_TOTAL);
                             //方法批量插入数据
                             isInitInsertInp(inpResult, Constant.YES);
                         }
@@ -841,12 +850,12 @@ public class ReportServiceImpl implements ReportService {
 
             } else {
                 //查询数据库是否有相关数据
-                inpResult = queryInpReportByDate(currentDate, Constant.NO);
+                inpResult = queryInpReportByDate(currentDate, Constant.NOT_TOTAL);
 
                 // 1. 查主表单条 是否存在
                 if (inpResult == null || isInitFlag) {
                     //获取初始化的数据
-                    inpResult = getInpReportData(currentDate, holidayType, Constant.NO);
+                    inpResult = getInpReportData(currentDate, holidayType, Constant.NOT_TOTAL);
                     //查询时候数据库没有相关的数据，插入数据库，此处调用插入数据
                     isInitInsertInp(inpResult, Constant.YES);
 

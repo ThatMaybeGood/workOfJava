@@ -50,8 +50,8 @@ public class HisDataTests {
 
         OperatorServiceImpl operatorService = new OperatorServiceImpl();
 
-        String startDate = "2026-03-01";
-        String endDate = "2026-03-10";
+        String startDate = "2026-07-20";
+        String endDate = "2026-07-20";
 
         try {
             java.time.LocalDate current = java.time.LocalDate.parse(startDate);
