@@ -5,6 +5,12 @@ import com.reports.dto.common.PageResult;
 import com.reports.dto.request.OutpatientNoShowRequest;
 import com.reports.dto.response.outpatient.no.show.*;
 import com.reports.service.OutpatientNoShowService;
+import com.reports.mapper.NoShowMapper;
+import com.reports.entity.NoShowOvEntity;
+import com.reports.entity.NoShowAgeEntity;
+import com.reports.entity.NoShowOrgEntity;
+import com.reports.entity.NoShowChnEntity;
+import com.reports.entity.NoShowDtlEntity;
 import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +35,9 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
         this.dataConfig = dataConfig;
         this.jdbcTemplate = jdbcTemplate;
     }
+
+    @Autowired
+    NoShowMapper noShowMapper;
 
     @Override
     public OverviewData queryOverview(OutpatientNoShowRequest request) {
@@ -181,23 +190,105 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
     // ==================== MyBatis-Plus 模式 ====================
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientNoShowRequest request) {
-        return queryOverviewMock(request);
+        try {
+            NoShowOvEntity entity = noShowMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            return buildOverviewData(entity);
+        } catch (Exception e) {
+            log.warn("查询爽约退号概览数据失败", e);
+            return new OverviewData();
+        }
     }
 
     private AgeAnalysis queryAgeAnalysisByMybatisPlus(OutpatientNoShowRequest request) {
-        return queryAgeAnalysisMock(request);
+        try {
+            List<NoShowAgeEntity> list = noShowMapper.queryAgeAnalysis(request.getStartDate(), request.getEndDate());
+            return buildAgeAnalysis(list);
+        } catch (Exception e) {
+            log.warn("查询爽约退号年龄分析失败", e);
+            return new AgeAnalysis();
+        }
     }
 
     private List<AnalysisItem> queryRefundOriginByMybatisPlus(OutpatientNoShowRequest request) {
-        return queryRefundOriginMock(request);
+        try {
+            List<NoShowOrgEntity> list = noShowMapper.queryOriginAnalysis(request.getStartDate(), request.getEndDate(), null);
+            List<AnalysisItem> result = new ArrayList<>();
+            for (NoShowOrgEntity entity : list) {
+                result.add(newAnalysisItem(entity.getItemName(), entity.getItemValue()));
+            }
+            return result;
+        } catch (Exception e) {
+            log.warn("查询爽约退号来源分析失败", e);
+            return new ArrayList<>();
+        }
     }
 
     private List<AnalysisItem> queryRefundChannelByMybatisPlus(OutpatientNoShowRequest request) {
-        return queryRefundChannelMock(request);
+        try {
+            List<NoShowChnEntity> list = noShowMapper.queryChannelAnalysis(request.getStartDate(), request.getEndDate(), null);
+            List<AnalysisItem> result = new ArrayList<>();
+            for (NoShowChnEntity entity : list) {
+                result.add(newAnalysisItem(entity.getItemName(), entity.getItemValue()));
+            }
+            return result;
+        } catch (Exception e) {
+            log.warn("查询爽约退号渠道分析失败", e);
+            return new ArrayList<>();
+        }
     }
 
     private PageResult<TableItem> queryTableByMybatisPlus(OutpatientNoShowRequest request, Integer page, Integer pageSize) {
-        return queryTableMock(request, page, pageSize);
+        try {
+            List<NoShowDtlEntity> list = noShowMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), null);
+            List<TableItem> allItems = new ArrayList<>();
+            for (NoShowDtlEntity entity : list) {
+                allItems.add(buildTableItem(entity));
+            }
+            int total = allItems.size();
+            int start = (page - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+            List<TableItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
+            return PageResult.of(pageList, (long) total, page, pageSize);
+        } catch (Exception e) {
+            log.warn("查询爽约退号明细表格失败", e);
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+        }
+    }
+
+    // ==================== Entity-DTO 转换方法 ====================
+
+    private OverviewData buildOverviewData(NoShowOvEntity entity) {
+        if (entity == null) return new OverviewData();
+        OverviewData dto = new OverviewData();
+        dto.setRefundCount(entity.getRefundCount());
+        dto.setRefundRate(entity.getRefundRate());
+        dto.setNoShowCount(entity.getNoShowCount());
+        dto.setNoShowRate(entity.getNoShowRate());
+        return dto;
+    }
+
+    private AgeAnalysis buildAgeAnalysis(List<NoShowAgeEntity> list) {
+        AgeAnalysis analysis = new AgeAnalysis();
+        List<String> categories = new ArrayList<>();
+        List<Integer> data = new ArrayList<>();
+        for (NoShowAgeEntity entity : list) {
+            categories.add(entity.getAgeGroup());
+            data.add(entity.getNoShowCount());
+        }
+        analysis.setCategories(categories);
+        analysis.setData(data);
+        return analysis;
+    }
+
+    private TableItem buildTableItem(NoShowDtlEntity entity) {
+        if (entity == null) return null;
+        TableItem item = new TableItem();
+        item.setDeptName(entity.getDeptName());
+        item.setRefundCount(entity.getRefundCount());
+        item.setRefundRate(entity.getRefundRate());
+        item.setNoShowCount(entity.getNoShowCount());
+        item.setNoShowRate(entity.getNoShowRate());
+        return item;
     }
 
     // ==================== 工具方法 ====================

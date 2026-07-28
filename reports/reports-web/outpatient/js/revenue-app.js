@@ -8,7 +8,8 @@ class RevenueController {
             timeRange: 'today',
             startDate: today,
             endDate: today,
-            deptName: ''
+            deptName: '',
+            deptCode: ''
         };
         this.deptState = {
             currentPage: 1,
@@ -37,9 +38,10 @@ class RevenueController {
         return `${y}-${m}-${d}`;
     }
 
-    init() {
+    async init() {
         this.bindEvents();
         this.initDateRangePicker();
+        await this.initDeptSelect();
         this.loadOverview();
         this.loadDeptData();
         this.loadDoctorData();
@@ -69,19 +71,29 @@ class RevenueController {
         });
     }
 
+    async initDeptSelect(options = {}) {
+        this.deptInfo = await initDeptSelect({
+            selectId: 'deptSelect',
+            deptType: 0,
+            showAll: true,
+            allCode: '0000',
+            allText: '全部',
+            onChange: (dept) => {
+                this.filter.deptName = dept.deptName === '全部' ? '' : dept.deptName;
+                this.filter.deptCode = dept.deptCode === '0000' ? '' : dept.deptCode;
+                this.deptState.currentPage = 1;
+                this.doctorState.currentPage = 1;
+                this.loadDeptData();
+                this.loadDoctorData();
+            },
+            ...options
+        });
+    }
+
     bindEvents() {
         // 时间筛选按钮事件
         document.querySelectorAll('#timeFilter .filter-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.handleTimeFilter(e));
-        });
-
-        // 科室筛选事件
-        document.getElementById('deptSelect').addEventListener('change', (e) => {
-            this.filter.deptName = e.target.value;
-            this.deptState.currentPage = 1;
-            this.doctorState.currentPage = 1;
-            this.loadDeptData();
-            this.loadDoctorData();
         });
 
         // 科室表分页大小变更
@@ -192,6 +204,7 @@ class RevenueController {
                 page: this.deptState.currentPage,
                 pageSize: this.deptState.pageSize,
                 deptName: this.filter.deptName,
+                deptCode: this.filter.deptCode,
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate
             });
@@ -211,6 +224,7 @@ class RevenueController {
                 page: this.doctorState.currentPage,
                 pageSize: this.doctorState.pageSize,
                 deptName: this.filter.deptName,
+                deptCode: this.filter.deptCode,
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate
             });

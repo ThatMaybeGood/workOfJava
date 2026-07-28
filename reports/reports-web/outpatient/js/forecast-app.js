@@ -5,7 +5,8 @@ class ForecastController {
     constructor() {
         this.state = {
             filter: {
-                deptName: ''
+                deptName: '',
+                deptCode: ''
             }
         };
         this.charts = {};
@@ -13,8 +14,9 @@ class ForecastController {
         this.init();
     }
 
-    init() {
+    async init() {
         this.initCharts();
+        await this.initDeptSelect();
         this.bindEvents();
         this.loadData();
     }
@@ -28,17 +30,30 @@ class ForecastController {
         });
     }
 
-    bindEvents() {
-        document.getElementById('deptSelect').addEventListener('change', (e) => {
-            this.state.filter.deptName = e.target.value;
-            this.loadData();
+    async initDeptSelect(options = {}) {
+        this.deptInfo = await initDeptSelect({
+            selectId: 'deptSelect',
+            deptType: 0,
+            showAll: true,
+            allCode: '0000',
+            allText: '全部',
+            onChange: (dept) => {
+                this.state.filter.deptName = dept.deptName === '全部' ? '' : dept.deptName;
+                this.state.filter.deptCode = dept.deptCode === '0000' ? '' : dept.deptCode;
+                this.loadData();
+            },
+            ...options
         });
+    }
+
+    bindEvents() {
     }
 
     async loadData() {
         try {
             const body = await ReportAPI.getForecastStats({
-                deptName: this.state.filter.deptName
+                deptName: this.state.filter.deptName,
+                deptCode: this.state.filter.deptCode
             });
             this.renderOverview(body ? body.overview : null);
             this.renderMonthForecastChart(body ? body.monthForecast : null);

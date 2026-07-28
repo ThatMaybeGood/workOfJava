@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.InpatPrepayMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询住院预交金概览 -->
+    <!-- ============================================================ -->
+    <select id="queryOverview" resultType="com.reports.entity.InpatPrepayOvEntity">
+        SELECT
+        NVL(prepayment_count, 0) AS prepaymentCount,
+        NVL(prepayment_count_compare, 0) AS prepaymentCountCompare,
+        NVL(prepayment_amount, 0) AS prepaymentAmount,
+        NVL(prepayment_amount_compare, 0) AS prepaymentAmountCompare
+        FROM TR_INPAT_PREPAY_OV
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询住院预交金日明细 -->
+    <!-- ============================================================ -->
+    <select id="queryDetail" resultType="com.reports.entity.InpatPrepayDtlEntity">
+        SELECT
+        item_date AS itemDate,
+        data_type AS dataType,
+        NVL(count_last, 0) AS countLast,
+        NVL(count_current, 0) AS countCurrent,
+        NVL(count_compare, 0) AS countCompare,
+        NVL(amount_last, 0) AS amountLast,
+        NVL(amount_current, 0) AS amountCurrent,
+        NVL(amount_compare, 0) AS amountCompare
+        FROM TR_INPAT_PREPAY_DTL
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="dataType != null and dataType != ''">
+            AND data_type = #{dataType}
+        </if>
+        ORDER BY item_date
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询住院预交金图表数据 -->
+    <!-- ============================================================ -->
+    <select id="queryChart" resultType="com.reports.entity.InpatPrepayChtEntity">
+        SELECT
+        chart_type AS chartType,
+        chart_title AS chartTitle,
+        chart_subtitle AS chartSubtitle,
+        date_range AS dateRange,
+        category,
+        series_name AS seriesName,
+        NVL(data_value, 0) AS dataValue,
+        NVL(compare_value, 0) AS compareValue
+        FROM TR_INPAT_PREPAY_CHT
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="chartType != null and chartType != ''">
+            AND chart_type = #{chartType}
+        </if>
+        ORDER BY category, series_name
+    </select>
+
+</mapper>

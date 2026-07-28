@@ -5,6 +5,10 @@ import com.reports.dto.common.PageResult;
 import com.reports.dto.request.CashCashierSettlementRequest;
 import com.reports.dto.response.cash.cashier.settlement.*;
 import com.reports.service.CashCashierSettlementService;
+import com.reports.mapper.CashSettleMapper;
+import com.reports.entity.CashSettleOvEntity;
+import com.reports.entity.CashSettleDtlEntity;
+import com.reports.entity.CashSettleChtEntity;
 import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.text.SimpleDateFormat;
@@ -26,6 +31,9 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
 
     private final ReportDataConfig dataConfig;
     private final JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private CashSettleMapper cashSettleMapper;
 
     @Autowired
     public CashCashierSettlementServiceImpl(ReportDataConfig dataConfig, JdbcTemplate jdbcTemplate) {
@@ -149,15 +157,101 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
     // ==================== MyBatis-Plus 模式 ====================
 
     private OverviewData queryOverviewByMybatisPlus(CashCashierSettlementRequest request) {
-        return queryOverviewMock(request);
+        try {
+            CashSettleOvEntity entity = cashSettleMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            return buildOverviewData(entity);
+        } catch (Exception e) {
+            log.warn("查询收费员结账概览失败", e);
+            return new OverviewData();
+        }
     }
 
     private PageResult<TableItem> queryTableByMybatisPlus(CashCashierSettlementRequest request, Integer page, Integer pageSize) {
-        return queryTableMock(request, page, pageSize);
+        try {
+            List<CashSettleDtlEntity> rows = cashSettleMapper.queryDetail(request.getStartDate(), request.getEndDate(), null);
+            // 按日期分组
+            Map<String, Map<String, Double>> dateCashierMap = new LinkedHashMap<>();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            for (CashSettleDtlEntity row : rows) {
+                String dateStr = sdf.format(row.getItemDate());
+                String cashier = row.getCashierName();
+                double value = row.getItemValue() != null ? row.getItemValue().doubleValue() : 0.0;
+                dateCashierMap.computeIfAbsent(dateStr, k -> new HashMap<>());
+                dateCashierMap.get(dateStr).merge(cashier, value, Double::sum);
+            }
+            List<TableItem> allItems = new ArrayList<>();
+            for (Map.Entry<String, Map<String, Double>> entry : dateCashierMap.entrySet()) {
+                TableItem item = new TableItem();
+                item.setDate(entry.getKey());
+                Map<String, Object> columns = new HashMap<>(entry.getValue());
+                double total = entry.getValue().values().stream().mapToDouble(Double::doubleValue).sum();
+                columns.put("total", total);
+                item.setColumns(columns);
+                allItems.add(item);
+            }
+            int totalItems = allItems.size();
+            int start = (page - 1) * pageSize;
+            int end = Math.min(start + pageSize, totalItems);
+            List<TableItem> pageList = start < totalItems ? allItems.subList(start, end) : new ArrayList<>();
+            return PageResult.of(pageList, (long) totalItems, page, pageSize);
+        } catch (Exception e) {
+            log.warn("查询收费员结账表格失败", e);
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+        }
     }
 
     private ChartData queryChartByMybatisPlus(CashCashierSettlementRequest request) {
-        return queryChartMock(request);
+        try {
+            List<CashSettleChtEntity> entities = cashSettleMapper.queryChart(request.getStartDate(), request.getEndDate());
+            if (entities == null || entities.isEmpty()) {
+                return new ChartData();
+            }
+            ChartData chart = new ChartData();
+            CashSettleChtEntity first = entities.get(0);
+            chart.setTitle(first.getChartTitle());
+            chart.setSubTitle(first.getChartSubtitle());
+            chart.setDateRange(first.getDateRange());
+            List<String> categories = new ArrayList<>();
+            List<Integer> data = new ArrayList<>();
+            for (CashSettleChtEntity entity : entities) {
+                categories.add(entity.getCategory());
+                data.add(entity.getDataValue());
+            }
+            chart.setCategories(categories);
+            chart.setData(data);
+            return chart;
+        } catch (Exception e) {
+            log.warn("查询收费员结账图表失败", e);
+            return new ChartData();
+        }
+    }
+
+    // ==================== 实体转换 ====================
+
+    private OverviewData buildOverviewData(CashSettleOvEntity entity) {
+        if (entity == null) {
+            return new OverviewData();
+        }
+        OverviewData overview = new OverviewData();
+        overview.setAppointmentRegister(entity.getAppointmentRegister());
+        overview.setAppointmentRegisterCompare(entity.getAppointmentRegisterCompare());
+        overview.setAppointmentFetch(entity.getAppointmentFetch());
+        overview.setAppointmentFetchCompare(entity.getAppointmentFetchCompare());
+        overview.setTodayRegister(entity.getTodayRegister());
+        overview.setTodayRegisterCompare(entity.getTodayRegisterCompare());
+        overview.setRefund(entity.getRefund());
+        overview.setRefundCompare(entity.getRefundCompare());
+        overview.setOutpatientCharge(entity.getOutpatientCharge());
+        overview.setOutpatientChargeCompare(entity.getOutpatientChargeCompare());
+        overview.setOutpatientRefund(entity.getOutpatientRefund());
+        overview.setOutpatientRefundCompare(entity.getOutpatientRefundCompare());
+        overview.setPrepayment(entity.getPrepayment());
+        overview.setPrepaymentCompare(entity.getPrepaymentCompare());
+        overview.setHospitalRefund(entity.getHospitalRefund());
+        overview.setHospitalRefundCompare(entity.getHospitalRefundCompare());
+        overview.setDischargeSettlement(entity.getDischargeSettlement());
+        overview.setDischargeSettlementCompare(entity.getDischargeSettlementCompare());
+        return overview;
     }
 
     // ==================== 工具方法 ====================

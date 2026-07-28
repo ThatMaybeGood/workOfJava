@@ -5,12 +5,17 @@ import com.reports.dto.common.PageResult;
 import com.reports.dto.request.CashDischargeSettlementRequest;
 import com.reports.dto.response.cash.discharge.settlement.*;
 import com.reports.service.CashDischargeSettlementService;
+import com.reports.mapper.DischSettleMapper;
+import com.reports.entity.DischSettleOvEntity;
+import com.reports.entity.DischSettleDtlEntity;
+import com.reports.entity.DischSettleChtEntity;
 import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +28,9 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
 
     private final ReportDataConfig dataConfig;
     private final JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private DischSettleMapper dischSettleMapper;
 
     @Autowired
     public CashDischargeSettlementServiceImpl(ReportDataConfig dataConfig, JdbcTemplate jdbcTemplate) {
@@ -146,15 +154,102 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
     // ==================== MyBatis-Plus 模式 ====================
 
     private OverviewData queryOverviewByMybatisPlus(CashDischargeSettlementRequest request) {
-        return queryOverviewMock(request);
+        try {
+            DischSettleOvEntity entity = dischSettleMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            return buildOverviewData(entity);
+        } catch (Exception e) {
+            log.warn("查询出院结算概览失败", e);
+            return new OverviewData();
+        }
     }
 
     private ChartsData queryChartsByMybatisPlus(CashDischargeSettlementRequest request) {
-        return queryChartsMock(request);
+        try {
+            List<DischSettleChtEntity> channelEntities = dischSettleMapper.queryChart(request.getStartDate(), request.getEndDate(), "CHANNEL");
+            List<DischSettleChtEntity> patientTypeEntities = dischSettleMapper.queryChart(request.getStartDate(), request.getEndDate(), "PATIENT_TYPE");
+            List<DischSettleChtEntity> amountTypeEntities = dischSettleMapper.queryChart(request.getStartDate(), request.getEndDate(), "AMOUNT_TYPE");
+
+            ChartsData charts = new ChartsData();
+            charts.setChannelAnalysis(buildChartItemList(channelEntities));
+            charts.setPatientTypeAnalysis(buildChartItemList(patientTypeEntities));
+            charts.setAmountTypeAnalysis(buildChartItemList(amountTypeEntities));
+            return charts;
+        } catch (Exception e) {
+            log.warn("查询出院结算图表失败", e);
+            return new ChartsData();
+        }
     }
 
     private PageResult<TableItem> queryTableByMybatisPlus(CashDischargeSettlementRequest request, Integer page, Integer pageSize) {
-        return queryTableMock(request, page, pageSize);
+        try {
+            List<DischSettleDtlEntity> rows = dischSettleMapper.queryDetail(request.getStartDate(), request.getEndDate());
+            List<TableItem> allItems = new ArrayList<>();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            for (DischSettleDtlEntity row : rows) {
+                allItems.add(buildTableItem(row, sdf));
+            }
+            int total = allItems.size();
+            int start = (page - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+            List<TableItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
+            return PageResult.of(pageList, (long) total, page, pageSize);
+        } catch (Exception e) {
+            log.warn("查询出院结算表格失败", e);
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+        }
+    }
+
+    // ==================== 实体转换 ====================
+
+    private OverviewData buildOverviewData(DischSettleOvEntity entity) {
+        if (entity == null) {
+            return new OverviewData();
+        }
+        OverviewData overview = new OverviewData();
+        overview.setTotalDischargeCount(entity.getTotalDischargeCount());
+        overview.setTotalDischargeCompare(entity.getTotalDischargeCompare());
+        overview.setDischargedCount(entity.getDischargedCount());
+        overview.setDischargedCompare(entity.getDischargedCompare());
+        overview.setNotDischargedCount(entity.getNotDischargedCount());
+        overview.setNotDischargedCompare(entity.getNotDischargedCompare());
+        overview.setSettlementAmount(entity.getSettlementAmount() != null ? entity.getSettlementAmount().doubleValue() : null);
+        overview.setSettlementAmountCompare(entity.getSettlementAmountCompare());
+        return overview;
+    }
+
+    private TableItem buildTableItem(DischSettleDtlEntity entity, SimpleDateFormat sdf) {
+        if (entity == null) {
+            return new TableItem();
+        }
+        TableItem item = new TableItem();
+        item.setDate(sdf.format(entity.getItemDate()));
+        item.setTotalLast(entity.getTotalLast());
+        item.setTotalCurrent(entity.getTotalCurrent());
+        item.setTotalCompare(entity.getTotalCompare());
+        item.setDischargedLast(entity.getDischargedLast());
+        item.setDischargedCurrent(entity.getDischargedCurrent());
+        item.setDischargedCompare(entity.getDischargedCompare());
+        item.setNotDischargedLast(entity.getNotDischargedLast());
+        item.setNotDischargedCurrent(entity.getNotDischargedCurrent());
+        item.setNotDischargedCompare(entity.getNotDischargedCompare());
+        item.setAmountLast(entity.getAmountLast() != null ? entity.getAmountLast().doubleValue() : null);
+        item.setAmountCurrent(entity.getAmountCurrent() != null ? entity.getAmountCurrent().doubleValue() : null);
+        item.setAmountCompare(entity.getAmountCompare());
+        return item;
+    }
+
+    private List<ChartItem> buildChartItemList(List<DischSettleChtEntity> entities) {
+        List<ChartItem> list = new ArrayList<>();
+        if (entities != null) {
+            for (DischSettleChtEntity entity : entities) {
+                ChartItem item = new ChartItem();
+                item.setName(entity.getItemName());
+                item.setValue(entity.getItemValue());
+                item.setCompare(entity.getItemCompare());
+                list.add(item);
+            }
+        }
+        return list;
     }
 
     // ==================== 工具方法 ====================

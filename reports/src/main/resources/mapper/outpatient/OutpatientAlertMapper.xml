@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.OutpatientAlertMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询门诊预警概览数据 -->
+    <!-- ============================================================ -->
+    <select id="queryOverview" resultType="com.reports.entity.OutpatientAlertOvEntity">
+        SELECT
+        NVL(SUM(remain_alert), 0) AS remainAlert,
+        NVL(SUM(appointment_alert), 0) AS appointmentAlert,
+        NVL(SUM(early_leave), 0) AS earlyLeave
+        FROM TR_OUTP_ALT_OV
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询门诊预警科室明细 -->
+    <!-- ============================================================ -->
+    <select id="queryDeptDetail" resultType="com.reports.entity.OutpatientAlertDeptEntity">
+        SELECT
+        dept_name AS deptName,
+        NVL(SUM(remain_alert), 0) AS remainAlert,
+        NVL(SUM(appointment_alert), 0) AS appointmentAlert,
+        NVL(SUM(early_leave), 0) AS earlyLeave
+        FROM TR_OUTP_ALT_DEPT
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="deptName != null and deptName != ''">
+            AND dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        GROUP BY dept_name
+        ORDER BY remainAlert DESC
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询门诊预警医生明细 -->
+    <!-- ============================================================ -->
+    <select id="queryDoctorDetail" resultType="com.reports.entity.OutpatientAlertDocEntity">
+        SELECT
+        doctor_name AS doctorName,
+        dept_name AS deptName,
+        NVL(SUM(remain_alert), 0) AS remainAlert,
+        NVL(SUM(appointment_alert), 0) AS appointmentAlert,
+        NVL(SUM(early_leave), 0) AS earlyLeave
+        FROM TR_OUTP_ALT_DOC
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="deptName != null and deptName != ''">
+            AND dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        GROUP BY doctor_name, dept_name
+        ORDER BY remainAlert DESC
+    </select>
+
+</mapper>

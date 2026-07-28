@@ -14,7 +14,8 @@ class ServiceQualityController {
                 timeRange: 'today',
                 startDate: today,
                 endDate: today,
-                deptName: ''
+                deptName: '',
+                deptCode: ''
             }
         };
 
@@ -28,9 +29,10 @@ class ServiceQualityController {
         return `${y}-${m}-${d}`;
     }
 
-    init() {
+    async init() {
         this.bindEvents();
         this.initDateRangePicker();
+        await this.initDeptSelect();
         this.loadOverview();
         this.loadTableData();
     }
@@ -57,16 +59,27 @@ class ServiceQualityController {
         });
     }
 
+    async initDeptSelect(options = {}) {
+        this.deptInfo = await initDeptSelect({
+            selectId: 'deptSelect',
+            deptType: 0,
+            showAll: true,
+            allCode: '0000',
+            allText: '全部',
+            onChange: (dept) => {
+                this.state.filter.deptName = dept.deptName === '全部' ? '' : dept.deptName;
+                this.state.filter.deptCode = dept.deptCode === '0000' ? '' : dept.deptCode;
+                this.state.currentPage = 1;
+                this.loadOverview();
+                this.loadTableData();
+            },
+            ...options
+        });
+    }
+
     bindEvents() {
         document.querySelectorAll('#timeFilter .filter-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.handleTimeFilter(e));
-        });
-
-        document.getElementById('deptSelect').addEventListener('change', (e) => {
-            this.state.filter.deptName = e.target.value;
-            this.state.currentPage = 1;
-            this.loadOverview();
-            this.loadTableData();
         });
 
         document.querySelectorAll('.service-tab').forEach(tab => {
@@ -138,6 +151,7 @@ class ServiceQualityController {
                 pageSize: this.state.pageSize,
                 tab: this.state.activeTab,
                 deptName: this.state.filter.deptName,
+                deptCode: this.state.filter.deptCode,
                 startDate: this.state.filter.startDate,
                 endDate: this.state.filter.endDate
             });

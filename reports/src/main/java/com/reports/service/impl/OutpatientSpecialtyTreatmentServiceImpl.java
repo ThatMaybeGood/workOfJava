@@ -5,6 +5,9 @@ import com.reports.dto.common.PageResult;
 import com.reports.dto.request.OutpatientSpecialtyTreatmentRequest;
 import com.reports.dto.response.outpatient.specialty.treatment.*;
 import com.reports.service.OutpatientSpecialtyTreatmentService;
+import com.reports.mapper.SpecialtyTreatmentMapper;
+import com.reports.entity.SpecialtyTreatmentOvEntity;
+import com.reports.entity.SpecialtyTreatmentDtlEntity;
 import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +26,9 @@ public class OutpatientSpecialtyTreatmentServiceImpl implements OutpatientSpecia
 
     private final ReportDataConfig dataConfig;
     private final JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private SpecialtyTreatmentMapper specialtyTreatmentMapper;
 
     @Autowired
     public OutpatientSpecialtyTreatmentServiceImpl(ReportDataConfig dataConfig, JdbcTemplate jdbcTemplate) {
@@ -93,11 +99,56 @@ public class OutpatientSpecialtyTreatmentServiceImpl implements OutpatientSpecia
     // ==================== MyBatis-Plus 模式 ====================
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientSpecialtyTreatmentRequest request) {
-        return queryOverviewMock(request);
+        try {
+            SpecialtyTreatmentOvEntity entity = specialtyTreatmentMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            return buildOverviewData(entity);
+        } catch (Exception e) {
+            log.warn("查询专科治疗量概览失败", e);
+            return new OverviewData();
+        }
     }
 
     private PageResult<TableItem> queryTableByMybatisPlus(OutpatientSpecialtyTreatmentRequest request, Integer page, Integer pageSize) {
-        return queryTableMock(request, page, pageSize);
+        try {
+            List<SpecialtyTreatmentDtlEntity> rows = specialtyTreatmentMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), request.getDeptName());
+            List<TableItem> allItems = new ArrayList<>();
+            for (SpecialtyTreatmentDtlEntity row : rows) {
+                allItems.add(buildTableItem(row));
+            }
+            int total = allItems.size();
+            int start = (page - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+            List<TableItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
+            return PageResult.of(pageList, (long) total, page, pageSize);
+        } catch (Exception e) {
+            log.warn("查询专科治疗量表格失败", e);
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+        }
+    }
+
+    // ==================== 实体转换 ====================
+
+    private OverviewData buildOverviewData(SpecialtyTreatmentOvEntity entity) {
+        if (entity == null) {
+            return new OverviewData();
+        }
+        OverviewData overview = new OverviewData();
+        overview.setTreatmentCount(entity.getTreatmentCount());
+        overview.setTreatmentAmount(entity.getTreatmentAmount() != null ? entity.getTreatmentAmount().doubleValue() : null);
+        overview.setPatientCount(entity.getPatientCount());
+        return overview;
+    }
+
+    private TableItem buildTableItem(SpecialtyTreatmentDtlEntity entity) {
+        if (entity == null) {
+            return new TableItem();
+        }
+        TableItem item = new TableItem();
+        item.setDeptName(entity.getDeptName());
+        item.setTreatmentCount(entity.getTreatmentCount());
+        item.setTreatmentAmount(entity.getTreatmentAmount() != null ? entity.getTreatmentAmount().doubleValue() : null);
+        item.setPatientCount(entity.getPatientCount());
+        return item;
     }
 
 }

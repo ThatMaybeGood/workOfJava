@@ -4,6 +4,9 @@ import com.reports.config.ReportDataConfig;
 import com.reports.dto.common.PageResult;
 import com.reports.dto.request.OutpatientQualityControlRequest;
 import com.reports.dto.response.outpatient.quality.control.*;
+import com.reports.entity.QualityControlDtlEntity;
+import com.reports.entity.QualityControlOvEntity;
+import com.reports.mapper.QualityControlMapper;
 import com.reports.service.OutpatientQualityControlService;
 import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +14,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -23,6 +29,9 @@ public class OutpatientQualityControlServiceImpl implements OutpatientQualityCon
 
     private final ReportDataConfig dataConfig;
     private final JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private QualityControlMapper qualityControlMapper;
 
     @Autowired
     public OutpatientQualityControlServiceImpl(ReportDataConfig dataConfig, JdbcTemplate jdbcTemplate) {
@@ -109,11 +118,98 @@ public class OutpatientQualityControlServiceImpl implements OutpatientQualityCon
     // ==================== MyBatis-Plus 模式 ====================
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientQualityControlRequest request) {
-        return queryOverviewMock(request);
+        try {
+            Date startDate = parseMonthStart(request.getStartMonth());
+            Date endDate = parseMonthEnd(request.getEndMonth());
+            QualityControlOvEntity entity = qualityControlMapper.queryOverview(startDate, endDate);
+            return buildOverviewData(entity);
+        } catch (Exception e) {
+            log.warn("查询门诊质量控制概览失败", e);
+            return new OverviewData();
+        }
     }
 
     private PageResult<TableItem> queryTableByMybatisPlus(OutpatientQualityControlRequest request, Integer page, Integer pageSize) {
-        return queryTableMock(request, page, pageSize);
+        try {
+            List<QualityControlDtlEntity> rows = qualityControlMapper.queryMonthlyDetail(request.getStartMonth(), request.getEndMonth());
+            List<TableItem> allItems = new ArrayList<>();
+            for (QualityControlDtlEntity row : rows) {
+                allItems.add(buildTableItem(row));
+            }
+            int total = allItems.size();
+            int start = (page - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+            List<TableItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
+            return PageResult.of(pageList, (long) total, page, pageSize);
+        } catch (Exception e) {
+            log.warn("查询门诊质量控制表格失败", e);
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+        }
+    }
+
+    // ==================== entity -> DTO 转换方法 ====================
+
+    private OverviewData buildOverviewData(QualityControlOvEntity entity) {
+        if (entity == null) {
+            return new OverviewData();
+        }
+        OverviewData data = new OverviewData();
+        data.setEmrUsageRate(entity.getEmrUsageRate());
+        data.setStandardDiagnosisRate(entity.getStandardDiagnosisRate());
+        data.setOnTimeRate(entity.getOnTimeRate());
+        data.setStopRate(entity.getStopRate());
+        data.setChemoRecordRate(entity.getChemoRecordRate());
+        data.setChemoAdverseRate(entity.getChemoAdverseRate());
+        data.setChemoInfusionRate(entity.getChemoInfusionRate());
+        data.setCriticalValueRate(entity.getCriticalValueRate());
+        data.setBloodDrawErrorRate(entity.getBloodDrawErrorRate());
+        data.setSurgeryComplicationRate(entity.getSurgeryComplicationRate());
+        data.setAdverseEventRate(entity.getAdverseEventRate());
+        return data;
+    }
+
+    private TableItem buildTableItem(QualityControlDtlEntity entity) {
+        if (entity == null) {
+            return new TableItem();
+        }
+        TableItem item = new TableItem();
+        item.setMonth(entity.getStatMonth());
+        item.setEmrUsageRate(entity.getEmrUsageRate());
+        item.setStandardDiagnosisRate(entity.getStandardDiagnosisRate());
+        item.setOnTimeRate(entity.getOnTimeRate());
+        item.setStopRate(entity.getStopRate());
+        item.setChemoRecordRate(entity.getChemoRecordRate());
+        item.setChemoAdverseRate(entity.getChemoAdverseRate());
+        item.setChemoInfusionRate(entity.getChemoInfusionRate());
+        item.setCriticalValueRate(entity.getCriticalValueRate());
+        item.setBloodDrawErrorRate(entity.getBloodDrawErrorRate());
+        item.setSurgeryComplicationRate(entity.getSurgeryComplicationRate());
+        item.setAdverseEventRate(entity.getAdverseEventRate());
+        return item;
+    }
+
+    // ==================== 日期转换方法 ====================
+
+    private Date parseMonthStart(String month) {
+        try {
+            return new SimpleDateFormat("yyyy-MM-dd").parse(month + "-01");
+        } catch (Exception e) {
+            log.warn("解析月份起始日期失败: {}", month, e);
+            return null;
+        }
+    }
+
+    private Date parseMonthEnd(String month) {
+        try {
+            Date firstDay = new SimpleDateFormat("yyyy-MM-dd").parse(month + "-01");
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(firstDay);
+            cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH));
+            return cal.getTime();
+        } catch (Exception e) {
+            log.warn("解析月份结束日期失败: {}", month, e);
+            return null;
+        }
     }
 
 }

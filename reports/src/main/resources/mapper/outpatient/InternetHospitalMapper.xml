@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.InternetHospitalMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询互医质控概览 -->
+    <!-- ============================================================ -->
+    <select id="queryOverview" resultType="com.reports.entity.InternetHospitalOvEntity">
+        SELECT
+        outpatient_volume AS outpatientVolume,
+        doctor_ratio AS doctorRatio,
+        reception_rate AS receptionRate,
+        prescription_rate AS prescriptionRate,
+        record_rate AS recordRate,
+        review_rate AS reviewRate,
+        execution_rate AS executionRate
+        FROM TR_INET_HOSP_OV
+        WHERE stat_month = #{statMonth}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询互医质控运行情况 -->
+    <!-- ============================================================ -->
+    <select id="queryOperationTable" resultType="com.reports.entity.InternetHospitalOpEntity">
+        SELECT
+        item_name AS itemName,
+        current_value AS currentValue,
+        last_value AS lastValue,
+        growth_rate AS growthRate
+        FROM TR_INET_HOSP_OP
+        WHERE stat_month = #{statMonth}
+        ORDER BY item_name
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询互医质控业务分析图表 -->
+    <!-- ============================================================ -->
+    <select id="queryBusinessChart" resultType="com.reports.entity.InternetHospitalBizEntity">
+        SELECT
+        category,
+        current_value AS currentValue,
+        last_value AS lastValue
+        FROM TR_INET_HOSP_BIZ
+        WHERE stat_month = #{statMonth}
+        ORDER BY category
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询互医质控科室排行 -->
+    <!-- ============================================================ -->
+    <select id="queryDeptRanking" resultType="com.reports.entity.InternetHospitalDeptRnkEntity">
+        SELECT
+        rank_num AS rankNum,
+        dept_name AS deptName,
+        current_month AS currentMonth,
+        last_month AS lastMonth,
+        growth_rate AS growthRate
+        FROM TR_INET_HOSP_DEPT_RNK
+        WHERE stat_month = #{statMonth}
+        ORDER BY rank_num
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询互医质控医生排行 -->
+    <!-- ============================================================ -->
+    <select id="queryDoctorRanking" resultType="com.reports.entity.InternetHospitalDocRnkEntity">
+        SELECT
+        rank_num AS rankNum,
+        doctor_name AS doctorName,
+        dept_name AS deptName,
+        title,
+        current_month AS currentMonth
+        FROM TR_INET_HOSP_DOC_RNK
+        WHERE stat_month = #{statMonth}
+        ORDER BY rank_num
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询互医质控增长趋势 -->
+    <!-- ============================================================ -->
+    <select id="queryGrowthChart" resultType="com.reports.entity.InternetHospitalGrwEntity">
+        SELECT
+        category,
+        data_value AS dataValue
+        FROM TR_INET_HOSP_GRW
+        WHERE stat_month = #{statMonth}
+        ORDER BY category
+    </select>
+
+</mapper>

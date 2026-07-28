@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn compile *)",
+      "Bash(ls -d \"D:/JetBrains/IdeaProjects/workOfJava/reports-web\" 2>/dev/null && echo \"EXISTS\" || echo \"NOT_FOUND\")"
+    ]
+  }
+}

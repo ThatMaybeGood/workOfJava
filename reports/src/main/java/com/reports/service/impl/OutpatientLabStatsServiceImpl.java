@@ -3,6 +3,8 @@ package com.reports.service.impl;
 import com.reports.config.ReportDataConfig;
 import com.reports.dto.request.OutpatientLabStatsRequest;
 import com.reports.dto.response.outpatient.lab.stats.OverviewData;
+import com.reports.entity.LabStatsOvEntity;
+import com.reports.mapper.LabStatsMapper;
 import com.reports.service.OutpatientLabStatsService;
 import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +21,9 @@ public class OutpatientLabStatsServiceImpl implements OutpatientLabStatsService 
 
     private final ReportDataConfig dataConfig;
     private final JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private LabStatsMapper labStatsMapper;
 
     @Autowired
     public OutpatientLabStatsServiceImpl(ReportDataConfig dataConfig, JdbcTemplate jdbcTemplate) {
@@ -59,7 +64,24 @@ public class OutpatientLabStatsServiceImpl implements OutpatientLabStatsService 
     // ==================== MyBatis-Plus 模式 ====================
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientLabStatsRequest request) {
-        return queryOverviewMock(request);
+        try {
+            LabStatsOvEntity entity = labStatsMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            return buildOverviewData(entity);
+        } catch (Exception e) {
+            log.warn("查询检验统计概览失败", e);
+            return new OverviewData();
+        }
+    }
+
+    // ==================== 工具方法 ====================
+
+    private OverviewData buildOverviewData(LabStatsOvEntity entity) {
+        if (entity == null) return new OverviewData();
+        OverviewData dto = new OverviewData();
+        dto.setBloodCollection(entity.getBloodCollection());
+        dto.setBloodEfficiency(entity.getBloodEfficiency());
+        dto.setLabEfficiency(entity.getLabEfficiency());
+        return dto;
     }
 
 }

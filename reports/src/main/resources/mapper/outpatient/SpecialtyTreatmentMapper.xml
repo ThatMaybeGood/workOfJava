@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.SpecialtyTreatmentMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询专科治疗量概览 -->
+    <!-- ============================================================ -->
+    <select id="queryOverview" resultType="com.reports.entity.SpecialtyTreatmentOvEntity">
+        SELECT
+        NVL(SUM(treatment_count), 0) AS treatmentCount,
+        NVL(SUM(treatment_amount), 0) AS treatmentAmount,
+        NVL(SUM(patient_count), 0) AS patientCount
+        FROM TR_SPEC_TREAT_OV
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询专科治疗量科室明细 -->
+    <!-- ============================================================ -->
+    <select id="queryDeptDetail" resultType="com.reports.entity.SpecialtyTreatmentDtlEntity">
+        SELECT
+        dept_name AS deptName,
+        NVL(SUM(treatment_count), 0) AS treatmentCount,
+        NVL(SUM(treatment_amount), 0) AS treatmentAmount,
+        NVL(SUM(patient_count), 0) AS patientCount
+        FROM TR_SPEC_TREAT_DTL
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="deptName != null and deptName != ''">
+            AND dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        GROUP BY dept_name
+        ORDER BY treatmentCount DESC
+    </select>
+
+</mapper>

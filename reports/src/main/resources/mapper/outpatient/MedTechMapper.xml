@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.MedTechMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询医技统计概览 -->
+    <!-- ============================================================ -->
+    <select id="queryOverview" resultType="com.reports.entity.MedTechOvEntity">
+        SELECT
+        NVL(SUM(check_count), 0) AS checkCount,
+        ROUND(AVG(NVL(on_time_rate, 0)), 2) || '%' AS onTimeRate,
+        MAX(wait_time) AS waitTime,
+        MAX(avg_wait_late) AS avgWaitLate,
+        MAX(avg_report_time) AS avgReportTime
+        FROM TR_MEDTECH_OV
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询医技科室明细 -->
+    <!-- ============================================================ -->
+    <select id="queryDeptDetail" resultType="com.reports.entity.MedTechDtlEntity">
+        SELECT
+        dept_name AS deptName,
+        NVL(SUM(check_count), 0) AS checkCount,
+        ROUND(AVG(NVL(on_time_rate, 0)), 2) || '%' AS onTimeRate,
+        ROUND(AVG(NVL(wait_time, 0)), 2) AS waitTime,
+        ROUND(AVG(NVL(avg_wait_late, 0)), 2) AS avgWaitLate,
+        ROUND(AVG(NVL(avg_report_time, 0)), 2) AS avgReportTime
+        FROM TR_MEDTECH_DTL
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="deptName != null and deptName != ''">
+            AND dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        GROUP BY dept_name
+        ORDER BY checkCount DESC
+    </select>
+
+</mapper>

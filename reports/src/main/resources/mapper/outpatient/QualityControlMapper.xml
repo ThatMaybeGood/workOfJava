@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.QualityControlMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询门诊质量控制概览 -->
+    <!-- ============================================================ -->
+    <select id="queryOverview" resultType="com.reports.entity.QualityControlOvEntity">
+        SELECT
+        MAX(emr_usage_rate) AS emrUsageRate,
+        MAX(standard_diagnosis_rate) AS standardDiagnosisRate,
+        MAX(on_time_rate) AS onTimeRate,
+        MAX(stop_rate) AS stopRate,
+        MAX(chemo_record_rate) AS chemoRecordRate,
+        MAX(chemo_adverse_rate) AS chemoAdverseRate,
+        MAX(chemo_infusion_rate) AS chemoInfusionRate,
+        MAX(critical_value_rate) AS criticalValueRate,
+        MAX(blood_draw_error_rate) AS bloodDrawErrorRate,
+        MAX(surgery_complication_rate) AS surgeryComplicationRate,
+        MAX(adverse_event_rate) AS adverseEventRate
+        FROM TR_QC_OV
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询门诊质量控制月度明细 -->
+    <!-- ============================================================ -->
+    <select id="queryMonthlyDetail" resultType="com.reports.entity.QualityControlDtlEntity">
+        SELECT
+        stat_month AS statMonth,
+        emr_usage_rate AS emrUsageRate,
+        standard_diagnosis_rate AS standardDiagnosisRate,
+        on_time_rate AS onTimeRate,
+        stop_rate AS stopRate,
+        chemo_record_rate AS chemoRecordRate,
+        chemo_adverse_rate AS chemoAdverseRate,
+        chemo_infusion_rate AS chemoInfusionRate,
+        critical_value_rate AS criticalValueRate,
+        blood_draw_error_rate AS bloodDrawErrorRate,
+        surgery_complication_rate AS surgeryComplicationRate,
+        adverse_event_rate AS adverseEventRate
+        FROM TR_QC_DTL
+        WHERE stat_month BETWEEN #{startMonth} AND #{endMonth}
+        ORDER BY stat_month
+    </select>
+
+</mapper>

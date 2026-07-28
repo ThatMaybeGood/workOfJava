@@ -38,6 +38,11 @@ public class OutpatientRoomUsageRequest extends BaseRequestBody {
     private String deptName;
 
     /**
+     * 科室编码（可选）
+     */
+    private String deptCode;
+
+    /**
      * 当前页码（可选，默认第1页）
      */
     private Integer page;

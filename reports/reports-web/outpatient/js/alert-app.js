@@ -8,7 +8,8 @@ class AlertController {
             timeRange: 'today',
             startDate: today,
             endDate: today,
-            deptName: ''
+            deptName: '',
+            deptCode: ''
         };
         this.deptState = {
             currentPage: 1,
@@ -37,9 +38,10 @@ class AlertController {
         return `${y}-${m}-${d}`;
     }
 
-    init() {
+    async init() {
         this.bindEvents();
         this.initDateRangePicker();
+        await this.initDeptSelect();
         this.loadOverview();
         this.loadDeptData();
         this.loadDoctorData();
@@ -69,17 +71,28 @@ class AlertController {
         });
     }
 
+    async initDeptSelect(options = {}) {
+        this.deptInfo = await initDeptSelect({
+            selectId: 'deptSelect',
+            deptType: 0,
+            showAll: true,
+            allCode: '0000',
+            allText: '全部',
+            onChange: (dept) => {
+                this.filter.deptName = dept.deptName === '全部' ? '' : dept.deptName;
+                this.filter.deptCode = dept.deptCode === '0000' ? '' : dept.deptCode;
+                this.deptState.currentPage = 1;
+                this.doctorState.currentPage = 1;
+                this.loadDeptData();
+                this.loadDoctorData();
+            },
+            ...options
+        });
+    }
+
     bindEvents() {
         document.querySelectorAll('#timeFilter .filter-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.handleTimeFilter(e));
-        });
-
-        document.getElementById('deptSelect').addEventListener('change', (e) => {
-            this.filter.deptName = e.target.value;
-            this.deptState.currentPage = 1;
-            this.doctorState.currentPage = 1;
-            this.loadDeptData();
-            this.loadDoctorData();
         });
 
         document.getElementById('deptPageSizeSelect').addEventListener('change', (e) => {
@@ -191,6 +204,7 @@ class AlertController {
                 page: this.deptState.currentPage,
                 pageSize: this.deptState.pageSize,
                 deptName: this.filter.deptName,
+                deptCode: this.filter.deptCode,
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate
             });
@@ -212,6 +226,7 @@ class AlertController {
                 page: this.doctorState.currentPage,
                 pageSize: this.doctorState.pageSize,
                 deptName: this.filter.deptName,
+                deptCode: this.filter.deptCode,
                 startDate: this.filter.startDate,
                 endDate: this.filter.endDate
             });

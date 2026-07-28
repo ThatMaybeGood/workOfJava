@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.LabStatsMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询检验统计概览 -->
+    <!-- ============================================================ -->
+    <select id="queryOverview" resultType="com.reports.entity.LabStatsOvEntity">
+        SELECT
+        NVL(SUM(blood_collection), 0) AS bloodCollection,
+        MAX(blood_efficiency) AS bloodEfficiency,
+        MAX(lab_efficiency) AS labEfficiency
+        FROM TR_LABSTAT_OV
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询检验统计排行 -->
+    <!-- ============================================================ -->
+    <select id="queryRanking" resultType="com.reports.entity.LabStatsRnkEntity">
+        SELECT
+        item_name AS itemName,
+        item_value AS itemValue
+        FROM TR_LABSTAT_RNK
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="rankType != null and rankType != ''">
+            AND rank_type = #{rankType}
+        </if>
+        ORDER BY rank_num
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询检验时段分析 -->
+    <!-- ============================================================ -->
+    <select id="queryTimeAnalysis" resultType="com.reports.entity.LabStatsTmEntity">
+        SELECT
+        time_slot AS timeSlot,
+        NVL(SUM(blood_count), 0) AS bloodCount,
+        NVL(SUM(lab_count), 0) AS labCount
+        FROM TR_LABSTAT_TM
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY time_slot
+        ORDER BY time_slot
+    </select>
+
+</mapper>

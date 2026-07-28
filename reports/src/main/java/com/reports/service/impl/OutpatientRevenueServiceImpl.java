@@ -4,6 +4,10 @@ import com.reports.config.ReportDataConfig;
 import com.reports.dto.common.PageResult;
 import com.reports.dto.request.OutpatientRevenueRequest;
 import com.reports.dto.response.outpatient.revenue.*;
+import com.reports.entity.RevenueDeptEntity;
+import com.reports.entity.RevenueDocEntity;
+import com.reports.entity.RevenueOvEntity;
+import com.reports.mapper.RevenueMapper;
 import com.reports.service.OutpatientRevenueService;
 import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +27,9 @@ public class OutpatientRevenueServiceImpl implements OutpatientRevenueService {
 
     private final ReportDataConfig dataConfig;
     private final JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private RevenueMapper revenueMapper;
 
     @Autowired
     public OutpatientRevenueServiceImpl(ReportDataConfig dataConfig, JdbcTemplate jdbcTemplate) {
@@ -121,15 +128,84 @@ public class OutpatientRevenueServiceImpl implements OutpatientRevenueService {
     // ==================== MyBatis-Plus 模式 ====================
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientRevenueRequest request) {
-        return queryOverviewMock(request);
+        try {
+            RevenueOvEntity entity = revenueMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            return buildOverviewData(entity);
+        } catch (Exception e) {
+            log.warn("查询门诊收入概览失败", e);
+            return new OverviewData();
+        }
     }
 
     private PageResult<DeptTableItem> queryDeptTableByMybatisPlus(OutpatientRevenueRequest request, Integer page, Integer pageSize) {
-        return queryDeptTableMock(request, page, pageSize);
+        try {
+            List<RevenueDeptEntity> rows = revenueMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), request.getDeptName());
+            List<DeptTableItem> allItems = new ArrayList<>();
+            for (RevenueDeptEntity row : rows) {
+                allItems.add(buildDeptTableItem(row));
+            }
+            int total = allItems.size();
+            int start = (page - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+            List<DeptTableItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
+            return PageResult.of(pageList, (long) total, page, pageSize);
+        } catch (Exception e) {
+            log.warn("查询门诊收入科室表格失败", e);
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+        }
     }
 
     private PageResult<DoctorTableItem> queryDoctorTableByMybatisPlus(OutpatientRevenueRequest request, Integer page, Integer pageSize) {
-        return queryDoctorTableMock(request, page, pageSize);
+        try {
+            List<RevenueDocEntity> rows = revenueMapper.queryDoctorDetail(request.getStartDate(), request.getEndDate(), request.getDeptName());
+            List<DoctorTableItem> allItems = new ArrayList<>();
+            for (RevenueDocEntity row : rows) {
+                allItems.add(buildDoctorTableItem(row));
+            }
+            int total = allItems.size();
+            int start = (page - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+            List<DoctorTableItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
+            return PageResult.of(pageList, (long) total, page, pageSize);
+        } catch (Exception e) {
+            log.warn("查询门诊收入医生表格失败", e);
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+        }
+    }
+
+    // ==================== entity -> DTO 转换方法 ====================
+
+    private OverviewData buildOverviewData(RevenueOvEntity entity) {
+        if (entity == null) {
+            return new OverviewData();
+        }
+        OverviewData data = new OverviewData();
+        data.setOutpatientRevenue(entity.getOutpatientRevenue() != null ? entity.getOutpatientRevenue().doubleValue() : 0.0);
+        data.setServiceRevenue(entity.getServiceRevenue() != null ? entity.getServiceRevenue().doubleValue() : 0.0);
+        return data;
+    }
+
+    private DeptTableItem buildDeptTableItem(RevenueDeptEntity entity) {
+        if (entity == null) {
+            return new DeptTableItem();
+        }
+        DeptTableItem item = new DeptTableItem();
+        item.setDeptName(entity.getDeptName());
+        item.setOutpatientRevenue(entity.getOutpatientRevenue());
+        item.setServiceRevenue(entity.getServiceRevenue());
+        return item;
+    }
+
+    private DoctorTableItem buildDoctorTableItem(RevenueDocEntity entity) {
+        if (entity == null) {
+            return new DoctorTableItem();
+        }
+        DoctorTableItem item = new DoctorTableItem();
+        item.setDoctorName(entity.getDoctorName());
+        item.setDeptName(entity.getDeptName());
+        item.setDoctorBenefit(entity.getDoctorBenefit());
+        item.setServiceRevenue(entity.getServiceRevenue());
+        return item;
     }
 
 }

@@ -4,6 +4,12 @@ import com.reports.config.ReportDataConfig;
 import com.reports.dto.request.OutpatientWindowStatsRequest;
 import com.reports.dto.response.outpatient.window.stats.*;
 import com.reports.service.OutpatientWindowStatsService;
+import com.reports.mapper.WindowStatsMapper;
+import com.reports.entity.WindowStatsOvEntity;
+import com.reports.entity.WindowStatsAgeEntity;
+import com.reports.entity.WindowStatsTmEntity;
+import com.reports.entity.WindowStatsSrcEntity;
+import com.reports.entity.WindowStatsLoadEntity;
 import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +34,9 @@ public class OutpatientWindowStatsServiceImpl implements OutpatientWindowStatsSe
         this.dataConfig = dataConfig;
         this.jdbcTemplate = jdbcTemplate;
     }
+
+    @Autowired
+    WindowStatsMapper windowStatsMapper;
 
     @Override
     public OverviewData queryOverview(OutpatientWindowStatsRequest request) {
@@ -203,23 +212,117 @@ public class OutpatientWindowStatsServiceImpl implements OutpatientWindowStatsSe
     // ==================== MyBatis-Plus 模式 ====================
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientWindowStatsRequest request) {
-        return queryOverviewMock(request);
+        try {
+            WindowStatsOvEntity entity = windowStatsMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            return buildOverviewData(entity);
+        } catch (Exception e) {
+            log.warn("查询人工窗口概览数据失败", e);
+            return new OverviewData();
+        }
     }
 
     private AgeAnalysis queryAgeAnalysisByMybatisPlus(OutpatientWindowStatsRequest request) {
-        return queryAgeAnalysisMock(request);
+        try {
+            List<WindowStatsAgeEntity> list = windowStatsMapper.queryAgeAnalysis(request.getStartDate(), request.getEndDate());
+            return buildAgeAnalysis(list);
+        } catch (Exception e) {
+            log.warn("查询人工窗口年龄分析失败", e);
+            return new AgeAnalysis();
+        }
     }
 
     private TimeAnalysis queryTimeAnalysisByMybatisPlus(OutpatientWindowStatsRequest request) {
-        return queryTimeAnalysisMock(request);
+        try {
+            List<WindowStatsTmEntity> list = windowStatsMapper.queryTimeAnalysis(request.getStartDate(), request.getEndDate());
+            return buildTimeAnalysis(list);
+        } catch (Exception e) {
+            log.warn("查询人工窗口时段分析失败", e);
+            return new TimeAnalysis();
+        }
     }
 
     private List<AnalysisItem> querySourceAnalysisByMybatisPlus(OutpatientWindowStatsRequest request) {
-        return querySourceAnalysisMock(request);
+        try {
+            List<WindowStatsSrcEntity> list = windowStatsMapper.querySourceAnalysis(request.getStartDate(), request.getEndDate());
+            List<AnalysisItem> result = new ArrayList<>();
+            for (WindowStatsSrcEntity entity : list) {
+                result.add(newAnalysisItem(entity.getSourceName(), entity.getSourceCount()));
+            }
+            return result;
+        } catch (Exception e) {
+            log.warn("查询人工窗口来源分析失败", e);
+            return new ArrayList<>();
+        }
     }
 
     private WorkloadTable queryWorkloadTableByMybatisPlus(OutpatientWindowStatsRequest request) {
-        return queryWorkloadTableMock(request);
+        try {
+            List<WindowStatsLoadEntity> list = windowStatsMapper.queryWorkload(request.getStartDate(), request.getEndDate());
+            return buildWorkloadTable(list);
+        } catch (Exception e) {
+            log.warn("查询人工窗口工作量表格失败", e);
+            return new WorkloadTable();
+        }
+    }
+
+    // ==================== Entity-DTO 转换方法 ====================
+
+    private OverviewData buildOverviewData(WindowStatsOvEntity entity) {
+        if (entity == null) return new OverviewData();
+        OverviewData dto = new OverviewData();
+        dto.setRegisterCount(entity.getRegisterCount());
+        dto.setPaymentCount(entity.getPaymentCount());
+        dto.setRefundCount(entity.getRefundCount());
+        return dto;
+    }
+
+    private AgeAnalysis buildAgeAnalysis(List<WindowStatsAgeEntity> list) {
+        AgeAnalysis analysis = new AgeAnalysis();
+        List<String> categories = new ArrayList<>();
+        List<Integer> data = new ArrayList<>();
+        for (WindowStatsAgeEntity entity : list) {
+            categories.add(entity.getAgeGroup());
+            data.add(entity.getPatientCount());
+        }
+        analysis.setCategories(categories);
+        analysis.setData(data);
+        return analysis;
+    }
+
+    private TimeAnalysis buildTimeAnalysis(List<WindowStatsTmEntity> list) {
+        TimeAnalysis analysis = new TimeAnalysis();
+        List<String> categories = new ArrayList<>();
+        List<Integer> data = new ArrayList<>();
+        for (WindowStatsTmEntity entity : list) {
+            categories.add(entity.getTimeSlot());
+            data.add(entity.getBusinessCount());
+        }
+        analysis.setCategories(categories);
+        analysis.setData(data);
+        return analysis;
+    }
+
+    private WorkloadTable buildWorkloadTable(List<WindowStatsLoadEntity> list) {
+        WorkloadTable table = new WorkloadTable();
+        List<String> headers = new ArrayList<>();
+        headers.add("窗口");
+        headers.add("挂号");
+        headers.add("收费");
+        headers.add("退费");
+        table.setHeaders(headers);
+        List<WorkloadRow> rows = new ArrayList<>();
+        for (WindowStatsLoadEntity entity : list) {
+            WorkloadRow row = new WorkloadRow();
+            row.setBusiness(entity.getBusinessType());
+            List<Integer> data = new ArrayList<>();
+            data.add(entity.getRegisterCount());
+            data.add(entity.getPaymentCount());
+            data.add(entity.getRefundCount());
+            row.setData(data);
+            rows.add(row);
+        }
+        table.setRows(rows);
+        return table;
     }
 
     // ==================== 工具方法 ====================

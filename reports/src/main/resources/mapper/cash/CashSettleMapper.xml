@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.CashSettleMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询收费员结账概览 -->
+    <!-- ============================================================ -->
+    <select id="queryOverview" resultType="com.reports.entity.CashSettleOvEntity">
+        SELECT
+        NVL(appointment_register, 0) AS appointmentRegister,
+        NVL(appointment_register_compare, 0) AS appointmentRegisterCompare,
+        NVL(appointment_fetch, 0) AS appointmentFetch,
+        NVL(appointment_fetch_compare, 0) AS appointmentFetchCompare,
+        NVL(today_register, 0) AS todayRegister,
+        NVL(today_register_compare, 0) AS todayRegisterCompare,
+        NVL(refund, 0) AS refund,
+        NVL(refund_compare, 0) AS refundCompare,
+        NVL(outpatient_charge, 0) AS outpatientCharge,
+        NVL(outpatient_charge_compare, 0) AS outpatientChargeCompare,
+        NVL(outpatient_refund, 0) AS outpatientRefund,
+        NVL(outpatient_refund_compare, 0) AS outpatientRefundCompare,
+        NVL(prepayment, 0) AS prepayment,
+        NVL(prepayment_compare, 0) AS prepaymentCompare,
+        NVL(hospital_refund, 0) AS hospitalRefund,
+        NVL(hospital_refund_compare, 0) AS hospitalRefundCompare,
+        NVL(discharge_settlement, 0) AS dischargeSettlement,
+        NVL(discharge_settlement_compare, 0) AS dischargeSettlementCompare
+        FROM TR_CASH_SETTLE_OV
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询收费员结账日明细 -->
+    <!-- ============================================================ -->
+    <select id="queryDetail" resultType="com.reports.entity.CashSettleDtlEntity">
+        SELECT
+        item_date AS itemDate,
+        cashier_name AS cashierName,
+        item_type AS itemType,
+        NVL(item_value, 0) AS itemValue
+        FROM TR_CASH_SETTLE_DTL
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="itemType != null and itemType != ''">
+            AND item_type = #{itemType}
+        </if>
+        ORDER BY item_date, cashier_name
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询收费员结账图表数据 -->
+    <!-- ============================================================ -->
+    <select id="queryChart" resultType="com.reports.entity.CashSettleChtEntity">
+        SELECT
+        chart_title AS chartTitle,
+        chart_subtitle AS chartSubtitle,
+        date_range AS dateRange,
+        category,
+        NVL(data_value, 0) AS dataValue
+        FROM TR_CASH_SETTLE_CHT
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY category
+    </select>
+
+</mapper>

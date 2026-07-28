@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.WindowStatsMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询人工窗口统计概览 -->
+    <!-- ============================================================ -->
+    <select id="queryOverview" resultType="com.reports.entity.WindowStatsOvEntity">
+        SELECT
+        NVL(SUM(register_count), 0) AS registerCount,
+        NVL(SUM(payment_count), 0) AS paymentCount,
+        NVL(SUM(refund_count), 0) AS refundCount
+        FROM TR_WIN_STAT_OV
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询人工窗口年龄分析 -->
+    <!-- ============================================================ -->
+    <select id="queryAgeAnalysis" resultType="com.reports.entity.WindowStatsAgeEntity">
+        SELECT
+        age_group AS ageGroup,
+        NVL(SUM(patient_count), 0) AS patientCount
+        FROM TR_WIN_STAT_AGE
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY age_group
+        ORDER BY age_group
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询人工窗口时段分析 -->
+    <!-- ============================================================ -->
+    <select id="queryTimeAnalysis" resultType="com.reports.entity.WindowStatsTmEntity">
+        SELECT
+        time_slot AS timeSlot,
+        NVL(SUM(business_count), 0) AS businessCount
+        FROM TR_WIN_STAT_TM
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY time_slot
+        ORDER BY time_slot
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询人工窗口来源分析 -->
+    <!-- ============================================================ -->
+    <select id="querySourceAnalysis" resultType="com.reports.entity.WindowStatsSrcEntity">
+        SELECT
+        source_name AS sourceName,
+        NVL(SUM(source_count), 0) AS sourceCount
+        FROM TR_WIN_STAT_SRC
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY source_name
+        ORDER BY sourceCount DESC
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询人工窗口工作量 -->
+    <!-- ============================================================ -->
+    <select id="queryWorkload" resultType="com.reports.entity.WindowStatsLoadEntity">
+        SELECT
+        business_type AS businessType,
+        NVL(SUM(register_count), 0) AS registerCount,
+        NVL(SUM(payment_count), 0) AS paymentCount,
+        NVL(SUM(refund_count), 0) AS refundCount
+        FROM TR_WIN_STAT_LOAD
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY business_type
+        ORDER BY business_type
+    </select>
+
+</mapper>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.RevenueMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询门诊收入概览 -->
+    <!-- ============================================================ -->
+    <select id="queryOverview" resultType="com.reports.entity.RevenueOvEntity">
+        SELECT
+        NVL(SUM(outpatient_revenue), 0) AS outpatientRevenue,
+        NVL(SUM(service_revenue), 0) AS serviceRevenue
+        FROM TR_REV_OV
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询门诊收入科室明细 -->
+    <!-- ============================================================ -->
+    <select id="queryDeptDetail" resultType="com.reports.entity.RevenueDeptEntity">
+        SELECT
+        dept_name AS deptName,
+        MAX(outpatient_revenue) AS outpatientRevenue,
+        MAX(service_revenue) AS serviceRevenue
+        FROM TR_REV_DEPT
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="deptName != null and deptName != ''">
+            AND dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        GROUP BY dept_name
+        ORDER BY dept_name
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询门诊收入医生明细 -->
+    <!-- ============================================================ -->
+    <select id="queryDoctorDetail" resultType="com.reports.entity.RevenueDocEntity">
+        SELECT
+        doctor_name AS doctorName,
+        dept_name AS deptName,
+        MAX(doctor_benefit) AS doctorBenefit,
+        MAX(service_revenue) AS serviceRevenue
+        FROM TR_REV_DOC
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="deptName != null and deptName != ''">
+            AND dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        GROUP BY doctor_name, dept_name
+        ORDER BY dept_name, doctor_name
+    </select>
+
+</mapper>

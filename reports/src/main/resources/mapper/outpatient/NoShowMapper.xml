@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.NoShowMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询爽约退号概览 -->
+    <!-- ============================================================ -->
+    <select id="queryOverview" resultType="com.reports.entity.NoShowOvEntity">
+        SELECT
+        NVL(SUM(refund_count), 0) AS refundCount,
+        MAX(refund_rate) AS refundRate,
+        NVL(SUM(no_show_count), 0) AS noShowCount,
+        MAX(no_show_rate) AS noShowRate
+        FROM TR_NOSHOW_OV
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询爽约退号科室明细 -->
+    <!-- ============================================================ -->
+    <select id="queryDeptDetail" resultType="com.reports.entity.NoShowDtlEntity">
+        SELECT
+        dept_name AS deptName,
+        NVL(SUM(refund_count), 0) AS refundCount,
+        MAX(refund_rate) AS refundRate,
+        NVL(SUM(no_show_count), 0) AS noShowCount,
+        MAX(no_show_rate) AS noShowRate
+        FROM TR_NOSHOW_DTL
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="deptName != null and deptName != ''">
+            AND dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        GROUP BY dept_name
+        ORDER BY refundCount DESC
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询爽约退号来源分析 -->
+    <!-- ============================================================ -->
+    <select id="queryOriginAnalysis" resultType="com.reports.entity.NoShowOrgEntity">
+        SELECT
+        item_name AS itemName,
+        NVL(SUM(item_value), 0) AS itemValue
+        FROM TR_NOSHOW_ORG
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="originType != null and originType != ''">
+            AND origin_type = #{originType}
+        </if>
+        GROUP BY item_name
+        ORDER BY itemValue DESC
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询爽约退号渠道分析 -->
+    <!-- ============================================================ -->
+    <select id="queryChannelAnalysis" resultType="com.reports.entity.NoShowChnEntity">
+        SELECT
+        item_name AS itemName,
+        NVL(SUM(item_value), 0) AS itemValue
+        FROM TR_NOSHOW_CHN
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="channelType != null and channelType != ''">
+            AND channel_type = #{channelType}
+        </if>
+        GROUP BY item_name
+        ORDER BY itemValue DESC
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询爽约退号年龄分析 -->
+    <!-- ============================================================ -->
+    <select id="queryAgeAnalysis" resultType="com.reports.entity.NoShowAgeEntity">
+        SELECT
+        age_group AS ageGroup,
+        NVL(SUM(no_show_count), 0) AS noShowCount,
+        NVL(SUM(refund_count), 0) AS refundCount
+        FROM TR_NOSHOW_AGE
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY age_group
+        ORDER BY age_group
+    </select>
+
+</mapper>

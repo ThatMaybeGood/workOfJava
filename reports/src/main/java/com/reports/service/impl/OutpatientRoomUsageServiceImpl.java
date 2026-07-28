@@ -5,6 +5,9 @@ import com.reports.dto.common.PageResult;
 import com.reports.dto.request.OutpatientRoomUsageRequest;
 import com.reports.dto.response.outpatient.room.usage.*;
 import com.reports.service.OutpatientRoomUsageService;
+import com.reports.mapper.RoomUsageMapper;
+import com.reports.entity.RoomUsageOvEntity;
+import com.reports.entity.RoomUsageDtlEntity;
 import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +26,9 @@ public class OutpatientRoomUsageServiceImpl implements OutpatientRoomUsageServic
 
     private final ReportDataConfig dataConfig;
     private final JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private RoomUsageMapper roomUsageMapper;
 
     @Autowired
     public OutpatientRoomUsageServiceImpl(ReportDataConfig dataConfig, JdbcTemplate jdbcTemplate) {
@@ -95,11 +101,58 @@ public class OutpatientRoomUsageServiceImpl implements OutpatientRoomUsageServic
     // ==================== MyBatis-Plus 模式 ====================
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientRoomUsageRequest request) {
-        return queryOverviewMock(request);
+        try {
+            RoomUsageOvEntity entity = roomUsageMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            return buildOverviewData(entity);
+        } catch (Exception e) {
+            log.warn("查询诊室使用率概览失败", e);
+            return new OverviewData();
+        }
     }
 
     private PageResult<TableItem> queryTableByMybatisPlus(OutpatientRoomUsageRequest request, Integer page, Integer pageSize) {
-        return queryTableMock(request, page, pageSize);
+        try {
+            List<RoomUsageDtlEntity> rows = roomUsageMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), request.getDeptName());
+            List<TableItem> allItems = new ArrayList<>();
+            for (RoomUsageDtlEntity row : rows) {
+                allItems.add(buildTableItem(row));
+            }
+            int total = allItems.size();
+            int start = (page - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+            List<TableItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
+            return PageResult.of(pageList, (long) total, page, pageSize);
+        } catch (Exception e) {
+            log.warn("查询诊室使用率表格失败", e);
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+        }
+    }
+
+    // ==================== 实体转换 ====================
+
+    private OverviewData buildOverviewData(RoomUsageOvEntity entity) {
+        if (entity == null) {
+            return new OverviewData();
+        }
+        OverviewData overview = new OverviewData();
+        overview.setAvgUsage(entity.getAvgUsage());
+        overview.setAmUsage(entity.getAmUsage());
+        overview.setPmUsage(entity.getPmUsage());
+        overview.setHolidayUsage(entity.getHolidayUsage());
+        return overview;
+    }
+
+    private TableItem buildTableItem(RoomUsageDtlEntity entity) {
+        if (entity == null) {
+            return new TableItem();
+        }
+        TableItem item = new TableItem();
+        item.setDeptName(entity.getDeptName());
+        item.setAvgUsage(entity.getAvgUsage());
+        item.setAmUsage(entity.getAmUsage());
+        item.setPmUsage(entity.getPmUsage());
+        item.setHolidayUsage(entity.getHolidayUsage());
+        return item;
     }
 
 }

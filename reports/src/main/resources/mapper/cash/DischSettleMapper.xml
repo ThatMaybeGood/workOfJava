@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.DischSettleMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询出院结算概览 -->
+    <!-- ============================================================ -->
+    <select id="queryOverview" resultType="com.reports.entity.DischSettleOvEntity">
+        SELECT
+        NVL(total_discharge_count, 0) AS totalDischargeCount,
+        NVL(total_discharge_compare, 0) AS totalDischargeCompare,
+        NVL(discharged_count, 0) AS dischargedCount,
+        NVL(discharged_compare, 0) AS dischargedCompare,
+        NVL(not_discharged_count, 0) AS notDischargedCount,
+        NVL(not_discharged_compare, 0) AS notDischargedCompare,
+        NVL(settlement_amount, 0) AS settlementAmount,
+        NVL(settlement_amount_compare, 0) AS settlementAmountCompare
+        FROM TR_DISCH_SETTLE_OV
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询出院结算日明细 -->
+    <!-- ============================================================ -->
+    <select id="queryDetail" resultType="com.reports.entity.DischSettleDtlEntity">
+        SELECT
+        item_date AS itemDate,
+        NVL(total_last, 0) AS totalLast,
+        NVL(total_current, 0) AS totalCurrent,
+        NVL(total_compare, 0) AS totalCompare,
+        NVL(discharged_last, 0) AS dischargedLast,
+        NVL(discharged_current, 0) AS dischargedCurrent,
+        NVL(discharged_compare, 0) AS dischargedCompare,
+        NVL(not_discharged_last, 0) AS notDischargedLast,
+        NVL(not_discharged_current, 0) AS notDischargedCurrent,
+        NVL(not_discharged_compare, 0) AS notDischargedCompare,
+        NVL(amount_last, 0) AS amountLast,
+        NVL(amount_current, 0) AS amountCurrent,
+        NVL(amount_compare, 0) AS amountCompare
+        FROM TR_DISCH_SETTLE_DTL
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY item_date
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询出院结算图表数据 -->
+    <!-- ============================================================ -->
+    <select id="queryChart" resultType="com.reports.entity.DischSettleChtEntity">
+        SELECT
+        item_name AS itemName,
+        NVL(item_value, 0) AS itemValue,
+        NVL(item_compare, 0) AS itemCompare
+        FROM TR_DISCH_SETTLE_CHT
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="chartType != null and chartType != ''">
+            AND chart_type = #{chartType}
+        </if>
+        ORDER BY item_name
+    </select>
+
+</mapper>

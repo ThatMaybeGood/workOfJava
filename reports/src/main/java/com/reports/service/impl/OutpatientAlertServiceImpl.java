@@ -4,6 +4,10 @@ import com.reports.config.ReportDataConfig;
 import com.reports.dto.common.PageResult;
 import com.reports.dto.request.OutpatientAlertRequest;
 import com.reports.dto.response.outpatient.alert.*;
+import com.reports.entity.OutpatientAlertDeptEntity;
+import com.reports.entity.OutpatientAlertDocEntity;
+import com.reports.entity.OutpatientAlertOvEntity;
+import com.reports.mapper.OutpatientAlertMapper;
 import com.reports.service.OutpatientAlertService;
 import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +27,9 @@ public class OutpatientAlertServiceImpl implements OutpatientAlertService {
 
     private final ReportDataConfig dataConfig;
     private final JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private OutpatientAlertMapper alertMapper;
 
     @Autowired
     public OutpatientAlertServiceImpl(ReportDataConfig dataConfig, JdbcTemplate jdbcTemplate) {
@@ -125,15 +132,81 @@ public class OutpatientAlertServiceImpl implements OutpatientAlertService {
     // ==================== MyBatis-Plus 模式 ====================
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientAlertRequest request) {
-        return queryOverviewMock(request);
+        try {
+            OutpatientAlertOvEntity entity = alertMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            return buildOverviewData(entity);
+        } catch (Exception e) {
+            log.warn("查询概览数据失败", e);
+            return new OverviewData();
+        }
     }
 
     private PageResult<DeptTableItem> queryDeptTableByMybatisPlus(OutpatientAlertRequest request, Integer page, Integer pageSize) {
-        return queryDeptTableMock(request, page, pageSize);
+        try {
+            List<OutpatientAlertDeptEntity> rows = alertMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), null);
+            List<DeptTableItem> allItems = new ArrayList<>();
+            for (OutpatientAlertDeptEntity row : rows) {
+                allItems.add(buildDeptTableItem(row));
+            }
+            int total = allItems.size();
+            int start = (page - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+            List<DeptTableItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
+            return PageResult.of(pageList, (long) total, page, pageSize);
+        } catch (Exception e) {
+            log.warn("查询科室表格数据失败", e);
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+        }
     }
 
     private PageResult<DoctorTableItem> queryDoctorTableByMybatisPlus(OutpatientAlertRequest request, Integer page, Integer pageSize) {
-        return queryDoctorTableMock(request, page, pageSize);
+        try {
+            List<OutpatientAlertDocEntity> rows = alertMapper.queryDoctorDetail(request.getStartDate(), request.getEndDate(), null);
+            List<DoctorTableItem> allItems = new ArrayList<>();
+            for (OutpatientAlertDocEntity row : rows) {
+                allItems.add(buildDoctorTableItem(row));
+            }
+            int total = allItems.size();
+            int start = (page - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+            List<DoctorTableItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
+            return PageResult.of(pageList, (long) total, page, pageSize);
+        } catch (Exception e) {
+            log.warn("查询医生表格数据失败", e);
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+        }
+    }
+
+    // ==================== 工具方法 ====================
+
+    private OverviewData buildOverviewData(OutpatientAlertOvEntity entity) {
+        if (entity == null) return new OverviewData();
+        OverviewData dto = new OverviewData();
+        dto.setRemainAlert(entity.getRemainAlert());
+        dto.setAppointmentAlert(entity.getAppointmentAlert());
+        dto.setEarlyLeave(entity.getEarlyLeave());
+        return dto;
+    }
+
+    private DeptTableItem buildDeptTableItem(OutpatientAlertDeptEntity entity) {
+        if (entity == null) return new DeptTableItem();
+        DeptTableItem item = new DeptTableItem();
+        item.setDeptName(entity.getDeptName());
+        item.setRemainAlert(entity.getRemainAlert());
+        item.setAppointmentAlert(entity.getAppointmentAlert());
+        item.setEarlyLeave(entity.getEarlyLeave());
+        return item;
+    }
+
+    private DoctorTableItem buildDoctorTableItem(OutpatientAlertDocEntity entity) {
+        if (entity == null) return new DoctorTableItem();
+        DoctorTableItem item = new DoctorTableItem();
+        item.setDoctorName(entity.getDoctorName());
+        item.setDeptName(entity.getDeptName());
+        item.setRemainAlert(entity.getRemainAlert());
+        item.setAppointmentAlert(entity.getAppointmentAlert());
+        item.setEarlyLeave(entity.getEarlyLeave());
+        return item;
     }
 
 }

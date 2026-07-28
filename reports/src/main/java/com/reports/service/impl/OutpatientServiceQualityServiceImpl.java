@@ -4,6 +4,10 @@ import com.reports.config.ReportDataConfig;
 import com.reports.dto.common.PageResult;
 import com.reports.dto.request.OutpatientServiceQualityRequest;
 import com.reports.dto.response.outpatient.service.quality.*;
+import com.reports.entity.ServiceQualityCmplEntity;
+import com.reports.entity.ServiceQualityOvEntity;
+import com.reports.entity.ServiceQualityPrzEntity;
+import com.reports.mapper.ServiceQualityMapper;
 import com.reports.service.OutpatientServiceQualityService;
 import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +28,9 @@ public class OutpatientServiceQualityServiceImpl implements OutpatientServiceQua
 
     private final ReportDataConfig dataConfig;
     private final JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private ServiceQualityMapper serviceQualityMapper;
 
     @Autowired
     public OutpatientServiceQualityServiceImpl(ReportDataConfig dataConfig, JdbcTemplate jdbcTemplate) {
@@ -128,15 +136,93 @@ public class OutpatientServiceQualityServiceImpl implements OutpatientServiceQua
     // ==================== MyBatis-Plus 模式 ====================
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientServiceQualityRequest request) {
-        return queryOverviewMock(request);
+        try {
+            ServiceQualityOvEntity entity = serviceQualityMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            return buildOverviewData(entity);
+        } catch (Exception e) {
+            log.warn("查询门诊服务质量概览失败", e);
+            return new OverviewData();
+        }
     }
 
     private PageResult<ComplaintItem> queryComplaintListByMybatisPlus(OutpatientServiceQualityRequest request, Integer page, Integer pageSize) {
-        return queryComplaintListMock(request, page, pageSize);
+        try {
+            List<ServiceQualityCmplEntity> rows = serviceQualityMapper.queryComplaintList(request.getStartDate(), request.getEndDate(), request.getDeptName());
+            List<ComplaintItem> allItems = new ArrayList<>();
+            for (ServiceQualityCmplEntity row : rows) {
+                allItems.add(buildComplaintItem(row));
+            }
+            int total = allItems.size();
+            int start = (page - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+            List<ComplaintItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
+            return PageResult.of(pageList, (long) total, page, pageSize);
+        } catch (Exception e) {
+            log.warn("查询投诉明细列表失败", e);
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+        }
     }
 
     private PageResult<PraiseItem> queryPraiseListByMybatisPlus(OutpatientServiceQualityRequest request, Integer page, Integer pageSize) {
-        return queryPraiseListMock(request, page, pageSize);
+        try {
+            List<ServiceQualityPrzEntity> rows = serviceQualityMapper.queryPraiseList(request.getStartDate(), request.getEndDate(), request.getDeptName());
+            List<PraiseItem> allItems = new ArrayList<>();
+            for (ServiceQualityPrzEntity row : rows) {
+                allItems.add(buildPraiseItem(row));
+            }
+            int total = allItems.size();
+            int start = (page - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+            List<PraiseItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
+            return PageResult.of(pageList, (long) total, page, pageSize);
+        } catch (Exception e) {
+            log.warn("查询表扬明细列表失败", e);
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+        }
+    }
+
+    // ==================== entity -> DTO 转换方法 ====================
+
+    private OverviewData buildOverviewData(ServiceQualityOvEntity entity) {
+        if (entity == null) {
+            return new OverviewData();
+        }
+        OverviewData data = new OverviewData();
+        data.setComplaintCount(entity.getComplaintCount());
+        data.setPraiseCount(entity.getPraiseCount());
+        return data;
+    }
+
+    private ComplaintItem buildComplaintItem(ServiceQualityCmplEntity entity) {
+        if (entity == null) {
+            return new ComplaintItem();
+        }
+        ComplaintItem item = new ComplaintItem();
+        item.setTime(entity.getComplaintTime() != null
+                ? new SimpleDateFormat("yyyy-MM-dd HH:mm").format(entity.getComplaintTime()) : null);
+        item.setDept(entity.getDeptName());
+        item.setPerson(entity.getPersonName());
+        item.setPosition(entity.getPosition());
+        item.setCategory(entity.getCategory());
+        item.setResult(entity.getResult());
+        item.setRemark(entity.getRemark());
+        return item;
+    }
+
+    private PraiseItem buildPraiseItem(ServiceQualityPrzEntity entity) {
+        if (entity == null) {
+            return new PraiseItem();
+        }
+        PraiseItem item = new PraiseItem();
+        item.setTime(entity.getPraiseTime() != null
+                ? new SimpleDateFormat("yyyy-MM-dd HH:mm").format(entity.getPraiseTime()) : null);
+        item.setDept(entity.getDeptName());
+        item.setPerson(entity.getPersonName());
+        item.setPosition(entity.getPosition());
+        item.setMethod(entity.getMethod());
+        item.setFeedback(entity.getFeedback());
+        item.setRemark(entity.getRemark());
+        return item;
     }
 
 }

@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
+import com.reports.entity.OutpatientOpDtlEntity;
 import java.util.List;
 
 /**
@@ -37,5 +38,12 @@ public interface OutpatientOperationMapper extends BaseMapper<OutpatientOperatio
     List<OutpatientOperationEntity> queryGroupByDept(@Param("startDate") Date startDate,
                                                       @Param("endDate") Date endDate,
                                                       @Param("deptCode") String deptCode);
+
+    /**
+     * 查询科室明细数据
+     */
+    List<OutpatientOpDtlEntity> queryDeptDetail(@Param("startDate") Date startDate,
+                                                 @Param("endDate") Date endDate,
+                                                 @Param("deptName") String deptName);
 
 }

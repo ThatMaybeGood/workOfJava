@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.PatientPortraitMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询患者画像年龄分析 -->
+    <!-- ============================================================ -->
+    <select id="queryAgeAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitAgeEntity">
+        SELECT
+        age_group AS ageGroup,
+        NVL(SUM(archive_count), 0) AS archiveCount,
+        NVL(SUM(outpatient_count), 0) AS outpatientCount
+        FROM TR_PAT_PORTRAIT_AGE
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY age_group
+        ORDER BY age_group
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询患者画像医保分析 -->
+    <!-- ============================================================ -->
+    <select id="queryInsuranceAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitInsurEntity">
+        SELECT
+        insurance_type AS insuranceType,
+        NVL(SUM(patient_count), 0) AS patientCount
+        FROM TR_PAT_PORTRAIT_INSUR
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY insurance_type
+        ORDER BY patientCount DESC
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询患者画像身份分析 -->
+    <!-- ============================================================ -->
+    <select id="queryIdentityAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitIdtyEntity">
+        SELECT
+        identity_type AS identityType,
+        NVL(SUM(patient_count), 0) AS patientCount
+        FROM TR_PAT_PORTRAIT_IDTY
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY identity_type
+        ORDER BY patientCount DESC
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询患者画像挂号来源分析 -->
+    <!-- ============================================================ -->
+    <select id="queryRegOriginAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitRegEntity">
+        SELECT
+        source_type AS sourceType,
+        NVL(SUM(patient_count), 0) AS patientCount
+        FROM TR_PAT_PORTRAIT_REG
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY source_type
+        ORDER BY patientCount DESC
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询患者画像建档来源分析 -->
+    <!-- ============================================================ -->
+    <select id="queryArcOriginAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitArcEntity">
+        SELECT
+        source_type AS sourceType,
+        NVL(SUM(patient_count), 0) AS patientCount
+        FROM TR_PAT_PORTRAIT_ARC
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY source_type
+        ORDER BY patientCount DESC
+    </select>
+
+</mapper>

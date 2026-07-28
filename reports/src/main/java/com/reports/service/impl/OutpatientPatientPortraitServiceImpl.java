@@ -3,7 +3,13 @@ package com.reports.service.impl;
 import com.reports.config.ReportDataConfig;
 import com.reports.dto.request.OutpatientPatientPortraitRequest;
 import com.reports.dto.response.outpatient.patient.portrait.*;
+import com.reports.mapper.PatientPortraitMapper;
 import com.reports.service.OutpatientPatientPortraitService;
+import com.reports.entity.OutpatientPatientPortraitAgeEntity;
+import com.reports.entity.OutpatientPatientPortraitInsurEntity;
+import com.reports.entity.OutpatientPatientPortraitIdtyEntity;
+import com.reports.entity.OutpatientPatientPortraitRegEntity;
+import com.reports.entity.OutpatientPatientPortraitArcEntity;
 import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +28,9 @@ public class OutpatientPatientPortraitServiceImpl implements OutpatientPatientPo
 
     private final ReportDataConfig dataConfig;
     private final JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    PatientPortraitMapper patientPortraitMapper;
 
     @Autowired
     public OutpatientPatientPortraitServiceImpl(ReportDataConfig dataConfig, JdbcTemplate jdbcTemplate) {
@@ -182,23 +191,87 @@ public class OutpatientPatientPortraitServiceImpl implements OutpatientPatientPo
     // ==================== MyBatis-Plus 模式 ====================
 
     private AgeAnalysis queryAgeAnalysisByMybatisPlus(OutpatientPatientPortraitRequest request) {
-        return queryAgeAnalysisMock(request);
+        try {
+            List<OutpatientPatientPortraitAgeEntity> list = patientPortraitMapper.queryAgeAnalysis(request.getStartDate(), request.getEndDate());
+            return buildAgeAnalysis(list);
+        } catch (Exception e) {
+            log.warn("查询患者画像年龄分析失败", e);
+            return new AgeAnalysis();
+        }
     }
 
     private List<AnalysisItem> queryInsuranceAnalysisByMybatisPlus(OutpatientPatientPortraitRequest request) {
-        return queryInsuranceAnalysisMock(request);
+        try {
+            List<OutpatientPatientPortraitInsurEntity> list = patientPortraitMapper.queryInsuranceAnalysis(request.getStartDate(), request.getEndDate());
+            List<AnalysisItem> result = new ArrayList<>();
+            for (OutpatientPatientPortraitInsurEntity entity : list) {
+                result.add(newAnalysisItem(entity.getInsuranceType(), entity.getPatientCount()));
+            }
+            return result;
+        } catch (Exception e) {
+            log.warn("查询患者画像医保分析失败", e);
+            return new ArrayList<>();
+        }
     }
 
     private List<AnalysisItem> queryIdentityAnalysisByMybatisPlus(OutpatientPatientPortraitRequest request) {
-        return queryIdentityAnalysisMock(request);
+        try {
+            List<OutpatientPatientPortraitIdtyEntity> list = patientPortraitMapper.queryIdentityAnalysis(request.getStartDate(), request.getEndDate());
+            List<AnalysisItem> result = new ArrayList<>();
+            for (OutpatientPatientPortraitIdtyEntity entity : list) {
+                result.add(newAnalysisItem(entity.getIdentityType(), entity.getPatientCount()));
+            }
+            return result;
+        } catch (Exception e) {
+            log.warn("查询患者画像身份分析失败", e);
+            return new ArrayList<>();
+        }
     }
 
     private List<AnalysisItem> queryRegisterOriginAnalysisByMybatisPlus(OutpatientPatientPortraitRequest request) {
-        return queryRegisterOriginAnalysisMock(request);
+        try {
+            List<OutpatientPatientPortraitRegEntity> list = patientPortraitMapper.queryRegOriginAnalysis(request.getStartDate(), request.getEndDate());
+            List<AnalysisItem> result = new ArrayList<>();
+            for (OutpatientPatientPortraitRegEntity entity : list) {
+                result.add(newAnalysisItem(entity.getSourceType(), entity.getPatientCount()));
+            }
+            return result;
+        } catch (Exception e) {
+            log.warn("查询患者画像挂号来源分析失败", e);
+            return new ArrayList<>();
+        }
     }
 
     private List<AnalysisItem> queryArchiveOriginAnalysisByMybatisPlus(OutpatientPatientPortraitRequest request) {
-        return queryArchiveOriginAnalysisMock(request);
+        try {
+            List<OutpatientPatientPortraitArcEntity> list = patientPortraitMapper.queryArcOriginAnalysis(request.getStartDate(), request.getEndDate());
+            List<AnalysisItem> result = new ArrayList<>();
+            for (OutpatientPatientPortraitArcEntity entity : list) {
+                result.add(newAnalysisItem(entity.getSourceType(), entity.getPatientCount()));
+            }
+            return result;
+        } catch (Exception e) {
+            log.warn("查询患者画像建档来源分析失败", e);
+            return new ArrayList<>();
+        }
+    }
+
+    // ==================== Entity-DTO 转换方法 ====================
+
+    private AgeAnalysis buildAgeAnalysis(List<OutpatientPatientPortraitAgeEntity> list) {
+        AgeAnalysis analysis = new AgeAnalysis();
+        List<String> categories = new ArrayList<>();
+        List<Integer> archiveData = new ArrayList<>();
+        List<Integer> outpatientData = new ArrayList<>();
+        for (OutpatientPatientPortraitAgeEntity entity : list) {
+            categories.add(entity.getAgeGroup());
+            archiveData.add(entity.getArchiveCount());
+            outpatientData.add(entity.getOutpatientCount());
+        }
+        analysis.setCategories(categories);
+        analysis.setArchiveData(archiveData);
+        analysis.setOutpatientData(outpatientData);
+        return analysis;
     }
 
     // ==================== 工具方法 ====================

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.OutpatientForecastMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询预测门诊量概览 -->
+    <!-- ============================================================ -->
+    <select id="queryOverview" resultType="com.reports.entity.OutpatientForecastOvEntity">
+        SELECT
+        tomorrow,
+        next_week AS nextWeek,
+        next_month AS nextMonth,
+        next_year AS nextYear
+        FROM TR_OUTP_FC_OV
+        WHERE stat_date = #{statDate}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询30天预测门诊量明细 -->
+    <!-- ============================================================ -->
+    <select id="queryMonthForecast" resultType="com.reports.entity.OutpatientForecastMonthEntity">
+        SELECT
+        forecast_date AS forecastDate,
+        forecast_value AS forecastValue
+        FROM TR_OUTP_FC_MONTH
+        WHERE stat_date = #{statDate}
+        ORDER BY forecast_date
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询12个月预测门诊量明细 -->
+    <!-- ============================================================ -->
+    <select id="queryYearForecast" resultType="com.reports.entity.OutpatientForecastYearEntity">
+        SELECT
+        forecast_month AS forecastMonth,
+        forecast_value AS forecastValue
+        FROM TR_OUTP_FC_YEAR
+        WHERE stat_date = #{statDate}
+        ORDER BY forecast_month
+    </select>
+
+</mapper>

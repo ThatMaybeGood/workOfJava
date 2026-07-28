@@ -9,7 +9,8 @@ class PatientPortraitController {
             timeRange: 'today',
             startDate: today,
             endDate: today,
-            deptName: ''
+            deptName: '',
+            deptCode: ''
         };
         this.charts = {};
 
@@ -23,10 +24,11 @@ class PatientPortraitController {
         return `${y}-${m}-${d}`;
     }
 
-    init() {
+    async init() {
         this.initCharts();
         this.bindEvents();
         this.initDateRangePicker();
+        await this.initDeptSelect();
         this.loadData();
     }
 
@@ -42,6 +44,22 @@ class PatientPortraitController {
         });
     }
 
+    async initDeptSelect(options = {}) {
+        this.deptInfo = await initDeptSelect({
+            selectId: 'deptSelect',
+            deptType: 0,
+            showAll: true,
+            allCode: '0000',
+            allText: '全部',
+            onChange: (dept) => {
+                this.state.deptName = dept.deptName === '全部' ? '' : dept.deptName;
+                this.state.deptCode = dept.deptCode === '0000' ? '' : dept.deptCode;
+                this.loadData();
+            },
+            ...options
+        });
+    }
+
     bindEvents() {
         // 患者类型切换
         document.querySelectorAll('.patient-type-tab').forEach(tab => {
@@ -53,11 +71,6 @@ class PatientPortraitController {
             btn.addEventListener('click', (e) => this.handleTimeFilter(e));
         });
 
-        // 科室筛选
-        document.getElementById('deptSelect').addEventListener('change', (e) => {
-            this.state.deptName = e.target.value;
-            this.loadData();
-        });
     }
 
     initDateRangePicker() {
@@ -109,7 +122,8 @@ class PatientPortraitController {
                 patientType: this.state.patientType,
                 startDate: this.state.startDate,
                 endDate: this.state.endDate,
-                deptName: this.state.deptName
+                deptName: this.state.deptName,
+                deptCode: this.state.deptCode
             });
             this.renderCharts(body || {});
         } catch (error) {

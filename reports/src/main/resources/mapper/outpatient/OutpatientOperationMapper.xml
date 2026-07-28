@@ -84,4 +84,33 @@
         ORDER BY totalVisits DESC
     </select>
 
+    <!-- ============================================================ -->
+    <!-- 查询科室明细数据 -->
+    <!-- ============================================================ -->
+    <select id="queryDeptDetail" resultType="com.reports.entity.OutpatientOpDtlEntity">
+        SELECT
+        stat_date AS statDate,
+        dept_name AS deptName,
+        visits,
+        appointment_rate AS appointmentRate,
+        exam_rate AS examRate,
+        efficiency,
+        visit_count AS visitCount,
+        famous_expert AS famousExpert,
+        special_expert AS specialExpert,
+        known_expert AS knownExpert,
+        expert_a AS expertA,
+        expert_b AS expertB,
+        ordinary,
+        effective_total AS effectiveTotal,
+        effective_detail AS effectiveDetail,
+        total_detail AS totalDetail
+        FROM TR_OUTP_OP_DTL
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="deptName != null and deptName != ''">
+            AND dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        ORDER BY dept_name
+    </select>
+
 </mapper>

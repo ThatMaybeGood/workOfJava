@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.RoomUsageMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询诊室使用率概览 -->
+    <!-- ============================================================ -->
+    <select id="queryOverview" resultType="com.reports.entity.RoomUsageOvEntity">
+        SELECT
+        MAX(avg_usage) AS avgUsage,
+        MAX(am_usage) AS amUsage,
+        MAX(pm_usage) AS pmUsage,
+        MAX(holiday_usage) AS holidayUsage
+        FROM TR_ROOM_USE_OV
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询诊室使用率科室明细 -->
+    <!-- ============================================================ -->
+    <select id="queryDeptDetail" resultType="com.reports.entity.RoomUsageDtlEntity">
+        SELECT
+        dept_name AS deptName,
+        MAX(avg_usage) AS avgUsage,
+        MAX(am_usage) AS amUsage,
+        MAX(pm_usage) AS pmUsage,
+        MAX(holiday_usage) AS holidayUsage
+        FROM TR_ROOM_USE_DTL
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="deptName != null and deptName != ''">
+            AND dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        GROUP BY dept_name
+        ORDER BY dept_name
+    </select>
+
+</mapper>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.TreatmentStatsMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询治疗统计概览 -->
+    <!-- ============================================================ -->
+    <select id="queryOverview" resultType="com.reports.entity.TreatmentStatsOvEntity">
+        SELECT
+        NVL(SUM(patient_count), 0) AS patientCount,
+        NVL(SUM(treatment_count), 0) AS treatmentCount,
+        NVL(SUM(treatment_amount), 0) AS treatmentAmount,
+        ROUND(NVL(SUM(treatment_amount), 0) / NULLIF(SUM(treatment_count), 0), 2) AS avgAmount
+        FROM TR_TREAT_STAT_OV
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询治疗统计科室明细 -->
+    <!-- ============================================================ -->
+    <select id="queryDeptDetail" resultType="com.reports.entity.TreatmentStatsDtlEntity">
+        SELECT
+        dept_name AS deptName,
+        NVL(SUM(patient_count), 0) AS patientCount,
+        NVL(SUM(treatment_count), 0) AS treatmentCount,
+        NVL(SUM(treatment_amount), 0) AS treatmentAmount,
+        ROUND(NVL(SUM(treatment_amount), 0) / NULLIF(SUM(treatment_count), 0), 2) AS avgAmount
+        FROM TR_TREAT_STAT_DTL
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY dept_name
+        ORDER BY treatmentCount DESC
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询治疗统计每日趋势 -->
+    <!-- ============================================================ -->
+    <select id="queryTrend" resultType="com.reports.entity.TreatmentStatsTrendEntity">
+        SELECT
+        trend_date AS trendDate,
+        NVL(SUM(trend_value), 0) AS trendValue
+        FROM TR_TREAT_STAT_TREND
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY trend_date
+        ORDER BY trend_date
+    </select>
+
+</mapper>

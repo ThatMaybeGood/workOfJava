@@ -4,6 +4,13 @@ import com.reports.config.ReportDataConfig;
 import com.reports.dto.common.PageResult;
 import com.reports.dto.request.OutpatientInternetHospitalRequest;
 import com.reports.dto.response.outpatient.internet.hospital.*;
+import com.reports.entity.InternetHospitalBizEntity;
+import com.reports.entity.InternetHospitalDeptRnkEntity;
+import com.reports.entity.InternetHospitalDocRnkEntity;
+import com.reports.entity.InternetHospitalGrwEntity;
+import com.reports.entity.InternetHospitalOpEntity;
+import com.reports.entity.InternetHospitalOvEntity;
+import com.reports.mapper.InternetHospitalMapper;
 import com.reports.service.OutpatientInternetHospitalService;
 import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +30,9 @@ public class OutpatientInternetHospitalServiceImpl implements OutpatientInternet
 
     private final ReportDataConfig dataConfig;
     private final JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private InternetHospitalMapper internetHospitalMapper;
 
     @Autowired
     public OutpatientInternetHospitalServiceImpl(ReportDataConfig dataConfig, JdbcTemplate jdbcTemplate) {
@@ -228,27 +238,175 @@ public class OutpatientInternetHospitalServiceImpl implements OutpatientInternet
     // ==================== MyBatis-Plus 模式 ====================
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientInternetHospitalRequest request) {
-        return queryOverviewMock(request);
+        try {
+            InternetHospitalOvEntity entity = internetHospitalMapper.queryOverview(request.getMonth());
+            return buildOverviewData(entity);
+        } catch (Exception e) {
+            log.warn("查询互医质控概览失败", e);
+            return new OverviewData();
+        }
     }
 
     private PageResult<OperationTableItem> queryOperationTableByMybatisPlus(OutpatientInternetHospitalRequest request, Integer page, Integer pageSize) {
-        return queryOperationTableMock(request, page, pageSize);
+        try {
+            List<InternetHospitalOpEntity> rows = internetHospitalMapper.queryOperationTable(request.getMonth());
+            List<OperationTableItem> allItems = new ArrayList<>();
+            for (InternetHospitalOpEntity row : rows) {
+                allItems.add(buildOperationTableItem(row));
+            }
+            int total = allItems.size();
+            int start = (page - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+            List<OperationTableItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
+            return PageResult.of(pageList, (long) total, page, pageSize);
+        } catch (Exception e) {
+            log.warn("查询互医质控运行情况表失败", e);
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+        }
     }
 
     private BusinessChart queryBusinessChartByMybatisPlus(OutpatientInternetHospitalRequest request) {
-        return queryBusinessChartMock(request);
+        try {
+            List<InternetHospitalBizEntity> rows = internetHospitalMapper.queryBusinessChart(request.getMonth());
+            return buildBusinessChart(rows);
+        } catch (Exception e) {
+            log.warn("查询互医质控业务分析图表失败", e);
+            return new BusinessChart();
+        }
     }
 
     private PageResult<DeptRankingItem> queryDeptRankingByMybatisPlus(OutpatientInternetHospitalRequest request, Integer page, Integer pageSize) {
-        return queryDeptRankingMock(request, page, pageSize);
+        try {
+            List<InternetHospitalDeptRnkEntity> rows = internetHospitalMapper.queryDeptRanking(request.getMonth());
+            List<DeptRankingItem> allItems = new ArrayList<>();
+            for (InternetHospitalDeptRnkEntity row : rows) {
+                allItems.add(buildDeptRankingItem(row));
+            }
+            int total = allItems.size();
+            int start = (page - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+            List<DeptRankingItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
+            return PageResult.of(pageList, (long) total, page, pageSize);
+        } catch (Exception e) {
+            log.warn("查询互医质控科室排行失败", e);
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+        }
     }
 
     private PageResult<DoctorRankingItem> queryDoctorRankingByMybatisPlus(OutpatientInternetHospitalRequest request, Integer page, Integer pageSize) {
-        return queryDoctorRankingMock(request, page, pageSize);
+        try {
+            List<InternetHospitalDocRnkEntity> rows = internetHospitalMapper.queryDoctorRanking(request.getMonth());
+            List<DoctorRankingItem> allItems = new ArrayList<>();
+            for (InternetHospitalDocRnkEntity row : rows) {
+                allItems.add(buildDoctorRankingItem(row));
+            }
+            int total = allItems.size();
+            int start = (page - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+            List<DoctorRankingItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
+            return PageResult.of(pageList, (long) total, page, pageSize);
+        } catch (Exception e) {
+            log.warn("查询互医质控医生排行失败", e);
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+        }
     }
 
     private GrowthChart queryGrowthChartByMybatisPlus(OutpatientInternetHospitalRequest request) {
-        return queryGrowthChartMock(request);
+        try {
+            List<InternetHospitalGrwEntity> rows = internetHospitalMapper.queryGrowthChart(request.getMonth());
+            return buildGrowthChart(rows);
+        } catch (Exception e) {
+            log.warn("查询互医质控增长趋势图表失败", e);
+            return new GrowthChart();
+        }
+    }
+
+    // ==================== entity -> DTO 转换方法 ====================
+
+    private OverviewData buildOverviewData(InternetHospitalOvEntity entity) {
+        if (entity == null) {
+            return new OverviewData();
+        }
+        OverviewData data = new OverviewData();
+        data.setOutpatientVolume(entity.getOutpatientVolume());
+        data.setDoctorRatio(entity.getDoctorRatio());
+        data.setReceptionRate(entity.getReceptionRate());
+        data.setPrescriptionRate(entity.getPrescriptionRate());
+        data.setRecordRate(entity.getRecordRate());
+        data.setReviewRate(entity.getReviewRate());
+        data.setExecutionRate(entity.getExecutionRate());
+        return data;
+    }
+
+    private OperationTableItem buildOperationTableItem(InternetHospitalOpEntity entity) {
+        if (entity == null) {
+            return new OperationTableItem();
+        }
+        OperationTableItem item = new OperationTableItem();
+        item.setName(entity.getItemName());
+        item.setCurrent(entity.getCurrentValue());
+        item.setLast(entity.getLastValue());
+        item.setGrowth(entity.getGrowthRate());
+        return item;
+    }
+
+    private BusinessChart buildBusinessChart(List<InternetHospitalBizEntity> rows) {
+        BusinessChart chart = new BusinessChart();
+        List<String> categories = new ArrayList<>();
+        List<Integer> current = new ArrayList<>();
+        List<Integer> last = new ArrayList<>();
+        if (rows != null) {
+            for (InternetHospitalBizEntity row : rows) {
+                categories.add(row.getCategory());
+                current.add(row.getCurrentValue());
+                last.add(row.getLastValue());
+            }
+        }
+        chart.setCategories(categories);
+        chart.setCurrent(current);
+        chart.setLast(last);
+        return chart;
+    }
+
+    private DeptRankingItem buildDeptRankingItem(InternetHospitalDeptRnkEntity entity) {
+        if (entity == null) {
+            return new DeptRankingItem();
+        }
+        DeptRankingItem item = new DeptRankingItem();
+        item.setRank(entity.getRankNum());
+        item.setDeptName(entity.getDeptName());
+        item.setCurrentMonth(entity.getCurrentMonth());
+        item.setLastMonth(entity.getLastMonth());
+        item.setGrowth(entity.getGrowthRate());
+        return item;
+    }
+
+    private DoctorRankingItem buildDoctorRankingItem(InternetHospitalDocRnkEntity entity) {
+        if (entity == null) {
+            return new DoctorRankingItem();
+        }
+        DoctorRankingItem item = new DoctorRankingItem();
+        item.setRank(entity.getRankNum());
+        item.setDoctorName(entity.getDoctorName());
+        item.setDeptName(entity.getDeptName());
+        item.setTitle(entity.getTitle());
+        item.setCurrentMonth(entity.getCurrentMonth());
+        return item;
+    }
+
+    private GrowthChart buildGrowthChart(List<InternetHospitalGrwEntity> rows) {
+        GrowthChart chart = new GrowthChart();
+        List<String> categories = new ArrayList<>();
+        List<Integer> data = new ArrayList<>();
+        if (rows != null) {
+            for (InternetHospitalGrwEntity row : rows) {
+                categories.add(row.getCategory());
+                data.add(row.getDataValue());
+            }
+        }
+        chart.setCategories(categories);
+        chart.setData(data);
+        return chart;
     }
 
 }

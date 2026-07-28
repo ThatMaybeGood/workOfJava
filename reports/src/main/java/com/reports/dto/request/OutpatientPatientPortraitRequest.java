@@ -42,4 +42,9 @@ public class OutpatientPatientPortraitRequest extends BaseRequestBody {
      */
     private String deptName;
 
+    /**
+     * 科室编码（可选）
+     */
+    private String deptCode;
+
 }
