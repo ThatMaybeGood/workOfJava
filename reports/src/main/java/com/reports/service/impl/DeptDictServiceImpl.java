@@ -1,5 +1,6 @@
 package com.reports.service.impl;
 
+import com.reports.config.ReportDataConfig;
 import com.reports.dto.request.DeptDictRequest;
 import com.reports.dto.response.common.DeptDictItem;
 import com.reports.entity.DeptDictEntity;
@@ -7,6 +8,7 @@ import com.reports.mapper.DeptDictMapper;
 import com.reports.service.DeptDictService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,12 +20,16 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class DeptDictServiceImpl implements DeptDictService {
-
-    private final DeptDictMapper deptDictMapper;
+    private final ReportDataConfig dataConfig;
+    private final JdbcTemplate jdbcTemplate;
 
     @Autowired
-    public DeptDictServiceImpl(DeptDictMapper deptDictMapper) {
-        this.deptDictMapper = deptDictMapper;
+    DeptDictMapper deptDictMapper;
+
+    @Autowired
+    public DeptDictServiceImpl(ReportDataConfig dataConfig, JdbcTemplate jdbcTemplate) {
+        this.dataConfig = dataConfig;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
