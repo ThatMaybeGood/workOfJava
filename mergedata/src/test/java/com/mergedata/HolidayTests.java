@@ -23,7 +23,6 @@ public class HolidayTests {
     @Test
     void contextLoads() {
         HolidayDataParser parser = new HolidayDataParser();
-        PrimaryKeyGenerator pk = new PrimaryKeyGenerator();
 
         int year = 2025;
 //        String filePath = "data/" + year + "/rest_days.txt";
@@ -35,7 +34,7 @@ public class HolidayTests {
 
         for (LocalDate date : results) {
             YQHolidayEntity holiday = new YQHolidayEntity();
-            holiday.setSerialNo(pk.generateKey());
+            holiday.setSerialNo(PrimaryKeyGenerator.generateKey());
             holiday.setHolidayYear(String.valueOf(year));
             holiday.setHolidayMonth(String.valueOf(date.getMonthValue()));
             holiday.setHolidayType("1");

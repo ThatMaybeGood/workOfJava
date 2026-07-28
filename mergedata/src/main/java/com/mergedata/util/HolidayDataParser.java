@@ -23,13 +23,12 @@ import java.util.List;
                     // 使用 | 分割。注意在正则中 | 是特殊字符，需要转义 \\|
                     String[] parts = line.split("\\|");
                     if (parts.length == 3) {
-                        PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
 
                         YQHolidayEntity item = new YQHolidayEntity();
                         item.setHolidayYear(year);
                         item.setHolidayDate(LocalDate.parse(parts[0]));
                         item.setHolidayType(parts[2]);
-                        item.setSerialNo(pks.generateKey());
+                        item.setSerialNo(PrimaryKeyGenerator.generateKey());
                         list.add(item);
                     }
                 }

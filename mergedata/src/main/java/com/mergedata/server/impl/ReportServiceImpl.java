@@ -1014,10 +1014,7 @@ public class ReportServiceImpl implements ReportService {
             InpCashMainEntity resultVo = new InpCashMainEntity();
             List<InpCashSubEntity> inpCashSubList = new ArrayList<>();
 
-            PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
-            String pk = pks.generateKey();
-            // ⚠️ 注意: PrimaryKeyGenerator.generateKey()是静态方法，建议直接使用静态调用
-            // 且getOutpReportData方法中大量代码与isInitOutpReportData重复，约200行近乎相同的逻辑
+             String pk = PrimaryKeyGenerator.generateKey();
 
             int count = 0;
             // 4. 以操作员为主，遍历构建报表数据
@@ -1064,7 +1061,7 @@ public class ReportServiceImpl implements ReportService {
 //                    inpCashSub.setRemarks(cashRecord.getRemarks());
                 }
 
-                // 计算其他字段
+                // 对其他计算公式的计算
                 calculateInpSubEntityFields(inpCashSub);
 
                 // 加入结果集
@@ -1093,9 +1090,7 @@ public class ReportServiceImpl implements ReportService {
      * @return 插入成功的记录数
      */
     public Integer isInitInsertInp(InpCashMainEntity main, String isInitFlag) {
-        PrimaryKeyGenerator pks = new PrimaryKeyGenerator();
-        String pk = pks.generateKey();
-        // ⚠️ 注意: PrimaryKeyGenerator.generateKey()是静态方法，建议统一使用静态调用
+         String pk = PrimaryKeyGenerator.generateKey();
 
         //界面手工录入修改时候，保存数据重新计算明细的公式
         if (isInitFlag.equals(Constant.NO)) {

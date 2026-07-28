@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>住院部现金统计表</title>
+    <style>
+        :root {
+            --bg-main: #f4f7f9;
+            --card-bg: #ffffff;
+            --text-title: #1a3a4a;
+            --text-main: #334e5e;
+            --text-muted: #78909c;
+            --medical-blue: #0b5e7e;
+            --medical-blue-light: #e6f0f5;
+            --income-green: #2c7a4d;
+            --refund-orange: #c96f3e;
+            --net-blue: #2c7da0;
+            --border-color: #d0dde6;
+            --group-morning: #c8e6c9;
+            --group-morning-light: #e8f5e9;
+            --group-afternoon: #ffe0b2;
+            --group-afternoon-light: #fff3e0;
+            --group-retain: #e1bee7;
+            --group-retain-light: #f3e5f5;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--text-main);
+            padding: 24px;
+        }
+
+        .dashboard-container { max-width: 100%; margin: 0 auto; }
+
+        .report-title-bar {
+            text-align: center;
+            margin-bottom: 16px;
+            padding: 12px 0;
+        }
+        .report-title-bar h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #000;
+            letter-spacing: 4px;
+            margin-bottom: 6px;
+        }
+        .report-title-bar .subtitle {
+            font-size: 15px;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .header-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--medical-blue);
+        }
+
+        .control-panel {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .date-group {
+            display: flex;
+            align-items: center;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            padding: 6px 14px;
+            border-radius: 8px;
+            gap: 8px;
+        }
+
+        .date-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--medical-blue);
+        }
+
+        .date-group input {
+            border: none;
+            background: transparent;
+            color: var(--text-main);
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .btn {
+            border: none;
+            padding: 9px 24px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-query {
+            background: var(--medical-blue);
+            color: white;
+        }
+        .btn-query:hover { background: #08475f; transform: translateY(-1px); }
+
+        .btn-save {
+            background: var(--income-green);
+            color: white;
+        }
+        .btn-save:hover { background: #1e5e38; transform: translateY(-1px); }
+        .btn-group {
+            display: flex;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .btn-option {
+            border: none;
+            background: transparent;
+            padding: 9px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            border-right: 1px solid var(--border-color);
+        }
+        .btn-option:last-child { border-right: none; }
+        .btn-option:hover { background: #e2ecf3; color: var(--medical-blue); }
+        .btn-option.active {
+            background: var(--medical-blue);
+            color: white;
+        }
+
+        .btn-print {
+            background: var(--net-blue);
+            color: white;
+        }
+        .btn-print:hover { background: #1f5f7a; transform: translateY(-1px); }
+
+        .btn-init {
+            background: var(--refund-orange);
+            color: white;
+        }
+
+        .section-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+        }
+
+        .section-header {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-title);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid #b8c5ce;
+            border-radius: 8px;
+            background: #ffffff !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .data-table {
+            border-collapse: collapse;
+            font-size: 13px;
+            table-layout: auto;
+            width: auto;
+            min-width: 100%;
+            white-space: nowrap;
+        }
+
+        .data-table th {
+            background: #f8fafc;
+            color: var(--medical-blue);
+            font-weight: 700;
+            padding: 8px 10px;
+            border: 1px solid #c8d4dc;
+            text-align: center;
+            vertical-align: middle;
+            line-height: 1.4;
+            word-break: break-word;
+            white-space: normal;
+            min-height: 40px;
+            max-width: 120px;
+            min-width: 60px;
+        }
+
+        .data-table th.table-main-title {
+            background: #ffffff !important;
+            color: #000;
+            text-align: center;
+            font-size: 20px;
+            font-weight: 700;
+            padding: 14px 8px;
+            border: 1px solid #c8d4dc;
+            letter-spacing: 2px;
+            white-space: nowrap;
+        }
+
+        .table-main-subtitle {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-main);
+            margin-left: 40px;
+            letter-spacing: 1px;
+        }
+
+        .data-table th.group-header {
+            color: var(--text-title);
+            text-align: center;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 8px 10px;
+            border-bottom: 2px solid #9aa8b1;
+            word-break: keep-all;
+            white-space: nowrap;
+        }
+
+        .data-table td {
+            padding: 6px 10px;
+            border: 1px solid #dce4e9;
+            text-align: right;
+            color: #37474f;
+            vertical-align: middle;
+            white-space: nowrap;
+            overflow: visible;
+            min-height: 32px;
+            font-feature-settings: "tnum";
+            font-variant-numeric: tabular-nums;
+        }
+
+        .data-table td:not(:first-child):not(:nth-child(2)):not(:last-child) {
+            font-family: "SF Mono", "Menlo", "Monaco", "Consolas", monospace;
+            font-size: 12px;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
+        .data-table th.group-morning,
+        .data-table td.group-morning {
+            background: var(--group-morning-light);
+        }
+        .data-table th.group-header.group-morning {
+            background: var(--group-morning);
+        }
+
+        .data-table th.group-afternoon,
+        .data-table td.group-afternoon {
+            background: var(--group-afternoon-light);
+        }
+        .data-table th.group-header.group-afternoon {
+            background: var(--group-afternoon);
+        }
+
+        .data-table th.group-retain,
+        .data-table td.group-retain {
+            background: var(--group-retain-light);
+        }
+        .data-table th.group-header.group-retain {
+            background: var(--group-retain);
+        }
+
+        .data-table th:first-child,
+        .data-table td:first-child {
+            text-align: center;
+            font-weight: 700;
+            border: 1px solid #c8d4dc;
+            position: sticky;
+            left: 0;
+            z-index: 20;
+            background: #ffffff !important;
+            min-width: 45px;
+            padding: 6px 8px;
+        }
+
+        .data-table th:nth-child(2),
+        .data-table td:nth-child(2) {
+            text-align: left;
+            font-weight: 700;
+            border: 1px solid #c8d4dc;
+            position: sticky;
+            left: 45px;
+            z-index: 25;
+            background: #ffffff !important;
+            min-width: 70px;
+            padding: 6px 8px;
+            box-shadow: -2px 0 0 0 #c8d4dc;
+        }
+
+        .data-table tr:nth-child(even) td { background-color: #f8fafc; }
+        .data-table tr:nth-child(even) td:first-child,
+        .data-table tr:nth-child(even) td:nth-child(2) { background-color: #ffffff !important; }
+        .data-table tr:nth-child(even) td.group-morning { background-color: #dff0df; }
+        .data-table tr:nth-child(even) td.group-afternoon { background-color: #fff0db; }
+        .data-table tr:nth-child(even) td.group-retain { background-color: #f6e8f8; }
+        .data-table tr:hover td { background-color: #e3f2fd; }
+        .data-table tr:hover td:first-child,
+        .data-table tr:hover td:nth-child(2) { background-color: #e3f2fd !important; }
+        .data-table tr:hover td.group-morning { background-color: #c8e6c9; }
+        .data-table tr:hover td.group-afternoon { background-color: #ffe0b2; }
+        .data-table tr:hover td.group-retain { background-color: #e1bee7; }
+
+        .editable-cell {
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.15s;
+        }
+        .editable-cell:hover {
+            background-color: #bbdefb;
+            outline: 1px dashed #1976d2;
+        }
+
+        .header-note {
+            color: #d32f2f;
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1.3;
+            display: block;
+            margin-top: 3px;
+        }
+
+        .header-main {
+            font-size: 13px;
+            color: var(--text-title);
+            font-weight: 700;
+        }
+
+        .cell-input {
+            width: 100%;
+            min-width: 80px;
+            border: 2px solid #1890ff;
+            border-radius: 4px;
+            padding: 4px 6px;
+            font-size: 13px;
+            text-align: right;
+            outline: none;
+            background: #fff;
+            font-family: "SF Mono", "Menlo", "Monaco", "Consolas", monospace;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255,255,255,0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            flex-direction: column;
+            gap: 12px;
+            backdrop-filter: blur(4px);
+        }
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid var(--medical-blue-light);
+            border-top-color: var(--medical-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .empty-data {
+            text-align: center;
+            padding: 40px;
+            color: #94a3b8;
+        }
+
+        .total-row {
+            background: #e8f4f8;
+            font-weight: 700;
+            border-top: 2px solid #90a4ae;
+        }
+        .total-row td {
+            color: var(--medical-blue);
+            font-size: 13px;
+            background: #e8f4f8;
+        }
+        .total-row td:first-child,
+        .total-row td:nth-child(2) { background: #e8f4f8 !important; }
+
+        @media (max-width: 900px) {
+            .header-card { flex-direction: column; align-items: flex-start; }
+            .data-table { font-size: 11px; }
+            .data-table th,
+            .data-table td { padding: 4px 6px; }
+            .data-table td:not(:first-child):not(:nth-child(2)):not(:last-child) {
+                font-size: 10px;
+            }
+        }
+
+        @media print {
+            @page {
+                size: A3 landscape;
+                margin: 6mm;
+            }
+            body {
+                background: white;
+                padding: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .header-card,
+            .report-title-bar,
+            .control-panel,
+            .btn-print,
+            .btn-save,
+            .btn-init,
+            .btn-query,
+            .btn-group,
+            .date-group,
+            .loading-overlay {
+                display: none !important;
+            }
+            .section-card {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+                margin: 0;
+                max-width: 100%;
+            }
+            .table-wrapper {
+                border: none;
+                overflow: visible !important;
+                width: 100%;
+                max-width: 100%;
+                display: block;
+            }
+            .data-table {
+                font-size: 8.5px;
+                width: 100% !important;
+                table-layout: auto !important;
+                border-collapse: collapse;
+                white-space: nowrap !important;
+            }
+            .data-table th,
+            .data-table td {
+                padding: 3px 5px;
+                border: 1px solid #000;
+                white-space: nowrap !important;
+                overflow: visible !important;
+                text-overflow: clip !important;
+                min-height: auto;
+            }
+            .data-table td:not(:first-child):not(:nth-child(2)):not(:last-child) {
+                font-size: 8px;
+                white-space: nowrap !important;
+            }
+            .data-table th:first-child,
+            .data-table td:first-child {
+                position: static !important;
+                background: white !important;
+                border: 1px solid #000;
+                min-width: 30px;
+            }
+            .data-table th:nth-child(2),
+            .data-table td:nth-child(2) {
+                position: static !important;
+                background: white !important;
+                border: 1px solid #000;
+                min-width: 50px;
+            }
+            .data-table th,
+            .data-table td {
+                overflow: visible !important;
+                text-overflow: clip !important;
+            }
+            .data-table .editable-cell:hover {
+                background-color: transparent !important;
+                outline: none !important;
+            }
+            .data-table tr {
+                page-break-inside: avoid;
+            }
+            .data-table thead {
+                display: table-header-group;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+    <div class="header-card">
+        <div class="header-title">住院部现金统计表</div>
+        <div class="control-panel">
+            <div class="btn-group" id="reportTypeGroup">
+                <button class="btn-option active" data-value="0">正常日</button>
+                <button class="btn-option" data-value="1">汇总</button>
+                <button class="btn-option" data-value="2">月初报表</button>
+            </div>
+            <div class="date-group">
+                <label>报表日期</label>
+                <input type="date" id="reportDate">
+            </div>
+            <button class="btn btn-query" id="queryBtn">查询</button>
+            <button class="btn btn-init" id="initBtn">初始化</button>
+            <button class="btn btn-save" id="saveBtn">保存</button>
+            <button class="btn btn-print" id="printBtn">打印</button>
+        </div>
+    </div>
+
+    <div class="section-card" style="margin-bottom: 0;">
+        <div class="table-wrapper" id="tableWrapper">
+            <table class="data-table" id="dataTable">
+                <thead>
+                    <tr>
+                        <th colspan="23" class="table-main-title">
+                            <span id="mainTitle">1月1日 审核/出纳 报表现金登记表</span>
+                            <span class="table-main-subtitle" id="reportDateDisplay">登记时间：2026年1月2日</span>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th class="group-header group-morning"></th>
+                        <th class="group-header group-morning"></th>
+                        <th colspan="8" class="group-header group-morning">（上午）统计报表现金数据</th>
+                        <th colspan="7" class="group-header group-afternoon">（下午）收取现金数据</th>
+                        <th colspan="6" class="group-header group-retain">收费员留存</th>
+                    </tr>
+                    <tr>
+                        <th class="group-morning">序号</th>
+                        <th class="group-morning">收费员</th>
+                        <th class="group-morning"><span class="header-main">前日暂收款</span></th>
+                        <th class="group-morning"><span class="header-main">今日预交金数</span></th>
+                        <th class="group-morning"><span class="header-main">今日结账收入</span></th>
+                        <th class="group-morning"><span class="header-main">今日院前收入</span></th>
+                        <th class="group-morning"><span class="header-main">交通救助金</span></th>
+                        <th class="group-morning"><span class="header-main">无偿献血补偿金</span></th>
+                        <th class="group-morning"><span class="header-main">应收款/应付款</span></th>
+                        <th class="group-morning"><span class="header-main">今日报表数合计</span></th>
+                        <th class="group-afternoon"><span class="header-main">前日欠条</span></th>
+                        <th class="group-afternoon"><span class="header-main">今日门诊借条</span></th>
+                        <th class="group-afternoon"><span class="header-main">今日报表应收/应付</span></th>
+                        <th class="group-afternoon"><span class="header-main">今日暂收款</span></th>
+                        <th class="group-afternoon"><span class="header-main">今日报表实收</span></th>
+                        <th class="group-afternoon"><span class="header-main">今日实收现金合计</span></th>
+                        <th class="group-afternoon"><span class="header-main">余额</span></th>
+                        <th class="group-retain"><span class="header-main">调整</span></th>
+                        <th class="group-retain"><span class="header-main">今日欠条</span></th>
+                        <th class="group-retain"><span class="header-main">节假日交款</span></th>
+                        <th class="group-retain"><span class="header-main">库存现金</span></th>
+                        <th class="group-retain"><span class="header-main">差额</span></th>
+                        <th class="group-retain"><span class="header-main">备注</span></th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="23" class="empty-data">请选择日期并点击查询</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="loading-overlay" id="loadingMask">
+    <div class="spinner"></div>
+    <div style="color: var(--medical-blue); font-weight: 700; font-size: 15px;">数据加载中...</div>
+</div>
+
+<script>
+    // ==================== 配置区域 ====================
+    const USE_MOCK = true;
+    // ================================================
+
+    const API_BASE = "http://127.0.0.1:18081/api/reports";
+
+    const COMMON_HEAD = {
+        charset: "utf-8",
+        encrypt_type: "AES",
+        enterprise_id: "xinqiao",
+        language: "zh_CN",
+        method: "orgine.powermsp.service.overt.extend.SP_GetHisIncome_938",
+        sign: "1",
+        sign_type: "md5",
+        sys_track_code: Math.random().toString(36).substring(2),
+        timestamp: Date.now().toString(),
+        version: "1.0",
+        access_token: "123456",
+        app_id: "b16ff06f5fd44ab6b56e037d7ee1a6ed"
+    };
+
+    const COLUMN_CONFIG = [
+        { field: null, title: "序号", align: "center", editable: false, computed: false },
+        { field: "operator_name", title: "收费员", align: "left", editable: false, computed: false, isText: true },
+        { field: "previous_day_advance_receipt", title: "前日暂收款", editable: true, computed: false },
+        { field: "today_advance_payment", title: "今日预交金数", editable: true, computed: false },
+        { field: "today_settlement_income", title: "今日结账收入", editable: true, computed: false },
+        { field: "today_pre_hospital_income", title: "今日院前收入", editable: true, computed: false },
+        { field: "traffic_assistance_fund", title: "交通救助金", editable: true, computed: false },
+        { field: "blood_donation_compensation", title: "无偿献血补偿金", editable: true, computed: false },
+        { field: "receivable_payable", title: "应收款/应付款", editable: true, computed: false },
+        { field: "today_report_total", title: "今日报表数合计", editable: false, computed: false },
+        { field: "previous_day_iou", title: "前日欠条", editable: true, computed: false },
+        { field: "today_outpatient_iou", title: "今日门诊借条", editable: true, computed: false },
+        { field: "today_report_receivable_payable", title: "今日报表应收/应付", editable: false, computed: false },
+        { field: "today_advance_receipt", title: "今日暂收款", editable: true, computed: false },
+        { field: "today_report_cash_received", title: "今日报表实收", editable: true, computed: false },
+        { field: "today_cash_received_total", title: "今日实收现金合计", editable: false, computed: false },
+        { field: "balance", title: "余额", editable: false, computed: false },
+        { field: "adjustment", title: "调整", editable: true, computed: false },
+        { field: "today_iou", title: "今日欠条", editable: false, computed: false },
+        { field: "holiday_payment", title: "节假日交款", editable: true, computed: false },
+        { field: "cash_on_hand", title: "库存现金", editable: true, computed: false },
+        { field: "difference", title: "差额", editable: false, computed: false },
+        { field: "remarks", title: "备注", align: "left", editable: true, computed: false, isText: true }
+    ];
+
+    // 过亿金额测试数据
+    const MOCK_DATA = {
+        "result": { "code": "10000", "sub_msg": "查询住院报表列表成功！", "success": true },
+        "body": {
+            "serial_no": "2069713378259722241",
+            "report_date": "2025-11-24",
+            "report_year": 2025,
+            "report_type": "1",
+            "holiday_total_flag": "0",
+            "subs": [
+                { "serial_no": "2069713378259722241", "operator_no": null, "operator_name": "王晓慧", "db_user": "ORBILL_WXH", "previous_day_advance_receipt": 100000000, "today_advance_payment": 200000000, "today_settlement_income": 300000000, "today_pre_hospital_income": 50000000, "traffic_assistance_fund": 10000000, "blood_donation_compensation": 20000000, "receivable_payable": 30000000, "today_report_total": 600000000, "previous_day_iou": 5000000, "today_outpatient_iou": 15000000, "today_report_receivable_payable": 700000000, "today_advance_receipt": 250000000, "today_report_cash_received": 180000000, "today_cash_received_total": 430000000, "balance": 300000000, "adjustment": 0, "today_iou": 200000000, "holiday_payment": 0, "cash_on_hand": 0, "difference": 0, "remarks": "测试过亿" },
+                { "serial_no": "2069713378259722241", "operator_no": null, "operator_name": "艾蕾", "db_user": "BILL_AL", "previous_day_advance_receipt": 50000000, "today_advance_payment": 150000000, "today_settlement_income": 250000000, "today_pre_hospital_income": 30000000, "traffic_assistance_fund": 5000000, "blood_donation_compensation": 10000000, "receivable_payable": 20000000, "today_report_total": 400000000, "previous_day_iou": 0, "today_outpatient_iou": 10000000, "today_report_receivable_payable": 500000000, "today_advance_receipt": 200000000, "today_report_cash_received": 120000000, "today_cash_received_total": 320000000, "balance": 250000000, "adjustment": 0, "today_iou": 150000000, "holiday_payment": 0, "cash_on_hand": 0, "difference": 0, "remarks": null },
+                { "serial_no": "2069713378259722241", "operator_no": null, "operator_name": "邓瑶", "db_user": "ADMIT_DY", "previous_day_advance_receipt": 80000000, "today_advance_payment": 180000000, "today_settlement_income": 220000000, "today_pre_hospital_income": 40000000, "traffic_assistance_fund": 8000000, "blood_donation_compensation": 12000000, "receivable_payable": 25000000, "today_report_total": 480000000, "previous_day_iou": 3000000, "today_outpatient_iou": 8000000, "today_report_receivable_payable": 550000000, "today_advance_receipt": 220000000, "today_report_cash_received": 150000000, "today_cash_received_total": 370000000, "balance": 200000000, "adjustment": 5000000, "today_iou": 250000000, "holiday_payment": 10000000, "cash_on_hand": 20000000, "difference": 0, "remarks": "" },
+                { "serial_no": "2069713378259722241", "operator_no": null, "operator_name": "张莹", "db_user": "BILL_ZY1", "previous_day_advance_receipt": 60000000, "today_advance_payment": 160000000, "today_settlement_income": 190000000, "today_pre_hospital_income": 35000000, "traffic_assistance_fund": 6000000, "blood_donation_compensation": 9000000, "receivable_payable": 18000000, "today_report_total": 350000000, "previous_day_iou": 2000000, "today_outpatient_iou": 12000000, "today_report_receivable_payable": 420000000, "today_advance_receipt": 180000000, "today_report_cash_received": 130000000, "today_cash_received_total": 310000000, "balance": 180000000, "adjustment": 0, "today_iou": 120000000, "holiday_payment": 0, "cash_on_hand": 15000000, "difference": 0, "remarks": null },
+                { "serial_no": "2069713378259722241", "operator_no": null, "operator_name": "刘梅", "db_user": "ORBILL_LM1", "previous_day_advance_receipt": 40000000, "today_advance_payment": 140000000, "today_settlement_income": 170000000, "today_pre_hospital_income": 25000000, "traffic_assistance_fund": 4000000, "blood_donation_compensation": 7000000, "receivable_payable": 15000000, "today_report_total": 280000000, "previous_day_iou": 1000000, "today_outpatient_iou": 6000000, "today_report_receivable_payable": 330000000, "today_advance_receipt": 160000000, "today_report_cash_received": 110000000, "today_cash_received_total": 270000000, "balance": 150000000, "adjustment": 0, "today_iou": 90000000, "holiday_payment": 0, "cash_on_hand": 10000000, "difference": 0, "remarks": "" }
+            ]
+        }
+    };
+
+    var currentData = [];
+    var reportMeta = { report_date: null, holiday_total_flag: "0" };
+    var currentTotalFlag = "0";
+
+    // ==================== API 请求 ====================
+    async function apiRequest(url, bodyData) {
+        const requestBody = {
+            head: { ...COMMON_HEAD, sys_track_code: Math.random().toString(36).substring(2), timestamp: Date.now().toString() },
+            body: bodyData
+        };
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestBody)
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const result = await response.json();
+            if (result.result && result.result.code === "10000") {
+                return result;
+            } else {
+                throw new Error((result.result && result.result.sub_msg) || "接口调用失败");
+            }
+        } catch (error) {
+            console.error("API请求错误:", error);
+            throw error;
+        }
+    }
+
+    // ==================== UI 辅助函数 ====================
+    function showLoading(show) {
+        document.getElementById("loadingMask").style.display = show ? "flex" : "none";
+    }
+
+    function showToast(msg, type = "info") {
+        const toast = document.createElement("div");
+        toast.textContent = msg;
+        toast.style.cssText = "position:fixed;bottom:30px;left:50%;transform:translateX(-50%);padding:10px 24px;border-radius:40px;z-index:9999;color:white;";
+        toast.style.backgroundColor = type === "error" ? "#dc2626" : (type === "warning" ? "#f59e0b" : "#0b5e7e");
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2800);
+    }
+
+    function formatMoneyValue(val) {
+        if (val === null || val === undefined || isNaN(val)) return "";
+        const num = parseFloat(val);
+        return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function parseMoneyValue(str) {
+        if (!str) return 0;
+        const cleaned = String(str).replace(/[^\d.-]/g, "");
+        const val = parseFloat(cleaned);
+        return isNaN(val) ? 0 : val;
+    }
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str).replace(/[&<>]/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[m]));
+    }
+
+    // ==================== 汇总计算（保留） ====================
+    function calculateTotals(data) {
+        const totals = {};
+        COLUMN_CONFIG.forEach(col => {
+            if (col.field && col.field !== "operator_name" && col.field !== "remarks") {
+                totals[col.field] = data.reduce((sum, row) => sum + parseFloat(row[col.field] || 0), 0);
+            }
+        });
+        return totals;
+    }
+
+    // ==================== 渲染表格 ====================
+    function renderTable() {
+        const tbody = document.getElementById("tableBody");
+        if (!currentData || currentData.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="23" class="empty-data">暂无数据</td></tr>`;
+            return;
+        }
+
+        const totals = calculateTotals(currentData);
+        const groupClasses = [
+            "group-morning", "group-morning", "group-morning", "group-morning", "group-morning", "group-morning",
+            "group-morning", "group-morning", "group-morning", "group-morning",
+            "group-afternoon", "group-afternoon", "group-afternoon", "group-afternoon",
+            "group-afternoon", "group-afternoon", "group-afternoon",
+            "group-retain", "group-retain", "group-retain", "group-retain", "group-retain", "group-retain"
+        ];
+        let html = "";
+
+        currentData.forEach((row, idx) => {
+            html += `<tr data-index="${idx}">`;
+            COLUMN_CONFIG.forEach((col, colIdx) => {
+                const groupClass = groupClasses[colIdx] || "";
+                if (col.field === null) {
+                    html += `<td class="${groupClass}">${idx + 1}</td>`;
+                } else {
+                    const val = row[col.field];
+                    let displayVal = col.isText ? escapeHtml(val) : formatMoneyValue(val);
+                    const editableClass = col.editable ? "editable-cell" : "";
+                    const alignStyle = col.align ? `text-align:${col.align}` : "";
+                    html += `<td class="${editableClass} ${groupClass}" data-field="${col.field}" data-row="${idx}" style="${alignStyle}">${displayVal}</td>`;
+                }
+            });
+            html += "</tr>";
+        });
+
+        // 合计行
+        html += `<tr class="total-row">`;
+        COLUMN_CONFIG.forEach((col, colIdx) => {
+            const groupClass = groupClasses[colIdx] || "";
+            if (col.field === null) {
+                html += `<td class="${groupClass}">现金合计</td>`;
+            } else if (col.field === "operator_name") {
+                html += `<td class="${groupClass}"></td>`;
+            } else if (col.field === "remarks") {
+                html += `<td class="${groupClass}"></td>`;
+            } else {
+                html += `<td class="${groupClass}">${formatMoneyValue(totals[col.field])}</td>`;
+            }
+        });
+        html += "</tr>";
+
+        tbody.innerHTML = html;
+        bindCellEditing();
+    }
+
+    // ==================== 单元格编辑 ====================
+    function bindCellEditing() {
+        document.querySelectorAll(".editable-cell").forEach(cell => {
+            cell.addEventListener("dblclick", handleCellDblClick);
+        });
+    }
+
+    function handleCellDblClick(e) {
+        const cell = e.currentTarget;
+        if (cell.querySelector("input")) return;
+
+        const field = cell.getAttribute("data-field");
+        const rowIdx = parseInt(cell.getAttribute("data-row"));
+        const col = COLUMN_CONFIG.find(c => c.field === field);
+        if (!col || !col.editable) return;
+
+        const row = currentData[rowIdx];
+        const originalValue = row[field] || "";
+        const inputType = col.isText ? "text" : "number";
+        const inputStep = col.isText ? "" : "step=\"0.01\"";
+
+        const rawValue = col.isText ? originalValue : (originalValue || "");
+        cell.innerHTML = `<input type="${inputType}" ${inputStep} class="cell-input" value="${col.isText ? escapeHtml(rawValue) : rawValue}">`;
+        const input = cell.querySelector("input");
+        input.focus();
+        if (!col.isText) input.select();
+
+        function finishEdit() {
+            const rawValue = input.value.trim();
+            let newValue = col.isText ? rawValue : parseMoneyValue(rawValue);
+            row[field] = newValue;
+            // 只重新渲染，不执行行内计算
+            renderTable();
+        }
+
+        input.addEventListener("blur", finishEdit);
+        input.addEventListener("keydown", ev => {
+            if (ev.key === "Enter") {
+                input.blur();
+            } else if (ev.key === "Escape") {
+                renderTable();
+            }
+        });
+    }
+
+    // ==================== 获取数据 ====================
+    async function fetchReport(dateStr, initFlag = "0") {
+        showLoading(true);
+        try {
+            let result;
+            if (USE_MOCK) {
+                await new Promise(resolve => setTimeout(resolve, 300));
+                result = JSON.parse(JSON.stringify(MOCK_DATA));
+            } else {
+                result = await apiRequest(`${API_BASE}/inp_findbydate`, {
+                    reportdate: dateStr,
+                    init_flag: initFlag,
+                    total_flag: currentTotalFlag,
+                    extend_params1: null,
+                    extend_params2: null,
+                    extend_params3: null
+                });
+            }
+
+            const body = result.body || {};
+            reportMeta = {
+                report_date: body.report_date || dateStr,
+                holiday_total_flag: body.holiday_total_flag || "0",
+                total_flag: currentTotalFlag
+            };
+            currentData = body.subs || [];
+
+            // 注意：这里不再调用 calculateRow，直接使用后端返回的数据
+
+            updateTitle(dateStr);
+            renderTable();
+        } catch (error) {
+            showToast(`查询失败: ${error.message}`, "error");
+            currentData = [];
+            renderTable();
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // ==================== 更新标题 ====================
+    function updateTitle(reportDateStr) {
+        if (!reportDateStr) return;
+        const normalized = reportDateStr.replace(/\//g, "-");
+        const d = new Date(normalized + "T00:00:00");
+        if (isNaN(d.getTime())) {
+            document.getElementById("mainTitle").textContent = `${reportDateStr} 审核/出纳 报表现金登记表`;
+            document.getElementById("reportDateDisplay").textContent = `登记时间：${reportDateStr}`;
+            return;
+        }
+        const prev = new Date(d);
+        prev.setDate(prev.getDate() - 1);
+        const formatCN = date => `${date.getMonth() + 1}月${date.getDate()}日`;
+        document.getElementById("mainTitle").textContent = `${formatCN(prev)} 审核/出纳 报表现金登记表`;
+        document.getElementById("reportDateDisplay").textContent = `登记时间：${formatCN(d)}`;
+    }
+
+    // ==================== 保存数据 ====================
+    async function saveReport() {
+        if (!currentData || currentData.length === 0) {
+            showToast("没有可保存的数据", "warning");
+            return;
+        }
+
+        if (!reportMeta.report_date) {
+            showToast("报表日期无效", "warning");
+            return;
+        }
+
+        const saveBtn = document.getElementById("saveBtn");
+        saveBtn.disabled = true;
+        showLoading(true);
+
+        try {
+            const subsToSave = currentData.map(row => ({
+                serial_no: row.serial_no || null,
+                operator_no: row.operator_no || null,
+                operator_name: row.operator_name || null,
+                db_user: row.db_user || null,
+                previous_day_advance_receipt: parseFloat(row.previous_day_advance_receipt || 0),
+                today_advance_payment: parseFloat(row.today_advance_payment || 0),
+                today_settlement_income: parseFloat(row.today_settlement_income || 0),
+                today_pre_hospital_income: parseFloat(row.today_pre_hospital_income || 0),
+                traffic_assistance_fund: parseFloat(row.traffic_assistance_fund || 0),
+                blood_donation_compensation: parseFloat(row.blood_donation_compensation || 0),
+                receivable_payable: parseFloat(row.receivable_payable || 0),
+                today_report_total: parseFloat(row.today_report_total || 0),
+                previous_day_iou: parseFloat(row.previous_day_iou || 0),
+                today_outpatient_iou: parseFloat(row.today_outpatient_iou || 0),
+                today_report_receivable_payable: parseFloat(row.today_report_receivable_payable || 0),
+                today_advance_receipt: parseFloat(row.today_advance_receipt || 0),
+                today_report_cash_received: parseFloat(row.today_report_cash_received || 0),
+                today_cash_received_total: parseFloat(row.today_cash_received_total || 0),
+                balance: parseFloat(row.balance || 0),
+                adjustment: parseFloat(row.adjustment || 0),
+                today_iou: parseFloat(row.today_iou || 0),
+                holiday_payment: parseFloat(row.holiday_payment || 0),
+                cash_on_hand: parseFloat(row.cash_on_hand || 0),
+                difference: parseFloat(row.difference || 0),
+                remarks: row.remarks || null
+            }));
+
+            const saveBody = {
+                serial_no: null,
+                report_date: reportMeta.report_date,
+                report_year: new Date(reportMeta.report_date).getFullYear(),
+                report_type: "1",
+                total_flag: reportMeta.total_flag || currentTotalFlag,
+                holiday_total_flag: reportMeta.holiday_total_flag,
+                subs: subsToSave
+            };
+
+            await apiRequest(`${API_BASE}/inp_insert`, saveBody);
+            showToast("保存成功", "success");
+            await fetchReport(reportMeta.report_date);
+        } catch (error) {
+            showToast(`保存失败: ${error.message}`, "error");
+        } finally {
+            showLoading(false);
+            saveBtn.disabled = false;
+        }
+    }
+
+    // ==================== 日期工具 ====================
+    function formatDate(d) {
+        const pad = n => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+
+    function getTotalFlagText() {
+        const map = { "0": "正常日", "1": "汇总", "2": "月初报表" };
+        return map[currentTotalFlag] || "正常日";
+    }
+
+    // ==================== 初始化 ====================
+    window.addEventListener("DOMContentLoaded", () => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const dateStr = formatDate(yesterday);
+        document.getElementById("reportDate").value = dateStr;
+
+        document.querySelectorAll("#reportTypeGroup .btn-option").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll("#reportTypeGroup .btn-option").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                currentTotalFlag = btn.getAttribute("data-value");
+            });
+        });
+
+        document.getElementById("queryBtn").addEventListener("click", () => {
+            const date = document.getElementById("reportDate").value;
+            if (!date) {
+                showToast("请选择报表日期", "warning");
+                return;
+            }
+            updateTitle(date);
+            fetchReport(date, "0");
+        });
+
+        document.getElementById("initBtn").addEventListener("click", () => {
+            const date = document.getElementById("reportDate").value;
+            if (!date) {
+                showToast("请选择报表日期", "warning");
+                return;
+            }
+            if (!confirm(`确定要初始化 ${date} 的${getTotalFlagText()}报表数据吗？`)) return;
+            updateTitle(date);
+            fetchReport(date, "1");
+        });
+
+        document.getElementById("reportDate").addEventListener("change", () => {
+            const date = document.getElementById("reportDate").value;
+            if (date) updateTitle(date);
+        });
+
+        document.getElementById("saveBtn").addEventListener("click", saveReport);
+
+        document.getElementById("printBtn").addEventListener("click", () => {
+            window.print();
+        });
+
+        fetchReport(dateStr, "0");
+    });
+</script>
+
+</body>
+</html>

@@ -148,8 +148,7 @@ public class OperatorServiceImpl implements YQOperatorService {
                 //移除这个id的
                 entityList.remove(yqOperatorEntity);  // ⚠️ BUG: 遍历时修改列表，会抛出ConcurrentModificationException
             } else {
-                PrimaryKeyGenerator pk = new PrimaryKeyGenerator();
-                yqOperatorEntity.setSerialNo(pk.generateKey());
+                 yqOperatorEntity.setSerialNo(PrimaryKeyGenerator.generateKey());
             }
         }
 
