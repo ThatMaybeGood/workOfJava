@@ -1977,6 +1977,31 @@ CREATE TABLE tr_inpat_prepay_cht (
 -- 表注释(新模块)
 -- ============================================================
 
+-- ============================================================
+-- 患者画像表新增字段：患者类型 + 科室编码/名称
+-- ============================================================
+ALTER TABLE TR_PAT_PORTRAIT_AGE ADD (patient_type VARCHAR2(20) DEFAULT 'outpatient', dept_code VARCHAR2(50), dept_name VARCHAR2(100));
+ALTER TABLE TR_PAT_PORTRAIT_INSUR ADD (patient_type VARCHAR2(20) DEFAULT 'outpatient', dept_code VARCHAR2(50), dept_name VARCHAR2(100));
+ALTER TABLE TR_PAT_PORTRAIT_IDTY ADD (patient_type VARCHAR2(20) DEFAULT 'outpatient', dept_code VARCHAR2(50), dept_name VARCHAR2(100));
+ALTER TABLE TR_PAT_PORTRAIT_REG ADD (patient_type VARCHAR2(20) DEFAULT 'outpatient', dept_code VARCHAR2(50), dept_name VARCHAR2(100));
+ALTER TABLE TR_PAT_PORTRAIT_ARC ADD (patient_type VARCHAR2(20) DEFAULT 'outpatient', dept_code VARCHAR2(50), dept_name VARCHAR2(100));
+
+COMMENT ON COLUMN TR_PAT_PORTRAIT_AGE.patient_type IS '患者类型：outpatient（门诊患者）、inpatient（住院患者）';
+COMMENT ON COLUMN TR_PAT_PORTRAIT_AGE.dept_code IS '科室编码';
+COMMENT ON COLUMN TR_PAT_PORTRAIT_AGE.dept_name IS '科室名称';
+COMMENT ON COLUMN TR_PAT_PORTRAIT_INSUR.patient_type IS '患者类型：outpatient（门诊患者）、inpatient（住院患者）';
+COMMENT ON COLUMN TR_PAT_PORTRAIT_INSUR.dept_code IS '科室编码';
+COMMENT ON COLUMN TR_PAT_PORTRAIT_INSUR.dept_name IS '科室名称';
+COMMENT ON COLUMN TR_PAT_PORTRAIT_IDTY.patient_type IS '患者类型：outpatient（门诊患者）、inpatient（住院患者）';
+COMMENT ON COLUMN TR_PAT_PORTRAIT_IDTY.dept_code IS '科室编码';
+COMMENT ON COLUMN TR_PAT_PORTRAIT_IDTY.dept_name IS '科室名称';
+COMMENT ON COLUMN TR_PAT_PORTRAIT_REG.patient_type IS '患者类型：outpatient（门诊患者）、inpatient（住院患者）';
+COMMENT ON COLUMN TR_PAT_PORTRAIT_REG.dept_code IS '科室编码';
+COMMENT ON COLUMN TR_PAT_PORTRAIT_REG.dept_name IS '科室名称';
+COMMENT ON COLUMN TR_PAT_PORTRAIT_ARC.patient_type IS '患者类型：outpatient（门诊患者）、inpatient（住院患者）';
+COMMENT ON COLUMN TR_PAT_PORTRAIT_ARC.dept_code IS '科室编码';
+COMMENT ON COLUMN TR_PAT_PORTRAIT_ARC.dept_name IS '科室名称';
+
 COMMENT ON TABLE tr_treat_stat_ov IS '治疗统计报表-概览(存储治疗统计总览:患者人数、治疗人次、治疗金额)';
 COMMENT ON TABLE tr_treat_stat_dtl IS '治疗统计报表-科室明细(按科室维度统计治疗人次、金额、患者人数)';
 COMMENT ON TABLE tr_treat_stat_trend IS '治疗统计报表-每日趋势(存储每日治疗量趋势数据,用于趋势图展示)';

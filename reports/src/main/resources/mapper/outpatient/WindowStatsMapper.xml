@@ -56,15 +56,14 @@
     <!-- ============================================================ -->
     <!-- 查询人工窗口工作量 -->
     <!-- ============================================================ -->
-    <select id="queryWorkload" resultType="com.reports.entity.WindowStatsLoadEntity">
+    <select id="queryWorkload" resultType="com.reports.entity.WindowStatsTmEntity">
         SELECT
         business_type AS businessType,
-        NVL(SUM(register_count), 0) AS registerCount,
-        NVL(SUM(payment_count), 0) AS paymentCount,
-        NVL(SUM(refund_count), 0) AS refundCount
-        FROM TR_WIN_STAT_LOAD
+         time_slot AS timeSlot,
+        NVL(SUM(business_count), 0) AS businessCount
+        FROM TR_WIN_STAT_TM
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        GROUP BY business_type
+        GROUP BY business_type,time_slot
         ORDER BY business_type
     </select>
 

@@ -16,8 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * 人工窗口统计服务实现
@@ -257,7 +256,8 @@ public class OutpatientWindowStatsServiceImpl implements OutpatientWindowStatsSe
 
     private WorkloadTable queryWorkloadTableByMybatisPlus(OutpatientWindowStatsRequest request) {
         try {
-            List<WindowStatsLoadEntity> list = windowStatsMapper.queryWorkload(request.getStartDate(), request.getEndDate());
+//            List<WindowStatsLoadEntity> list = windowStatsMapper.queryWorkload(request.getStartDate(), request.getEndDate());
+            List<WindowStatsTmEntity> list = windowStatsMapper.queryWorkload(request.getStartDate(), request.getEndDate());
             return buildWorkloadTable(list);
         } catch (Exception e) {
             log.warn("查询人工窗口工作量表格失败", e);
@@ -301,26 +301,78 @@ public class OutpatientWindowStatsServiceImpl implements OutpatientWindowStatsSe
         analysis.setData(data);
         return analysis;
     }
+//
+//    private WorkloadTable buildWorkloadTable(List<WindowStatsLoadEntity> list) {
+//        WorkloadTable table = new WorkloadTable();
+//        List<String> headers = new ArrayList<>();
+//        headers.add("窗口");
+//        headers.add("挂号");
+//        headers.add("收费");
+//        headers.add("退费");
+//        table.setHeaders(headers);
+//        List<WorkloadRow> rows = new ArrayList<>();
+//        for (WindowStatsLoadEntity entity : list) {
+//            WorkloadRow row = new WorkloadRow();
+//            row.setBusiness(entity.getBusinessType());
+//            List<Integer> data = new ArrayList<>();
+//            data.add(entity.getRegisterCount());
+//            data.add(entity.getPaymentCount());
+//            data.add(entity.getRefundCount());
+//            row.setData(data);
+//            rows.add(row);
+//        }
+//        table.setRows(rows);
+//        return table;
+//    }
 
-    private WorkloadTable buildWorkloadTable(List<WindowStatsLoadEntity> list) {
-        WorkloadTable table = new WorkloadTable();
+    private WorkloadTable buildWorkloadTable(List<WindowStatsTmEntity> list) {
+        if (list == null || list.isEmpty()) {
+            WorkloadTable emptyTable = new WorkloadTable();
+            emptyTable.setHeaders(new ArrayList<>());
+            emptyTable.setRows(new ArrayList<>());
+            return emptyTable;
+        }
+
+        // 1. 收集所有 time_slot（去重并排序）
+        Set<String> timeSlotSet = new LinkedHashSet<>();
+        // 2. 按 business_type 分组
+        Map<String, Map<String, Integer>> businessDataMap = new LinkedHashMap<>();
+
+        for (WindowStatsTmEntity entity : list) {
+            String businessType = entity.getBusinessType();
+            String timeSlot = entity.getTimeSlot();
+            Integer count = entity.getBusinessCount();
+
+            timeSlotSet.add(timeSlot);
+            businessDataMap.computeIfAbsent(businessType, k -> new LinkedHashMap<>())
+                    .put(timeSlot, count);
+        }
+
+        // 构建 headers：第一列是"窗口"，后面是 time_slot
         List<String> headers = new ArrayList<>();
-        headers.add("窗口");
-        headers.add("挂号");
-        headers.add("收费");
-        headers.add("退费");
-        table.setHeaders(headers);
+         headers.addAll(timeSlotSet);
+
+        // 构建 rows
         List<WorkloadRow> rows = new ArrayList<>();
-        for (WindowStatsLoadEntity entity : list) {
+        for (Map.Entry<String, Map<String, Integer>> entry : businessDataMap.entrySet()) {
+            String businessType = entry.getKey();
+            Map<String, Integer> timeSlotData = entry.getValue();
+
             WorkloadRow row = new WorkloadRow();
-            row.setBusiness(entity.getBusinessType());
+            row.setBusiness(businessType);
+
             List<Integer> data = new ArrayList<>();
-            data.add(entity.getRegisterCount());
-            data.add(entity.getPaymentCount());
-            data.add(entity.getRefundCount());
+            // 按 timeSlotSet 顺序填充数据
+            for (String timeSlot : timeSlotSet) {
+                Integer value = timeSlotData.getOrDefault(timeSlot, 0);
+                data.add(value);
+            }
             row.setData(data);
             rows.add(row);
         }
+
+        WorkloadTable table = new WorkloadTable();
+        table.setHeaders(headers);
         table.setRows(rows);
         return table;
     }

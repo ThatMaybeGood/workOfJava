@@ -61,5 +61,5 @@ public interface WindowStatsMapper extends BaseMapper<WindowStatsOvEntity> {
      * @param endDate   结束日期
      * @return 工作量数据列表
      */
-    List<WindowStatsLoadEntity> queryWorkload(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    List<WindowStatsTmEntity> queryWorkload(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
 }

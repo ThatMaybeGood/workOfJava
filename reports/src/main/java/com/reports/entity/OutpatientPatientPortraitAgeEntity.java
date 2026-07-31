@@ -48,6 +48,24 @@ public class OutpatientPatientPortraitAgeEntity implements Serializable {
     private Integer outpatientCount;
 
     /**
+     * 患者类型：outpatient（门诊患者）、inpatient（住院患者）
+     */
+    @TableField(value = "patient_type")
+    private String patientType;
+
+    /**
+     * 科室编码
+     */
+    @TableField(value = "dept_code")
+    private String deptCode;
+
+    /**
+     * 科室名称
+     */
+    @TableField(value = "dept_name")
+    private String deptName;
+
+    /**
      * 创建时间
      */
     @TableField(value = "create_time")

@@ -52,4 +52,10 @@ public class WindowStatsTmEntity implements Serializable {
     /** 扩展字段3 */
     @TableField("ext3")
     private String ext3;
+
+    @TableField("business_type")
+    private String businessType;
+
+    @TableField("business_code")
+    private String businessCode;
 }

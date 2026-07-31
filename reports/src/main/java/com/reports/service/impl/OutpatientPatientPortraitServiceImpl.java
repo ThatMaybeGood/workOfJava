@@ -192,7 +192,9 @@ public class OutpatientPatientPortraitServiceImpl implements OutpatientPatientPo
 
     private AgeAnalysis queryAgeAnalysisByMybatisPlus(OutpatientPatientPortraitRequest request) {
         try {
-            List<OutpatientPatientPortraitAgeEntity> list = patientPortraitMapper.queryAgeAnalysis(request.getStartDate(), request.getEndDate());
+            List<OutpatientPatientPortraitAgeEntity> list = patientPortraitMapper.queryAgeAnalysis(
+                    request.getStartDate(), request.getEndDate(),
+                    request.getPatientType(), request.getDeptCode(), request.getDeptName());
             return buildAgeAnalysis(list);
         } catch (Exception e) {
             log.warn("查询患者画像年龄分析失败", e);
@@ -202,7 +204,9 @@ public class OutpatientPatientPortraitServiceImpl implements OutpatientPatientPo
 
     private List<AnalysisItem> queryInsuranceAnalysisByMybatisPlus(OutpatientPatientPortraitRequest request) {
         try {
-            List<OutpatientPatientPortraitInsurEntity> list = patientPortraitMapper.queryInsuranceAnalysis(request.getStartDate(), request.getEndDate());
+            List<OutpatientPatientPortraitInsurEntity> list = patientPortraitMapper.queryInsuranceAnalysis(
+                    request.getStartDate(), request.getEndDate(),
+                    request.getPatientType(), request.getDeptCode(), request.getDeptName());
             List<AnalysisItem> result = new ArrayList<>();
             for (OutpatientPatientPortraitInsurEntity entity : list) {
                 result.add(newAnalysisItem(entity.getInsuranceType(), entity.getPatientCount()));
@@ -216,7 +220,9 @@ public class OutpatientPatientPortraitServiceImpl implements OutpatientPatientPo
 
     private List<AnalysisItem> queryIdentityAnalysisByMybatisPlus(OutpatientPatientPortraitRequest request) {
         try {
-            List<OutpatientPatientPortraitIdtyEntity> list = patientPortraitMapper.queryIdentityAnalysis(request.getStartDate(), request.getEndDate());
+            List<OutpatientPatientPortraitIdtyEntity> list = patientPortraitMapper.queryIdentityAnalysis(
+                    request.getStartDate(), request.getEndDate(),
+                    request.getPatientType(), request.getDeptCode(), request.getDeptName());
             List<AnalysisItem> result = new ArrayList<>();
             for (OutpatientPatientPortraitIdtyEntity entity : list) {
                 result.add(newAnalysisItem(entity.getIdentityType(), entity.getPatientCount()));
@@ -230,7 +236,9 @@ public class OutpatientPatientPortraitServiceImpl implements OutpatientPatientPo
 
     private List<AnalysisItem> queryRegisterOriginAnalysisByMybatisPlus(OutpatientPatientPortraitRequest request) {
         try {
-            List<OutpatientPatientPortraitRegEntity> list = patientPortraitMapper.queryRegOriginAnalysis(request.getStartDate(), request.getEndDate());
+            List<OutpatientPatientPortraitRegEntity> list = patientPortraitMapper.queryRegOriginAnalysis(
+                    request.getStartDate(), request.getEndDate(),
+                    request.getPatientType(), request.getDeptCode(), request.getDeptName());
             List<AnalysisItem> result = new ArrayList<>();
             for (OutpatientPatientPortraitRegEntity entity : list) {
                 result.add(newAnalysisItem(entity.getSourceType(), entity.getPatientCount()));
@@ -244,7 +252,9 @@ public class OutpatientPatientPortraitServiceImpl implements OutpatientPatientPo
 
     private List<AnalysisItem> queryArchiveOriginAnalysisByMybatisPlus(OutpatientPatientPortraitRequest request) {
         try {
-            List<OutpatientPatientPortraitArcEntity> list = patientPortraitMapper.queryArcOriginAnalysis(request.getStartDate(), request.getEndDate());
+            List<OutpatientPatientPortraitArcEntity> list = patientPortraitMapper.queryArcOriginAnalysis(
+                    request.getStartDate(), request.getEndDate(),
+                    request.getPatientType(), request.getDeptCode(), request.getDeptName());
             List<AnalysisItem> result = new ArrayList<>();
             for (OutpatientPatientPortraitArcEntity entity : list) {
                 result.add(newAnalysisItem(entity.getSourceType(), entity.getPatientCount()));

@@ -21,50 +21,80 @@ public interface PatientPortraitMapper extends BaseMapper<OutpatientPatientPortr
     /**
      * 查询患者画像年龄分析
      *
-     * @param startDate 开始日期
-     * @param endDate   结束日期
+     * @param startDate  开始日期
+     * @param endDate    结束日期
+     * @param patientType 患者类型
+     * @param deptCode   科室编码
+     * @param deptName   科室名称
      * @return 年龄分析数据
      */
     List<OutpatientPatientPortraitAgeEntity> queryAgeAnalysis(@Param("startDate") Date startDate,
-                                                               @Param("endDate") Date endDate);
+                                                               @Param("endDate") Date endDate,
+                                                               @Param("patientType") String patientType,
+                                                               @Param("deptCode") String deptCode,
+                                                               @Param("deptName") String deptName);
 
     /**
      * 查询患者画像医保分析
      *
-     * @param startDate 开始日期
-     * @param endDate   结束日期
+     * @param startDate  开始日期
+     * @param endDate    结束日期
+     * @param patientType 患者类型
+     * @param deptCode   科室编码
+     * @param deptName   科室名称
      * @return 医保分析数据
      */
     List<OutpatientPatientPortraitInsurEntity> queryInsuranceAnalysis(@Param("startDate") Date startDate,
-                                                                       @Param("endDate") Date endDate);
+                                                                       @Param("endDate") Date endDate,
+                                                                       @Param("patientType") String patientType,
+                                                                       @Param("deptCode") String deptCode,
+                                                                       @Param("deptName") String deptName);
 
     /**
      * 查询患者画像身份分析
      *
-     * @param startDate 开始日期
-     * @param endDate   结束日期
+     * @param startDate  开始日期
+     * @param endDate    结束日期
+     * @param patientType 患者类型
+     * @param deptCode   科室编码
+     * @param deptName   科室名称
      * @return 身份分析数据
      */
     List<OutpatientPatientPortraitIdtyEntity> queryIdentityAnalysis(@Param("startDate") Date startDate,
-                                                                     @Param("endDate") Date endDate);
+                                                                     @Param("endDate") Date endDate,
+                                                                     @Param("patientType") String patientType,
+                                                                     @Param("deptCode") String deptCode,
+                                                                     @Param("deptName") String deptName);
 
     /**
      * 查询患者画像挂号来源分析
      *
-     * @param startDate 开始日期
-     * @param endDate   结束日期
+     * @param startDate  开始日期
+     * @param endDate    结束日期
+     * @param patientType 患者类型
+     * @param deptCode   科室编码
+     * @param deptName   科室名称
      * @return 挂号来源分析数据
      */
     List<OutpatientPatientPortraitRegEntity> queryRegOriginAnalysis(@Param("startDate") Date startDate,
-                                                                     @Param("endDate") Date endDate);
+                                                                     @Param("endDate") Date endDate,
+                                                                     @Param("patientType") String patientType,
+                                                                     @Param("deptCode") String deptCode,
+                                                                     @Param("deptName") String deptName);
 
     /**
      * 查询患者画像建档来源分析
      *
-     * @param startDate 开始日期
-     * @param endDate   结束日期
+     * @param startDate  开始日期
+     * @param endDate    结束日期
+     * @param patientType 患者类型
+     * @param deptCode   科室编码
+     * @param deptName   科室名称
      * @return 建档来源分析数据
      */
     List<OutpatientPatientPortraitArcEntity> queryArcOriginAnalysis(@Param("startDate") Date startDate,
-                                                                     @Param("endDate") Date endDate);
+                                                                     @Param("endDate") Date endDate,
+                                                                     @Param("patientType") String patientType,
+                                                                     @Param("deptCode") String deptCode,
+                                                                     @Param("deptName") String deptName);
 }
