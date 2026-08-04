@@ -36,7 +36,7 @@ public interface OutpReportService {
     /**
      * 查询时间范围内的所有门诊报表主表数据（包含 Subs 明细）
      */
-     List<OutpCashMainEntity> findBatchByDateRange(LocalDate startDate, LocalDate endDate,String totalFlag)  ;
+     List<OutpCashMainEntity> findBatchByDateRange(LocalDate startDate, LocalDate endDate,String isTotalFlag)  ;
 
     /**
      * 查询时间范围内的所有门诊报表主表数据

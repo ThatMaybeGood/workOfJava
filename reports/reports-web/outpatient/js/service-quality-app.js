@@ -200,8 +200,6 @@ class ServiceQualityController {
             thead.innerHTML = `
                 <tr>
                     <th>表扬时间</th>
-                    <th>被表扬科室</th>
-                    <th>被表扬人员</th>
                     <th>岗位类别</th>
                     <th>表扬方式</th>
                     <th>是否反馈科室</th>
@@ -212,8 +210,6 @@ class ServiceQualityController {
                 html += `
                     <tr>
                         <td>${row.time}</td>
-                        <td>${row.dept}</td>
-                        <td>${row.person}</td>
                         <td>${row.position}</td>
                         <td>${row.method}</td>
                         <td>${row.feedback}</td>
@@ -224,7 +220,8 @@ class ServiceQualityController {
         }
 
         if (this.state.data.length === 0) {
-            html += '<tr><td colspan="7" class="text-center text-muted py-4">暂无数据</td></tr>';
+            const colSpan = this.state.activeTab === 'complaint' ? 7 : 5;
+            html += `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">暂无数据</td></tr>`;
         }
 
         tbody.innerHTML = html;
@@ -308,13 +305,15 @@ function exportData() {
         headers = ['投诉时间', '被投诉科室', '被投诉人员', '岗位类别', '投诉分类', '处理结果', '备注'];
         rows = data.map(row => [row.time, row.dept, row.person, row.position, row.category, row.result, row.remark || '']);
     } else {
-        headers = ['表扬时间', '被表扬科室', '被表扬人员', '岗位类别', '表扬方式', '是否反馈科室', '备注'];
-        rows = data.map(row => [row.time, row.dept, row.person, row.position, row.method, row.feedback, row.remark || '']);
+        headers = ['表扬时间', '岗位类别', '表扬方式', '是否反馈科室', '备注'];
+        rows = data.map(row => [row.time, row.position, row.method, row.feedback, row.remark || '']);
     }
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    ws['!cols'] = [{ wch: 16 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 20 }];
+    ws['!cols'] = tab === 'complaint'
+        ? [{ wch: 16 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 20 }]
+        : [{ wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 20 }];
 
     const range = XLSX.utils.decode_range(ws['!ref']);
     for (let C = range.s.c; C <= range.e.c; ++C) {

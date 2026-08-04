@@ -492,10 +492,14 @@ public class ReportServiceImpl implements ReportService {
         BigDecimal 原住院部当日借款 = getHisAdvancePaymentByName(subsDownList, "住院部当日借款");
 
         //非汇总且是节假日数据，周五、周六、周日
-        if (Constant.NOT_TOTAL.equals(totalFlag)&&
-                (Constant.HOLIDAY_IS.equals(type)||Constant.HOLIDAY_PRE.equals(type)||Constant.HOLIDAY_MONTH_LASTDAY.equals(type))){
-             原当日暂收款 = calc.getHolidayTemporaryReceipt(); //获取节假日暂收款合计
-             原日报表数 = BigDecimal.ZERO;  //获取实交报表数合计
+        if (Constant.NOT_TOTAL.equals(totalFlag)) {
+            if (Constant.HOLIDAY_IS.equals(type) || Constant.HOLIDAY_PRE.equals(type) || Constant.HOLIDAY_MONTH_LASTDAY.equals(type)) {
+                原当日暂收款 = calc.getHolidayTemporaryReceipt(); //获取节假日暂收款合计
+                原日报表数 = BigDecimal.ZERO;  //获取实交报表数合计
+            }if (Constant.HOLIDAY_NOT_MONTH_LASTDAY.equals(type)) {
+                原当日暂收款 = calc.getHolidayTemporaryReceipt(); //获取节假日暂收款合计
+                原日报表数 = calc.getActualReportAmount();  //获取实交报表数合计
+            }
         }
 
 

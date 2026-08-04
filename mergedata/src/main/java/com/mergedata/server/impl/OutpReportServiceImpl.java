@@ -17,12 +17,11 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -67,8 +66,8 @@ public class OutpReportServiceImpl implements OutpReportService {
     }
 
     @Override
-    public List<OutpCashMainEntity> findBatchByDateRange(LocalDate startDate, LocalDate endDate, String totalFlag) {
-        return findBatchByDateRangeCommon(startDate, endDate, totalFlag, 1);
+    public List<OutpCashMainEntity> findBatchByDateRange(LocalDate startDate, LocalDate endDate, String isTotalFlag) {
+        return findBatchByDateRangeCommon(startDate, endDate, isTotalFlag, 1);
     }
     /**
      * 查询时间范围内的下半部分数据,不包含合计之后的行
@@ -77,56 +76,197 @@ public class OutpReportServiceImpl implements OutpReportService {
     public List<OutpCashMainEntity> findBatchByDateRangeForLowerValid  (LocalDate startDate, LocalDate endDate, String totalFlag) {
         return findBatchByDateRangeCommon(startDate, endDate, totalFlag, 2);
     }
-
     /**
      * 查询通用合并方法
      *
      * @param startDate 开始日期
      * @param endDate   结束日期
-     * @param totalFlag 总结标志
+     * @param isTotalFlag 总结标志
      * @param validFlag 有效标志 1 上半有效 2 下半有效 0 全部
      * @return 主表实体列表
      */
-    private List<OutpCashMainEntity> findBatchByDateRangeCommon(LocalDate startDate, LocalDate endDate, String totalFlag, long validFlag) {
-        List<OutpCashMainEntity> mainList = Db.lambdaQuery(OutpCashMainEntity.class)
+    /**
+     * 查询通用合并方法
+     *
+     * @param startDate 开始日期
+     * @param endDate   结束日期
+     * @param isTotalFlag 总结标志
+     * @param validFlag 有效标志 1 上半有效 2 下半有效 0 全部
+     * @return 主表实体列表
+     */
+    private List<OutpCashMainEntity> findBatchByDateRangeCommon(LocalDate startDate, LocalDate endDate, String isTotalFlag, long validFlag) {
+        LambdaQueryChainWrapper<OutpCashMainEntity> query = Db.lambdaQuery(OutpCashMainEntity.class)
                 .between(OutpCashMainEntity::getReportDate, startDate, endDate)
-                .eq(OutpCashMainEntity::getTotalFlag, totalFlag)   //只查询不是汇总标志的
-                .eq(OutpCashMainEntity::getValidFlag, Constant.YES)
-                .list();
+                .eq(OutpCashMainEntity::getValidFlag, Constant.YES);
 
+        if ("1".equals(isTotalFlag)) {
+            query.eq(OutpCashMainEntity::getTotalFlag, "1");
+        } else {
+            query.ne(OutpCashMainEntity::getTotalFlag, "1");
+        }
+
+        List<OutpCashMainEntity> mainList = query.list();
         if (CollectionUtils.isEmpty(mainList)) return mainList;
 
         // 1. 提取所有主表的 serialNo
-        List<String> serialNos = mainList.stream().map(OutpCashMainEntity::getSerialNo).collect(Collectors.toList());
+        List<String> serialNos = mainList.stream()
+                .map(OutpCashMainEntity::getSerialNo)
+                .collect(Collectors.toList());
 
         // 2. 一次性查询所有相关从表记录
         List<OutpCashSubEntity> allSubs = Db.lambdaQuery(OutpCashSubEntity.class)
                 .in(OutpCashSubEntity::getSerialNo, serialNos)
                 .list();
 
+        // 3. 过滤并分组从表
         final Map<String, List<OutpCashSubEntity>> subMap;
-
         if (validFlag == 0) {
-            // 不过滤，全部保留
             subMap = allSubs.stream()
                     .collect(Collectors.groupingBy(OutpCashSubEntity::getSerialNo));
         } else if (validFlag == 1) {
-            // 上半有效：排除操作员
             subMap = allSubs.stream()
                     .filter(d -> d.getOperatorName() != null)
                     .filter(d -> !Constant.EXCLUDE_OPERATOR_NAMES.contains(d.getOperatorName()))
                     .collect(Collectors.groupingBy(OutpCashSubEntity::getSerialNo));
         } else {
-            // 下半有效：只保留排除项
             subMap = allSubs.stream()
                     .filter(d -> d.getOperatorName() != null)
                     .filter(d -> Constant.EXCLUDE_DOWN_NAMES.contains(d.getOperatorName()))
                     .collect(Collectors.groupingBy(OutpCashSubEntity::getSerialNo));
         }
 
+        // 4. 如果是0，将月初2的两个字段累加到0
+        if (!"1".equals(isTotalFlag)) {
+            // 建立日期到serialNo的映射（只处理每月第一天）
+            Map<LocalDate, String> dateToZeroSerial = mainList.stream()
+                    .filter(m -> "0".equals(m.getTotalFlag()))
+                    .filter(m -> m.getReportDate().getDayOfMonth() == 1)
+                    .collect(Collectors.toMap(
+                            OutpCashMainEntity::getReportDate,
+                            OutpCashMainEntity::getSerialNo,
+                            (k1, k2) -> k1
+                    ));
+
+            Map<LocalDate, String> dateToTwoSerial = mainList.stream()
+                    .filter(m -> "2".equals(m.getTotalFlag()))
+                    .filter(m -> m.getReportDate().getDayOfMonth() == 1)
+                    .collect(Collectors.toMap(
+                            OutpCashMainEntity::getReportDate,
+                            OutpCashMainEntity::getSerialNo,
+                            (k1, k2) -> k1
+                    ));
+
+            // 遍历有2的日期，累加两个字段到0
+            for (Map.Entry<LocalDate, String> entry : dateToTwoSerial.entrySet()) {
+                LocalDate date = entry.getKey();
+                String twoSerial = entry.getValue();
+                String zeroSerial = dateToZeroSerial.get(date);
+
+                if (zeroSerial != null) {
+                    // 获取0的从表（按操作员分组）
+                    Map<String, OutpCashSubEntity> zeroSubMap = subMap.getOrDefault(zeroSerial, new ArrayList<>())
+                            .stream()
+                            .filter(s -> s.getOperatorName() != null)
+                            .collect(Collectors.toMap(
+                                    OutpCashSubEntity::getOperatorName,
+                                    Function.identity(),
+                                    (k1, k2) -> k1
+                            ));
+
+                    // 遍历2的从表，累加两个字段
+                    for (OutpCashSubEntity twoSub : subMap.getOrDefault(twoSerial, new ArrayList<>())) {
+                        String operatorName = twoSub.getOperatorName();
+                        if (operatorName != null) {
+                            OutpCashSubEntity zeroSub = zeroSubMap.get(operatorName);
+                            if (zeroSub != null) {
+                                // 相同操作员：累加两个字段
+                                zeroSub.setCurrentTemporaryReceipt(
+                                        (zeroSub.getCurrentTemporaryReceipt() == null ? BigDecimal.ZERO : zeroSub.getCurrentTemporaryReceipt())
+                                                .add(twoSub.getCurrentTemporaryReceipt() == null ? BigDecimal.ZERO : twoSub.getCurrentTemporaryReceipt())
+                                );
+                                zeroSub.setHolidayTemporaryReceipt(
+                                        (zeroSub.getHolidayTemporaryReceipt() == null ? BigDecimal.ZERO : zeroSub.getHolidayTemporaryReceipt())
+                                                .add(twoSub.getHolidayTemporaryReceipt() == null ? BigDecimal.ZERO : twoSub.getHolidayTemporaryReceipt())
+                                );
+                            } else {
+                                // 不同操作员：直接添加到0的从表
+                                subMap.get(zeroSerial).add(twoSub);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 移除2的记录
+            for (String twoSerial : dateToTwoSerial.values()) {
+                subMap.remove(twoSerial);
+            }
+            mainList.removeIf(main -> "2".equals(main.getTotalFlag()));
+        }
+
+        // 5. 设置从表
         mainList.forEach(main -> main.setSubs(subMap.getOrDefault(main.getSerialNo(), Collections.emptyList())));
         return mainList;
     }
+    //    /**
+//     * 查询通用合并方法
+//     *
+//     * @param startDate 开始日期
+//     * @param endDate   结束日期
+//     * @param isTotalFlag 是否汇总
+//     * @param validFlag 有效标志 1 上半有效 2 下半有效 0 全部
+//     * @return 主表实体列表
+//     */
+//    private List<OutpCashMainEntity> findBatchByDateRangeCommon(LocalDate startDate, LocalDate endDate, String isTotalFlag, long validFlag) {
+//
+//        // 构建基础查询
+//        LambdaQueryChainWrapper<OutpCashMainEntity> query = Db.lambdaQuery(OutpCashMainEntity.class)
+//                .between(OutpCashMainEntity::getReportDate, startDate, endDate)
+//                .eq(OutpCashMainEntity::getValidFlag, Constant.YES);
+//
+//        // 动态处理 totalFlag 查询条件
+//        if ("1".equals(isTotalFlag)) {
+//            // 查询汇总记录
+//            query.eq(OutpCashMainEntity::getTotalFlag, "1");
+//        } else {
+//            // 查询非汇总记录（排他）
+//            query.ne(OutpCashMainEntity::getTotalFlag, "1");
+//        }
+//        List<OutpCashMainEntity> mainList = query.list();
+//
+//        if (CollectionUtils.isEmpty(mainList)) return mainList;
+//
+//        // 1. 提取所有主表的 serialNo
+//        List<String> serialNos = mainList.stream().map(OutpCashMainEntity::getSerialNo).collect(Collectors.toList());
+//
+//        // 2. 一次性查询所有相关从表记录
+//        List<OutpCashSubEntity> allSubs = Db.lambdaQuery(OutpCashSubEntity.class)
+//                .in(OutpCashSubEntity::getSerialNo, serialNos)
+//                .list();
+//
+//        final Map<String, List<OutpCashSubEntity>> subMap;
+//
+//        if (validFlag == 0) {
+//            // 不过滤，全部保留
+//            subMap = allSubs.stream()
+//                    .collect(Collectors.groupingBy(OutpCashSubEntity::getSerialNo));
+//        } else if (validFlag == 1) {
+//            // 上半有效：排除操作员
+//            subMap = allSubs.stream()
+//                    .filter(d -> d.getOperatorName() != null)
+//                    .filter(d -> !Constant.EXCLUDE_OPERATOR_NAMES.contains(d.getOperatorName()))
+//                    .collect(Collectors.groupingBy(OutpCashSubEntity::getSerialNo));
+//        } else {
+//            // 下半有效：只保留排除项
+//            subMap = allSubs.stream()
+//                    .filter(d -> d.getOperatorName() != null)
+//                    .filter(d -> Constant.EXCLUDE_DOWN_NAMES.contains(d.getOperatorName()))
+//                    .collect(Collectors.groupingBy(OutpCashSubEntity::getSerialNo));
+//        }
+//
+//        mainList.forEach(main -> main.setSubs(subMap.getOrDefault(main.getSerialNo(), Collections.emptyList())));
+//        return mainList;
+//    }
 
     @Override
     public OutpCashMainEntity findByPk(String serialNo) {

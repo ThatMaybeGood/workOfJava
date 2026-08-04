@@ -116,6 +116,10 @@ public class HolidayServiceImpl implements YQHolidayService {
 
             return Constant.HOLIDAY_IS;
         } else {
+            // ❗当前是工作日 且 是月末最后一天
+            if (holidayDate.getDayOfMonth() == holidayDate.lengthOfMonth()) {
+                return Constant.HOLIDAY_NOT_MONTH_LASTDAY;
+            }
             // ❗当前是工作日 且 前一天是节假日/周末
             if (isHoliday(holidayDate.minusDays(1))) {
                 return Constant.HOLIDAY_AFTER;
@@ -124,10 +128,7 @@ public class HolidayServiceImpl implements YQHolidayService {
             if (isHoliday(holidayDate.plusDays(1))) {
                 return Constant.HOLIDAY_PRE;
             }
-            // ❗当前是工作日 且 是月末最后一天
-            if (holidayDate.getDayOfMonth() == holidayDate.lengthOfMonth()) {
-                return Constant.HOLIDAY_NOT_MONTH_LASTDAY;
-            }
+
 
         }
         return Constant.HOLIDAY_NOT;
@@ -144,7 +145,10 @@ public class HolidayServiceImpl implements YQHolidayService {
     public YQHolidayCalendarVO queryHolidayTotalType(LocalDate currentDate, String queryType, String totalFlag) {
         YQHolidayCalendarVO vo = new YQHolidayCalendarVO();
         String type = queryDateType(currentDate, queryType);
-        LocalDate minDate = findMinBacktrackDate(currentDate,totalFlag).plusDays(1);
+        LocalDate minDate = findMinBacktrackDate(currentDate,totalFlag);
+        if(minDate.getDayOfMonth() != 1){
+            minDate = minDate.plusDays(1);
+        }
 
         vo.setHolidayDate(currentDate);
         vo.setQueryType(queryType);
@@ -174,13 +178,13 @@ public class HolidayServiceImpl implements YQHolidayService {
                         + " " + Constant.OUTP_HOLIDAY_TOTAL_TITLE;
             }
             vo.setMinDate(minDate);
-            vo.setTotalFlag(Constant.NOT_TOTAL);
+            vo.setTotalFlag(totalFlag);
             vo.setTotalTitle(totalTitle);
         }else if (totalFlag.equals(Constant.MONTH_FIRST)){
             vo.setTotalFlag(Constant.MONTH_FIRST);
             vo.setTotalTitle(currentDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd")) + " " + Constant.HOLIDAY_MONTH_FIRST_TITLE);
         }else{
-            vo.setTotalFlag(Constant.TOTAL);
+            vo.setTotalFlag(totalFlag);
             vo.setTotalTitle(currentDate.format(DateTimeFormatter.ofPattern("yyyy.MM.dd")) + " " + Constant.HOLIDAY_NOT_TOTAL_TITLE);
         }
 

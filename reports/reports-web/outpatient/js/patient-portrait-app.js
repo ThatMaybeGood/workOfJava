@@ -5,7 +5,7 @@ class PatientPortraitController {
     constructor() {
         const today = this.formatDate(new Date());
         this.state = {
-            patientType: 'outpatient',
+            patientType: 'outp',
             timeRange: 'today',
             startDate: today,
             endDate: today,
@@ -99,6 +99,10 @@ class PatientPortraitController {
         document.querySelectorAll('.patient-type-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         this.state.patientType = tab.dataset.type;
+        const originChartsRow = document.getElementById('originChartsRow');
+        if (originChartsRow) {
+            originChartsRow.style.display = this.state.patientType === 'inp' ? 'none' : '';
+        }
         this.loadData();
     }
 
@@ -135,21 +139,24 @@ class PatientPortraitController {
         this.renderAgeChart(data.ageAnalysis || { categories: [], archiveData: [], outpatientData: [] });
         this.renderPieChart(this.charts.insurance, data.insuranceAnalysis || [], '患者医保身份构成分析');
         this.renderPieChart(this.charts.identity, data.identityAnalysis || [], '患者身份类别构成分析');
-        this.renderPieChart(this.charts.registerOrigin, data.registerOriginAnalysis || [], '挂号患者归属地分析');
-        this.renderPieChart(this.charts.archiveOrigin, data.archiveOriginAnalysis || [], '建档患者归属地分析');
+        if (this.state.patientType !== 'inp') {
+            this.renderPieChart(this.charts.registerOrigin, data.registerOriginAnalysis || [], '挂号患者归属地分析');
+            this.renderPieChart(this.charts.archiveOrigin, data.archiveOriginAnalysis || [], '建档患者归属地分析');
+        }
     }
 
     renderAgeChart(ageData) {
         const categories = (ageData && ageData.categories) ? ageData.categories : [];
         const archiveData = (ageData && ageData.archiveData) ? ageData.archiveData : [];
         const outpatientData = (ageData && ageData.outpatientData) ? ageData.outpatientData : [];
+        const isOutpatient = this.state.patientType !== 'inp';
         const option = {
             tooltip: {
                 trigger: 'axis',
                 axisPointer: { type: 'cross' }
             },
             legend: {
-                data: ['建档量', '门诊量'],
+                data: isOutpatient ? ['建档量', '门诊量'] : ['建档量'],
                 right: 60,
                 top: 0
             },
@@ -176,7 +183,7 @@ class PatientPortraitController {
                     splitLine: { lineStyle: { color: '#f0f0f0' } },
                     axisLabel: { color: '#8c8c8c' }
                 },
-                {
+                isOutpatient ? {
                     type: 'value',
                     name: '人',
                     position: 'right',
@@ -184,8 +191,8 @@ class PatientPortraitController {
                     axisTick: { show: false },
                     splitLine: { show: false },
                     axisLabel: { color: '#8c8c8c' }
-                }
-            ],
+                } : null
+            ].filter(Boolean),
             series: [
                 {
                     name: '建档量',
@@ -200,7 +207,7 @@ class PatientPortraitController {
                         fontSize: 11
                     }
                 },
-                {
+                ...(isOutpatient ? [{
                     name: '门诊量',
                     type: 'line',
                     yAxisIndex: 1,
@@ -210,10 +217,10 @@ class PatientPortraitController {
                     symbol: 'circle',
                     symbolSize: 6,
                     data: outpatientData
-                }
+                }] : [])
             ]
         };
-        this.charts.age.setOption(option);
+        this.charts.age.setOption(option, true);
     }
 
     renderPieChart(chart, data, title) {
