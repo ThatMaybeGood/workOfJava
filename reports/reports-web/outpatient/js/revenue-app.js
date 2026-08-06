@@ -59,6 +59,7 @@ class RevenueController {
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {
+                if (this._ignoreDateChange) return;
                 if (selectedDates.length === 2) {
                     this.filter.startDate = this.formatDate(selectedDates[0]);
                     this.filter.endDate = this.formatDate(selectedDates[1]);
@@ -130,7 +131,9 @@ class RevenueController {
         this.filter.startDate = range.startDate;
         this.filter.endDate = range.endDate;
         if (this.datePicker) {
+            this._ignoreDateChange = true;
             this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)]);
+            this._ignoreDateChange = false;
         }
         this.deptState.currentPage = 1;
         this.doctorState.currentPage = 1;

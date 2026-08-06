@@ -7,12 +7,12 @@
     <!-- ============================================================ -->
     <select id="queryOverview" resultType="com.reports.entity.NoShowOvEntity">
         SELECT
-        NVL(SUM(refund_count), 0) AS refundCount,
-        MAX(refund_rate) AS refundRate,
-        NVL(SUM(no_show_count), 0) AS noShowCount,
-        MAX(no_show_rate) AS noShowRate
-        FROM TR_NOSHOW_OV
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+            NVL(SUM(tui_hao_shu), 0) AS refundCount,
+            ROUND(NVL(SUM(tui_hao_shu), 0) / NULLIF(SUM(total_guahao), 0) * 100, 2) || '%' AS refundRate,
+            NVL(SUM(shuang_yue_shu), 0) AS noShowCount,
+            ROUND(NVL(SUM(shuang_yue_shu), 0) / NULLIF(SUM(total_guahao), 0) * 100, 2) || '%' AS noShowRate
+        FROM TR_OUTPATIENT_STATS_DAY_RESULT
+        WHERE stats_date BETWEEN #{startDate} AND #{endDate}
     </select>
 
     <!-- ============================================================ -->
@@ -20,13 +20,13 @@
     <!-- ============================================================ -->
     <select id="queryDeptDetail" resultType="com.reports.entity.NoShowDtlEntity">
         SELECT
-        dept_name AS deptName,
-        NVL(SUM(refund_count), 0) AS refundCount,
-        MAX(refund_rate) AS refundRate,
-        NVL(SUM(no_show_count), 0) AS noShowCount,
-        MAX(no_show_rate) AS noShowRate
-        FROM TR_NOSHOW_DTL
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+            dept_name AS deptName,
+            NVL(SUM(tui_hao_shu), 0) AS refundCount,
+            ROUND(NVL(SUM(tui_hao_shu), 0) / NULLIF(SUM(total_guahao), 0) * 100, 2) || '%' AS refundRate,
+            NVL(SUM(shuang_yue_shu), 0) AS noShowCount,
+            ROUND(NVL(SUM(shuang_yue_shu), 0) / NULLIF(SUM(total_guahao), 0) * 100, 2) || '%' AS noShowRate
+        FROM TR_OUTPATIENT_STATS_DAY_RESULT
+        WHERE stats_date BETWEEN #{startDate} AND #{endDate}
         <if test="deptName != null and deptName != ''">
             AND dept_name LIKE '%' || #{deptName} || '%'
         </if>
@@ -35,34 +35,43 @@
     </select>
 
     <!-- ============================================================ -->
-    <!-- 查询爽约退号来源分析 -->
+    <!-- 查询退号/爽约来源分析（地域分布） -->
     <!-- ============================================================ -->
     <select id="queryOriginAnalysis" resultType="com.reports.entity.NoShowOrgEntity">
-        SELECT
-        item_name AS itemName,
-        NVL(SUM(item_value), 0) AS itemValue
-        FROM TR_NOSHOW_ORG
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        <if test="originType != null and originType != ''">
-            AND origin_type = #{originType}
-        </if>
-        GROUP BY item_name
+        <choose>
+            <when test="originType == 'NO_SHOW'">
+                SELECT '重庆' AS itemName, NVL(SUM(shuang_yue_chong_qing), 0) AS itemValue FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND shuang_yue_chong_qing > 0
+                UNION ALL
+                SELECT '四川', NVL(SUM(shuang_yue_si_chuan), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND shuang_yue_si_chuan > 0
+                UNION ALL
+                SELECT '贵州', NVL(SUM(shuang_yue_gui_zhou), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND shuang_yue_gui_zhou > 0
+                UNION ALL
+                SELECT '云南', NVL(SUM(shuang_yue_yun_nan), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND shuang_yue_yun_nan > 0
+                UNION ALL
+                SELECT '其他', NVL(SUM(shuang_yue_qi_ta), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND shuang_yue_qi_ta > 0
+            </when>
+            <otherwise>
+                SELECT '重庆' AS itemName, NVL(SUM(tui_hao_chong_qing), 0) AS itemValue FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND tui_hao_chong_qing > 0
+                UNION ALL
+                SELECT '四川', NVL(SUM(tui_hao_si_chuan), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND tui_hao_si_chuan > 0
+                UNION ALL
+                SELECT '贵州', NVL(SUM(tui_hao_gui_zhou), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND tui_hao_gui_zhou > 0
+                UNION ALL
+                SELECT '云南', NVL(SUM(tui_hao_yun_nan), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND tui_hao_yun_nan > 0
+                UNION ALL
+                SELECT '其他', NVL(SUM(tui_hao_qi_ta), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND tui_hao_qi_ta > 0
+            </otherwise>
+        </choose>
         ORDER BY itemValue DESC
     </select>
 
     <!-- ============================================================ -->
-    <!-- 查询爽约退号渠道分析 -->
+    <!-- 查询退号渠道分析（宽表中无爽约渠道数据） -->
     <!-- ============================================================ -->
     <select id="queryChannelAnalysis" resultType="com.reports.entity.NoShowChnEntity">
-        SELECT
-        item_name AS itemName,
-        NVL(SUM(item_value), 0) AS itemValue
-        FROM TR_NOSHOW_CHN
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        <if test="channelType != null and channelType != ''">
-            AND channel_type = #{channelType}
-        </if>
-        GROUP BY item_name
+        SELECT '窗口' AS itemName, NVL(SUM(tui_hao_chuang_kou), 0) AS itemValue FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND tui_hao_chuang_kou > 0
+        UNION ALL
+        SELECT '自助机', NVL(SUM(tui_hao_zi_zhu_ji), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND tui_hao_zi_zhu_ji > 0
         ORDER BY itemValue DESC
     </select>
 
@@ -70,14 +79,26 @@
     <!-- 查询爽约退号年龄分析 -->
     <!-- ============================================================ -->
     <select id="queryAgeAnalysis" resultType="com.reports.entity.NoShowAgeEntity">
-        SELECT
-        age_group AS ageGroup,
-        NVL(SUM(no_show_count), 0) AS noShowCount,
-        NVL(SUM(refund_count), 0) AS refundCount
-        FROM TR_NOSHOW_AGE
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        GROUP BY age_group
-        ORDER BY age_group
+        SELECT '0-14' AS ageGroup, NVL(SUM(tui_hao_age_0_14), 0) AS refundCount, NVL(SUM(shuang_yue_age_0_14), 0) AS noShowCount FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
+        UNION ALL
+        SELECT '15-19', NVL(SUM(tui_hao_age_15_19), 0), NVL(SUM(shuang_yue_age_15_19), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
+        UNION ALL
+        SELECT '20-29', NVL(SUM(tui_hao_age_20_29), 0), NVL(SUM(shuang_yue_age_20_29), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
+        UNION ALL
+        SELECT '30-39', NVL(SUM(tui_hao_age_30_39), 0), NVL(SUM(shuang_yue_age_30_39), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
+        UNION ALL
+        SELECT '40-49', NVL(SUM(tui_hao_age_40_49), 0), NVL(SUM(shuang_yue_age_40_49), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
+        UNION ALL
+        SELECT '50-59', NVL(SUM(tui_hao_age_50_59), 0), NVL(SUM(shuang_yue_age_50_59), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
+        UNION ALL
+        SELECT '60-69', NVL(SUM(tui_hao_age_60_69), 0), NVL(SUM(shuang_yue_age_60_69), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
+        UNION ALL
+        SELECT '70-79', NVL(SUM(tui_hao_age_70_79), 0), NVL(SUM(shuang_yue_age_70_79), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
+        UNION ALL
+        SELECT '80-89', NVL(SUM(tui_hao_age_80_89), 0), NVL(SUM(shuang_yue_age_80_89), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
+        UNION ALL
+        SELECT '90+', NVL(SUM(tui_hao_age_90_up), 0), NVL(SUM(shuang_yue_age_90_up), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY ageGroup
     </select>
 
 </mapper>

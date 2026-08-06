@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: etl-platform
+  profiles:
+    active: dev
+
+server:
+  port: 18880
+
+mybatis-plus:
+  type-aliases-package: com.etl.entity
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    jdbc-type-for-null: 'null'
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+
+# ETL平台配置
+etl:
+  # 部署模式: db / local
+  deployment-mode: db
+  # 本地模式配置
+  local-config:
+    config-source: yaml
+    config-file: classpath:etl-config.yml
+  # Jasypt加密密码 (生产环境通过环境变量或启动参数传入)
+  jasypt:
+    password: ${JASYPT_PASSWORD:etlDefaultKey}
+
+# Jasypt配置
+jasypt:
+  encryptor:
+    password: ${JASYPT_PASSWORD:etlDefaultKey}
+    algorithm: PBEWithMD5AndDES
+    iv-generator-classname: org.jasypt.iv.NoIvGenerator

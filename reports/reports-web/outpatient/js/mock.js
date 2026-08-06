@@ -201,8 +201,10 @@ const MockService = {
                 resolve({
                     code: 200,
                     data: {
-                        outpatientRevenue: 52612536.3,
-                        serviceRevenue: 7353266.8
+                        overview: {
+                            outpatientRevenue: 52612536.3,
+                            serviceRevenue: 7353266.8
+                        }
                     }
                 });
             }, 200);
@@ -221,7 +223,10 @@ const MockService = {
 
                 let filteredData = allData;
                 if (params.deptName) {
-                    filteredData = allData.filter(item => item.deptName.includes(params.deptName));
+                    filteredData = filteredData.filter(item => item.deptName.includes(params.deptName));
+                }
+                if (params.deptCode) {
+                    filteredData = filteredData.filter(item => item.deptCode === params.deptCode);
                 }
 
                 const total = filteredData.length;
@@ -263,7 +268,10 @@ const MockService = {
 
                 let filteredData = allData;
                 if (params.deptName) {
-                    filteredData = allData.filter(item => item.deptName.includes(params.deptName));
+                    filteredData = filteredData.filter(item => item.deptName.includes(params.deptName));
+                }
+                if (params.deptCode) {
+                    filteredData = filteredData.filter(item => item.deptCode === params.deptCode);
                 }
 
                 const total = filteredData.length;

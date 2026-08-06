@@ -7,10 +7,20 @@
     <!-- ============================================================ -->
     <select id="queryOverview" resultType="com.reports.entity.RevenueOvEntity">
         SELECT
-        NVL(SUM(outpatient_revenue), 0) AS outpatientRevenue,
-        NVL(SUM(service_revenue), 0) AS serviceRevenue
-        FROM TR_REV_OV
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+            NVL(SUM(r.register_revenue), 0) AS registerRevenue,
+            NVL(SUM(r.medical_revenue), 0) AS medicalRevenue,
+            NVL(SUM(r.register_revenue), 0) + NVL(SUM(r.medical_revenue), 0) + NVL(SUM(r.service_revenue), 0) AS outpatientRevenue,
+            NVL(SUM(r.service_revenue), 0) AS serviceRevenue
+        FROM TR_REV_OV r
+        INNER JOIN TR_DEPT_DICT d ON r.dept_code = d.dept_code
+        WHERE r.stat_date BETWEEN #{startDate} AND #{endDate}
+          AND d.outp_or_inp IN (0, 2)
+        <if test="deptCode != null and deptCode != ''">
+            AND d.dept_code = #{deptCode}
+        </if>
+        <if test="deptName != null and deptName != ''">
+            AND d.dept_name LIKE '%' || #{deptName} || '%'
+        </if>
     </select>
 
     <!-- ============================================================ -->
@@ -18,16 +28,23 @@
     <!-- ============================================================ -->
     <select id="queryDeptDetail" resultType="com.reports.entity.RevenueDeptEntity">
         SELECT
-        dept_name AS deptName,
-        MAX(outpatient_revenue) AS outpatientRevenue,
-        MAX(service_revenue) AS serviceRevenue
-        FROM TR_REV_DEPT
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        <if test="deptName != null and deptName != ''">
-            AND dept_name LIKE '%' || #{deptName} || '%'
+            d.dept_name AS deptName,
+            NVL(SUM(r.register_revenue), 0) AS registerRevenue,
+            NVL(SUM(r.medical_revenue), 0) AS medicalRevenue,
+            NVL(SUM(r.register_revenue), 0) + NVL(SUM(r.medical_revenue), 0) + NVL(SUM(r.service_revenue), 0) AS outpatientRevenue,
+            NVL(SUM(r.service_revenue), 0) AS serviceRevenue
+        FROM TR_REV_OV r
+        INNER JOIN TR_DEPT_DICT d ON r.dept_code = d.dept_code
+        WHERE r.stat_date BETWEEN #{startDate} AND #{endDate}
+          AND d.outp_or_inp IN (0, 2)
+        <if test="deptCode != null and deptCode != ''">
+            AND d.dept_code = #{deptCode}
         </if>
-        GROUP BY dept_name
-        ORDER BY dept_name
+        <if test="deptName != null and deptName != ''">
+            AND d.dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        GROUP BY d.dept_name
+        ORDER BY NVL(SUM(r.register_revenue), 0) + NVL(SUM(r.medical_revenue), 0) + NVL(SUM(r.service_revenue), 0) DESC
     </select>
 
     <!-- ============================================================ -->
@@ -35,17 +52,24 @@
     <!-- ============================================================ -->
     <select id="queryDoctorDetail" resultType="com.reports.entity.RevenueDocEntity">
         SELECT
-        doctor_name AS doctorName,
-        dept_name AS deptName,
-        MAX(doctor_benefit) AS doctorBenefit,
-        MAX(service_revenue) AS serviceRevenue
-        FROM TR_REV_DOC
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        <if test="deptName != null and deptName != ''">
-            AND dept_name LIKE '%' || #{deptName} || '%'
+            r.doctor_name AS doctorName,
+            d.dept_name AS deptName,
+            NVL(SUM(r.register_revenue), 0) AS registerRevenue,
+            NVL(SUM(r.medical_revenue), 0) AS medicalRevenue,
+            NVL(SUM(r.register_revenue), 0) + NVL(SUM(r.medical_revenue), 0) + NVL(SUM(r.service_revenue), 0) AS doctorBenefit,
+            NVL(SUM(r.service_revenue), 0) AS serviceRevenue
+        FROM TR_REV_OV r
+        INNER JOIN TR_DEPT_DICT d ON r.dept_code = d.dept_code
+        WHERE r.stat_date BETWEEN #{startDate} AND #{endDate}
+          AND d.outp_or_inp IN (0, 2)
+        <if test="deptCode != null and deptCode != ''">
+            AND d.dept_code = #{deptCode}
         </if>
-        GROUP BY doctor_name, dept_name
-        ORDER BY dept_name, doctor_name
+        <if test="deptName != null and deptName != ''">
+            AND d.dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        GROUP BY r.doctor_name, d.dept_name
+        ORDER BY NVL(SUM(r.register_revenue), 0) + NVL(SUM(r.medical_revenue), 0) + NVL(SUM(r.service_revenue), 0) DESC
     </select>
 
 </mapper>

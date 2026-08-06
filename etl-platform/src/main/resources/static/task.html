@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务管理 - ETL通用数据抽取平台</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-database"></i> <span>ETL平台</span></h1>
+            </div>
+            <ul class="sidebar-menu">
+                <li onclick="location.href='index.html'"><i class="fas fa-tachometer-alt"></i> <span>仪表盘</span></li>
+                <li onclick="location.href='datasource.html'"><i class="fas fa-plug"></i> <span>数据源管理</span></li>
+                <li class="active" onclick="location.href='task.html'"><i class="fas fa-tasks"></i> <span>任务管理</span></li>
+                <li onclick="location.href='mapping.html'"><i class="fas fa-exchange-alt"></i> <span>字段映射</span></li>
+                <li onclick="location.href='log.html'"><i class="fas fa-chart-line"></i> <span>执行日志</span></li>
+            </ul>
+            <div class="sidebar-footer">ETL Platform v1.0.0</div>
+        </aside>
+
+        <div class="main-content">
+            <div class="top-bar">
+                <h2><i class="fas fa-tasks"></i> 任务管理</h2>
+                <div class="top-bar-actions">
+                    <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-plus"></i> 新增任务</button>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>任务编码</th>
+                                        <th>任务名称</th>
+                                        <th>抽取类型</th>
+                                        <th>目标表</th>
+                                        <th>写入模式</th>
+                                        <th>Cron表达式</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="taskTable">
+                                    <tr><td colspan="8" style="text-align:center;color:#999;">加载中...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="taskModal">
+        <div class="modal" style="max-width:800px;">
+            <div class="modal-header">
+                <h3 id="modalTitle">新增任务</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm">
+                    <input type="hidden" name="id" id="taskId">
+                    <div class="tabs">
+                        <div class="tab active" onclick="switchTab('basic')">基本信息</div>
+                        <div class="tab" onclick="switchTab('source')">源配置</div>
+                        <div class="tab" onclick="switchTab('http')">HTTP/文件</div>
+                    </div>
+
+                    <!-- Basic Tab -->
+                    <div id="tab-basic" class="tab-content active">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>任务编码</label>
+                                <input type="text" name="taskCode" id="taskCode" required>
+                            </div>
+                            <div class="form-group">
+                                <label>任务名称</label>
+                                <input type="text" name="taskName" id="taskName" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>源数据源</label>
+                                <select name="sourceDsName" id="sourceDsName" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label>目标数据源</label>
+                                <select name="targetDsName" id="targetDsName" required></select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>抽取类型</label>
+                                <select name="sourceType" id="sourceType" required>
+                                    <option value="PROCEDURE">存储过程</option>
+                                    <option value="SQL">SQL查询</option>
+                                    <option value="VIEW">视图</option>
+                                    <option value="TABLE">表</option>
+                                    <option value="HTTP">HTTP接口</option>
+                                    <option value="FILE">文件</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>写入模式</label>
+                                <select name="writeMode" id="writeMode">
+                                    <option value="INSERT">INSERT</option>
+                                    <option value="MERGE">MERGE</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>目标表</label>
+                                <input type="text" name="targetTable" id="targetTable" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Cron表达式</label>
+                                <input type="text" name="cronExpr" id="cronExpr" placeholder="0 0 * * * ?">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>批量大小</label>
+                                <input type="number" name="batchSize" id="batchSize" value="2000">
+                            </div>
+                            <div class="form-group">
+                                <label>超时(秒)</label>
+                                <input type="number" name="timeoutSeconds" id="timeoutSeconds" value="1800">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label>描述</label>
+                                <textarea name="description" id="description" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Source Tab -->
+                    <div id="tab-source" class="tab-content">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>存储过程名</label>
+                                <input type="text" name="sourceProcedure" id="sourceProcedure">
+                            </div>
+                            <div class="form-group">
+                                <label>源表名</label>
+                                <input type="text" name="sourceTable" id="sourceTable">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label>SQL语句</label>
+                                <textarea name="sourceSql" id="sourceSql" rows="4" placeholder="SELECT * FROM ..."></textarea>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>源视图名</label>
+                                <input type="text" name="sourceView" id="sourceView">
+                            </div>
+                            <div class="form-group">
+                                <label>参数(JSON)</label>
+                                <input type="text" name="sourceParams" id="sourceParams" placeholder='{"key":"value"}'>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HTTP/File Tab -->
+                    <div id="tab-http" class="tab-content">
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label>HTTP URL</label>
+                                <input type="text" name="httpUrl" id="httpUrl">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>HTTP方法</label>
+                                <select name="httpMethod" id="httpMethod">
+                                    <option value="GET">GET</option>
+                                    <option value="POST">POST</option>
+                                    <option value="PUT">PUT</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>响应类型</label>
+                                <select name="httpResponseType" id="httpResponseType">
+                                    <option value="JSON">JSON</option>
+                                    <option value="XML">XML</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>文件路径</label>
+                                <input type="text" name="filePath" id="filePath">
+                            </div>
+                            <div class="form-group">
+                                <label>文件格式</label>
+                                <select name="fileFormat" id="fileFormat">
+                                    <option value="">--</option>
+                                    <option value="CSV">CSV</option>
+                                    <option value="JSON">JSON</option>
+                                    <option value="EXCEL">Excel</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveTask()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        let editingId = null;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadDatasources();
+            await loadTasks();
+        });
+
+        async function loadDatasources() {
+            try {
+                const res = await DataSourceAPI.list();
+                if (res.success) {
+                    const options = res.data.map(ds => `<option value="${ds.dsName}">${ds.dsName} (${ds.dsType})</option>`).join('');
+                    document.getElementById('sourceDsName').innerHTML = '<option value="">请选择</option>' + options;
+                    document.getElementById('targetDsName').innerHTML = '<option value="">请选择</option>' + options;
+                }
+            } catch (e) {
+                console.error('加载数据源失败', e);
+            }
+        }
+
+        async function loadTasks() {
+            showLoading();
+            try {
+                const res = await TaskAPI.list();
+                if (res.success) {
+                    renderTable(res.data);
+                }
+            } catch (e) {
+                showToast('加载失败: ' + e.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('taskTable');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999;">暂无任务</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.map(t => {
+                const statusClass = t.enabled === 'Y' ? 'tag-success' : 'tag-default';
+                return `<tr>
+                    <td><strong>${t.taskCode}</strong></td>
+                    <td>${t.taskName}</td>
+                    <td><span class="tag tag-info">${t.sourceType}</span></td>
+                    <td>${t.targetTable}</td>
+                    <td><span class="tag tag-warning">${t.writeMode}</span></td>
+                    <td>${t.cronExpr || '-'}</td>
+                    <td><span class="tag ${statusClass}">${t.enabled === 'Y' ? '启用' : '禁用'}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="executeTask('${t.taskCode}')" title="执行"><i class="fas fa-play"></i></button>
+                        <button class="btn btn-sm btn-secondary" onclick="editTask(${t.id})" title="编辑"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteTask(${t.id})" title="删除"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
+
+        function openModal() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = '新增任务';
+            document.getElementById('taskForm').reset();
+            document.getElementById('taskId').value = '';
+            toggleModal('taskModal', true);
+        }
+
+        function closeModal() {
+            toggleModal('taskModal', false);
+        }
+
+        async function saveTask() {
+            const data = getFormData('taskForm');
+            if (editingId) data.id = editingId;
+            showLoading();
+            try {
+                const res = await TaskAPI.save(data);
+                if (res.success) {
+                    showToast('保存成功', 'success');
+                    closeModal();
+                    await loadTasks();
+                }
+            } catch (e) {
+                showToast('保存失败: ' + e.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function editTask(id) {
+            showLoading();
+            try {
+                const res = await TaskAPI.get(id);
+                if (res.success && res.data) {
+                    setFormData('taskForm', res.data);
+                    editingId = id;
+                    document.getElementById('modalTitle').textContent = '编辑任务';
+                    toggleModal('taskModal', true);
+                }
+            } catch (e) {
+                showToast('获取详情失败', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function deleteTask(id) {
+            if (!confirmDialog('确定要删除该任务吗？')) return;
+            showLoading();
+            try {
+                const res = await TaskAPI.delete(id);
+                if (res.success) {
+                    showToast('删除成功', 'success');
+                    await loadTasks();
+                }
+            } catch (e) {
+                showToast('删除失败: ' + e.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function executeTask(taskCode) {
+            if (!confirmDialog('确定要手动执行该任务吗？')) return;
+            showLoading();
+            try {
+                const res = await TaskAPI.execute(taskCode);
+                if (res.success) {
+                    showToast('执行成功', 'success');
+                }
+            } catch (e) {
+                showToast('执行失败: ' + e.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+    </script>
+</body>
+</html>

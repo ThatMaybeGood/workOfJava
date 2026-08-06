@@ -9,10 +9,10 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 门诊收入分析-医生明细
+ * 门诊收入分析-医生明细（数据来源：TR_REV_OV 按医生聚合）
  */
 @Data
-@TableName("TR_REV_DOC")
+@TableName("TR_REV_OV")
 public class RevenueDocEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -33,11 +33,19 @@ public class RevenueDocEntity implements Serializable {
     @TableField("dept_name")
     private String deptName;
 
-    /** 医生收益 */
+    /** 挂号收入 */
+    @TableField("register_revenue")
+    private String registerRevenue;
+
+    /** 药品收入（缴费） */
+    @TableField("medical_revenue")
+    private String medicalRevenue;
+
+    /** 医生效益（挂号+药品+服务性） */
     @TableField("doctor_benefit")
     private String doctorBenefit;
 
-    /** 服务收入 */
+    /** 服务性收入 */
     @TableField("service_revenue")
     private String serviceRevenue;
 

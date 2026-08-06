@@ -30,7 +30,15 @@ public class RevenueOvEntity implements Serializable {
     @TableField("outpatient_revenue")
     private BigDecimal outpatientRevenue;
 
-    /** 服务收入 */
+    /** 药品收入 */
+    @TableField("medical_revenue")
+    private BigDecimal medicalRevenue;
+
+    /** 挂号收入 */
+    @TableField("register_revenue")
+    private BigDecimal registerRevenue;
+
+    /** 服务性收入 */
     @TableField("service_revenue")
     private BigDecimal serviceRevenue;
 

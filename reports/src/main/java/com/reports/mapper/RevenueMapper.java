@@ -21,20 +21,27 @@ public interface RevenueMapper extends BaseMapper<RevenueOvEntity> {
      *
      * @param startDate 开始日期
      * @param endDate   结束日期
+     * @param deptCode  科室编码（可选）
+     * @param deptName  科室名称（可选，支持模糊查询）
      * @return 收入概览数据
      */
-    RevenueOvEntity queryOverview(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    RevenueOvEntity queryOverview(@Param("startDate") Date startDate,
+                                   @Param("endDate") Date endDate,
+                                   @Param("deptCode") String deptCode,
+                                   @Param("deptName") String deptName);
 
     /**
      * 查询门诊收入科室明细
      *
      * @param startDate 开始日期
      * @param endDate   结束日期
-     * @param deptName  科室名称（支持模糊查询）
+     * @param deptCode  科室编码（可选）
+     * @param deptName  科室名称（可选，支持模糊查询）
      * @return 科室收入明细数据列表
      */
     List<RevenueDeptEntity> queryDeptDetail(@Param("startDate") Date startDate,
                                              @Param("endDate") Date endDate,
+                                             @Param("deptCode") String deptCode,
                                              @Param("deptName") String deptName);
 
     /**
@@ -42,10 +49,12 @@ public interface RevenueMapper extends BaseMapper<RevenueOvEntity> {
      *
      * @param startDate 开始日期
      * @param endDate   结束日期
-     * @param deptName  科室名称（支持模糊查询）
+     * @param deptCode  科室编码（可选）
+     * @param deptName  科室名称（可选，支持模糊查询）
      * @return 医生收入明细数据列表
      */
     List<RevenueDocEntity> queryDoctorDetail(@Param("startDate") Date startDate,
                                               @Param("endDate") Date endDate,
+                                              @Param("deptCode") String deptCode,
                                               @Param("deptName") String deptName);
 }

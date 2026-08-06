@@ -129,7 +129,7 @@ public class OutpatientRevenueServiceImpl implements OutpatientRevenueService {
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientRevenueRequest request) {
         try {
-            RevenueOvEntity entity = revenueMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            RevenueOvEntity entity = revenueMapper.queryOverview(request.getStartDate(), request.getEndDate(), request.getDeptCode(), request.getDeptName());
             return buildOverviewData(entity);
         } catch (Exception e) {
             log.warn("查询门诊收入概览失败", e);
@@ -139,7 +139,7 @@ public class OutpatientRevenueServiceImpl implements OutpatientRevenueService {
 
     private PageResult<DeptTableItem> queryDeptTableByMybatisPlus(OutpatientRevenueRequest request, Integer page, Integer pageSize) {
         try {
-            List<RevenueDeptEntity> rows = revenueMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), request.getDeptName());
+            List<RevenueDeptEntity> rows = revenueMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), request.getDeptCode(), request.getDeptName());
             List<DeptTableItem> allItems = new ArrayList<>();
             for (RevenueDeptEntity row : rows) {
                 allItems.add(buildDeptTableItem(row));
@@ -157,7 +157,7 @@ public class OutpatientRevenueServiceImpl implements OutpatientRevenueService {
 
     private PageResult<DoctorTableItem> queryDoctorTableByMybatisPlus(OutpatientRevenueRequest request, Integer page, Integer pageSize) {
         try {
-            List<RevenueDocEntity> rows = revenueMapper.queryDoctorDetail(request.getStartDate(), request.getEndDate(), request.getDeptName());
+            List<RevenueDocEntity> rows = revenueMapper.queryDoctorDetail(request.getStartDate(), request.getEndDate(), request.getDeptCode(), request.getDeptName());
             List<DoctorTableItem> allItems = new ArrayList<>();
             for (RevenueDocEntity row : rows) {
                 allItems.add(buildDoctorTableItem(row));

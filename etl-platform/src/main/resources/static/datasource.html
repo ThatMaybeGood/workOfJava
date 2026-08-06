@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据源管理 - ETL通用数据抽取平台</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .filter-bar select,
+        .filter-bar input {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+        }
+        .filter-bar select { min-width: 150px; }
+        .filter-bar input { min-width: 200px; }
+        .filter-bar .btn { padding: 8px 16px; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-database"></i> <span>ETL平台</span></h1>
+            </div>
+            <ul class="sidebar-menu">
+                <li onclick="location.href='index.html'"><i class="fas fa-tachometer-alt"></i> <span>仪表盘</span></li>
+                <li class="active" onclick="location.href='datasource.html'"><i class="fas fa-plug"></i> <span>数据源管理</span></li>
+                <li onclick="location.href='task.html'"><i class="fas fa-tasks"></i> <span>任务管理</span></li>
+                <li onclick="location.href='mapping.html'"><i class="fas fa-exchange-alt"></i> <span>字段映射</span></li>
+                <li onclick="location.href='log.html'"><i class="fas fa-chart-line"></i> <span>执行日志</span></li>
+            </ul>
+            <div class="sidebar-footer">ETL Platform v1.0.0</div>
+        </aside>
+
+        <div class="main-content">
+            <div class="top-bar">
+                <h2><i class="fas fa-plug"></i> 数据源管理</h2>
+                <div class="top-bar-actions">
+                    <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-plus"></i> 新增数据源</button>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>名称</th>
+                                        <th>类型</th>
+                                        <th>JDBC URL</th>
+                                        <th>用户名</th>
+                                        <th>最大连接数</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="datasourceTable">
+                                    <tr><td colspan="7" style="text-align:center;color:#999;">加载中...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="datasourceModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">新增数据源</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="datasourceForm">
+                    <input type="hidden" name="id" id="dsId">
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label>数据源名称</label>
+                            <input type="text" name="dsName" id="dsName" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>数据库类型</label>
+                            <select name="dsType" id="dsType" required>
+                                <option value="ORACLE">Oracle</option>
+                                <option value="MYSQL">MySQL</option>
+                                <option value="POSTGRESQL">PostgreSQL</option>
+                                <option value="SQLSERVER">SQL Server</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>驱动类</label>
+                            <input type="text" name="driverClass" id="driverClass" value="oracle.jdbc.OracleDriver" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label>JDBC URL</label>
+                            <input type="text" name="jdbcUrl" id="jdbcUrl" placeholder="jdbc:oracle:thin:@host:1521/SID" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>用户名</label>
+                            <input type="text" name="username" id="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label>密码</label>
+                            <input type="password" name="password" id="password" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>初始连接数</label>
+                            <input type="number" name="initialSize" id="initialSize" value="5">
+                        </div>
+                        <div class="form-group">
+                            <label>最小空闲</label>
+                            <input type="number" name="minIdle" id="minIdle" value="5">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>最大连接数</label>
+                            <input type="number" name="maxActive" id="maxActive" value="20">
+                        </div>
+                        <div class="form-group">
+                            <label>最大等待(毫秒)</label>
+                            <input type="number" name="maxWait" id="maxWait" value="60000">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label>验证SQL</label>
+                            <input type="text" name="validationQuery" id="validationQuery" value="SELECT 1 FROM DUAL">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label>描述</label>
+                            <textarea name="description" id="description" rows="2"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveDatasource()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        let editingId = null;
+
+        document.addEventListener('DOMContentLoaded', loadDatasources);
+
+        async function loadDatasources() {
+            showLoading();
+            try {
+                const res = await DataSourceAPI.list();
+                if (res.success) {
+                    renderTable(res.data);
+                }
+            } catch (e) {
+                showToast('加载失败: ' + e.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('datasourceTable');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;">暂无数据源</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.map(ds => {
+                const statusClass = ds.enabled === 'Y' ? 'tag-success' : 'tag-default';
+                return `<tr>
+                    <td><strong>${ds.dsName}</strong></td>
+                    <td><span class="tag tag-info">${ds.dsType}</span></td>
+                    <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${ds.jdbcUrl}">${ds.jdbcUrl}</td>
+                    <td>${ds.username}</td>
+                    <td>${ds.maxActive || 20}</td>
+                    <td><span class="tag ${statusClass}">${ds.enabled === 'Y' ? '启用' : '禁用'}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="testConnection(${ds.id})" title="测试连接"><i class="fas fa-plug"></i></button>
+                        <button class="btn btn-sm btn-secondary" onclick="editDatasource(${ds.id})" title="编辑"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteDatasource(${ds.id})" title="删除"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function openModal() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = '新增数据源';
+            document.getElementById('datasourceForm').reset();
+            document.getElementById('dsId').value = '';
+            toggleModal('datasourceModal', true);
+        }
+
+        function closeModal() {
+            toggleModal('datasourceModal', false);
+        }
+
+        async function saveDatasource() {
+            const data = getFormData('datasourceForm');
+            if (editingId) data.id = editingId;
+            showLoading();
+            try {
+                const res = await DataSourceAPI.save(data);
+                if (res.success) {
+                    showToast('保存成功', 'success');
+                    closeModal();
+                    await loadDatasources();
+                }
+            } catch (e) {
+                showToast('保存失败: ' + e.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function editDatasource(id) {
+            showLoading();
+            try {
+                const res = await DataSourceAPI.get(id);
+                if (res.success && res.data) {
+                    setFormData('datasourceForm', res.data);
+                    editingId = id;
+                    document.getElementById('modalTitle').textContent = '编辑数据源';
+                    toggleModal('datasourceModal', true);
+                }
+            } catch (e) {
+                showToast('获取详情失败', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function deleteDatasource(id) {
+            if (!confirmDialog('确定要删除该数据源吗？')) return;
+            showLoading();
+            try {
+                const res = await DataSourceAPI.delete(id);
+                if (res.success) {
+                    showToast('删除成功', 'success');
+                    await loadDatasources();
+                }
+            } catch (e) {
+                showToast('删除失败: ' + e.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function testConnection(id) {
+            showLoading();
+            try {
+                const res = await DataSourceAPI.test(id);
+                if (res.success && res.data) {
+                    showToast('连接成功', 'success');
+                } else {
+                    showToast('连接失败', 'error');
+                }
+            } catch (e) {
+                showToast('测试失败: ' + e.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+    </script>
+</body>
+</html>
