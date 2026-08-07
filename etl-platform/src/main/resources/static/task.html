@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,6 +27,8 @@
             <div class="top-bar">
                 <h2><i class="fas fa-tasks"></i> 任务管理</h2>
                 <div class="top-bar-actions">
+                    <button class="theme-toggle" id="themeToggleBtn" title="切换主题"><i class="fas fa-moon"></i></button>
+                    <button class="btn btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> 退出</button>
                     <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-plus"></i> 新增任务</button>
                 </div>
             </div>
@@ -225,7 +227,26 @@
         </div>
     </div>
 
+    <script src="js/theme.js"></script>
     <script src="js/api.js"></script>
+    <script>
+        // Login gate
+        (function() {
+            var token = localStorage.getItem('etl-login-token');
+            if (!token) { window.location.href = 'login.html'; return; }
+            try {
+                var t = JSON.parse(token);
+                if (Date.now() - t.time > 8 * 60 * 60 * 1000) {
+                    localStorage.removeItem('etl-login-token');
+                    window.location.href = 'login.html';
+                    return;
+                }
+            } catch(e) { window.location.href = 'login.html'; return; }
+            window.logout = function() {
+                localStorage.removeItem('etl-login-token');
+                window.location.href = 'login.html';
+            };
+        })();</script>
     <script src="js/utils.js"></script>
     <script>
         let editingId = null;

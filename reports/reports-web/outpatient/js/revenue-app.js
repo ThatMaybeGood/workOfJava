@@ -63,8 +63,11 @@ class RevenueController {
                 if (selectedDates.length === 2) {
                     this.filter.startDate = this.formatDate(selectedDates[0]);
                     this.filter.endDate = this.formatDate(selectedDates[1]);
+                    // 手动选日期时清除快捷按钮高亮
+                    document.querySelectorAll('#timeFilter .filter-btn').forEach(b => b.classList.remove('active'));
                     this.deptState.currentPage = 1;
                     this.doctorState.currentPage = 1;
+                    this.loadOverview();
                     this.loadDeptData();
                     this.loadDoctorData();
                 }
@@ -123,20 +126,27 @@ class RevenueController {
     }
 
     handleTimeFilter(e) {
-        const btn = e.target;
+        const btn = e.target.closest('.filter-btn') || e.target;
+        console.log('handleTimeFilter called', btn.dataset.value);
         document.querySelectorAll('#timeFilter .filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const range = getDateRangeByTimeRange(btn.dataset.value);
+        console.log('range:', range);
         this.filter.timeRange = btn.dataset.value;
         this.filter.startDate = range.startDate;
         this.filter.endDate = range.endDate;
-        if (this.datePicker) {
-            this._ignoreDateChange = true;
-            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)]);
-            this._ignoreDateChange = false;
+        try {
+            if (this.datePicker) {
+                this._ignoreDateChange = true;
+                this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)]);
+                this._ignoreDateChange = false;
+            }
+        } catch (err) {
+            console.error('setDate error:', err);
         }
         this.deptState.currentPage = 1;
         this.doctorState.currentPage = 1;
+        console.log('calling loadOverview now');
         this.loadOverview();
         this.loadDeptData();
         this.loadDoctorData();
@@ -187,6 +197,8 @@ class RevenueController {
     async loadOverview() {
         try {
             const body = await ReportAPI.getRevenueOverview(this.filter);
+            console.log('[loadOverview] body:', JSON.stringify(body));
+            console.log('[loadOverview] body.overview:', body ? JSON.stringify(body.overview) : 'null');
             this.renderOverview(body ? body.overview : null);
         } catch (error) {
             console.error('Load overview failed:', error);
@@ -194,9 +206,11 @@ class RevenueController {
     }
 
     renderOverview(data) {
+        console.log('[renderOverview] data:', JSON.stringify(data));
         const safe = (val) => val != null ? val : 0;
         const val1 = safe(data && data.outpatientRevenue);
         const val2 = safe(data && data.serviceRevenue);
+        console.log('[renderOverview] val1:', val1, 'val2:', val2);
         document.getElementById('outpatientRevenue').textContent = val1.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '元';
         document.getElementById('serviceRevenue').textContent = val2.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '元';
     }
