@@ -1,9 +1,11 @@
 package com.etl.controller;
 
 import com.etl.dto.ApiResponse;
+import com.etl.dto.DebugResult;
 import com.etl.entity.EtlTaskConfig;
 import com.etl.service.admin.EtlTaskConfigService;
 import com.etl.service.core.EtlEngine;
+import com.etl.service.core.StepEngine;
 import com.etl.service.core.TaskScheduler;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,6 +31,9 @@ public class TaskController {
 
     @Autowired
     private EtlEngine etlEngine;
+
+    @Autowired
+    private StepEngine stepEngine;
 
     @PostMapping
     @Operation(summary = "新增任务")
@@ -115,5 +120,22 @@ public class TaskController {
     public ApiResponse<Void> preview(@PathVariable String taskCode, @PathVariable int limit) {
         etlEngine.executePreview(taskCode, limit);
         return ApiResponse.success("预览完成");
+    }
+
+    @PostMapping("/{taskCode}/debug")
+    @Operation(summary = "分步调试任务", description = "按 抽取→转换→写入 逐步执行，可仅抽取不写库")
+    public ApiResponse<DebugResult> debug(@PathVariable String taskCode,
+                                          @RequestParam(required = false, defaultValue = "100") int limit,
+                                          @RequestParam(required = false, defaultValue = "false") boolean write) {
+        DebugResult result = stepEngine.debug(taskCode, limit, write);
+        return ApiResponse.success(result, "调试执行完成");
+    }
+
+    @PostMapping("/{taskCode}/debug/extract")
+    @Operation(summary = "仅调试抽取步骤", description = "只执行抽取，返回出参结果，不写入目标库")
+    public ApiResponse<DebugResult> debugExtract(@PathVariable String taskCode,
+                                                 @RequestParam(required = false, defaultValue = "100") int limit) {
+        DebugResult result = stepEngine.debug(taskCode, limit, false);
+        return ApiResponse.success(result, "抽取调试完成");
     }
 }

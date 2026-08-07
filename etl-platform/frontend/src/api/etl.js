@@ -47,6 +47,10 @@ export const TaskAPI = {
   resume: (taskCode) => request(`${API_BASE}task/${taskCode}/resume`, { method: 'POST' }),
   reloadSchedules: () => request(`${API_BASE}task/reload-schedules`, { method: 'POST' }),
   preview: (taskCode, limit) => request(`${API_BASE}task/${taskCode}/preview/${limit}`),
+  debug: (taskCode, { limit = 100, write = false } = {}) =>
+    request(`${API_BASE}task/${taskCode}/debug?limit=${limit}&write=${write}`, { method: 'POST' }),
+  debugExtract: (taskCode, limit = 100) =>
+    request(`${API_BASE}task/${taskCode}/debug/extract?limit=${limit}`, { method: 'POST' }),
 };
 
 export const MappingAPI = {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { TaskAPI, DataSourceAPI } from '../api/etl';
 import { useToast } from '../components/useToast';
+import DebugPanel from '../components/DebugPanel';
 
 const EMPTY_TASK = {
   taskCode: '', taskName: '', sourceDsName: '', targetDsName: '',
@@ -24,6 +25,7 @@ export default function Task() {
   const [form, setForm] = useState({ ...EMPTY_TASK });
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
+  const [debugTask, setDebugTask] = useState(null);
   const { addToast, ToastContainer } = useToast();
 
   const loadList = useCallback(async () => {
@@ -137,6 +139,7 @@ export default function Task() {
                       <td><span className={`tag ${t.enabled === 'Y' ? 'tag-green' : 'tag-dim'}`}>{t.enabled === 'Y' ? '已激活' : '未激活'}</span></td>
                       <td>
                         <div className="btn-group">
+                          <button className="btn btn-xs btn-primary" onClick={() => setDebugTask(t)} title="分步调试">⛭</button>
                           <button className="btn btn-xs btn-success" onClick={() => handleExecute(t.taskCode)} title="手动执行">▶</button>
                           <button className="btn btn-xs btn-secondary" onClick={() => openModal(t)} title="编辑">✎</button>
                           <button className="btn btn-xs btn-danger" onClick={() => handleDelete(t.id)} title="删除">✕</button>
@@ -269,6 +272,14 @@ export default function Task() {
             </div>
           </div>
         </div>
+      )}
+
+      {debugTask && (
+        <DebugPanel
+          taskCode={debugTask.taskCode}
+          taskName={debugTask.taskName}
+          onClose={() => setDebugTask(null)}
+        />
       )}
     </div>
   );

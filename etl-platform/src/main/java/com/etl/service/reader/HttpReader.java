@@ -156,13 +156,7 @@ public class HttpReader implements DataSourceReader {
 
             String dataPath = taskConfig.getHttpDataPath();
             if (dataPath != null && !dataPath.isEmpty()) {
-                // 支持简单的JSON路径，如 $.data.list
-                String[] parts = dataPath.replace("$.", "").split("\\.");
-                for (String part : parts) {
-                    if (root != null && root.isObject()) {
-                        root = root.get(part);
-                    }
-                }
+                root = resolveJsonPath(root, dataPath);
             }
 
             if (root != null && root.isArray()) {
@@ -173,11 +167,61 @@ public class HttpReader implements DataSourceReader {
                 return results;
             }
 
+            if (root != null && root.isObject()) {
+                // 未配置路径或路径指向单对象时，将单条记录包装为列表
+                List<Map<String, Object>> results = new ArrayList<>();
+                results.add(JsonUtil.mapToObject(JsonUtil.objectToMap(root), HashMap.class));
+                return results;
+            }
+
             return Collections.emptyList();
         } catch (Exception e) {
             log.error("解析HTTP响应失败", e);
             return Collections.emptyList();
         }
+    }
+
+    /**
+     * 解析 JSONPath 定位数据数组，支持 $.a.b[0].c、a.b、$.list[0] 等形式。
+     */
+    private JsonNode resolveJsonPath(JsonNode root, String path) {
+        String p = path.trim();
+        if (p.startsWith("$")) {
+            p = p.substring(1);
+        }
+        if (p.startsWith(".")) {
+            p = p.substring(1);
+        }
+        if (p.isEmpty()) {
+            return root;
+        }
+
+        JsonNode current = root;
+        String[] segments = p.split("\\.");
+        for (String seg : segments) {
+            if (seg.isEmpty() || current == null) {
+                continue;
+            }
+            // 处理数组下标: list[0]
+            int bracket = seg.indexOf('[');
+            if (bracket >= 0) {
+                String field = seg.substring(0, bracket);
+                String idxStr = seg.substring(bracket + 1, seg.indexOf(']'));
+                if (!field.isEmpty()) {
+                    current = current.get(field);
+                }
+                if (current != null && current.isArray()) {
+                    int idx = Integer.parseInt(idxStr.trim());
+                    current = idx < current.size() ? current.get(idx) : null;
+                }
+            } else {
+                current = current.get(seg);
+            }
+            if (current == null) {
+                break;
+            }
+        }
+        return current;
     }
 
     @Override

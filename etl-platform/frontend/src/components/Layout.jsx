@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ThemeSwitcher from './ThemeSwitcher';
 
 const NAV_ITEMS = [
   { to: '/', icon: '◇', label: '仪表盘', exact: true },
@@ -44,6 +45,8 @@ export default function Layout() {
             ))}
           </div>
         </nav>
+
+        <ThemeSwitcher />
 
         <div className="sidebar-footer">
           <div className="user-avatar">{user?.username?.[0]?.toUpperCase() || 'A'}</div>
