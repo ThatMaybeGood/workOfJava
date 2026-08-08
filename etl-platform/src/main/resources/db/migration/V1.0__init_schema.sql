@@ -7,7 +7,8 @@
 CREATE TABLE datasource_config (
     id                  NUMBER PRIMARY KEY,
     ds_name             VARCHAR2(50) NOT NULL UNIQUE,
-    ds_type             VARCHAR2(20) NOT NULL,          -- ORACLE/MYSQL/POSTGRESQL/SQLSERVER
+    ds_type             VARCHAR2(20) NOT NULL,          -- ORACLE/MYSQL/POSTGRESQL/SQLSERVER/HTTP/SOAP/FILE
+    protocol            VARCHAR2(20) DEFAULT 'JDBC',     -- JDBC/HTTP/SOAP/FILE
     driver_class        VARCHAR2(100) NOT NULL,
     jdbc_url            VARCHAR2(500) NOT NULL,
     username            VARCHAR2(100) NOT NULL,
@@ -24,6 +25,10 @@ CREATE TABLE datasource_config (
     remove_abandoned    CHAR(1) DEFAULT 'Y',
     remove_abandoned_timeout NUMBER DEFAULT 30,
     connection_timeout  NUMBER DEFAULT 30000,
+    auth_type           VARCHAR2(20),
+    auth_token          VARCHAR2(500),
+    timeout             NUMBER DEFAULT 30000,
+    encoding            VARCHAR2(20) DEFAULT 'UTF-8',
     enabled             CHAR(1) DEFAULT 'Y',
     description         VARCHAR2(200),
     created_time        TIMESTAMP DEFAULT SYSTIMESTAMP,
@@ -32,7 +37,8 @@ CREATE TABLE datasource_config (
 
 COMMENT ON TABLE datasource_config IS '数据源配置表';
 COMMENT ON COLUMN datasource_config.ds_name IS '数据源名称，唯一标识';
-COMMENT ON COLUMN datasource_config.ds_type IS '数据库类型：ORACLE/MYSQL/POSTGRESQL/SQLSERVER';
+COMMENT ON COLUMN datasource_config.ds_type IS '数据库类型：ORACLE/MYSQL/POSTGRESQL/SQLSERVER 或 HTTP/SOAP/FILE';
+COMMENT ON COLUMN datasource_config.protocol IS '连接协议：JDBC/HTTP/SOAP/FILE';
 COMMENT ON COLUMN datasource_config.password IS '密码使用AES加密存储';
 
 -- 2. ETL任务配置表
@@ -42,7 +48,7 @@ CREATE TABLE etl_task_config (
     task_name               VARCHAR2(100) NOT NULL,
     source_ds_name          VARCHAR2(50) NOT NULL,
     target_ds_name          VARCHAR2(50) NOT NULL,
-    source_type             VARCHAR2(20) DEFAULT 'PROCEDURE', -- PROCEDURE/SQL/VIEW/TABLE/HTTP/FILE
+    source_type             VARCHAR2(20) DEFAULT 'PROCEDURE', -- PROCEDURE/SQL/VIEW/TABLE/HTTP/SOAP/FILE
     source_procedure        VARCHAR2(200),
     source_sql              CLOB,
     source_view             VARCHAR2(200),
@@ -65,6 +71,9 @@ CREATE TABLE etl_task_config (
     http_total_path         VARCHAR2(200),
     http_timeout            NUMBER DEFAULT 30000,
     http_encoding           VARCHAR2(20) DEFAULT 'UTF-8',
+    soap_action             VARCHAR2(500),
+    soap_binding            VARCHAR2(20),
+    soap_namespace          VARCHAR2(200),
     file_path               VARCHAR2(500),
     file_format             VARCHAR2(20),
     file_delimiter          VARCHAR2(10) DEFAULT ',',
@@ -93,7 +102,7 @@ CREATE INDEX idx_task_code ON etl_task_config(task_code);
 CREATE INDEX idx_task_enabled ON etl_task_config(enabled);
 
 COMMENT ON TABLE etl_task_config IS 'ETL任务配置表';
-COMMENT ON COLUMN etl_task_config.source_type IS '抽取方式：PROCEDURE/SQL/VIEW/TABLE/HTTP/FILE';
+COMMENT ON COLUMN etl_task_config.source_type IS '抽取方式：PROCEDURE/SQL/VIEW/TABLE/HTTP/SOAP/FILE';
 COMMENT ON COLUMN etl_task_config.write_mode IS '写入模式：INSERT/MERGE';
 
 -- 3. 字段映射配置表

@@ -1377,3 +1377,49 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ═══════════ FORMS & FIELDSETS ═══════════ */
+.fieldset-card {
+  border: 1px solid var(--border-dim);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--bg-card-alt, rgba(0, 255, 255, 0.02));
+}
+.fieldset-card legend {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--accent-cyan);
+  padding: 0 8px;
+}
+.fieldset-card .form-row:last-child {
+  margin-bottom: 0;
+}
+
+/* ═══════════ DEBUG PANEL ENHANCEMENTS ═══════════ */
+.debug-data-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.debug-json-view {
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.debug-flow-summary {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ═══════════ PROTOCOL SELECTOR ═══════════ */
+.protocol-selector .btn {
+  transition: all 0.2s ease;
+}
+
+/* ═══════════ RESPONSIVE FORMS ═══════════ */
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr !important;
+  }
+}

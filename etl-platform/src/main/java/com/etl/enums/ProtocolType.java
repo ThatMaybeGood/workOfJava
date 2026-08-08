@@ -1,18 +1,18 @@
 package com.etl.enums;
 
-public enum SourceType {
-    PROCEDURE("PROCEDURE", "存储过程"),
-    SQL("SQL", "SQL查询"),
-    VIEW("VIEW", "视图"),
-    TABLE("TABLE", "全表"),
+/**
+ * 数据源连接协议类型
+ */
+public enum ProtocolType {
+    JDBC("JDBC", "数据库连接"),
     HTTP("HTTP", "HTTP接口"),
-    SOAP("SOAP", "WebService/SOAP"),
+    SOAP("SOAP", "WebService/SOAP接口"),
     FILE("FILE", "文件");
 
     private final String value;
     private final String label;
 
-    SourceType(String value, String label) {
+    ProtocolType(String value, String label) {
         this.value = value;
         this.label = label;
     }
@@ -25,12 +25,12 @@ public enum SourceType {
         return label;
     }
 
-    public static SourceType fromValue(String value) {
-        for (SourceType type : values()) {
+    public static ProtocolType fromValue(String value) {
+        for (ProtocolType type : values()) {
             if (type.value.equalsIgnoreCase(value)) {
                 return type;
             }
         }
-        throw new IllegalArgumentException("Unknown SourceType: " + value);
+        throw new IllegalArgumentException("Unknown ProtocolType: " + value);
     }
 }

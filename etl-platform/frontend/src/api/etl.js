@@ -72,3 +72,14 @@ export const MonitorAPI = {
   getRunningTasks: () => request(`${API_BASE}monitor/logs/running`),
   getDashboard: () => request(`${API_BASE}monitor/dashboard`),
 };
+
+export const ExtractAPI = {
+  test: (data) => request(`${API_BASE}extract/test`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  raw: (data) => request(`${API_BASE}extract/raw`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+};

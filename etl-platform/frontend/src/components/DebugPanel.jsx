@@ -7,8 +7,12 @@ const STEP_ICONS = { EXTRACT: '⇣', TRANSFORM: '⇄', LOAD: '⇧' };
 
 function StepCard({ step, index, last }) {
   const [open, setOpen] = useState(false);
+  const [viewMode, setViewMode] = useState('table');
   const statusClass = step.status === 'SUCCESS' ? 'tag-green'
     : step.status === 'FAILED' ? 'tag-red' : 'tag-dim';
+
+  const hasData = step.outputData && step.outputData.length > 0;
+  const columns = step.outputColumns || (hasData ? Object.keys(step.outputData[0] || {}) : []);
 
   return (
     <div className="debug-step">
@@ -19,17 +23,20 @@ function StepCard({ step, index, last }) {
           <div className="debug-step-name">{step.stepName}</div>
           <div className="debug-step-meta">
             <span className="tag tag-dim">{step.stepType}</span>
-            <span>入参 {step.inputRows} 行</span>
+            {step.inputRows > 0 && <span>入参 {step.inputRows} 行</span>}
             <span>出参 {step.outputRows} 行</span>
             <span>{step.durationMs} ms</span>
           </div>
         </div>
-        <span className={`tag ${statusClass}`}>{step.status === 'SUCCESS' ? '成功' : step.status === 'FAILED' ? '失败' : step.status}</span>
+        <span className={`tag ${statusClass}`}>
+          {step.status === 'SUCCESS' ? '成功' : step.status === 'FAILED' ? '失败' : step.status}
+        </span>
         <span className="debug-step-arrow">{open ? '▾' : '▸'}</span>
       </div>
 
+      {/* 分流信息 */}
       <div className="debug-step-route">
-        {step.nextOnSuccess && <span className="route-next">成功 → 下一步</span>}
+        {step.nextOnSuccess && step.stepType !== 'LOAD' && <span className="route-next">成功 → 下一步</span>}
         {!step.nextOnSuccess && step.stepType !== 'LOAD' && <span className="route-stop">成功 → 停止</span>}
         {step.stepType === 'LOAD' && <span className="route-end">成功 → 结束</span>}
         {step.nextOnFail && <span className="route-fail">失败 → 跳过继续</span>}
@@ -38,33 +45,69 @@ function StepCard({ step, index, last }) {
       </div>
 
       {step.errorMessage && (
-        <div className="debug-step-error">
-          {step.errorMessage}
+        <div className="debug-step-error">{step.errorMessage}</div>
+      )}
+
+      {/* 展开数据 */}
+      {open && hasData && (
+        <div className="debug-step-data">
+          <div className="debug-data-toolbar">
+            <div className="debug-data-title">出参数据（{step.outputData.length} 条，{columns.length} 列）</div>
+            <div className="btn-group">
+              <button
+                className={`btn btn-xs ${viewMode === 'table' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setViewMode('table')}
+              >⊞ 表格</button>
+              <button
+                className={`btn btn-xs ${viewMode === 'json' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setViewMode('json')}
+              >{ } JSON</button>
+            </div>
+          </div>
+
+          {viewMode === 'table' ? (
+            <div className="table-wrap" style={{ borderRadius: 10, border: '1px solid var(--border-dim)', maxHeight: 400, overflow: 'auto' }}>
+              <table className="data-table" style={{ fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: 40 }}>#</th>
+                    {columns.map(c => <th key={c}>{c}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {step.outputData.slice(0, 100).map((row, ri) => (
+                    <tr key={ri}>
+                      <td className="text-muted">{ri + 1}</td>
+                      {columns.map(col => (
+                        <td key={col} className="text-mono text-sm">{formatVal(row[col])}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {step.outputData.length > 100 && (
+                <div style={{ textAlign: 'center', padding: 8, color: 'var(--text-muted)', fontSize: 12 }}>
+                  ... 仅显示前 100 条，共 {step.outputData.length} 条
+                </div>
+              )}
+            </div>
+          ) : (
+            <pre className="debug-json-view" style={{
+              background: 'var(--bg-card)', border: '1px solid var(--border-dim)',
+              borderRadius: 10, padding: 12, maxHeight: 400, overflow: 'auto',
+              fontFamily: 'var(--font-mono)', fontSize: 12, whiteSpace: 'pre-wrap', wordBreak: 'break-all'
+            }}>
+              {JSON.stringify(step.outputData.slice(0, 50), null, 2)}
+              {step.outputData.length > 50 && `\n\n... 仅显示前 50 条，共 ${step.outputData.length} 条`}
+            </pre>
+          )}
         </div>
       )}
 
-      {open && step.outputData && step.outputData.length > 0 && (
+      {open && !hasData && (
         <div className="debug-step-data">
-          <div className="debug-data-title">出参数据（{step.outputData.length} 条）</div>
-          <div className="table-wrap" style={{ borderRadius: 10, border: '1px solid var(--border-dim)' }}>
-            <table className="data-table" style={{ fontSize: 12 }}>
-              <thead>
-                <tr>
-                  {(step.outputColumns || Object.keys(step.outputData[0] || {})).map(c => (
-                    <th key={c}>{c}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {step.outputData.map((row, ri) => (
-                  <tr key={ri}>
-                    {Object.entries(row).map(([k, v]) => (
-                      <td key={k} className="text-mono text-sm">{formatVal(v)}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="text-muted" style={{ textAlign: 'center', padding: 20, fontSize: 13 }}>
+            无输出数据
           </div>
         </div>
       )}
@@ -91,6 +134,7 @@ export default function DebugPanel({ taskCode, taskName, onClose }) {
     try {
       const res = await TaskAPI.debug(taskCode, { limit, write: withWrite });
       if (res.success) setResult(res.data);
+      else addToast('调试失败: ' + (res.message || '未知错误'), 'error');
     } catch (e) {
       addToast('调试失败: ' + e.message, 'error');
     } finally {
@@ -100,6 +144,9 @@ export default function DebugPanel({ taskCode, taskName, onClose }) {
 
   const overallClass = result?.status === 'SUCCESS' ? 'tag-green'
     : result?.status === 'FAILED' ? 'tag-red' : 'tag-dim';
+
+  const overallLabel = result?.status === 'SUCCESS' ? '成功'
+    : result?.status === 'FAILED' ? '失败' : (result?.status || '--');
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -115,7 +162,7 @@ export default function DebugPanel({ taskCode, taskName, onClose }) {
             <div className="debug-toolbar-controls">
               <label className="debug-control-label">
                 抽取行数
-                <input type="number" min="1" value={limit}
+                <input type="number" min="1" max="10000" value={limit}
                   onChange={e => setLimit(parseInt(e.target.value) || 100)}
                   style={{ width: 90 }} />
               </label>
@@ -152,6 +199,7 @@ export default function DebugPanel({ taskCode, taskName, onClose }) {
 
           {result && (
             <div className="debug-result">
+              {/* 总体结果摘要 */}
               <div className="debug-result-header">
                 <div>
                   <span className="debug-result-label">执行ID</span>
@@ -163,15 +211,42 @@ export default function DebugPanel({ taskCode, taskName, onClose }) {
                 </div>
                 <div>
                   <span className="debug-result-label">总体状态</span>
-                  <span className={`tag ${overallClass}`}>{result.status === 'SUCCESS' ? '成功' : '失败'}</span>
+                  <span className={`tag ${overallClass}`}>{overallLabel}</span>
                 </div>
               </div>
 
+              {result.errorMessage && (
+                <div className="debug-step-error" style={{ margin: '8px 0' }}>
+                  {result.errorMessage}
+                </div>
+              )}
+
+              {/* 步骤卡片 */}
               <div className="debug-steps">
                 {(result.steps || []).map((s, i) => (
                   <StepCard key={i} step={s} index={i} last={(result.steps || []).length - 1} />
                 ))}
               </div>
+
+              {/* 步骤流程总结 */}
+              {(result.steps || []).length > 0 && (
+                <div className="debug-flow-summary" style={{
+                  marginTop: 16, padding: 12, borderRadius: 10,
+                  background: 'var(--bg-card-alt, rgba(0,255,255,0.03))',
+                  border: '1px solid var(--border-dim)', fontSize: 13,
+                  display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap'
+                }}>
+                  <span style={{ fontWeight: 600, color: 'var(--accent-cyan)' }}>流程：</span>
+                  {(result.steps || []).map((s, i) => (
+                    <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span className={`tag ${s.status === 'SUCCESS' ? 'tag-green' : 'tag-red'}`}>
+                        {STEP_ICONS[s.stepType]} {s.stepName}
+                      </span>
+                      {i < (result.steps || []).length - 1 && <span style={{ color: 'var(--text-muted)' }}>→</span>}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

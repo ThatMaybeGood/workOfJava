@@ -53,6 +53,11 @@ public class EtlTaskConfig {
     private Integer httpTimeout;
     private String httpEncoding;
 
+    // SOAP/WebService related fields
+    private String soapAction;
+    private String soapBinding;
+    private String soapNamespace;
+
     // File related fields
     private String filePath;
     private String fileFormat;

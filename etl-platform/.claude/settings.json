@@ -1,0 +1,9 @@
+{
+  "permissionMode": "acceptEdits",
+  "permissions": {
+    "allow": [
+      "Bash(mvn *)",
+      "Bash(npm *)"
+    ]
+  }
+}

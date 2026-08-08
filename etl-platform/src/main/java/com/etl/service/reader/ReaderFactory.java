@@ -27,6 +27,9 @@ public class ReaderFactory {
     private HttpReader httpReader;
 
     @Autowired
+    private WebServiceReader webServiceReader;
+
+    @Autowired
     private FileReader fileReader;
 
     private final Map<String, DataSourceReader> readerMap = new HashMap<>();
@@ -38,6 +41,7 @@ public class ReaderFactory {
         readerMap.put(tableReader.getSourceType(), tableReader);
         readerMap.put(procedureReader.getSourceType(), procedureReader);
         readerMap.put(httpReader.getSourceType(), httpReader);
+        readerMap.put(webServiceReader.getSourceType(), webServiceReader);
         readerMap.put(fileReader.getSourceType(), fileReader);
     }
 

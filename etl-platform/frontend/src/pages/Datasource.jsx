@@ -2,11 +2,28 @@ import { useState, useEffect, useCallback } from 'react';
 import { DataSourceAPI } from '../api/etl';
 import { useToast } from '../components/useToast';
 
+const PROTOCOLS = [
+  { value: 'JDBC', label: '数据库 (JDBC)', icon: '⬡' },
+  { value: 'HTTP', label: 'HTTP 接口', icon: '⇄' },
+  { value: 'SOAP', label: 'WebService/SOAP', icon: '⎔' },
+  { value: 'FILE', label: '文件', icon: '▤' },
+];
+
+const DS_TYPES = [
+  { value: 'ORACLE', label: 'Oracle', driver: 'oracle.jdbc.OracleDriver', validate: 'SELECT 1 FROM DUAL' },
+  { value: 'MYSQL', label: 'MySQL', driver: 'com.mysql.cj.jdbc.Driver', validate: 'SELECT 1' },
+  { value: 'POSTGRESQL', label: 'PostgreSQL', driver: 'org.postgresql.Driver', validate: 'SELECT 1' },
+  { value: 'SQLSERVER', label: 'SQL Server', driver: 'com.microsoft.sqlserver.jdbc.SQLServerDriver', validate: 'SELECT 1' },
+];
+
 const EMPTY_DS = {
-  dsName: '', dsType: 'ORACLE', driverClass: 'oracle.jdbc.OracleDriver',
+  dsName: '', dsType: 'ORACLE', protocol: 'JDBC',
+  driverClass: 'oracle.jdbc.OracleDriver',
   jdbcUrl: '', username: '', password: '',
   initialSize: 5, minIdle: 5, maxActive: 20, maxWait: 60000,
-  validationQuery: 'SELECT 1 FROM DUAL', description: '',
+  validationQuery: 'SELECT 1 FROM DUAL',
+  authType: 'NONE', authToken: '', timeout: 30000,
+  encoding: 'UTF-8', description: '',
 };
 
 export default function Datasource() {
@@ -16,6 +33,7 @@ export default function Datasource() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_DS });
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const { addToast, ToastContainer } = useToast();
 
   const loadList = useCallback(async () => {
@@ -42,15 +60,51 @@ export default function Datasource() {
 
   const closeModal = () => setModalOpen(false);
 
-  const updateField = (field, value) => {
-    setForm(prev => ({ ...prev, [field]: value }));
+  const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+
+  const handleProtocolChange = (protocol) => {
+    const updates = { protocol };
+    if (protocol === 'JDBC') {
+      updates.dsType = 'ORACLE';
+      updates.driverClass = 'oracle.jdbc.OracleDriver';
+      updates.validationQuery = 'SELECT 1 FROM DUAL';
+      updates.jdbcUrl = '';
+    } else if (protocol === 'HTTP') {
+      updates.dsType = 'HTTP';
+      updates.driverClass = 'http';
+      updates.jdbcUrl = '';
+      updates.authType = 'NONE';
+    } else if (protocol === 'SOAP') {
+      updates.dsType = 'SOAP';
+      updates.driverClass = 'soap';
+      updates.jdbcUrl = '';
+    } else if (protocol === 'FILE') {
+      updates.dsType = 'FILE';
+      updates.driverClass = 'file';
+      updates.jdbcUrl = '';
+    }
+    setForm(prev => ({ ...prev, ...updates }));
+  };
+
+  const handleDbTypeChange = (dsType) => {
+    const info = DS_TYPES.find(t => t.value === dsType);
+    setForm(prev => ({
+      ...prev,
+      dsType,
+      driverClass: info ? info.driver : prev.driverClass,
+      validationQuery: info ? info.validate : prev.validationQuery,
+    }));
   };
 
   const handleSave = async () => {
-    if (!form.dsName || !form.jdbcUrl || !form.username) {
-      addToast('请填写名称、JDBC URL 和用户名', 'error');
-      return;
+    if (!form.dsName) { addToast('请填写数据源名称', 'error'); return; }
+    if (!form.jdbcUrl) { addToast('请填写连接地址', 'error'); return; }
+
+    const protocol = form.protocol || 'JDBC';
+    if (protocol === 'JDBC' && !form.username) {
+      addToast('请填写用户名', 'error'); return;
     }
+
     setSaving(true);
     try {
       const data = { ...form };
@@ -82,7 +136,10 @@ export default function Datasource() {
     } catch { addToast('连接测试失败', 'error'); }
   };
 
-  const typeLabel = (t) => ({ ORACLE: 'Oracle', MYSQL: 'MySQL', POSTGRESQL: 'PostgreSQL', SQLSERVER: 'SQL Server' })[t] || t;
+  const typeLabel = (t) => ({ ORACLE: 'Oracle', MYSQL: 'MySQL', POSTGRESQL: 'PostgreSQL', SQLSERVER: 'SQL Server', HTTP: 'HTTP', SOAP: 'SOAP', FILE: '文件' })[t] || t;
+  const protocolLabel = (p) => ({ JDBC: '数据库', HTTP: 'HTTP接口', SOAP: 'WebService', FILE: '文件' })[p] || p;
+
+  const formProtocol = form.protocol || 'JDBC';
 
   return (
     <div className="main-area">
@@ -102,10 +159,10 @@ export default function Datasource() {
                 <thead>
                   <tr>
                     <th>节点名称</th>
+                    <th>协议</th>
                     <th>类型</th>
-                    <th>JDBC URL</th>
+                    <th>连接地址</th>
                     <th>用户</th>
-                    <th>最大连接</th>
                     <th>状态</th>
                     <th>操作</th>
                   </tr>
@@ -122,10 +179,10 @@ export default function Datasource() {
                   ) : list.map(ds => (
                     <tr key={ds.id}>
                       <td style={{ fontWeight: 600, color: 'var(--accent-cyan)' }}>{ds.dsName}</td>
+                      <td><span className="tag tag-purple">{protocolLabel(ds.protocol || 'JDBC')}</span></td>
                       <td><span className="tag tag-blue">{typeLabel(ds.dsType)}</span></td>
                       <td className="text-mono text-sm" style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }} title={ds.jdbcUrl}>{ds.jdbcUrl}</td>
-                      <td className="text-muted">{ds.username}</td>
-                      <td>{ds.maxActive || 20}</td>
+                      <td className="text-muted">{ds.username || '--'}</td>
                       <td><span className={`tag ${ds.enabled === 'Y' ? 'tag-green' : 'tag-dim'}`}>{ds.enabled === 'Y' ? '已激活' : '未激活'}</span></td>
                       <td>
                         <div className="btn-group">
@@ -145,65 +202,167 @@ export default function Datasource() {
 
       {modalOpen && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 700 }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 760 }}>
             <div className="modal-header">
               <h3>{editing ? '✎ 编辑节点' : '＋ 新增节点'}</h3>
               <button className="modal-close" onClick={closeModal}>×</button>
             </div>
             <div className="modal-body">
-              <div className="form-row"><div className="form-group" style={{ gridColumn: '1/-1' }}>
-                <label>节点名称 <span className="required">*</span></label>
-                <input value={form.dsName} onChange={e => updateField('dsName', e.target.value)} placeholder="例如：生产Oracle库" />
-              </div></div>
+              {/* 协议选择 */}
               <div className="form-row">
-                <div className="form-group">
-                  <label>数据库类型 <span className="required">*</span></label>
-                  <select value={form.dsType} onChange={e => { updateField('dsType', e.target.value); }}>
-                    <option value="ORACLE">Oracle</option>
-                    <option value="MYSQL">MySQL</option>
-                    <option value="POSTGRESQL">PostgreSQL</option>
-                    <option value="SQLSERVER">SQL Server</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>驱动类</label>
-                  <input value={form.driverClass} onChange={e => updateField('driverClass', e.target.value)} />
-                </div>
-              </div>
-              <div className="form-row"><div className="form-group" style={{ gridColumn: '1/-1' }}>
-                <label>JDBC URL <span className="required">*</span></label>
-                <input value={form.jdbcUrl} onChange={e => updateField('jdbcUrl', e.target.value)} placeholder="jdbc:oracle:thin:@host:1521/SID" />
-              </div></div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>用户名 <span className="required">*</span></label>
-                  <input value={form.username} onChange={e => updateField('username', e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label>密码</label>
-                  <input type="password" value={form.password} onChange={e => updateField('password', e.target.value)} placeholder={editing ? '留空不修改' : ''} />
+                <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                  <label>连接协议 <span className="required">*</span></label>
+                  <div className="protocol-selector" style={{ display: 'flex', gap: 8 }}>
+                    {PROTOCOLS.map(p => (
+                      <button
+                        key={p.value}
+                        type="button"
+                        onClick={() => handleProtocolChange(p.value)}
+                        className={`btn ${formProtocol === p.value ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                        style={{ flex: 1 }}
+                      >
+                        <span style={{ marginRight: 4 }}>{p.icon}</span> {p.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
+
+              {/* 基础信息 */}
               <div className="form-row">
-                <div className="form-group"><label>初始连接</label><input type="number" value={form.initialSize} onChange={e => updateField('initialSize', parseInt(e.target.value))} /></div>
-                <div className="form-group"><label>最小空闲</label><input type="number" value={form.minIdle} onChange={e => updateField('minIdle', parseInt(e.target.value))} /></div>
+                <div className="form-group">
+                  <label>节点名称 <span className="required">*</span></label>
+                  <input value={form.dsName} onChange={e => update('dsName', e.target.value)}
+                    placeholder={formProtocol === 'JDBC' ? '例如：生产Oracle库' : '例如：用户查询接口'} />
+                </div>
+                {formProtocol === 'JDBC' && (
+                  <div className="form-group">
+                    <label>数据库类型 <span className="required">*</span></label>
+                    <select value={form.dsType} onChange={e => handleDbTypeChange(e.target.value)}>
+                      {DS_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                  </div>
+                )}
+                {formProtocol !== 'JDBC' && (
+                  <div className="form-group">
+                    <label>编码</label>
+                    <select value={form.encoding || 'UTF-8'} onChange={e => update('encoding', e.target.value)}>
+                      <option value="UTF-8">UTF-8</option>
+                      <option value="GBK">GBK</option>
+                      <option value="ISO-8859-1">ISO-8859-1</option>
+                    </select>
+                  </div>
+                )}
               </div>
+
+              {/* JDBC 配置 */}
+              {formProtocol === 'JDBC' && (
+                <>
+                  <div className="form-row">
+                    <div className="form-group"><label>驱动类</label><input value={form.driverClass} onChange={e => update('driverClass', e.target.value)} /></div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                      <label>JDBC URL <span className="required">*</span></label>
+                      <input value={form.jdbcUrl} onChange={e => update('jdbcUrl', e.target.value)} placeholder="jdbc:oracle:thin:@host:1521/SID" />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>用户名 <span className="required">*</span></label>
+                      <input value={form.username} onChange={e => update('username', e.target.value)} />
+                    </div>
+                    <div className="form-group">
+                      <label>密码</label>
+                      <input type="password" value={form.password} onChange={e => update('password', e.target.value)} placeholder={editing ? '留空不修改' : ''} />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group"><label>初始连接</label><input type="number" value={form.initialSize || 5} onChange={e => update('initialSize', parseInt(e.target.value) || 5)} /></div>
+                    <div className="form-group"><label>最小空闲</label><input type="number" value={form.minIdle || 5} onChange={e => update('minIdle', parseInt(e.target.value) || 5)} /></div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group"><label>最大连接</label><input type="number" value={form.maxActive || 20} onChange={e => update('maxActive', parseInt(e.target.value) || 20)} /></div>
+                    <div className="form-group"><label>最大等待(ms)</label><input type="number" value={form.maxWait || 60000} onChange={e => update('maxWait', parseInt(e.target.value) || 60000)} /></div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                      <label>验证 SQL</label>
+                      <input value={form.validationQuery || ''} onChange={e => update('validationQuery', e.target.value)} />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* HTTP / SOAP 配置 */}
+              {(formProtocol === 'HTTP' || formProtocol === 'SOAP') && (
+                <>
+                  <div className="form-row">
+                    <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                      <label>{formProtocol === 'SOAP' ? 'SOAP Endpoint URL' : 'API URL'} <span className="required">*</span></label>
+                      <input value={form.jdbcUrl} onChange={e => update('jdbcUrl', e.target.value)}
+                        placeholder={formProtocol === 'HTTP' ? 'https://api.example.com/data' : 'http://host:port/service?wsdl'} />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>认证方式</label>
+                      <select value={form.authType || 'NONE'} onChange={e => update('authType', e.target.value)}>
+                        <option value="NONE">无认证</option>
+                        <option value="BASIC">Basic Auth</option>
+                        <option value="TOKEN">Bearer Token</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>超时(ms)</label>
+                      <input type="number" value={form.timeout || 30000} onChange={e => update('timeout', parseInt(e.target.value) || 30000)} />
+                    </div>
+                  </div>
+                  {(form.authType === 'BASIC') && (
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>认证用户名</label>
+                        <input value={form.username || ''} onChange={e => update('username', e.target.value)} />
+                      </div>
+                      <div className="form-group">
+                        <label>认证密码</label>
+                        <input type="password" value={form.password || ''} onChange={e => update('password', e.target.value)} placeholder={editing ? '留空不修改' : ''} />
+                      </div>
+                    </div>
+                  )}
+                  {(form.authType === 'TOKEN') && (
+                    <div className="form-row">
+                      <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                        <label>Bearer Token</label>
+                        <input value={form.authToken || ''} onChange={e => update('authToken', e.target.value)} placeholder="eyJ..." />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* 文件配置 */}
+              {formProtocol === 'FILE' && (
+                <div className="form-row">
+                  <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                    <label>文件根路径</label>
+                    <input value={form.jdbcUrl} onChange={e => update('jdbcUrl', e.target.value)} placeholder="D:/data/csv/" />
+                  </div>
+                </div>
+              )}
+
               <div className="form-row">
-                <div className="form-group"><label>最大连接</label><input type="number" value={form.maxActive} onChange={e => updateField('maxActive', parseInt(e.target.value))} /></div>
-                <div className="form-group"><label>最大等待(ms)</label><input type="number" value={form.maxWait} onChange={e => updateField('maxWait', parseInt(e.target.value))} /></div>
+                <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                  <label>描述</label>
+                  <textarea value={form.description || ''} onChange={e => update('description', e.target.value)} rows={2} />
+                </div>
               </div>
-              <div className="form-row"><div className="form-group" style={{ gridColumn: '1/-1' }}>
-                <label>验证 SQL</label>
-                <input value={form.validationQuery} onChange={e => updateField('validationQuery', e.target.value)} />
-              </div></div>
-              <div className="form-row"><div className="form-group" style={{ gridColumn: '1/-1' }}>
-                <label>描述</label>
-                <textarea value={form.description} onChange={e => updateField('description', e.target.value)} rows={2} />
-              </div></div>
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={closeModal}>取消</button>
-              <button className="btn btn-primary" onClick={handleSave} disabled={saving}>{saving ? '保存中...' : '确认保存'}</button>
+              <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                {saving ? '保存中...' : '确认保存'}
+              </button>
             </div>
           </div>
         </div>
