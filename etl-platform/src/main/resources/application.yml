@@ -3,6 +3,9 @@ spring:
     name: etl-platform
   profiles:
     active: dev
+  # 外部运行时覆盖配置：jar 同目录 ./config/application.yml 优先于 jar 内配置（含 profile 文件），不存在则跳过
+  config:
+    additional-location: optional:file:./config/
 
 server:
   port: 18880

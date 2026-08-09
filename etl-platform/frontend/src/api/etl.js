@@ -134,6 +134,14 @@ export const StepAPI = {
   deleteMapping: (stepId, mappingId) => request(`${API_BASE}step/${stepId}/mapping/${mappingId}`, { method: 'DELETE' }),
 };
 
+export const SystemSettingsAPI = {
+  get: () => request(`${API_BASE}settings`),
+  save: (data) => request(`${API_BASE}settings`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+};
+
 // ── 抽取测试请求构造（从管线步骤的 sourceConfig 解析，供映射页/管线页复用）──
 export function getStepSourceConfig(step, key, defaultVal = '') {
   try { const c = JSON.parse(step.sourceConfig || '{}'); return c[key] !== undefined ? c[key] : defaultVal; }

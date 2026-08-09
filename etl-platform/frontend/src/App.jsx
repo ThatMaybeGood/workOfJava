@@ -8,6 +8,7 @@ import Task from './pages/Task';
 import Pipeline from './pages/Pipeline';
 import Mapping from './pages/Mapping';
 import Log from './pages/Log';
+import Settings from './pages/Settings';
 
 function PrivateRoute({ children }) {
   const { user } = useAuth();
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="task" element={<Task />} />
         <Route path="mapping" element={<Mapping />} />
         <Route path="log" element={<Log />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

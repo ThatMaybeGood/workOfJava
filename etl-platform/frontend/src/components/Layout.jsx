@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/pipeline', icon: '⛁', label: '管线编排' },
   { to: '/mapping', icon: '▣', label: '字段映射' },
   { to: '/log', icon: '◎', label: '执行日志' },
+  { to: '/settings', icon: '⚙', label: '系统设置', adminOnly: true },
 ];
 
 export default function Layout() {
@@ -32,7 +33,7 @@ export default function Layout() {
         <nav className="sidebar-nav">
           <div className="nav-section">
             <div className="nav-section-title">核心模块</div>
-            {NAV_ITEMS.map(item => (
+            {NAV_ITEMS.filter(item => !item.adminOnly || user?.role === 'admin').map(item => (
               <NavLink
                 key={item.to}
                 to={item.to}
