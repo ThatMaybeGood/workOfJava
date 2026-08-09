@@ -42,6 +42,10 @@ public class WebServiceReader implements DataSourceReader {
     @Override
     public void init(EtlTaskConfig task, DataSourceManager dataSourceManager) {
         this.taskConfig = task;
+
+        // 如果任务未配置 httpUrl，从数据源节点回退读取
+        resolveFromDatasourceConfig(task, dataSourceManager);
+
         int timeout = task.getHttpTimeout() != null ? task.getHttpTimeout() : 60000;
         this.httpClient = HttpClients.custom()
                 .setDefaultRequestConfig(RequestConfig.custom()
@@ -49,6 +53,28 @@ public class WebServiceReader implements DataSourceReader {
                         .setResponseTimeout(Timeout.ofMilliseconds(timeout))
                         .build())
                 .build();
+    }
+
+    /**
+     * 当任务未独立配置 SOAP 连接参数时，尝试从数据源节点回退填充。
+     */
+    private void resolveFromDatasourceConfig(EtlTaskConfig task, DataSourceManager dataSourceManager) {
+        String dsName = task.getSourceDsName();
+        if (dsName == null || dsName.trim().isEmpty()) {
+            return;
+        }
+        DatasourceConfig dsConfig = dataSourceManager.getConfig(dsName);
+        if (dsConfig == null) {
+            return;
+        }
+        // 仅当任务未设置时从节点回退 URL
+        if (task.getHttpUrl() == null || task.getHttpUrl().trim().isEmpty()) {
+            task.setHttpUrl(dsConfig.getJdbcUrl());
+        }
+        // 回退超时
+        if (task.getHttpTimeout() == null || task.getHttpTimeout() <= 0) {
+            task.setHttpTimeout(dsConfig.getTimeout() != null ? dsConfig.getTimeout() : 60000);
+        }
     }
 
     @Override

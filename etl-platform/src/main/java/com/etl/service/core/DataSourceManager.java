@@ -120,6 +120,13 @@ public class DataSourceManager {
         }
     }
 
+    /**
+     * 根据名称获取数据源配置（不初始化连接池）。
+     */
+    public DatasourceConfig getConfig(String dsName) {
+        return datasourceConfigService.getByName(dsName);
+    }
+
     public void removeDataSource(String dsName) {
         DruidDataSource ds = dataSourceMap.remove(dsName);
         jdbcTemplateMap.remove(dsName);

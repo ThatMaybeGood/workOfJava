@@ -8,6 +8,7 @@ import com.etl.util.JsonUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.core5.util.Timeout;
@@ -18,6 +19,7 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.springframework.stereotype.Component;
@@ -35,6 +37,18 @@ public class HttpReader implements DataSourceReader {
     private int currentPage = 0;
     private boolean hasMore = true;
 
+    /** 最后一次请求的原始响应信息 */
+    @Getter
+    private String lastRawResponse;
+    @Getter
+    private int lastStatusCode;
+    @Getter
+    private Map<String, String> lastResponseHeaders;
+    @Getter
+    private String lastRequestUrl;
+    @Getter
+    private String lastRequestMethod;
+
     @Override
     public String getSourceType() {
         return "HTTP";
@@ -44,6 +58,10 @@ public class HttpReader implements DataSourceReader {
     public void init(EtlTaskConfig task, DataSourceManager dataSourceManager) {
         this.taskConfig = task;
         this.dataSourceManager = dataSourceManager;
+
+        // 如果任务未配置 httpUrl，从数据源节点回退读取
+        resolveFromDatasourceConfig(task, dataSourceManager);
+
         this.httpClient = HttpClients.custom()
                 .setDefaultRequestConfig(
                         RequestConfig.custom()
@@ -54,6 +72,46 @@ public class HttpReader implements DataSourceReader {
                 .build();
         this.currentPage = 0;
         this.hasMore = true;
+    }
+
+    /**
+     * 当任务未独立配置 HTTP 连接参数时，尝试从数据源节点回退填充。
+     */
+    private void resolveFromDatasourceConfig(EtlTaskConfig task, DataSourceManager dataSourceManager) {
+        String dsName = task.getSourceDsName();
+        if (dsName == null || dsName.trim().isEmpty()) {
+            return;
+        }
+        DatasourceConfig dsConfig = dataSourceManager.getConfig(dsName);
+        if (dsConfig == null) {
+            return;
+        }
+        // 仅当任务未设置时从节点回退 URL
+        if (task.getHttpUrl() == null || task.getHttpUrl().trim().isEmpty()) {
+            task.setHttpUrl(dsConfig.getJdbcUrl());
+        }
+        // 回退认证信息
+        if (task.getHttpAuthType() == null || "NONE".equals(task.getHttpAuthType())) {
+            if (dsConfig.getAuthType() != null && !"NONE".equals(dsConfig.getAuthType())) {
+                task.setHttpAuthType(dsConfig.getAuthType());
+                if ("BASIC".equals(dsConfig.getAuthType())) {
+                    if (task.getHttpUsername() == null || task.getHttpUsername().trim().isEmpty()) {
+                        task.setHttpUsername(dsConfig.getUsername());
+                    }
+                    if (task.getHttpPassword() == null || task.getHttpPassword().trim().isEmpty()) {
+                        task.setHttpPassword(dsConfig.getPassword());
+                    }
+                } else if ("TOKEN".equals(dsConfig.getAuthType())) {
+                    if (task.getHttpToken() == null || task.getHttpToken().trim().isEmpty()) {
+                        task.setHttpToken(dsConfig.getAuthToken());
+                    }
+                }
+            }
+        }
+        // 回退超时
+        if (task.getHttpTimeout() == null || task.getHttpTimeout() <= 0) {
+            task.setHttpTimeout(dsConfig.getTimeout() != null ? dsConfig.getTimeout() : 30000);
+        }
     }
 
     @Override
@@ -88,6 +146,10 @@ public class HttpReader implements DataSourceReader {
             String url = buildUrl();
             String method = taskConfig.getHttpMethod() != null ? taskConfig.getHttpMethod().toUpperCase() : "GET";
 
+            // 记录请求信息
+            this.lastRequestUrl = url;
+            this.lastRequestMethod = method;
+
             HttpUriRequestBase request;
             if ("POST".equals(method)) {
                 request = new HttpPost(url);
@@ -113,13 +175,26 @@ public class HttpReader implements DataSourceReader {
             }
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
+                // 记录原始响应信息
+                this.lastStatusCode = response.getCode();
+                this.lastResponseHeaders = new HashMap<>();
+                Header[] respHeaders = response.getHeaders();
+                if (respHeaders != null) {
+                    for (Header h : respHeaders) {
+                        lastResponseHeaders.put(h.getName(), h.getValue());
+                    }
+                }
+
                 HttpEntity entity = response.getEntity();
                 String body = EntityUtils.toString(entity, StandardCharsets.UTF_8);
+                this.lastRawResponse = body;
 
                 return parseResponse(body);
             }
         } catch (Exception e) {
             log.error("HTTP请求失败", e);
+            this.lastRawResponse = null;
+            this.lastStatusCode = 0;
             throw new RuntimeException("HTTP请求失败: " + e.getMessage(), e);
         }
     }
@@ -305,13 +380,25 @@ public class HttpReader implements DataSourceReader {
     @Override
     public boolean testConnection(DatasourceConfig config, DataSourceManager dataSourceManager) {
         try {
-            CloseableHttpClient client = HttpClients.createDefault();
-            HttpGet request = new HttpGet(config.getJdbcUrl());
-            try (CloseableHttpResponse response = client.execute(request)) {
-                return response.getCode() < 400;
+            int timeout = config.getTimeout() != null ? config.getTimeout() : 10000;
+            try (CloseableHttpClient client = HttpClients.custom()
+                    .setDefaultRequestConfig(RequestConfig.custom()
+                            .setConnectTimeout(Timeout.ofMilliseconds(timeout))
+                            .setResponseTimeout(Timeout.ofMilliseconds(timeout))
+                            .build())
+                    .build()) {
+
+                // 使用 GET 测试可达性，即使 API 要求 POST，至少能知道服务是否在线
+                HttpGet request = new HttpGet(config.getJdbcUrl());
+                try (CloseableHttpResponse response = client.execute(request)) {
+                    int code = response.getCode();
+                    // 接受 2xx/3xx/4xx 作为可达（405 Method Not Allowed 等说明服务存在）
+                    log.info("HTTP连接测试: {} -> 状态码 {}", config.getJdbcUrl(), code);
+                    return code > 0;
+                }
             }
         } catch (Exception e) {
-            log.warn("HTTP连接测试失败", e);
+            log.warn("HTTP连接测试失败: {}", config.getJdbcUrl(), e);
             return false;
         }
     }

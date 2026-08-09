@@ -30,7 +30,7 @@ const EMPTY_TASK = {
 
 export default function Task() {
   const [list, setList] = useState([]);
-  const [dsNames, setDsNames] = useState([]);
+  const [dsList, setDsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -49,7 +49,7 @@ export default function Task() {
     try {
       const [taskRes, dsRes] = await Promise.all([TaskAPI.list(), DataSourceAPI.list()]);
       if (taskRes.success) setList(taskRes.data || []);
-      if (dsRes.success) setDsNames(dsRes.data.map(d => d.dsName));
+      if (dsRes.success) setDsList(dsRes.data || []);
     } catch (e) { addToast('加载失败: ' + e.message, 'error'); }
     finally { setLoading(false); }
   }, [addToast]);
@@ -70,6 +70,35 @@ export default function Task() {
 
   const closeModal = () => setModalOpen(false);
   const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+
+  // 过滤指定协议的数据源节点名称
+  const getDsNamesByProtocol = (protocol) =>
+    dsList.filter(d => (d.protocol || 'JDBC') === protocol).map(d => d.dsName);
+
+  // 选中数据源节点时自动填充连接参数
+  const handleDsNodeChange = (dsName) => {
+    update('sourceDsName', dsName);
+    if (!dsName) return;
+    const ds = dsList.find(d => d.dsName === dsName);
+    if (!ds) return;
+    const st = form.sourceType;
+    if (st === 'HTTP' || st === 'SOAP') {
+      if (ds.jdbcUrl) update('httpUrl', ds.jdbcUrl);
+      if (ds.authType && ds.authType !== 'NONE') {
+        update('httpAuthType', ds.authType);
+        if (ds.authType === 'BASIC') {
+          if (ds.username) update('httpUsername', ds.username);
+          if (ds.password) update('httpPassword', ds.password);
+        } else if (ds.authType === 'TOKEN') {
+          if (ds.authToken) update('httpToken', ds.authToken);
+        }
+      }
+      if (ds.timeout) update('httpTimeout', ds.timeout);
+    }
+    if (st === 'FILE') {
+      if (ds.jdbcUrl) update('filePath', ds.jdbcUrl);
+    }
+  };
 
   const handleSave = async () => {
     if (!form.taskCode || !form.taskName || !form.targetTable) {
@@ -245,7 +274,7 @@ export default function Task() {
                     <label>目标数据源</label>
                     <select value={form.targetDsName} onChange={e => update('targetDsName', e.target.value)}>
                       <option value="">请选择</option>
-                      {dsNames.map(n => <option key={n} value={n}>{n}</option>)}
+                      {dsList.map(d => <option key={d.dsName} value={d.dsName}>{d.dsName}</option>)}
                     </select>
                   </div>
                   <div className="form-group">
@@ -310,7 +339,7 @@ export default function Task() {
                         <label>源数据源</label>
                         <select value={form.sourceDsName} onChange={e => update('sourceDsName', e.target.value)}>
                           <option value="">请选择数据库数据源</option>
-                          {dsNames.map(n => <option key={n} value={n}>{n}</option>)}
+                          {getDsNamesByProtocol('JDBC').map(n => <option key={n} value={n}>{n}</option>)}
                         </select>
                       </div>
                     </div>
@@ -356,6 +385,15 @@ export default function Task() {
                 {/* ── HTTP 类型配置 ── */}
                 {isHttp && (
                   <>
+                    <div className="form-row">
+                      <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                        <label>源数据源节点（可选，选择后自动填充）</label>
+                        <select value={form.sourceDsName || ''} onChange={e => handleDsNodeChange(e.target.value)}>
+                          <option value="">手动填写（不引用节点）</option>
+                          {getDsNamesByProtocol('HTTP').map(n => <option key={n} value={n}>{n}</option>)}
+                        </select>
+                      </div>
+                    </div>
                     <div className="form-row">
                       <div className="form-group" style={{ gridColumn: '1/-1' }}>
                         <label>请求 URL <span className="required">*</span></label>
@@ -452,6 +490,15 @@ export default function Task() {
                   <>
                     <div className="form-row">
                       <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                        <label>源数据源节点（可选，选择后自动填充）</label>
+                        <select value={form.sourceDsName || ''} onChange={e => handleDsNodeChange(e.target.value)}>
+                          <option value="">手动填写（不引用节点）</option>
+                          {getDsNamesByProtocol('SOAP').map(n => <option key={n} value={n}>{n}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group" style={{ gridColumn: '1/-1' }}>
                         <label>Endpoint URL <span className="required">*</span></label>
                         <input value={form.httpUrl || ''} onChange={e => update('httpUrl', e.target.value)} placeholder="http://host:port/service" />
                       </div>
@@ -505,9 +552,20 @@ export default function Task() {
 
                 {/* ── 文件类型配置 ── */}
                 {isFile && (
-                  <div className="form-row">
-                    <div className="form-group"><label>文件路径</label><input value={form.filePath || ''} onChange={e => update('filePath', e.target.value)} /></div>
-                  </div>
+                  <>
+                    <div className="form-row">
+                      <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                        <label>源数据源节点（可选，选择后自动填充）</label>
+                        <select value={form.sourceDsName || ''} onChange={e => handleDsNodeChange(e.target.value)}>
+                          <option value="">手动填写（不引用节点）</option>
+                          {getDsNamesByProtocol('FILE').map(n => <option key={n} value={n}>{n}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group"><label>文件路径</label><input value={form.filePath || ''} onChange={e => update('filePath', e.target.value)} /></div>
+                    </div>
+                  </>
                 )}
 
                 {/* ── 抽取测试区域 ── */}
@@ -573,6 +631,33 @@ export default function Task() {
                               </div>
                             )}
                           </div>
+                        )}
+                        {/* 原始 HTTP 响应 */}
+                        {testResult.rawResponse && (
+                          <details style={{ marginTop: 8 }}>
+                            <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--accent-cyan)' }}>▶ 原始 HTTP 响应
+                              {testResult.statusCode && <span className={`tag ${testResult.statusCode < 400 ? 'tag-green' : 'tag-red'}`} style={{ marginLeft: 8, fontSize: 11 }}>{testResult.statusCode}</span>}
+                              {testResult.finalMethod && <span className="tag tag-blue" style={{ marginLeft: 4, fontSize: 11 }}>{testResult.finalMethod}</span>}
+                            </summary>
+                            <div style={{ marginTop: 6 }}>
+                              {testResult.finalUrl && (
+                                <div style={{ fontSize: 11, marginBottom: 6, wordBreak: 'break-all' }}>
+                                  <span className="text-muted">URL: </span>
+                                  <span className="text-mono">{testResult.finalUrl}</span>
+                                </div>
+                              )}
+                              <pre style={{
+                                background: 'var(--bg-card)', border: '1px solid var(--border-dim)',
+                                borderRadius: 8, padding: 10, maxHeight: 300, overflow: 'auto',
+                                fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'pre-wrap', wordBreak: 'break-all'
+                              }}>
+                                {(() => {
+                                  try { return JSON.stringify(JSON.parse(testResult.rawResponse), null, 2); }
+                                  catch { return testResult.rawResponse; }
+                                })()}
+                              </pre>
+                            </div>
+                          </details>
                         )}
                       </div>
                     )}
