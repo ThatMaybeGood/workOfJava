@@ -23,7 +23,7 @@ const EMPTY_DS = {
   initialSize: 5, minIdle: 5, maxActive: 20, maxWait: 60000,
   validationQuery: 'SELECT 1 FROM DUAL',
   authType: 'NONE', authToken: '', timeout: 30000,
-  encoding: 'UTF-8', description: '',
+  encoding: 'UTF-8', enabled: 'Y', description: '',
 };
 
 export default function Datasource() {
@@ -101,13 +101,22 @@ export default function Datasource() {
     if (!form.jdbcUrl) { addToast('请填写连接地址', 'error'); return; }
 
     const protocol = form.protocol || 'JDBC';
-    if (protocol === 'JDBC' && !form.username) {
-      addToast('请填写用户名', 'error'); return;
+    if (protocol === 'JDBC') {
+      if (!form.username) { addToast('请填写用户名', 'error'); return; }
+      if (!form.dsType) { addToast('请选择数据库类型', 'error'); return; }
+    }
+    if ((protocol === 'HTTP' || protocol === 'SOAP') && form.authType === 'BASIC') {
+      if (!form.username) { addToast('Basic认证需要填写用户名', 'error'); return; }
     }
 
     setSaving(true);
     try {
       const data = { ...form };
+      // 非JDBC协议确保username和password有默认值
+      if (protocol !== 'JDBC') {
+        data.username = data.username || '';
+        data.password = data.password || '';
+      }
       if (editing) data.id = editing;
       const res = await DataSourceAPI.save(data);
       if (res.success) {
@@ -351,6 +360,15 @@ export default function Datasource() {
                 </div>
               )}
 
+              <div className="form-row">
+                <div className="form-group">
+                  <label>状态</label>
+                  <select value={form.enabled || 'Y'} onChange={e => update('enabled', e.target.value)}>
+                    <option value="Y">启用</option>
+                    <option value="N">禁用</option>
+                  </select>
+                </div>
+              </div>
               <div className="form-row">
                 <div className="form-group" style={{ gridColumn: '1/-1' }}>
                   <label>描述</label>

@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { MonitorAPI, TaskAPI } from '../api/etl';
+import { MonitorAPI, PipelineAPI } from '../api/etl';
 import { useToast } from '../components/useToast';
 
 export default function Log() {
-  const [tasks, setTasks] = useState([]);
+  const [pipelines, setPipelines] = useState([]);
   const [allLogs, setAllLogs] = useState([]);
   const [filteredLogs, setFilteredLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [taskFilter, setTaskFilter] = useState('');
+  const [pipelineFilter, setPipelineFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [searchText, setSearchText] = useState('');
   const [expanded, setExpanded] = useState({});
@@ -16,20 +16,13 @@ export default function Log() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [taskRes] = await Promise.all([TaskAPI.list()]);
-      const taskList = taskRes.success ? (taskRes.data || []) : [];
-      setTasks(taskList);
-
-      const logs = [];
-      for (const task of taskList) {
-        try {
-          const res = await MonitorAPI.getLogs(task.taskCode);
-          if (res.success && res.data) logs.push(...res.data);
-        } catch {}
-      }
-      logs.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-      setAllLogs(logs);
-      setFilteredLogs(logs);
+      const [pipeRes, logRes] = await Promise.all([
+        PipelineAPI.list(),
+        MonitorAPI.getAllLogs(500),
+      ]);
+      if (pipeRes.success) setPipelines(pipeRes.data || []);
+      if (logRes.success) setAllLogs(logRes.data || []);
+      setFilteredLogs(logRes.success ? (logRes.data || []) : []);
     } catch (e) { addToast('加载失败: ' + e.message, 'error'); }
     finally { setLoading(false); }
   }, [addToast]);
@@ -38,7 +31,7 @@ export default function Log() {
 
   useEffect(() => {
     let result = allLogs;
-    if (taskFilter) result = result.filter(l => l.taskCode === taskFilter);
+    if (pipelineFilter) result = result.filter(l => l.taskCode === pipelineFilter);
     if (statusFilter) result = result.filter(l => l.status === statusFilter);
     if (searchText) {
       const lower = searchText.toLowerCase();
@@ -48,7 +41,7 @@ export default function Log() {
       );
     }
     setFilteredLogs(result);
-  }, [taskFilter, statusFilter, searchText, allLogs]);
+  }, [pipelineFilter, statusFilter, searchText, allLogs]);
 
   const toggleExpand = (idx) => {
     setExpanded(prev => ({ ...prev, [idx]: !prev[idx] }));
@@ -68,9 +61,9 @@ export default function Log() {
 
       <div className="content-area">
         <div className="filter-bar">
-          <select value={taskFilter} onChange={e => setTaskFilter(e.target.value)}>
-            <option value="">所有引擎</option>
-            {tasks.map(t => <option key={t.taskCode} value={t.taskCode}>{t.taskCode} — {t.taskName}</option>)}
+          <select value={pipelineFilter} onChange={e => setPipelineFilter(e.target.value)}>
+            <option value="">所有管线</option>
+            {pipelines.map(p => <option key={p.pipelineCode} value={p.pipelineCode}>{p.pipelineCode} — {p.pipelineName}</option>)}
           </select>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
             <option value="">所有状态</option>
@@ -78,7 +71,7 @@ export default function Log() {
             <option value="SUCCESS">成功</option>
             <option value="FAILED">失败</option>
           </select>
-          <input type="text" placeholder="搜索任务编码或名称..." value={searchText} onChange={e => setSearchText(e.target.value)} />
+          <input type="text" placeholder="搜索管线编码或名称..." value={searchText} onChange={e => setSearchText(e.target.value)} />
         </div>
 
         <div className="card">
@@ -88,8 +81,8 @@ export default function Log() {
                 <thead>
                   <tr>
                     <th>流水号</th>
-                    <th>任务编码</th>
-                    <th>任务名称</th>
+                    <th>管线编码</th>
+                    <th>管线名称</th>
                     <th>状态</th>
                     <th>触发类型</th>
                     <th>开始时间</th>
@@ -129,8 +122,8 @@ export default function Log() {
                           <td colSpan={9} style={{ background: 'var(--bg-surface)', padding: 20 }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px 24px', fontSize: 13 }}>
                               <div><span className="text-muted">执行ID：</span><span className="text-mono">{log.executionId || '-'}</span></div>
-                              <div><span className="text-muted">任务编码：</span><span className="text-cyan" style={{ fontWeight: 600 }}>{log.taskCode}</span></div>
-                              <div><span className="text-muted">任务名称：</span>{log.taskName || '-'}</div>
+                              <div><span className="text-muted">管线编码：</span><span className="text-cyan" style={{ fontWeight: 600 }}>{log.taskCode}</span></div>
+                              <div><span className="text-muted">管线名称：</span>{log.taskName || '-'}</div>
                               <div><span className="text-muted">开始时间：</span>{log.startTime ? new Date(log.startTime).toLocaleString('zh-CN') : '-'}</div>
                               <div><span className="text-muted">结束时间：</span>{log.endTime ? new Date(log.endTime).toLocaleString('zh-CN') : '-'}</div>
                               <div><span className="text-muted">耗时：</span><span className="text-mono">{formatDur(log.executionDuration)}</span></div>

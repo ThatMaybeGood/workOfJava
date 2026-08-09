@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TaskAPI, DataSourceAPI, MonitorAPI } from '../api/etl';
+import { PipelineAPI, DataSourceAPI, MonitorAPI } from '../api/etl';
 import { useToast } from '../components/useToast';
 
 const StatCard = ({ color, icon, value, label }) => (
@@ -28,36 +28,26 @@ export default function Dashboard() {
   async function loadData() {
     setLoading(true);
     try {
-      const [tasksRes, dsRes] = await Promise.all([
-        TaskAPI.list(),
+      const [pipeRes, dsRes, logRes] = await Promise.all([
+        PipelineAPI.list(),
         DataSourceAPI.list(),
+        MonitorAPI.getAllLogs(50),
       ]);
-      const taskList = tasksRes.success ? (tasksRes.data || []) : [];
+      const pipelineList = pipeRes.success ? (pipeRes.data || []) : [];
       const dsList = dsRes.success ? (dsRes.data || []) : [];
+      const allLogs = logRes.success ? (logRes.data || []) : [];
 
       let successCount = 0, failedCount = 0, runningCount = 0;
-      const allLogs = [];
-
-      for (const task of taskList) {
-        try {
-          const logRes = await MonitorAPI.getLogs(task.taskCode);
-          if (logRes.success && logRes.data) {
-            for (const log of logRes.data) {
-              allLogs.push(log);
-              if (log.status === 'SUCCESS') successCount++;
-              else if (log.status === 'FAILED') failedCount++;
-              else if (log.status === 'RUNNING') runningCount++;
-            }
-          }
-        } catch {}
+      for (const log of allLogs) {
+        if (log.status === 'SUCCESS') successCount++;
+        else if (log.status === 'FAILED') failedCount++;
+        else if (log.status === 'RUNNING') runningCount++;
       }
 
-      allLogs.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-
       setStats({
-        totalTasks: taskList.length,
+        totalTasks: pipelineList.length,
         datasources: dsList.length,
-        scheduled: taskList.filter(t => t.cronExpr).length,
+        scheduled: pipelineList.filter(p => p.cronExpr).length,
         running: runningCount,
         success: successCount,
         failed: failedCount,
@@ -101,8 +91,8 @@ export default function Dashboard() {
 
       <div className="content-area">
         <div className="stats-grid">
-          <StatCard color="cyan" icon="◈" value={stats.totalTasks} label="引擎总数" />
-          <StatCard color="blue" icon="▶" value={stats.running} label="活跃任务" />
+          <StatCard color="cyan" icon="◈" value={stats.totalTasks} label="管线总数" />
+          <StatCard color="blue" icon="▶" value={stats.running} label="活跃执行" />
           <StatCard color="green" icon="◆" value={stats.success} label="执行成功" />
           <StatCard color="red" icon="✕" value={stats.failed} label="执行失败" />
           <StatCard color="purple" icon="⬡" value={stats.datasources} label="数据节点" />
@@ -120,8 +110,8 @@ export default function Dashboard() {
                 <thead>
                   <tr>
                     <th>流水号</th>
-                    <th>任务编码</th>
-                    <th>任务名称</th>
+                    <th>管线编码</th>
+                    <th>管线名称</th>
                     <th>状态</th>
                     <th>开始时间</th>
                     <th>耗时</th>
@@ -131,7 +121,7 @@ export default function Dashboard() {
                 <tbody>
                   {recentLogs.length === 0 ? (
                     <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
-                      暂无执行记录 — 创建并运行你的第一个 ETL 任务
+                      暂无执行记录 — 创建并运行你的第一个 ETL 管线
                     </td></tr>
                   ) : recentLogs.map((log, i) => (
                     <tr key={i}>
@@ -161,8 +151,8 @@ export default function Dashboard() {
           <button className="btn btn-primary" onClick={() => navigate('/datasource')}>
             ＋ 新增数据节点
           </button>
-          <button className="btn btn-secondary" onClick={() => navigate('/task')}>
-            ＋ 创建采集任务
+          <button className="btn btn-secondary" onClick={() => navigate('/pipeline')}>
+            ＋ 新建管线
           </button>
         </div>
       </div>

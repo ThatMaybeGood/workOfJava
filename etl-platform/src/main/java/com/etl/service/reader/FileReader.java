@@ -1,5 +1,6 @@
 package com.etl.service.reader;
 
+import com.etl.dto.StepConfig;
 import com.etl.entity.DatasourceConfig;
 import com.etl.entity.EtlTaskConfig;
 import com.etl.service.core.DataSourceManager;
@@ -47,6 +48,20 @@ public class FileReader implements DataSourceReader {
         } catch (Exception e) {
             throw new RuntimeException("初始化文件读取器失败", e);
         }
+    }
+
+    @Override
+    public void initWithConfig(StepConfig config, DataSourceManager dataSourceManager) {
+        EtlTaskConfig task = new EtlTaskConfig();
+        task.setSourceDsName(config.getSourceDsName());
+        task.setSourceType(config.getSourceType());
+        task.setFilePath(config.getFilePath());
+        task.setFileFormat(config.getFileFormat());
+        task.setFileDelimiter(config.getFileDelimiter());
+        task.setFileEncoding(config.getFileEncoding());
+        task.setFileHeader(config.getFileHeader());
+        task.setFileSheetName(config.getFileSheetName());
+        this.init(task, dataSourceManager);
     }
 
     @Override

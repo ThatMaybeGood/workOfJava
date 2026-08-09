@@ -59,6 +59,16 @@ public class ExtractController {
             result.setFinalUrl(req.getUrl());
             result.setFinalMethod(req.getHttpMethod() != null ? req.getHttpMethod() : "GET");
 
+            // 捕获HTTP原始响应
+            if (reader instanceof com.etl.service.reader.HttpReader) {
+                com.etl.service.reader.HttpReader hr = (com.etl.service.reader.HttpReader) reader;
+                result.setRawResponse(hr.getLastRawResponse());
+                result.setStatusCode(hr.getLastStatusCode());
+                result.setResponseHeaders(hr.getLastResponseHeaders());
+                result.setFinalUrl(hr.getLastRequestUrl());
+                result.setFinalMethod(hr.getLastRequestMethod());
+            }
+
             reader.close();
             return ApiResponse.success(result, "抽取测试成功, 返回 " + result.getTotalRows() + " 条数据");
 
@@ -79,17 +89,20 @@ public class ExtractController {
             DataSourceReader reader = readerFactory.getReader(req.getSourceType());
             reader.init(task, dataSourceManager);
 
-            List<Map<String, Object>> data = reader.preview(req.getLimit() != null ? req.getLimit() : 10);
+            reader.preview(req.getLimit() != null ? req.getLimit() : 10);
+
+            // 从 HttpReader 获取原始响应
+            String rawBody = null;
+            if (reader instanceof com.etl.service.reader.HttpReader) {
+                com.etl.service.reader.HttpReader hr = (com.etl.service.reader.HttpReader) reader;
+                rawBody = hr.getLastRawResponse();
+            }
             reader.close();
 
-            // 将原始数据序列化返回
-            StringBuilder sb = new StringBuilder();
-            if (data != null) {
-                for (Map<String, Object> row : data) {
-                    sb.append(row.toString()).append("\n");
-                }
+            if (rawBody != null) {
+                return ApiResponse.success(rawBody, "原始响应获取成功");
             }
-            return ApiResponse.success(sb.toString(), "原始数据获取成功");
+            return ApiResponse.error("无法获取原始响应，请确认数据源为HTTP类型");
 
         } catch (Exception e) {
             log.error("获取原始响应失败", e);

@@ -17,12 +17,18 @@ public class WriterFactory {
     @Autowired
     private MergeWriter mergeWriter;
 
+    @Autowired
+    private FileWriter fileWriter;
+
     private final Map<String, DataWriter> writerMap = new HashMap<>();
 
     @PostConstruct
     public void init() {
         writerMap.put(insertWriter.getWriteMode(), insertWriter);
         writerMap.put(mergeWriter.getWriteMode(), mergeWriter);
+        writerMap.put("FILE_CSV", fileWriter);
+        writerMap.put("FILE_JSON", fileWriter);
+        writerMap.put("FILE_EXCEL", fileWriter);
     }
 
     public DataWriter getWriter(String writeMode) {

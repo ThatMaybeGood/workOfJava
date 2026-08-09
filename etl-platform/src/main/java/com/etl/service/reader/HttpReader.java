@@ -1,5 +1,6 @@
 package com.etl.service.reader;
 
+import com.etl.dto.StepConfig;
 import com.etl.entity.DatasourceConfig;
 import com.etl.entity.EtlTaskConfig;
 import com.etl.enums.HttpAuthType;
@@ -72,6 +73,35 @@ public class HttpReader implements DataSourceReader {
                 .build();
         this.currentPage = 0;
         this.hasMore = true;
+    }
+
+    @Override
+    public void initWithConfig(StepConfig config, DataSourceManager dataSourceManager) {
+        EtlTaskConfig task = new EtlTaskConfig();
+        task.setSourceDsName(config.getSourceDsName());
+        task.setSourceType(config.getSourceType());
+        task.setHttpUrl(config.getHttpUrl());
+        task.setHttpMethod(config.getHttpMethod());
+        task.setHttpHeaders(config.getHttpHeaders());
+        task.setHttpBody(config.getHttpBody());
+        task.setHttpAuthType(config.getHttpAuthType());
+        task.setHttpUsername(config.getHttpUsername());
+        task.setHttpPassword(config.getHttpPassword());
+        task.setHttpToken(config.getHttpToken());
+        task.setHttpResponseType(config.getHttpResponseType());
+        task.setHttpDataPath(config.getHttpDataPath());
+        task.setHttpPagination(config.getHttpPagination());
+        task.setHttpPageParam(config.getHttpPageParam());
+        task.setHttpSizeParam(config.getHttpSizeParam());
+        task.setHttpPageSize(config.getHttpPageSize());
+        task.setHttpTimeout(config.getHttpTimeout());
+        task.setHttpEncoding(config.getHttpEncoding());
+        task.setSoapAction(config.getSoapAction());
+        task.setSoapBinding(config.getSoapBinding());
+        task.setSoapNamespace(config.getSoapNamespace());
+        task.setBatchSize(config.getBatchSize());
+        task.setTimeoutSeconds(config.getTimeoutSeconds());
+        this.init(task, dataSourceManager);
     }
 
     /**

@@ -133,6 +133,17 @@ public class StepEngine {
             DataSourceReader reader = readerFactory.getReader(task.getSourceType());
             reader.init(task, dataSourceManager);
             List<Map<String, Object>> data = (limit > 0) ? reader.preview(limit) : reader.readAll();
+
+            // 捕获 HTTP/SOAP 原始响应
+            if (reader instanceof com.etl.service.reader.HttpReader) {
+                com.etl.service.reader.HttpReader hr = (com.etl.service.reader.HttpReader) reader;
+                step.setRawResponse(hr.getLastRawResponse());
+                step.setStatusCode(hr.getLastStatusCode());
+                step.setResponseHeaders(hr.getLastResponseHeaders());
+                step.setFinalUrl(hr.getLastRequestUrl());
+                step.setFinalMethod(hr.getLastRequestMethod());
+            }
+
             step.setStatus("SUCCESS");
             step.setOutputRows(data.size());
             step.setOutputColumns(collectColumns(data));

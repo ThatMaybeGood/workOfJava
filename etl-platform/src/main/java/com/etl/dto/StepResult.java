@@ -46,4 +46,16 @@ public class StepResult {
 
     /** 分流标记：失败后是否跳过（继续下一步） */
     private boolean nextOnFail;
+
+    // ── HTTP/SOAP 抽取原始响应信息 ──
+    /** 原始响应体（仅 HTTP/SOAP 抽取步骤） */
+    private String rawResponse;
+    /** 响应状态码 */
+    private Integer statusCode;
+    /** 响应头 */
+    private Map<String, String> responseHeaders;
+    /** 最终请求URL */
+    private String finalUrl;
+    /** 最终请求方法 */
+    private String finalMethod;
 }

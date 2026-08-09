@@ -1,6 +1,8 @@
 package com.etl.service.writer;
 
+import com.etl.dto.StepConfig;
 import com.etl.entity.EtlColumnMapping;
+import com.etl.entity.EtlStepColumnMapping;
 import com.etl.entity.EtlTaskConfig;
 import com.etl.service.core.DataSourceManager;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +39,36 @@ public class MergeWriter implements DataWriter {
             log.info("MERGE批次 {}/{}, 处理 {} 条数据", (i / batchSize) + 1,
                     (data.size() + batchSize - 1) / batchSize, batch.size());
         }
+    }
+
+    @Override
+    public void writeWithConfig(List<Map<String, Object>> data, StepConfig config,
+                                 List<EtlStepColumnMapping> mappings, DataSourceManager dataSourceManager) {
+        EtlTaskConfig task = new EtlTaskConfig();
+        task.setTargetDsName(config.getTargetDsName());
+        task.setTargetTable(config.getTargetTable());
+        task.setWriteMode(config.getWriteMode());
+        task.setBatchSize(config.getBatchSize());
+        List<EtlColumnMapping> oldMappings = convertMappings(mappings);
+        this.write(data, task, oldMappings, dataSourceManager);
+    }
+
+    private List<EtlColumnMapping> convertMappings(List<EtlStepColumnMapping> stepMappings) {
+        if (stepMappings == null) return null;
+        List<EtlColumnMapping> list = new ArrayList<>();
+        for (EtlStepColumnMapping sm : stepMappings) {
+            EtlColumnMapping m = new EtlColumnMapping();
+            m.setSourceColumn(sm.getSourceColumn());
+            m.setTargetColumn(sm.getTargetColumn());
+            m.setDataType(sm.getDataType());
+            m.setDefaultValue(sm.getDefaultValue());
+            m.setTransformExpr(sm.getTransformExpr());
+            m.setMappingOrder(sm.getMappingOrder());
+            m.setIsPrimaryKey(sm.getIsPrimaryKey());
+            m.setEnabled(sm.getEnabled());
+            list.add(m);
+        }
+        return list;
     }
 
     private void mergeBatch(JdbcTemplate jdbcTemplate, List<Map<String, Object>> batch,

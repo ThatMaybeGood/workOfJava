@@ -1,5 +1,6 @@
 package com.etl.service.reader;
 
+import com.etl.dto.StepConfig;
 import com.etl.entity.DatasourceConfig;
 import com.etl.entity.EtlTaskConfig;
 import com.etl.service.core.DataSourceManager;
@@ -53,6 +54,24 @@ public class WebServiceReader implements DataSourceReader {
                         .setResponseTimeout(Timeout.ofMilliseconds(timeout))
                         .build())
                 .build();
+    }
+
+    @Override
+    public void initWithConfig(StepConfig config, DataSourceManager dataSourceManager) {
+        EtlTaskConfig task = new EtlTaskConfig();
+        task.setSourceDsName(config.getSourceDsName());
+        task.setSourceType(config.getSourceType());
+        task.setHttpUrl(config.getHttpUrl());
+        task.setHttpMethod(config.getHttpMethod());
+        task.setHttpHeaders(config.getHttpHeaders());
+        task.setHttpBody(config.getHttpBody());
+        task.setHttpResponseType(config.getHttpResponseType());
+        task.setHttpDataPath(config.getHttpDataPath());
+        task.setHttpTimeout(config.getHttpTimeout());
+        task.setSoapAction(config.getSoapAction());
+        task.setSoapBinding(config.getSoapBinding());
+        task.setSoapNamespace(config.getSoapNamespace());
+        this.init(task, dataSourceManager);
     }
 
     /**

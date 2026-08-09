@@ -1,5 +1,6 @@
 package com.etl.service.reader;
 
+import com.etl.dto.StepConfig;
 import com.etl.entity.DatasourceConfig;
 import com.etl.entity.EtlTaskConfig;
 import com.etl.service.core.DataSourceManager;
@@ -25,6 +26,21 @@ public abstract class AbstractJdbcReader implements DataSourceReader {
         this.taskConfig = task;
         this.dataSourceManager = dataSourceManager;
         this.jdbcTemplate = dataSourceManager.getJdbcTemplate(task.getSourceDsName());
+    }
+
+    @Override
+    public void initWithConfig(StepConfig config, DataSourceManager dataSourceManager) {
+        EtlTaskConfig task = new EtlTaskConfig();
+        task.setSourceDsName(config.getSourceDsName());
+        task.setSourceType(config.getSourceType());
+        task.setSourceTable(config.getSourceTable());
+        task.setSourceSql(config.getSourceSql());
+        task.setSourceView(config.getSourceView());
+        task.setSourceProcedure(config.getSourceProcedure());
+        task.setSourceParams(config.getSourceParams());
+        task.setBatchSize(config.getBatchSize());
+        task.setTimeoutSeconds(config.getTimeoutSeconds());
+        this.init(task, dataSourceManager);
     }
 
     @Override

@@ -5,7 +5,7 @@ import ThemeSwitcher from './ThemeSwitcher';
 const NAV_ITEMS = [
   { to: '/', icon: '◇', label: '仪表盘', exact: true },
   { to: '/datasource', icon: '⬡', label: '数据源' },
-  { to: '/task', icon: '◈', label: '任务管理' },
+  { to: '/pipeline', icon: '⛁', label: '管线编排' },
   { to: '/mapping', icon: '▣', label: '字段映射' },
   { to: '/log', icon: '◎', label: '执行日志' },
 ];

@@ -3,15 +3,15 @@
 -- ============================================
 
 -- 1. 数据源配置表
-CREATE TABLE datasource_config (
+CREATE TABLE IF NOT EXISTS datasource_config (
     id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     ds_name             VARCHAR(50) NOT NULL UNIQUE,
     ds_type             VARCHAR(20) NOT NULL,
     protocol            VARCHAR(20) DEFAULT 'JDBC',
     driver_class        VARCHAR(100) NOT NULL,
     jdbc_url            VARCHAR(500) NOT NULL,
-    username            VARCHAR(100) NOT NULL,
-    password            VARCHAR(200) NOT NULL,
+    username            VARCHAR(100) DEFAULT '',
+    password            VARCHAR(200) DEFAULT '',
     initial_size        INT DEFAULT 5,
     min_idle            INT DEFAULT 5,
     max_active          INT DEFAULT 20,
@@ -35,7 +35,7 @@ CREATE TABLE datasource_config (
 );
 
 -- 2. ETL任务配置表
-CREATE TABLE etl_task_config (
+CREATE TABLE IF NOT EXISTS etl_task_config (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     task_code               VARCHAR(50) NOT NULL UNIQUE,
     task_name               VARCHAR(100) NOT NULL,
@@ -89,11 +89,11 @@ CREATE TABLE etl_task_config (
     updated_time            TIMESTAMP
 );
 
-CREATE INDEX idx_task_code ON etl_task_config(task_code);
-CREATE INDEX idx_task_enabled ON etl_task_config(enabled);
+CREATE INDEX IF NOT EXISTS idx_task_code ON etl_task_config(task_code);
+CREATE INDEX IF NOT EXISTS idx_task_enabled ON etl_task_config(enabled);
 
 -- 3. 字段映射配置表
-CREATE TABLE etl_column_mapping (
+CREATE TABLE IF NOT EXISTS etl_column_mapping (
     id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     task_code           VARCHAR(50) NOT NULL,
     source_column       VARCHAR(100) NOT NULL,
@@ -107,10 +107,10 @@ CREATE TABLE etl_column_mapping (
     description         VARCHAR(200)
 );
 
-CREATE INDEX idx_mapping_task_code ON etl_column_mapping(task_code);
+CREATE INDEX IF NOT EXISTS idx_mapping_task_code ON etl_column_mapping(task_code);
 
 -- 4. ETL执行日志表
-CREATE TABLE etl_execution_log (
+CREATE TABLE IF NOT EXISTS etl_execution_log (
     id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     task_code           VARCHAR(50) NOT NULL,
     task_name           VARCHAR(100),
@@ -130,12 +130,12 @@ CREATE TABLE etl_execution_log (
     created_time        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_log_task_code ON etl_execution_log(task_code);
-CREATE INDEX idx_log_start_time ON etl_execution_log(start_time);
-CREATE INDEX idx_log_status ON etl_execution_log(status);
+CREATE INDEX IF NOT EXISTS idx_log_task_code ON etl_execution_log(task_code);
+CREATE INDEX IF NOT EXISTS idx_log_start_time ON etl_execution_log(start_time);
+CREATE INDEX IF NOT EXISTS idx_log_status ON etl_execution_log(status);
 
 -- 5. ETL任务进度表
-CREATE TABLE etl_task_progress (
+CREATE TABLE IF NOT EXISTS etl_task_progress (
     id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     task_code           VARCHAR(50) NOT NULL,
     execution_id        VARCHAR(50) NOT NULL,
@@ -147,3 +147,84 @@ CREATE TABLE etl_task_progress (
     last_update_time    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uk_progress_exec UNIQUE (execution_id)
 );
+
+-- ============================================
+-- 以下为 Pipeline 模式新表（v2 架构）
+-- ============================================
+
+-- 6. 管线定义表
+CREATE TABLE IF NOT EXISTS etl_pipeline (
+    id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    pipeline_code   VARCHAR(50) NOT NULL UNIQUE,
+    pipeline_name   VARCHAR(100) NOT NULL,
+    cron_expr       VARCHAR(50),
+    retry_times     INT DEFAULT 0,
+    retry_interval  INT DEFAULT 60,
+    enabled         CHAR(1) DEFAULT 'Y',
+    priority        INT DEFAULT 5,
+    description     VARCHAR(200),
+    created_time    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_time    TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pipeline_code ON etl_pipeline(pipeline_code);
+CREATE INDEX IF NOT EXISTS idx_pipeline_enabled ON etl_pipeline(enabled);
+
+-- 7. 管线步骤表
+CREATE TABLE IF NOT EXISTS etl_pipeline_step (
+    id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    pipeline_id     BIGINT NOT NULL,
+    step_code       VARCHAR(50) NOT NULL,
+    step_name       VARCHAR(100) NOT NULL,
+    step_type       VARCHAR(20) NOT NULL,
+    step_sub_type   VARCHAR(30),
+    order_index     INT DEFAULT 0,
+    source_ds_name  VARCHAR(50),
+    source_type     VARCHAR(20),
+    source_config   CLOB,
+    target_ds_name  VARCHAR(50),
+    target_config   CLOB,
+    write_mode      VARCHAR(20),
+    batch_size      INT DEFAULT 2000,
+    timeout_seconds INT DEFAULT 1800,
+    enabled         CHAR(1) DEFAULT 'Y',
+    description     VARCHAR(200),
+    created_time    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_time    TIMESTAMP,
+    FOREIGN KEY (pipeline_id) REFERENCES etl_pipeline(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_step_pipeline ON etl_pipeline_step(pipeline_id);
+
+-- 8. 管线连线表
+CREATE TABLE IF NOT EXISTS etl_pipeline_edge (
+    id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    pipeline_id     BIGINT NOT NULL,
+    from_step_id    BIGINT NOT NULL,
+    to_step_id      BIGINT NOT NULL,
+    edge_type       VARCHAR(20) DEFAULT 'PASS',
+    edge_config     CLOB,
+    FOREIGN KEY (pipeline_id) REFERENCES etl_pipeline(id) ON DELETE CASCADE,
+    FOREIGN KEY (from_step_id) REFERENCES etl_pipeline_step(id) ON DELETE CASCADE,
+    FOREIGN KEY (to_step_id) REFERENCES etl_pipeline_step(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_edge_pipeline ON etl_pipeline_edge(pipeline_id);
+
+-- 9. 字段映射表（v2：关联到步骤而非任务编码）
+CREATE TABLE IF NOT EXISTS etl_step_column_mapping (
+    id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    step_id         BIGINT NOT NULL,
+    source_column   VARCHAR(100) NOT NULL,
+    target_column   VARCHAR(100) NOT NULL,
+    data_type       VARCHAR(50) DEFAULT 'VARCHAR',
+    default_value   VARCHAR(200),
+    transform_expr  VARCHAR(500),
+    mapping_order   INT DEFAULT 0,
+    is_primary_key  CHAR(1) DEFAULT 'N',
+    enabled         CHAR(1) DEFAULT 'Y',
+    description     VARCHAR(200),
+    FOREIGN KEY (step_id) REFERENCES etl_pipeline_step(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_step_mapping ON etl_step_column_mapping(step_id);
