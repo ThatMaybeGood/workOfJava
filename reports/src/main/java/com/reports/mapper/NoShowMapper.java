@@ -37,6 +37,7 @@ public interface NoShowMapper extends BaseMapper<NoShowOvEntity> {
      */
     List<NoShowDtlEntity> queryDeptDetail(@Param("startDate") Date startDate,
                                            @Param("endDate") Date endDate,
+                                           @Param("deptCode") String deptCode,
                                            @Param("deptName") String deptName);
 
     /**

@@ -33,7 +33,9 @@ public interface TreatmentStatsMapper extends BaseMapper<TreatmentStatsOvEntity>
      * @return 科室明细数据
      */
     List<TreatmentStatsDtlEntity> queryDeptDetail(@Param("startDate") Date startDate,
-                                                    @Param("endDate") Date endDate);
+                                                    @Param("endDate") Date endDate,
+                                                    @Param("deptCode") String deptCode,
+                                                    @Param("deptName") String deptName);
 
     /**
      * 查询治疗统计每日趋势

@@ -17,6 +17,7 @@ import org.yaml.snakeyaml.Yaml;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.LinkedHashMap;
@@ -128,8 +129,11 @@ public class SystemConfigController {
             options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
             options.setPrettyFlow(true);
             Yaml yaml = new Yaml(options);
-            try (FileWriter fw = new FileWriter(file, StandardCharsets.UTF_8)) {
-                yaml.dump(config, fw);
+//            try (FileWriter fw = new FileWriter(file, StandardCharsets.UTF_8)) {
+//                yaml.dump(config, fw);
+//            }
+            try (Writer writer = Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8)) {
+                yaml.dump(config, writer);
             }
             log.info("系统设置已保存到 {}", file.getAbsolutePath());
         } catch (IOException e) {

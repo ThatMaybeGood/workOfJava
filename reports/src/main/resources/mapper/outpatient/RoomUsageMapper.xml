@@ -25,13 +25,18 @@
         MAX(am_usage) AS amUsage,
         MAX(pm_usage) AS pmUsage,
         MAX(holiday_usage) AS holidayUsage
-        FROM TR_ROOM_USE_DTL
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        <if test="deptName != null and deptName != ''">
-            AND dept_name LIKE '%' || #{deptName} || '%'
+        FROM TR_ROOM_USE_DTL r
+        INNER JOIN TR_DEPT_DICT d ON r.dept_code = d.dept_code
+        WHERE r.stat_date BETWEEN #{startDate} AND #{endDate}
+          AND d.outp_or_inp IN (0, 2)
+        <if test="deptCode != null and deptCode != ''">
+            AND d.dept_code = #{deptCode}
         </if>
-        GROUP BY dept_name
-        ORDER BY dept_name
+        <if test="deptName != null and deptName != ''">
+            AND d.dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        GROUP BY d.dept_name
+        ORDER BY d.dept_name
     </select>
 
 </mapper>

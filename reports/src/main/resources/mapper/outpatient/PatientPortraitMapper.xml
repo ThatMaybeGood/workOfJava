@@ -10,22 +10,22 @@
         age_group AS ageGroup,
         NVL(SUM(archive_count), 0) AS archiveCount,
         NVL(SUM(outpatient_count), 0) AS outpatientCount,
-        patient_type AS patientType,
-        dept_code AS deptCode,
-        dept_name AS deptName
-        FROM TR_PAT_PORTRAIT_AGE
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        patient_type AS patientType
+        FROM TR_PAT_PORTRAIT_AGE a
+        LEFT JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
+        WHERE a.stat_date BETWEEN #{startDate} AND #{endDate}
+          AND d.outp_or_inp IN (0, 2)
         <if test="patientType != null and patientType != ''">
-            AND patient_type = #{patientType}
+            AND a.patient_type = #{patientType}
         </if>
         <if test="deptCode != null and deptCode != ''">
-            AND dept_code = #{deptCode}
+            AND d.dept_code = #{deptCode}
         </if>
         <if test="deptName != null and deptName != ''">
-            AND dept_name LIKE '%' || #{deptName} || '%'
+            AND d.dept_name LIKE '%' || #{deptName} || '%'
         </if>
-        GROUP BY age_group, patient_type, dept_code, dept_name
-        ORDER BY age_group
+        GROUP BY a.age_group, a.patient_type
+        ORDER BY a.age_group
     </select>
 
     <!-- ============================================================ -->
@@ -38,18 +38,20 @@
         patient_type AS patientType,
         dept_code AS deptCode,
         dept_name AS deptName
-        FROM TR_PAT_PORTRAIT_INSUR
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        FROM TR_PAT_PORTRAIT_INSUR i
+        LEFT JOIN TR_DEPT_DICT d ON i.dept_code = d.dept_code
+        WHERE i.stat_date BETWEEN #{startDate} AND #{endDate}
+          AND d.outp_or_inp IN (0, 2)
         <if test="patientType != null and patientType != ''">
-            AND patient_type = #{patientType}
+            AND i.patient_type = #{patientType}
         </if>
         <if test="deptCode != null and deptCode != ''">
-            AND dept_code = #{deptCode}
+            AND d.dept_code = #{deptCode}
         </if>
         <if test="deptName != null and deptName != ''">
-            AND dept_name LIKE '%' || #{deptName} || '%'
+            AND d.dept_name LIKE '%' || #{deptName} || '%'
         </if>
-        GROUP BY insurance_type, patient_type, dept_code, dept_name
+        GROUP BY i.insurance_type, i.patient_type, i.dept_code, d.dept_name
         ORDER BY patientCount DESC
     </select>
 
@@ -63,18 +65,20 @@
         patient_type AS patientType,
         dept_code AS deptCode,
         dept_name AS deptName
-        FROM TR_PAT_PORTRAIT_IDTY
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        FROM TR_PAT_PORTRAIT_IDTY t
+        LEFT JOIN TR_DEPT_DICT d ON t.dept_code = d.dept_code
+        WHERE t.stat_date BETWEEN #{startDate} AND #{endDate}
+          AND d.outp_or_inp IN (0, 2)
         <if test="patientType != null and patientType != ''">
-            AND patient_type = #{patientType}
+            AND t.patient_type = #{patientType}
         </if>
         <if test="deptCode != null and deptCode != ''">
-            AND dept_code = #{deptCode}
+            AND d.dept_code = #{deptCode}
         </if>
         <if test="deptName != null and deptName != ''">
-            AND dept_name LIKE '%' || #{deptName} || '%'
+            AND d.dept_name LIKE '%' || #{deptName} || '%'
         </if>
-        GROUP BY identity_type, patient_type, dept_code, dept_name
+        GROUP BY t.identity_type, t.patient_type, t.dept_code, d.dept_name
         ORDER BY patientCount DESC
     </select>
 
@@ -88,18 +92,20 @@
         patient_type AS patientType,
         dept_code AS deptCode,
         dept_name AS deptName
-        FROM TR_PAT_PORTRAIT_REG
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        FROM TR_PAT_PORTRAIT_REG r
+        LEFT JOIN TR_DEPT_DICT d ON r.dept_code = d.dept_code
+        WHERE r.stat_date BETWEEN #{startDate} AND #{endDate}
+          AND d.outp_or_inp IN (0, 2)
         <if test="patientType != null and patientType != ''">
-            AND patient_type = #{patientType}
+            AND r.patient_type = #{patientType}
         </if>
         <if test="deptCode != null and deptCode != ''">
-            AND dept_code = #{deptCode}
+            AND d.dept_code = #{deptCode}
         </if>
         <if test="deptName != null and deptName != ''">
-            AND dept_name LIKE '%' || #{deptName} || '%'
+            AND d.dept_name LIKE '%' || #{deptName} || '%'
         </if>
-        GROUP BY source_type, patient_type, dept_code, dept_name
+        GROUP BY r.source_type, r.patient_type, r.dept_code, d.dept_name
         ORDER BY patientCount DESC
     </select>
 
@@ -113,18 +119,20 @@
         patient_type AS patientType,
         dept_code AS deptCode,
         dept_name AS deptName
-        FROM TR_PAT_PORTRAIT_ARC
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        FROM TR_PAT_PORTRAIT_ARC a
+        LEFT JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
+        WHERE a.stat_date BETWEEN #{startDate} AND #{endDate}
+          AND d.outp_or_inp IN (0, 2)
         <if test="patientType != null and patientType != ''">
-            AND patient_type = #{patientType}
+            AND a.patient_type = #{patientType}
         </if>
         <if test="deptCode != null and deptCode != ''">
-            AND dept_code = #{deptCode}
+            AND d.dept_code = #{deptCode}
         </if>
         <if test="deptName != null and deptName != ''">
-            AND dept_name LIKE '%' || #{deptName} || '%'
+            AND d.dept_name LIKE '%' || #{deptName} || '%'
         </if>
-        GROUP BY source_type, patient_type, dept_code, dept_name
+        GROUP BY a.source_type, a.patient_type, a.dept_code, d.dept_name
         ORDER BY patientCount DESC
     </select>
 

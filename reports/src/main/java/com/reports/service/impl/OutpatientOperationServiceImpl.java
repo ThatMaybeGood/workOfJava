@@ -17,7 +17,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -104,7 +103,6 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
         overview.setUnitBTotal(112);
         overview.setUnitOrdinaryEffective(52);
         overview.setUnitOrdinaryTotal(112);
-
         return overview;
     }
 
@@ -152,13 +150,8 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
     private OverviewData queryOverviewByJdbc(OutpatientOperationRequest request) {
         log.info("使用 JdbcTemplate 查询概览数据");
 
-        String sql = "SELECT SUM(NVL(total_visits, 0)) AS totalVisits, " +
-                "ROUND(AVG(NVL(appointment_rate, 0)), 2) || '%' AS appointmentRate, " +
-                "SUM(NVL(visit_count, 0)) AS visitCount, " +
-                "ROUND(AVG(NVL(exam_rate, 0)), 2) || '%' AS examRate, " +
-                "ROUND(AVG(NVL(efficiency, 0)), 2) AS efficiency, " +
-                "SUM(NVL(effective_units, 0)) AS effectiveUnits, " +
-                "SUM(NVL(total_units, 0)) AS totalUnits, " +
+        String sql = "SELECT " +
+                "SUM(NVL(total_visits, 0)) AS totalVisits, " +
                 "SUM(NVL(famous_expert, 0)) AS famousExpert, " +
                 "SUM(NVL(special_expert, 0)) AS specialExpert, " +
                 "SUM(NVL(known_expert, 0)) AS knownExpert, " +
@@ -176,7 +169,11 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
                 "SUM(NVL(unit_b_effective, 0)) AS unitBEffective, " +
                 "SUM(NVL(unit_b_total, 0)) AS unitBTotal, " +
                 "SUM(NVL(unit_ordinary_effective, 0)) AS unitOrdinaryEffective, " +
-                "SUM(NVL(unit_ordinary_total, 0)) AS unitOrdinaryTotal " +
+                "SUM(NVL(unit_ordinary_total, 0)) AS unitOrdinaryTotal, " +
+                "SUM(NVL(appointment_total, 0)) AS appointmentTotal, " +
+                "SUM(NVL(appointment_count, 0)) AS appointmentCount, " +
+                "SUM(NVL(return_visits, 0)) AS returnVisits, " +
+                "SUM(NVL(treat_count, 0)) AS treatCount " +
                 "FROM TR_OUTP_OP " +
                 "WHERE stat_date BETWEEN ? AND ? ";
 
@@ -202,12 +199,6 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
 
         String baseSql = "SELECT dept_code AS deptCode, dept_name AS deptName, " +
                 "SUM(NVL(total_visits, 0)) AS totalVisits, " +
-                "ROUND(AVG(NVL(appointment_rate, 0)), 2) || '%' AS appointmentRate, " +
-                "SUM(NVL(visit_count, 0)) AS visitCount, " +
-                "ROUND(AVG(NVL(exam_rate, 0)), 2) || '%' AS examRate, " +
-                "ROUND(AVG(NVL(efficiency, 0)), 2) AS efficiency, " +
-                "SUM(NVL(effective_units, 0)) AS effectiveUnits, " +
-                "SUM(NVL(total_units, 0)) AS totalUnits, " +
                 "SUM(NVL(famous_expert, 0)) AS famousExpert, " +
                 "SUM(NVL(special_expert, 0)) AS specialExpert, " +
                 "SUM(NVL(known_expert, 0)) AS knownExpert, " +
@@ -225,7 +216,11 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
                 "SUM(NVL(unit_b_effective, 0)) AS unitBEffective, " +
                 "SUM(NVL(unit_b_total, 0)) AS unitBTotal, " +
                 "SUM(NVL(unit_ordinary_effective, 0)) AS unitOrdinaryEffective, " +
-                "SUM(NVL(unit_ordinary_total, 0)) AS unitOrdinaryTotal " +
+                "SUM(NVL(unit_ordinary_total, 0)) AS unitOrdinaryTotal, " +
+                "SUM(NVL(appointment_total, 0)) AS appointmentTotal, " +
+                "SUM(NVL(appointment_count, 0)) AS appointmentCount, " +
+                "SUM(NVL(return_visits, 0)) AS returnVisits, " +
+                "SUM(NVL(treat_count, 0)) AS treatCount " +
                 "FROM TR_OUTP_OP " +
                 "WHERE stat_date BETWEEN ? AND ? ";
 
@@ -268,8 +263,6 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
     // ==================== MyBatis-Plus 模式 ====================
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientOperationRequest request) {
-//        log.info("使用 MyBatis-Plus 查询概览数据");
-
         try {
             OutpatientOperationEntity entity = operationMapper.querySummaryByDateAndDept(
                     request.getStartDate(),
@@ -278,14 +271,11 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
             return buildOverviewData(entity);
         } catch (Exception e) {
             log.warn("查询概览数据失败", e);
-//            return queryOverviewMock(request);
-            return null;
-         }
+            return new OverviewData();
+        }
     }
 
     private PageResult<TableItem> queryTableByMybatisPlus(OutpatientOperationRequest request, Integer page, Integer pageSize) {
-//        log.info("使用 MyBatis-Plus 查询表格数据");
-
         try {
             List<OutpatientOperationEntity> rows = operationMapper.queryGroupByDept(
                     request.getStartDate(),
@@ -305,78 +295,127 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
             return PageResult.of(pageList, (long) total, page, pageSize);
         } catch (Exception e) {
             log.warn("查询表格数据失败", e);
-//            return queryTableMock(request, page, pageSize);
-             return null;
-
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
         }
-
     }
 
     // ==================== 工具方法 ====================
 
+    /** 从 Map（JDBC 模式）构建 OverviewData */
     private OverviewData buildOverviewData(Map<String, Object> map) {
         if (map == null) {
             map = new java.util.HashMap<>();
         }
+        int totalVisits = getInt(map, "totalVisits");
+        int famousExpert = getInt(map, "famousExpert");
+        int specialExpert = getInt(map, "specialExpert");
+        int knownExpert = getInt(map, "knownExpert");
+        int expertA = getInt(map, "expertA");
+        int expertB = getInt(map, "expertB");
+        int ordinary = getInt(map, "ordinary");
+        int appointmentTotal = getInt(map, "appointmentTotal");
+        int appointmentCount = getInt(map, "appointmentCount");
+        int treatCount = getInt(map, "treatCount");
+
+        // 出诊人次 = 所有专家类人次之和
+        int visitCount = famousExpert + specialExpert + knownExpert + expertA + expertB + ordinary;
+
+        // 有效出诊单元 = 所有 unit_??_effective 之和
+        int effectiveUnits = getInt(map, "unitFamousEffective")
+                + getInt(map, "unitSpecialEffective")
+                + getInt(map, "unitKnownEffective")
+                + getInt(map, "unitAEffective")
+                + getInt(map, "unitBEffective")
+                + getInt(map, "unitOrdinaryEffective");
+        // 出诊单元总数 = 所有 unit_??_total 之和
+        int totalUnits = getInt(map, "unitFamousTotal")
+                + getInt(map, "unitSpecialTotal")
+                + getInt(map, "unitKnownTotal")
+                + getInt(map, "unitATotal")
+                + getInt(map, "unitBTotal")
+                + getInt(map, "unitOrdinaryTotal");
+
         OverviewData overview = new OverviewData();
-        overview.setTotalVisits(getInt(map, "TOTALVISITS"));
-        overview.setAppointmentRate(getString(map, "APPOINTMENTRATE"));
-        overview.setVisitCount(getInt(map, "VISITCOUNT"));
-        overview.setExamRate(getString(map, "EXAMRATE"));
-        overview.setEfficiency(getDouble(map, "EFFICIENCY"));
-        overview.setEffectiveUnits(getInt(map, "EFFECTIVEUNITS"));
-        overview.setTotalUnits(getInt(map, "TOTALUNITS"));
-        overview.setFamousExpert(getInt(map, "FAMOUSEXPERT"));
-        overview.setSpecialExpert(getInt(map, "SPECIALEXPERT"));
-        overview.setKnownExpert(getInt(map, "KNOWNEXPERT"));
-        overview.setExpertA(getInt(map, "EXPERTA"));
-        overview.setExpertB(getInt(map, "EXPERTB"));
-        overview.setOrdinary(getInt(map, "ORDINARY"));
-        overview.setUnitFamousEffective(getInt(map, "UNITFAMOUSEFFECTIVE"));
-        overview.setUnitFamousTotal(getInt(map, "UNITFAMOUSTOTAL"));
-        overview.setUnitSpecialEffective(getInt(map, "UNITSPECIALEFFECTIVE"));
-        overview.setUnitSpecialTotal(getInt(map, "UNITSPECIALTOTAL"));
-        overview.setUnitKnownEffective(getInt(map, "UNITKNOWNEFFECTIVE"));
-        overview.setUnitKnownTotal(getInt(map, "UNITKNOWNTOTAL"));
-        overview.setUnitAEffective(getInt(map, "UNITAEFFECTIVE"));
-        overview.setUnitATotal(getInt(map, "UNITATOTAL"));
-        overview.setUnitBEffective(getInt(map, "UNITBEFFECTIVE"));
-        overview.setUnitBTotal(getInt(map, "UNITBTOTAL"));
-        overview.setUnitOrdinaryEffective(getInt(map, "UNITORDINARYEFFECTIVE"));
-        overview.setUnitOrdinaryTotal(getInt(map, "UNITORDINARYTOTAL"));
+        overview.setTotalVisits(totalVisits);
+        overview.setAppointmentRate(calcRate(appointmentCount, appointmentTotal));
+        overview.setVisitCount(visitCount);
+        overview.setExamRate(calcRate(treatCount, visitCount));
+        overview.setEfficiency(calcEfficiency(effectiveUnits, totalUnits));
+        overview.setEffectiveUnits(effectiveUnits);
+        overview.setTotalUnits(totalUnits);
+        overview.setFamousExpert(famousExpert);
+        overview.setSpecialExpert(specialExpert);
+        overview.setKnownExpert(knownExpert);
+        overview.setExpertA(expertA);
+        overview.setExpertB(expertB);
+        overview.setOrdinary(ordinary);
+        overview.setUnitFamousEffective(getInt(map, "unitFamousEffective"));
+        overview.setUnitFamousTotal(getInt(map, "unitFamousTotal"));
+        overview.setUnitSpecialEffective(getInt(map, "unitSpecialEffective"));
+        overview.setUnitSpecialTotal(getInt(map, "unitSpecialTotal"));
+        overview.setUnitKnownEffective(getInt(map, "unitKnownEffective"));
+        overview.setUnitKnownTotal(getInt(map, "unitKnownTotal"));
+        overview.setUnitAEffective(getInt(map, "unitAEffective"));
+        overview.setUnitATotal(getInt(map, "unitATotal"));
+        overview.setUnitBEffective(getInt(map, "unitBEffective"));
+        overview.setUnitBTotal(getInt(map, "unitBTotal"));
+        overview.setUnitOrdinaryEffective(getInt(map, "unitOrdinaryEffective"));
+        overview.setUnitOrdinaryTotal(getInt(map, "unitOrdinaryTotal"));
         return overview;
     }
 
+    /** 从 Entity（MyBatis 模式）构建 OverviewData */
     private OverviewData buildOverviewData(OutpatientOperationEntity entity) {
         if (entity == null) {
             return new OverviewData();
         }
+        int totalVisits = entity.getTotalVisits() != null ? entity.getTotalVisits() : 0;
+        int famousExpert = entity.getFamousExpert() != null ? entity.getFamousExpert() : 0;
+        int specialExpert = entity.getSpecialExpert() != null ? entity.getSpecialExpert() : 0;
+        int knownExpert = entity.getKnownExpert() != null ? entity.getKnownExpert() : 0;
+        int expertA = entity.getExpertA() != null ? entity.getExpertA() : 0;
+        int expertB = entity.getExpertB() != null ? entity.getExpertB() : 0;
+        int ordinary = entity.getOrdinary() != null ? entity.getOrdinary() : 0;
+        int appointmentTotal = entity.getAppointmentTotal() != null ? entity.getAppointmentTotal() : 0;
+        int appointmentCount = entity.getAppointmentCount() != null ? entity.getAppointmentCount() : 0;
+        int treatCount = entity.getTreatCount() != null ? entity.getTreatCount() : 0;
+
+        int visitCount = famousExpert + specialExpert + knownExpert + expertA + expertB + ordinary;
+        int effectiveUnits = sumNonNull(
+                entity.getUnitFamousEffective(), entity.getUnitSpecialEffective(),
+                entity.getUnitKnownEffective(), entity.getUnitAEffective(),
+                entity.getUnitBEffective(), entity.getUnitOrdinaryEffective());
+        int totalUnits = sumNonNull(
+                entity.getUnitFamousTotal(), entity.getUnitSpecialTotal(),
+                entity.getUnitKnownTotal(), entity.getUnitATotal(),
+                entity.getUnitBTotal(), entity.getUnitOrdinaryTotal());
+
         OverviewData overview = new OverviewData();
-        overview.setTotalVisits(entity.getTotalVisits());
-        overview.setAppointmentRate(entity.getAppointmentRate());
-        overview.setVisitCount(entity.getVisitCount());
-        overview.setExamRate(entity.getExamRate());
-        overview.setEfficiency(entity.getEfficiency() != null ? entity.getEfficiency().doubleValue() : 0.0);
-        overview.setEffectiveUnits(entity.getEffectiveUnits());
-        overview.setTotalUnits(entity.getTotalUnits());
-        overview.setFamousExpert(entity.getFamousExpert());
-        overview.setSpecialExpert(entity.getSpecialExpert());
-        overview.setKnownExpert(entity.getKnownExpert());
-        overview.setExpertA(entity.getExpertA());
-        overview.setExpertB(entity.getExpertB());
-        overview.setOrdinary(entity.getOrdinary());
-        overview.setUnitFamousEffective(entity.getUnitFamousEffective());
-        overview.setUnitFamousTotal(entity.getUnitFamousTotal());
-        overview.setUnitSpecialEffective(entity.getUnitSpecialEffective());
-        overview.setUnitSpecialTotal(entity.getUnitSpecialTotal());
-        overview.setUnitKnownEffective(entity.getUnitKnownEffective());
-        overview.setUnitKnownTotal(entity.getUnitKnownTotal());
-        overview.setUnitAEffective(entity.getUnitAEffective());
-        overview.setUnitATotal(entity.getUnitATotal());
-        overview.setUnitBEffective(entity.getUnitBEffective());
-        overview.setUnitBTotal(entity.getUnitBTotal());
-        overview.setUnitOrdinaryEffective(entity.getUnitOrdinaryEffective());
-        overview.setUnitOrdinaryTotal(entity.getUnitOrdinaryTotal());
+        overview.setTotalVisits(totalVisits);
+        overview.setAppointmentRate(calcRate(appointmentCount, appointmentTotal));
+        overview.setVisitCount(visitCount);
+        overview.setExamRate(calcRate(treatCount, visitCount));
+        overview.setEfficiency(calcEfficiency(effectiveUnits, totalUnits));
+        overview.setEffectiveUnits(effectiveUnits);
+        overview.setTotalUnits(totalUnits);
+        overview.setFamousExpert(famousExpert);
+        overview.setSpecialExpert(specialExpert);
+        overview.setKnownExpert(knownExpert);
+        overview.setExpertA(expertA);
+        overview.setExpertB(expertB);
+        overview.setOrdinary(ordinary);
+        overview.setUnitFamousEffective(entity.getUnitFamousEffective() != null ? entity.getUnitFamousEffective() : 0);
+        overview.setUnitFamousTotal(entity.getUnitFamousTotal() != null ? entity.getUnitFamousTotal() : 0);
+        overview.setUnitSpecialEffective(entity.getUnitSpecialEffective() != null ? entity.getUnitSpecialEffective() : 0);
+        overview.setUnitSpecialTotal(entity.getUnitSpecialTotal() != null ? entity.getUnitSpecialTotal() : 0);
+        overview.setUnitKnownEffective(entity.getUnitKnownEffective() != null ? entity.getUnitKnownEffective() : 0);
+        overview.setUnitKnownTotal(entity.getUnitKnownTotal() != null ? entity.getUnitKnownTotal() : 0);
+        overview.setUnitAEffective(entity.getUnitAEffective() != null ? entity.getUnitAEffective() : 0);
+        overview.setUnitATotal(entity.getUnitATotal() != null ? entity.getUnitATotal() : 0);
+        overview.setUnitBEffective(entity.getUnitBEffective() != null ? entity.getUnitBEffective() : 0);
+        overview.setUnitBTotal(entity.getUnitBTotal() != null ? entity.getUnitBTotal() : 0);
+        overview.setUnitOrdinaryEffective(entity.getUnitOrdinaryEffective() != null ? entity.getUnitOrdinaryEffective() : 0);
+        overview.setUnitOrdinaryTotal(entity.getUnitOrdinaryTotal() != null ? entity.getUnitOrdinaryTotal() : 0);
         return overview;
     }
 
@@ -384,54 +423,98 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
         if (entity == null) {
             return new TableItem();
         }
+        int famousExpert = entity.getFamousExpert() != null ? entity.getFamousExpert() : 0;
+        int specialExpert = entity.getSpecialExpert() != null ? entity.getSpecialExpert() : 0;
+        int knownExpert = entity.getKnownExpert() != null ? entity.getKnownExpert() : 0;
+        int expertA = entity.getExpertA() != null ? entity.getExpertA() : 0;
+        int expertB = entity.getExpertB() != null ? entity.getExpertB() : 0;
+        int ordinary = entity.getOrdinary() != null ? entity.getOrdinary() : 0;
+        int appointmentTotal = entity.getAppointmentTotal() != null ? entity.getAppointmentTotal() : 0;
+        int appointmentCount = entity.getAppointmentCount() != null ? entity.getAppointmentCount() : 0;
+        int treatCount = entity.getTreatCount() != null ? entity.getTreatCount() : 0;
+
+        int visitCount = famousExpert + specialExpert + knownExpert + expertA + expertB + ordinary;
+        int effectiveUnits = sumNonNull(
+                entity.getUnitFamousEffective(), entity.getUnitSpecialEffective(),
+                entity.getUnitKnownEffective(), entity.getUnitAEffective(),
+                entity.getUnitBEffective(), entity.getUnitOrdinaryEffective());
+        int totalUnits = sumNonNull(
+                entity.getUnitFamousTotal(), entity.getUnitSpecialTotal(),
+                entity.getUnitKnownTotal(), entity.getUnitATotal(),
+                entity.getUnitBTotal(), entity.getUnitOrdinaryTotal());
+
         TableItem item = new TableItem();
         item.setDeptCode(entity.getDeptCode());
         item.setDeptName(entity.getDeptName());
-        item.setTotalVisits(entity.getTotalVisits());
-        item.setAppointmentRate(entity.getAppointmentRate());
-        item.setVisitCount(entity.getVisitCount());
-        item.setExamRate(entity.getExamRate());
-        item.setEfficiency(entity.getEfficiency() != null ? entity.getEfficiency().doubleValue() : 0.0);
-        item.setEffectiveUnits(entity.getEffectiveUnits());
-        item.setTotalUnits(entity.getTotalUnits());
-        item.setFamousExpert(entity.getFamousExpert());
-        item.setSpecialExpert(entity.getSpecialExpert());
-        item.setKnownExpert(entity.getKnownExpert());
-        item.setExpertA(entity.getExpertA());
-        item.setExpertB(entity.getExpertB());
-        item.setOrdinary(entity.getOrdinary());
-        item.setUnitFamousEffective(entity.getUnitFamousEffective());
-        item.setUnitFamousTotal(entity.getUnitFamousTotal());
-        item.setUnitSpecialEffective(entity.getUnitSpecialEffective());
-        item.setUnitSpecialTotal(entity.getUnitSpecialTotal());
-        item.setUnitKnownEffective(entity.getUnitKnownEffective());
-        item.setUnitKnownTotal(entity.getUnitKnownTotal());
-        item.setUnitAEffective(entity.getUnitAEffective());
-        item.setUnitATotal(entity.getUnitATotal());
-        item.setUnitBEffective(entity.getUnitBEffective());
-        item.setUnitBTotal(entity.getUnitBTotal());
-        item.setUnitOrdinaryEffective(entity.getUnitOrdinaryEffective());
-        item.setUnitOrdinaryTotal(entity.getUnitOrdinaryTotal());
+        item.setTotalVisits(entity.getTotalVisits() != null ? entity.getTotalVisits() : 0);
+        item.setAppointmentRate(calcRate(appointmentCount, appointmentTotal));
+        item.setVisitCount(visitCount);
+        item.setExamRate(calcRate(treatCount, visitCount));
+        item.setEfficiency(calcEfficiency(effectiveUnits, totalUnits));
+        item.setEffectiveUnits(effectiveUnits);
+        item.setTotalUnits(totalUnits);
+        item.setFamousExpert(famousExpert);
+        item.setSpecialExpert(specialExpert);
+        item.setKnownExpert(knownExpert);
+        item.setExpertA(expertA);
+        item.setExpertB(expertB);
+        item.setOrdinary(ordinary);
+        item.setUnitFamousEffective(entity.getUnitFamousEffective() != null ? entity.getUnitFamousEffective() : 0);
+        item.setUnitFamousTotal(entity.getUnitFamousTotal() != null ? entity.getUnitFamousTotal() : 0);
+        item.setUnitSpecialEffective(entity.getUnitSpecialEffective() != null ? entity.getUnitSpecialEffective() : 0);
+        item.setUnitSpecialTotal(entity.getUnitSpecialTotal() != null ? entity.getUnitSpecialTotal() : 0);
+        item.setUnitKnownEffective(entity.getUnitKnownEffective() != null ? entity.getUnitKnownEffective() : 0);
+        item.setUnitKnownTotal(entity.getUnitKnownTotal() != null ? entity.getUnitKnownTotal() : 0);
+        item.setUnitAEffective(entity.getUnitAEffective() != null ? entity.getUnitAEffective() : 0);
+        item.setUnitATotal(entity.getUnitATotal() != null ? entity.getUnitATotal() : 0);
+        item.setUnitBEffective(entity.getUnitBEffective() != null ? entity.getUnitBEffective() : 0);
+        item.setUnitBTotal(entity.getUnitBTotal() != null ? entity.getUnitBTotal() : 0);
+        item.setUnitOrdinaryEffective(entity.getUnitOrdinaryEffective() != null ? entity.getUnitOrdinaryEffective() : 0);
+        item.setUnitOrdinaryTotal(entity.getUnitOrdinaryTotal() != null ? entity.getUnitOrdinaryTotal() : 0);
         return item;
     }
 
     private TableItem mapResultSetToTableItem(ResultSet rs) throws SQLException {
+        int famousExpert = rs.getInt("FAMOUSEXPERT");
+        int specialExpert = rs.getInt("SPECIALEXPERT");
+        int knownExpert = rs.getInt("KNOWNEXPERT");
+        int expertA = rs.getInt("EXPERTA");
+        int expertB = rs.getInt("EXPERTB");
+        int ordinary = rs.getInt("ORDINARY");
+        int appointmentTotal = rs.getInt("APPOINTMENTTOTAL");
+        int appointmentCount = rs.getInt("APPOINTMENTCOUNT");
+        int treatCount = rs.getInt("TREATCOUNT");
+
+        int visitCount = famousExpert + specialExpert + knownExpert + expertA + expertB + ordinary;
+        int effectiveUnits = rs.getInt("UNITFAMOUSEFFECTIVE")
+                + rs.getInt("UNITSPECIALEFFECTIVE")
+                + rs.getInt("UNITKNOWNEFFECTIVE")
+                + rs.getInt("UNITAEFFECTIVE")
+                + rs.getInt("UNITBEFFECTIVE")
+                + rs.getInt("UNITORDINARYEFFECTIVE");
+        int totalUnits = rs.getInt("UNITFAMOUSTOTAL")
+                + rs.getInt("UNITSPECIALTOTAL")
+                + rs.getInt("UNITKNOWNTOTAL")
+                + rs.getInt("UNITATOTAL")
+                + rs.getInt("UNITBTOTAL")
+                + rs.getInt("UNITORDINARYTOTAL");
+
         TableItem item = new TableItem();
         item.setDeptCode(rs.getString("DEPTCODE"));
         item.setDeptName(rs.getString("DEPTNAME"));
         item.setTotalVisits(rs.getInt("TOTALVISITS"));
-        item.setAppointmentRate(rs.getString("APPOINTMENTRATE"));
-        item.setVisitCount(rs.getInt("VISITCOUNT"));
-        item.setExamRate(rs.getString("EXAMRATE"));
-        item.setEfficiency(rs.getDouble("EFFICIENCY"));
-        item.setEffectiveUnits(rs.getInt("EFFECTIVEUNITS"));
-        item.setTotalUnits(rs.getInt("TOTALUNITS"));
-        item.setFamousExpert(rs.getInt("FAMOUSEXPERT"));
-        item.setSpecialExpert(rs.getInt("SPECIALEXPERT"));
-        item.setKnownExpert(rs.getInt("KNOWNEXPERT"));
-        item.setExpertA(rs.getInt("EXPERTA"));
-        item.setExpertB(rs.getInt("EXPERTB"));
-        item.setOrdinary(rs.getInt("ORDINARY"));
+        item.setAppointmentRate(calcRate(appointmentCount, appointmentTotal));
+        item.setVisitCount(visitCount);
+        item.setExamRate(calcRate(treatCount, visitCount));
+        item.setEfficiency(calcEfficiency(effectiveUnits, totalUnits));
+        item.setEffectiveUnits(effectiveUnits);
+        item.setTotalUnits(totalUnits);
+        item.setFamousExpert(famousExpert);
+        item.setSpecialExpert(specialExpert);
+        item.setKnownExpert(knownExpert);
+        item.setExpertA(expertA);
+        item.setExpertB(expertB);
+        item.setOrdinary(ordinary);
         item.setUnitFamousEffective(rs.getInt("UNITFAMOUSEFFECTIVE"));
         item.setUnitFamousTotal(rs.getInt("UNITFAMOUSTOTAL"));
         item.setUnitSpecialEffective(rs.getInt("UNITSPECIALEFFECTIVE"));
@@ -447,48 +530,36 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
         return item;
     }
 
-    private Object getMapValue(Map<String, Object> map, String key) {
-        if (map == null) return null;
-        Object val = map.get(key);
-        if (val != null) return val;
-        val = map.get(key.toUpperCase());
-        if (val != null) return val;
-        val = map.get(key.toLowerCase());
-        if (val != null) return val;
-        // MyBatis 返回的 HashMap 可能使用驼峰别名作为 key
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
-            if (entry.getKey() != null && entry.getKey().equalsIgnoreCase(key)) {
-                return entry.getValue();
-            }
+    /** 计算百分比字符串，如 "83.10%" */
+    private String calcRate(int numerator, int denominator) {
+        if (denominator == 0) return "0.00%";
+        return String.format("%.2f%%", (numerator * 100.0) / denominator);
+    }
+
+    /** 计算效率 = 有效出诊单元 / 出诊单元总数（保留1位小数） */
+    private Double calcEfficiency(int effectiveUnits, int totalUnits) {
+        if (totalUnits == 0) return 0.0;
+        return Math.round((effectiveUnits * 100.0 / totalUnits) * 10.0) / 10.0;
+    }
+
+    private int sumNonNull(Integer... values) {
+        int sum = 0;
+        for (Integer v : values) {
+            if (v != null) sum += v;
         }
-        return null;
+        return sum;
     }
 
     private Integer getInt(Map<String, Object> map, String key) {
-        Object val = getMapValue(map, key);
+        Object val = map.get(key);
+        if (val == null) val = map.get(key.toUpperCase());
+        if (val == null) val = map.get(key.toLowerCase());
         if (val == null) return 0;
         if (val instanceof Number) return ((Number) val).intValue();
         try {
             return Integer.parseInt(val.toString());
         } catch (NumberFormatException e) {
             return 0;
-        }
-    }
-
-    private String getString(Map<String, Object> map, String key) {
-        Object val = getMapValue(map, key);
-        return val != null ? val.toString() : "";
-    }
-
-    private Double getDouble(Map<String, Object> map, String key) {
-        Object val = getMapValue(map, key);
-        if (val == null) return 0.0;
-        if (val instanceof Number) return ((Number) val).doubleValue();
-        if (val instanceof BigDecimal) return ((BigDecimal) val).doubleValue();
-        try {
-            return Double.parseDouble(val.toString());
-        } catch (NumberFormatException e) {
-            return 0.0;
         }
     }
 

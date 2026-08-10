@@ -34,5 +34,6 @@ public interface MedTechMapper extends BaseMapper<MedTechOvEntity> {
      */
     List<MedTechDtlEntity> queryDeptDetail(@Param("startDate") Date startDate,
                                             @Param("endDate") Date endDate,
+                                            @Param("deptCode") String deptCode,
                                             @Param("deptName") String deptName);
 }

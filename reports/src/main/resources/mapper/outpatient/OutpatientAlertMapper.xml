@@ -23,12 +23,17 @@
         NVL(SUM(remain_alert), 0) AS remainAlert,
         NVL(SUM(appointment_alert), 0) AS appointmentAlert,
         NVL(SUM(early_leave), 0) AS earlyLeave
-        FROM TR_OUTP_ALT_DEPT
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        <if test="deptName != null and deptName != ''">
-            AND dept_name LIKE '%' || #{deptName} || '%'
+        FROM TR_OUTP_ALT_DEPT a
+        INNER JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
+        WHERE a.stat_date BETWEEN #{startDate} AND #{endDate}
+          AND d.outp_or_inp IN (0, 2)
+        <if test="deptCode != null and deptCode != ''">
+            AND d.dept_code = #{deptCode}
         </if>
-        GROUP BY dept_name
+        <if test="deptName != null and deptName != ''">
+            AND d.dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        GROUP BY d.dept_name
         ORDER BY remainAlert DESC
     </select>
 
@@ -42,12 +47,17 @@
         NVL(SUM(remain_alert), 0) AS remainAlert,
         NVL(SUM(appointment_alert), 0) AS appointmentAlert,
         NVL(SUM(early_leave), 0) AS earlyLeave
-        FROM TR_OUTP_ALT_DOC
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        <if test="deptName != null and deptName != ''">
-            AND dept_name LIKE '%' || #{deptName} || '%'
+        FROM TR_OUTP_ALT_DOC a
+        INNER JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
+        WHERE a.stat_date BETWEEN #{startDate} AND #{endDate}
+          AND d.outp_or_inp IN (0, 2)
+        <if test="deptCode != null and deptCode != ''">
+            AND d.dept_code = #{deptCode}
         </if>
-        GROUP BY doctor_name, dept_name
+        <if test="deptName != null and deptName != ''">
+            AND d.dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        GROUP BY a.doctor_name, d.dept_name
         ORDER BY remainAlert DESC
     </select>
 

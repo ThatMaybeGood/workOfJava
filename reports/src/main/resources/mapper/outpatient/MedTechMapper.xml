@@ -27,12 +27,17 @@
         ROUND(AVG(NVL(wait_time, 0)), 2) AS waitTime,
         ROUND(AVG(NVL(avg_wait_late, 0)), 2) AS avgWaitLate,
         ROUND(AVG(NVL(avg_report_time, 0)), 2) AS avgReportTime
-        FROM TR_MEDTECH_DTL
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        <if test="deptName != null and deptName != ''">
-            AND dept_name LIKE '%' || #{deptName} || '%'
+        FROM TR_MEDTECH_DTL m
+        INNER JOIN TR_DEPT_DICT d ON m.dept_code = d.dept_code
+        WHERE m.stat_date BETWEEN #{startDate} AND #{endDate}
+          AND d.outp_or_inp IN (0, 2)
+        <if test="deptCode != null and deptCode != ''">
+            AND d.dept_code = #{deptCode}
         </if>
-        GROUP BY dept_name
+        <if test="deptName != null and deptName != ''">
+            AND d.dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        GROUP BY d.dept_name
         ORDER BY checkCount DESC
     </select>
 

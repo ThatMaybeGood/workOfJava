@@ -35,6 +35,7 @@ public interface OutpatientAlertMapper extends BaseMapper<OutpatientAlertOvEntit
      */
     List<OutpatientAlertDeptEntity> queryDeptDetail(@Param("startDate") Date startDate,
                                                      @Param("endDate") Date endDate,
+                                                     @Param("deptCode") String deptCode,
                                                      @Param("deptName") String deptName);
 
     /**
@@ -47,5 +48,6 @@ public interface OutpatientAlertMapper extends BaseMapper<OutpatientAlertOvEntit
      */
     List<OutpatientAlertDocEntity> queryDoctorDetail(@Param("startDate") Date startDate,
                                                       @Param("endDate") Date endDate,
+                                                      @Param("deptCode") String deptCode,
                                                       @Param("deptName") String deptName);
 }

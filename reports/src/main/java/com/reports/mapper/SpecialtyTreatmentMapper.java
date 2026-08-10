@@ -34,5 +34,6 @@ public interface SpecialtyTreatmentMapper extends BaseMapper<SpecialtyTreatmentO
      */
     List<SpecialtyTreatmentDtlEntity> queryDeptDetail(@Param("startDate") Date startDate,
                                                        @Param("endDate") Date endDate,
+                                                       @Param("deptCode") String deptCode,
                                                        @Param("deptName") String deptName);
 }

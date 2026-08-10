@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>报表系统</title>
+    <link href="vendor/bootstrap@5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="vendor/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="index.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <i class="bi bi-bar-chart-fill"></i>
+                <span>报表系统</span>
+            </div>
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="bi bi-list"></i>
+                </button>
+                <div class="top-bar-title" id="pageTitle">门诊收入分析</div>
+                <label class="mock-toggle">
+                    <span class="mock-label">Mock 数据</span>
+                    <input type="checkbox" id="mockToggle" checked>
+                    <span class="mock-status" id="mockStatus">Mock</span>
+                </label>
+            </header>
+            <div class="content-area">
+                <iframe id="contentFrame" name="contentFrame"
+                    src="outpatient/outpatient-revenue.html"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                    allow="autoplay">
+                </iframe>
+            </div>
+        </main>
+    </div>
+
+    <script src="vendor/bootstrap@5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script src="api-config.js"></script>
+    <script src="main-app.js"></script>
+</body>
+</html>

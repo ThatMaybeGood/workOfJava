@@ -25,12 +25,17 @@
             ROUND(NVL(SUM(tui_hao_shu), 0) / NULLIF(SUM(total_guahao), 0) * 100, 2) || '%' AS refundRate,
             NVL(SUM(shuang_yue_shu), 0) AS noShowCount,
             ROUND(NVL(SUM(shuang_yue_shu), 0) / NULLIF(SUM(total_guahao), 0) * 100, 2) || '%' AS noShowRate
-        FROM TR_OUTPATIENT_STATS_DAY_RESULT
-        WHERE stats_date BETWEEN #{startDate} AND #{endDate}
-        <if test="deptName != null and deptName != ''">
-            AND dept_name LIKE '%' || #{deptName} || '%'
+        FROM TR_OUTPATIENT_STATS_DAY_RESULT s
+        INNER JOIN TR_DEPT_DICT d ON s.dept_code = d.dept_code
+        WHERE s.stats_date BETWEEN #{startDate} AND #{endDate}
+          AND d.outp_or_inp IN (0, 2)
+        <if test="deptCode != null and deptCode != ''">
+            AND d.dept_code = #{deptCode}
         </if>
-        GROUP BY dept_name
+        <if test="deptName != null and deptName != ''">
+            AND d.dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        GROUP BY d.dept_name
         ORDER BY refundCount DESC
     </select>
 

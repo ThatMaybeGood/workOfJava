@@ -35,6 +35,7 @@ public interface ServiceQualityMapper extends BaseMapper<ServiceQualityOvEntity>
      */
     List<ServiceQualityCmplEntity> queryComplaintList(@Param("startDate") Date startDate,
                                                        @Param("endDate") Date endDate,
+                                                       @Param("deptCode") String deptCode,
                                                        @Param("deptName") String deptName);
 
     /**
@@ -47,5 +48,6 @@ public interface ServiceQualityMapper extends BaseMapper<ServiceQualityOvEntity>
      */
     List<ServiceQualityPrzEntity> queryPraiseList(@Param("startDate") Date startDate,
                                                    @Param("endDate") Date endDate,
+                                                   @Param("deptCode") String deptCode,
                                                    @Param("deptName") String deptName);
 }

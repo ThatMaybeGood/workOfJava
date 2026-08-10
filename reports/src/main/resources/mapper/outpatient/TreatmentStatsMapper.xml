@@ -25,9 +25,14 @@
         NVL(SUM(treatment_count), 0) AS treatmentCount,
         NVL(SUM(treatment_amount), 0) AS treatmentAmount,
         ROUND(NVL(SUM(treatment_amount), 0) / NULLIF(SUM(treatment_count), 0), 2) AS avgAmount
-        FROM TR_TREAT_STAT_DTL
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        GROUP BY dept_name
+        FROM TR_TREAT_STAT_DTL t
+        INNER JOIN TR_DEPT_DICT d ON t.dept_code = d.dept_code
+        WHERE t.stat_date BETWEEN #{startDate} AND #{endDate}
+          AND d.outp_or_inp IN (0, 2)
+        <if test="deptCode != null and deptCode != ''">
+            AND d.dept_code = #{deptCode}
+        </if>
+        GROUP BY d.dept_name
         ORDER BY treatmentCount DESC
     </select>
 

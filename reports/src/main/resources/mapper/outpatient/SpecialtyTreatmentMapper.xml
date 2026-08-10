@@ -23,12 +23,17 @@
         NVL(SUM(treatment_count), 0) AS treatmentCount,
         NVL(SUM(treatment_amount), 0) AS treatmentAmount,
         NVL(SUM(patient_count), 0) AS patientCount
-        FROM TR_SPEC_TREAT_DTL
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        <if test="deptName != null and deptName != ''">
-            AND dept_name LIKE '%' || #{deptName} || '%'
+        FROM TR_SPEC_TREAT_DTL t
+        INNER JOIN TR_DEPT_DICT d ON t.dept_code = d.dept_code
+        WHERE t.stat_date BETWEEN #{startDate} AND #{endDate}
+          AND d.outp_or_inp IN (0, 2)
+        <if test="deptCode != null and deptCode != ''">
+            AND d.dept_code = #{deptCode}
         </if>
-        GROUP BY dept_name
+        <if test="deptName != null and deptName != ''">
+            AND d.dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        GROUP BY d.dept_name
         ORDER BY treatmentCount DESC
     </select>
 

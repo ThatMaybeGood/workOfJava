@@ -34,5 +34,6 @@ public interface RoomUsageMapper extends BaseMapper<RoomUsageOvEntity> {
      */
     List<RoomUsageDtlEntity> queryDeptDetail(@Param("startDate") Date startDate,
                                               @Param("endDate") Date endDate,
+                                              @Param("deptCode") String deptCode,
                                               @Param("deptName") String deptName);
 }
