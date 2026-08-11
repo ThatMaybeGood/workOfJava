@@ -112,7 +112,7 @@ public class OutpatientRoomUsageServiceImpl implements OutpatientRoomUsageServic
 
     private PageResult<TableItem> queryTableByMybatisPlus(OutpatientRoomUsageRequest request, Integer page, Integer pageSize) {
         try {
-            List<RoomUsageDtlEntity> rows = roomUsageMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), request.getDeptName());
+            List<RoomUsageDtlEntity> rows = roomUsageMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), request.getDeptCode(), request.getDeptName());
             List<TableItem> allItems = new ArrayList<>();
             for (RoomUsageDtlEntity row : rows) {
                 allItems.add(buildTableItem(row));

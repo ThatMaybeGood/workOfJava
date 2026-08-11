@@ -76,6 +76,9 @@
         <if test="deptCode != null and deptCode != ''">
             AND d.dept_code = #{deptCode}
         </if>
+        <if test="deptName != null and deptName != ''">
+            AND d.dept_name LIKE '%' || #{deptName} || '%'
+        </if>
         GROUP BY d.dept_code, d.dept_name
         ORDER BY totalVisits DESC
     </select>

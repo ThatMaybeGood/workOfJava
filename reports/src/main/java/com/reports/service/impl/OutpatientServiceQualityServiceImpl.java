@@ -147,7 +147,7 @@ public class OutpatientServiceQualityServiceImpl implements OutpatientServiceQua
 
     private PageResult<ComplaintItem> queryComplaintListByMybatisPlus(OutpatientServiceQualityRequest request, Integer page, Integer pageSize) {
         try {
-            List<ServiceQualityCmplEntity> rows = serviceQualityMapper.queryComplaintList(request.getStartDate(), request.getEndDate(), request.getDeptName());
+            List<ServiceQualityCmplEntity> rows = serviceQualityMapper.queryComplaintList(request.getStartDate(), request.getEndDate(), request.getDeptCode(), request.getDeptName());
             List<ComplaintItem> allItems = new ArrayList<>();
             for (ServiceQualityCmplEntity row : rows) {
                 allItems.add(buildComplaintItem(row));
@@ -165,7 +165,7 @@ public class OutpatientServiceQualityServiceImpl implements OutpatientServiceQua
 
     private PageResult<PraiseItem> queryPraiseListByMybatisPlus(OutpatientServiceQualityRequest request, Integer page, Integer pageSize) {
         try {
-            List<ServiceQualityPrzEntity> rows = serviceQualityMapper.queryPraiseList(request.getStartDate(), request.getEndDate(), request.getDeptName());
+            List<ServiceQualityPrzEntity> rows = serviceQualityMapper.queryPraiseList(request.getStartDate(), request.getEndDate(), request.getDeptCode(), request.getDeptName());
             List<PraiseItem> allItems = new ArrayList<>();
             for (ServiceQualityPrzEntity row : rows) {
                 allItems.add(buildPraiseItem(row));

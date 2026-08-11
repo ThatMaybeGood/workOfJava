@@ -114,7 +114,7 @@ public class OutpatientMedTechServiceImpl implements OutpatientMedTechService {
 
     private PageResult<TableItem> queryTableByMybatisPlus(OutpatientMedTechRequest request, Integer page, Integer pageSize) {
         try {
-            List<MedTechDtlEntity> rows = medTechMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), null);
+            List<MedTechDtlEntity> rows = medTechMapper.queryDeptDetail(request.getStartDate(), request.getEndDate());
             List<TableItem> allItems = new ArrayList<>();
             for (MedTechDtlEntity row : rows) {
                 allItems.add(buildTableItem(row));

@@ -110,7 +110,7 @@ public class OutpatientSpecialtyTreatmentServiceImpl implements OutpatientSpecia
 
     private PageResult<TableItem> queryTableByMybatisPlus(OutpatientSpecialtyTreatmentRequest request, Integer page, Integer pageSize) {
         try {
-            List<SpecialtyTreatmentDtlEntity> rows = specialtyTreatmentMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), request.getDeptName());
+            List<SpecialtyTreatmentDtlEntity> rows = specialtyTreatmentMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), request.getDeptCode(), request.getDeptName());
             List<TableItem> allItems = new ArrayList<>();
             for (SpecialtyTreatmentDtlEntity row : rows) {
                 allItems.add(buildTableItem(row));

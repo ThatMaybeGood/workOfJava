@@ -44,6 +44,7 @@ public interface OutpatientOperationMapper extends BaseMapper<OutpatientOperatio
      */
     List<OutpatientOpDtlEntity> queryDeptDetail(@Param("startDate") Date startDate,
                                                  @Param("endDate") Date endDate,
-                                                 @Param("deptCode") String deptCode);
+                                                 @Param("deptCode") String deptCode,
+                                                 @Param("deptName") String deptName);
 
 }

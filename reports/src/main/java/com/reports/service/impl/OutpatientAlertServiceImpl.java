@@ -143,7 +143,7 @@ public class OutpatientAlertServiceImpl implements OutpatientAlertService {
 
     private PageResult<DeptTableItem> queryDeptTableByMybatisPlus(OutpatientAlertRequest request, Integer page, Integer pageSize) {
         try {
-            List<OutpatientAlertDeptEntity> rows = alertMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), null);
+            List<OutpatientAlertDeptEntity> rows = alertMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), request.getDeptCode(), request.getDeptName());
             List<DeptTableItem> allItems = new ArrayList<>();
             for (OutpatientAlertDeptEntity row : rows) {
                 allItems.add(buildDeptTableItem(row));
@@ -161,7 +161,7 @@ public class OutpatientAlertServiceImpl implements OutpatientAlertService {
 
     private PageResult<DoctorTableItem> queryDoctorTableByMybatisPlus(OutpatientAlertRequest request, Integer page, Integer pageSize) {
         try {
-            List<OutpatientAlertDocEntity> rows = alertMapper.queryDoctorDetail(request.getStartDate(), request.getEndDate(), null);
+            List<OutpatientAlertDocEntity> rows = alertMapper.queryDoctorDetail(request.getStartDate(), request.getEndDate(), request.getDeptCode(), request.getDeptName());
             List<DoctorTableItem> allItems = new ArrayList<>();
             for (OutpatientAlertDocEntity row : rows) {
                 allItems.add(buildDoctorTableItem(row));

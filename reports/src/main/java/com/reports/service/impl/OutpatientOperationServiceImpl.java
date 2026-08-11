@@ -7,6 +7,7 @@ import com.reports.dto.request.OutpatientOperationRequest;
 import com.reports.dto.response.outpatient.operation.OverviewData;
 import com.reports.dto.response.outpatient.operation.TableItem;
 import com.reports.entity.OutpatientOperationEntity;
+import com.reports.entity.OutpatientOpDtlEntity;
 import com.reports.mapper.OutpatientOperationMapper;
 import com.reports.service.OutpatientOperationService;
 import com.reports.util.OraclePageUtil;
@@ -231,6 +232,10 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
             baseSql += "AND dept_code = ? ";
             params.add(request.getDeptCode());
         }
+        if (request.getDeptName() != null && !request.getDeptName().isEmpty()) {
+            baseSql += "AND dept_name LIKE '%' || ? || '%' ";
+            params.add(request.getDeptName());
+        }
         baseSql += "GROUP BY dept_code, dept_name ORDER BY totalVisits DESC";
 
         String pageSql = OraclePageUtil.wrapOffsetFetchPage(baseSql, page, pageSize);
@@ -277,14 +282,15 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
 
     private PageResult<TableItem> queryTableByMybatisPlus(OutpatientOperationRequest request, Integer page, Integer pageSize) {
         try {
-            List<OutpatientOperationEntity> rows = operationMapper.queryGroupByDept(
+            List<OutpatientOpDtlEntity> rows = operationMapper.queryDeptDetail(
                     request.getStartDate(),
                     request.getEndDate(),
-                    request.getDeptCode());
+                    request.getDeptCode(),
+                    request.getDeptName());
 
             List<TableItem> allItems = new ArrayList<>();
-            for (OutpatientOperationEntity row : rows) {
-                allItems.add(buildTableItem(row));
+            for (OutpatientOpDtlEntity row : rows) {
+                allItems.add(buildTableItemFromDtl(row));
             }
 
             int total = allItems.size();
@@ -377,6 +383,7 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
         int expertB = entity.getExpertB() != null ? entity.getExpertB() : 0;
         int ordinary = entity.getOrdinary() != null ? entity.getOrdinary() : 0;
         int appointmentTotal = entity.getAppointmentTotal() != null ? entity.getAppointmentTotal() : 0;
+        int returnVisits = entity.getReturnVisits() != null ? entity.getReturnVisits() : 0;
         int appointmentCount = entity.getAppointmentCount() != null ? entity.getAppointmentCount() : 0;
         int treatCount = entity.getTreatCount() != null ? entity.getTreatCount() : 0;
 
@@ -392,9 +399,9 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
 
         OverviewData overview = new OverviewData();
         overview.setTotalVisits(totalVisits);
-        overview.setAppointmentRate(calcRate(appointmentCount, appointmentTotal));
+        overview.setAppointmentRate(calcRate(appointmentCount, appointmentTotal-returnVisits));
         overview.setVisitCount(visitCount);
-        overview.setExamRate(calcRate(treatCount, visitCount));
+        overview.setExamRate(calcRate(appointmentCount + treatCount, visitCount+appointmentCount+treatCount));
         overview.setEfficiency(calcEfficiency(effectiveUnits, totalUnits));
         overview.setEffectiveUnits(effectiveUnits);
         overview.setTotalUnits(totalUnits);
@@ -471,6 +478,28 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
         item.setUnitBTotal(entity.getUnitBTotal() != null ? entity.getUnitBTotal() : 0);
         item.setUnitOrdinaryEffective(entity.getUnitOrdinaryEffective() != null ? entity.getUnitOrdinaryEffective() : 0);
         item.setUnitOrdinaryTotal(entity.getUnitOrdinaryTotal() != null ? entity.getUnitOrdinaryTotal() : 0);
+        return item;
+    }
+
+    private TableItem buildTableItemFromDtl(OutpatientOpDtlEntity row) {
+        if (row == null) {
+            return new TableItem();
+        }
+        TableItem item = new TableItem();
+        item.setDeptName(row.getDeptName());
+        item.setTotalVisits(row.getVisits());
+        item.setAppointmentRate(row.getAppointmentRate());
+        item.setExamRate(row.getExamRate());
+        item.setEfficiency(row.getEfficiency() != null ? row.getEfficiency().doubleValue() : 0.0);
+        item.setVisitCount(row.getVisitCount());
+        item.setFamousExpert(row.getFamousExpert() != null ? row.getFamousExpert() : 0);
+        item.setSpecialExpert(row.getSpecialExpert() != null ? row.getSpecialExpert() : 0);
+        item.setKnownExpert(row.getKnownExpert() != null ? row.getKnownExpert() : 0);
+        item.setExpertA(row.getExpertA() != null ? row.getExpertA() : 0);
+        item.setExpertB(row.getExpertB() != null ? row.getExpertB() : 0);
+        item.setOrdinary(row.getOrdinary() != null ? row.getOrdinary() : 0);
+        item.setEffectiveUnits(row.getEffectiveTotal() != null ? row.getEffectiveTotal() : 0);
+        item.setTotalUnits(row.getTotalDetail() != null ? row.getTotalDetail() : 0);
         return item;
     }
 

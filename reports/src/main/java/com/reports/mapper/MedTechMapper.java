@@ -29,11 +29,8 @@ public interface MedTechMapper extends BaseMapper<MedTechOvEntity> {
      *
      * @param startDate 开始日期
      * @param endDate   结束日期
-     * @param deptName  科室名称
-     * @return 科室明细数据列表
+      * @return 科室明细数据列表
      */
     List<MedTechDtlEntity> queryDeptDetail(@Param("startDate") Date startDate,
-                                            @Param("endDate") Date endDate,
-                                            @Param("deptCode") String deptCode,
-                                            @Param("deptName") String deptName);
+                                            @Param("endDate") Date endDate);
 }

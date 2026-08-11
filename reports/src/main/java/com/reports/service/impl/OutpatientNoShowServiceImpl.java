@@ -239,7 +239,7 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
 
     private PageResult<TableItem> queryTableByMybatisPlus(OutpatientNoShowRequest request, Integer page, Integer pageSize) {
         try {
-            List<NoShowDtlEntity> list = noShowMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), null);
+            List<NoShowDtlEntity> list = noShowMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), request.getDeptCode(), request.getDeptName());
             List<TableItem> allItems = new ArrayList<>();
             for (NoShowDtlEntity entity : list) {
                 allItems.add(buildTableItem(entity));
