@@ -47,3 +47,6 @@ Thumbs.db
 
 # 测试报告
 surefire-reports/
+
+# Claude Code worktrees
+.claude/worktrees/

@@ -37,7 +37,8 @@ public interface OutpatientOperationMapper extends BaseMapper<OutpatientOperatio
      */
     List<OutpatientOperationEntity> queryGroupByDept(@Param("startDate") Date startDate,
                                                       @Param("endDate") Date endDate,
-                                                      @Param("deptCode") String deptCode);
+                                                      @Param("deptCode") String deptCode,
+                                                      @Param("deptName") String deptName);
 
     /**
      * 查询科室明细数据
