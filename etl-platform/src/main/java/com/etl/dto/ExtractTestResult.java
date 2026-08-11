@@ -32,8 +32,11 @@ public class ExtractTestResult {
     /** 解析后数据（列+行） */
     private List<Map<String, Object>> parsedData;
 
-    /** 列名列表 */
+    /** 列名列表（扁平，兼容旧版前端） */
     private List<String> columns;
+
+    /** 结构树（新）：根节点列表，每个节点描述一个字段路径 */
+    private List<Map<String, Object>> schema;
 
     /** 解析出的行数 */
     private int totalRows;

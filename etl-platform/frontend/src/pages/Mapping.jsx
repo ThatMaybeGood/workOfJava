@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PipelineAPI, DataSourceAPI, ExtractAPI, StepAPI, getStepSourceConfig, buildExtractTestRequest } from '../api/etl';
 import { useToast } from '../components/useToast';
+import SchemaTree from '../components/SchemaTree';
 
 const EMPTY_MAP = {
   stepId: '', sourceColumn: '', targetColumn: '', dataType: '',
@@ -43,7 +44,8 @@ export default function Mapping() {
   // ── 可视化匹配上下文 ──
   const [dsList, setDsList] = useState([]);
   const [sourceStep, setSourceStep] = useState(null);   // 上游 EXTRACT 步骤
-  const [srcColumns, setSrcColumns] = useState([]);     // 抽取出参列
+  const [srcColumns, setSrcColumns] = useState([]);     // 抽取出参列（扁平，兼容旧逻辑）
+  const [srcSchema, setSrcSchema] = useState([]);       // 抽取出参结构树
   const [srcRows, setSrcRows] = useState([]);           // 出参预览数据
   const [srcLoading, setSrcLoading] = useState(false);
   const [dstDsName, setDstDsName] = useState('');       // 目的库
@@ -63,6 +65,18 @@ export default function Mapping() {
     DataSourceAPI.list().then(res => {
       if (res.success) setDsList(res.data || []);
     }).catch(() => {});
+  }, []);
+
+  const flattenSchemaPaths = useCallback((nodes, list = []) => {
+    if (!nodes) return list;
+    for (const node of nodes) {
+      if (node.children && node.children.length > 0) {
+        flattenSchemaPaths(node.children, list);
+      } else {
+        list.push(node.path);
+      }
+    }
+    return list;
   }, []);
 
   const loadMappings = useCallback(async (stepId) => {
@@ -131,13 +145,14 @@ export default function Mapping() {
       const req = buildExtractTestRequest(srcStep, 5);
       const res = await ExtractAPI.test(req);
       if (res.success && res.data && res.data.success) {
-        setSrcColumns((res.data.columns) || []);
+        setSrcColumns(res.data.columns || []);
+        setSrcSchema(res.data.schema || []);
         setSrcRows(res.data.parsedData || []);
-        if (!res.data.columns || res.data.columns.length === 0) {
+        if ((!res.data.columns || res.data.columns.length === 0) && (!res.data.schema || res.data.schema.length === 0)) {
           addToast('抽取成功但未解析出列，请检查数据路径配置', 'error');
         }
       } else {
-        setSrcColumns([]); setSrcRows([]);
+        setSrcColumns([]); setSrcSchema([]); setSrcRows([]);
         addToast('加载出参列失败: ' + (res.data?.errorMessage || '未知错误'), 'error');
       }
     } catch (e) {
@@ -171,7 +186,7 @@ export default function Mapping() {
     setSelectedStepId('');
     setMappings([]);
     setPipelineSteps([]); setPipelineEdges([]); setMappableSteps([]);
-    setSourceStep(null); setSrcColumns([]); setSrcRows([]);
+    setSourceStep(null); setSrcColumns([]); setSrcSchema([]); setSrcRows([]);
     setDstDsName(''); setDstTable(''); setDstTables([]); setDstColumns([]);
     if (!pipelineId) return;
     setStepLoading(true);
@@ -269,7 +284,8 @@ export default function Mapping() {
   // 同名自动匹配：未配置的列对批量生成
   const autoMatch = async () => {
     const existing = new Set(mappings.map(m => m.sourceColumn));
-    const candidates = srcColumns
+    const allSrcPaths = flattenSchemaPaths(srcSchema);
+    const candidates = allSrcPaths
       .filter(col => dstColumns.some(d => d.columnName === col) && !existing.has(col))
       .map(col => ({ src: col, dst: col }));
     if (candidates.length === 0) {
@@ -406,27 +422,17 @@ export default function Mapping() {
                       {srcLoading ? '加载中...' : '⟳ 加载出参列'}
                     </button>
                   </div>
-                  {srcColumns.length === 0 ? (
+                  {srcSchema.length === 0 ? (
                     <div className="text-muted text-sm" style={{ padding: 12, textAlign: 'center' }}>
                       {srcLoading ? '正在调用抽取接口...' : '点击"加载出参列"获取上游抽取的真实列'}
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {srcColumns.map(col => (
-                        <button key={col} onClick={() => onPickSrc(col)}
-                          className="btn btn-xs"
-                          title="点击选择此源字段"
-                          style={{
-                            fontFamily: 'var(--font-mono)', fontSize: 12,
-                            background: selSrc === col ? 'var(--accent-cyan)' : 'var(--bg-card-hover)',
-                            color: selSrc === col ? '#000' : 'var(--text-primary)',
-                            border: selSrc === col ? '1.5px solid var(--accent-cyan)' : '1px solid var(--border-dim)',
-                            boxShadow: selSrc === col ? '0 0 8px rgba(34,211,238,0.35)' : undefined,
-                            transform: selSrc === col ? 'scale(1.06)' : undefined,
-                          }}>
-                          {selSrc === col ? '✓ ' : ''}{col}
-                        </button>
-                      ))}
+                    <div style={{ maxHeight: 260, overflow: 'auto', border: '1px solid var(--border-dim)', borderRadius: 8, padding: 6 }}>
+                      <SchemaTree
+                        nodes={srcSchema}
+                        selected={selSrc}
+                        onSelect={path => onPickSrc(path)}
+                      />
                     </div>
                   )}
                   {srcRows.length > 0 && (
@@ -566,7 +572,7 @@ export default function Mapping() {
             </div>
             <div className="modal-body">
               <div className="form-row">
-                <ColumnSelect label="源字段" value={form.sourceColumn} options={srcColumns} onChange={v => update('sourceColumn', v)} placeholder="源列名" />
+                <ColumnSelect label="源字段" value={form.sourceColumn} options={flattenSchemaPaths(srcSchema)} onChange={v => update('sourceColumn', v)} placeholder="源列名" />
                 <ColumnSelect label="目标字段" value={form.targetColumn} options={dstColumns.map(c => c.columnName)} onChange={v => update('targetColumn', v)} placeholder="目标列名" />
               </div>
               <div className="form-row">

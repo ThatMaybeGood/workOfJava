@@ -533,7 +533,7 @@ public class PipelineExecutor {
         return sorted;
     }
 
-    /** 字段映射 */
+    /** 字段映射（支持 dot-path sourceColumn） */
     private List<Map<String, Object>> applyFieldMapping(List<Map<String, Object>> source,
                                                          List<EtlStepColumnMapping> mappings) {
         if (mappings == null || mappings.isEmpty()) {
@@ -544,7 +544,7 @@ public class PipelineExecutor {
             Map<String, Object> out = new LinkedHashMap<>();
             for (EtlStepColumnMapping m : mappings) {
                 if (!"Y".equals(m.getEnabled())) continue;
-                Object value = row.get(m.getSourceColumn());
+                Object value = resolveDotPath(row, m.getSourceColumn());
                 if (value == null && m.getDefaultValue() != null) {
                     value = m.getDefaultValue();
                 }
@@ -553,6 +553,19 @@ public class PipelineExecutor {
             result.add(out);
         }
         return result;
+    }
+
+    /** 按 dot-path 从 map 中取值 */
+    private Object resolveDotPath(Map<String, Object> root, String path) {
+        if (path == null || path.isEmpty() || root == null) return null;
+        Object current = root;
+        for (String segment : path.split("\\.")) {
+            if (current == null) return null;
+            if (segment.startsWith("[") || segment.equals("*")) continue;
+            if (!(current instanceof Map)) return null;
+            current = ((Map<String, Object>) current).get(segment);
+        }
+        return current;
     }
 
     /** 横向合并 JOIN（基于 edgeConfig 中的 join 条件） */

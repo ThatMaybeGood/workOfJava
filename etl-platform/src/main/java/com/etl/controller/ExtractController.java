@@ -67,6 +67,10 @@ public class ExtractController {
                 result.setResponseHeaders(hr.getLastResponseHeaders());
                 result.setFinalUrl(hr.getLastRequestUrl());
                 result.setFinalMethod(hr.getLastRequestMethod());
+                // 提取结构树 schema
+                if (result.getRawResponse() != null) {
+                    result.setSchema(hr.extractSchema(result.getRawResponse()));
+                }
             }
 
             reader.close();

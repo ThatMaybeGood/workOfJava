@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { TaskAPI, PipelineAPI } from '../api/etl';
 import { useToast } from './useToast';
+import SchemaTree from './SchemaTree';
 
 const STEP_LABELS = { EXTRACT: '抽取', TRANSFORM: '转换', LOAD: '加载' };
 const STEP_ICONS = { EXTRACT: '⇣', TRANSFORM: '⇄', LOAD: '⇧' };
@@ -8,7 +9,7 @@ const STEP_COLORS = { EXTRACT: 'var(--accent-cyan)', TRANSFORM: 'var(--accent-pu
 
 function StepCard({ step, index, last, autoExpand }) {
   const [open, setOpen] = useState(autoExpand || false);
-  const [viewMode, setViewMode] = useState('table');
+  const [viewMode, setViewMode] = useState('table'); // 'table' | 'json' | 'schema'
 
   // Status visualization
   let statusTag, statusClass;
@@ -67,6 +68,9 @@ function StepCard({ step, index, last, autoExpand }) {
             <div className="btn-group">
               <button className={`btn btn-xs ${viewMode === 'table' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setViewMode('table')}>⊞ 表格</button>
               <button className={`btn btn-xs ${viewMode === 'json' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setViewMode('json')}>{} JSON</button>
+              {step.rawResponse && (
+                <button className={`btn btn-xs ${viewMode === 'schema' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setViewMode('schema')}>⊟ 结构</button>
+              )}
             </div>
           </div>
           {viewMode === 'table' ? (
@@ -89,6 +93,22 @@ function StepCard({ step, index, last, autoExpand }) {
               {step.outputData.length > 50 && `\n\n... 仅显示前 50 条，共 ${step.outputData.length} 条`}
             </pre>
           )}
+
+          {/* 结构树视图（仅 HTTP 源有 rawResponse 时显示） */}
+          {viewMode === 'schema' && step.rawResponse && (
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-dim)', borderRadius: 10, padding: 12, maxHeight: 400, overflow: 'auto', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>
+                点击字段路径可复制到剪贴板
+              </div>
+              <SchemaTree
+                nodes={parseSchema(step.rawResponse)}
+                onSelect={path => {
+                  navigator.clipboard.writeText(path);
+                  addToast(`已复制路径: ${path}`, 'success');
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -110,6 +130,56 @@ function StepCard({ step, index, last, autoExpand }) {
       )}
     </div>
   );
+}
+
+/** 从 rawResponse JSON 中提取 schema 节点列表 */
+function parseSchema(rawResponse) {
+  if (!rawResponse) return [];
+  try {
+    const parsed = JSON.parse(rawResponse);
+    return extractSchemaNodes(parsed);
+  } catch {
+    return [];
+  }
+}
+
+function extractSchemaNodes(node) {
+  if (node === null || node === undefined) return [];
+  if (Array.isArray(node)) {
+    const result = [{ path: '$', type: 'array', size: node.length }];
+    if (node.length > 0 && node[0] !== null) {
+      result[0].children = extractSchemaNodes(node[0]);
+    }
+    return result;
+  }
+  if (typeof node === 'object') {
+    return Object.entries(node).map(([key, value]) => {
+      const path = key;
+      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        return { path, type: 'object', children: extractSchemaNodes(value) };
+      }
+      if (Array.isArray(value)) {
+        const arrNode = { path, type: 'array', size: value.length };
+        if (value.length > 0 && value[0] !== null) {
+          arrNode.children = extractSchemaNodes(value[0]);
+        }
+        return arrNode;
+      }
+      return { path, type: schemaType(value), sample: value };
+    });
+  }
+  return [{ path: '$', type: schemaType(node), sample: node }];
+}
+
+function schemaType(val) {
+  if (val === null || val === undefined) return 'null';
+  if (Array.isArray(val)) return 'array';
+  switch (typeof val) {
+    case 'string': return 'string';
+    case 'number': return 'number';
+    case 'boolean': return 'boolean';
+    default: return 'unknown';
+  }
 }
 
 function formatVal(v) {

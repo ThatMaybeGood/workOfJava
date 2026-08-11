@@ -193,7 +193,7 @@ public class StepEngine {
                 if (!"Y".equals(m.getEnabled())) {
                     continue;
                 }
-                Object value = row.get(m.getSourceColumn());
+                Object value = resolveDotPath(row, m.getSourceColumn());
                 if (value == null && m.getDefaultValue() != null) {
                     value = m.getDefaultValue();
                 }
@@ -232,6 +232,19 @@ public class StepEngine {
             step.setErrorMessage(e.getMessage());
             step.setDurationMs(System.currentTimeMillis() - s);
         }
+    }
+
+    /** 按 dot-path 从 map 中取值 */
+    private Object resolveDotPath(Map<String, Object> root, String path) {
+        if (path == null || path.isEmpty() || root == null) return null;
+        Object current = root;
+        for (String segment : path.split("\\.")) {
+            if (current == null) return null;
+            if (segment.startsWith("[") || segment.equals("*")) continue;
+            if (!(current instanceof Map)) return null;
+            current = ((Map<String, Object>) current).get(segment);
+        }
+        return current;
     }
 
     /** 提取列名 */

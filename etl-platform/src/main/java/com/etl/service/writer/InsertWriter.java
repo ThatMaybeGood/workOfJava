@@ -146,7 +146,7 @@ public class InsertWriter implements DataWriter {
 
     private Object getValue(Map<String, Object> row, String sourceCol, String targetCol,
                            List<EtlColumnMapping> mappings) {
-        Object value = row.get(sourceCol);
+        Object value = resolvePath(row, sourceCol);
         if (value == null && mappings != null) {
             for (EtlColumnMapping m : mappings) {
                 if (m.getTargetColumn().equalsIgnoreCase(targetCol)) {
@@ -158,5 +158,24 @@ public class InsertWriter implements DataWriter {
             }
         }
         return value;
+    }
+
+    /**
+     * 按 dot-path 从 map 中取值，支持嵌套对象和数组下标。
+     * 例如 path="data.list.id" 会依次从 row["data"]["list"]["id"] 取到值。
+     * path 中若包含 [n] 或 .* 表示数组元素路径，忽略数组层直接取元素字段。
+     */
+    @SuppressWarnings("unchecked")
+    private Object resolvePath(Map<String, Object> root, String path) {
+        if (path == null || path.isEmpty() || root == null) return null;
+        Object current = root;
+        for (String segment : path.split("\\.")) {
+            if (current == null) return null;
+            // 跳过数组索引标记: [0], [n], .*
+            if (segment.startsWith("[") || segment.equals("*")) continue;
+            if (!(current instanceof Map)) return null;
+            current = ((Map<String, Object>) current).get(segment);
+        }
+        return current;
     }
 }

@@ -438,6 +438,93 @@ public class HttpReader implements DataSourceReader {
         return readAll().subList(0, Math.min(limit, readAll().size()));
     }
 
+    /**
+     * 从原始响应体提取结构化 schema（树形），供前端可视化展示。
+     * 对数组类型只展开第一个元素的结构，不重复所有元素。
+     *
+     * @param body 原始响应体文本
+     * @return schema 根节点列表
+     */
+    public List<Map<String, Object>> extractSchema(String body) {
+        if (body == null || body.isEmpty()) return Collections.emptyList();
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(body);
+            List<Map<String, Object>> nodes = new ArrayList<>();
+            extractSchemaNodes(root, "", nodes);
+            return nodes;
+        } catch (Exception e) {
+            log.warn("提取schema失败", e);
+            return Collections.emptyList();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void extractSchemaNodes(JsonNode node, String prefix, List<Map<String, Object>> out) {
+        if (node == null || node.isNull()) return;
+
+        if (node.isObject()) {
+            // 对象：展开每个字段
+            java.util.Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+            while (fields.hasNext()) {
+                Map.Entry<String, JsonNode> entry = fields.next();
+                String fieldPath = prefix.isEmpty() ? entry.getKey() : prefix + "." + entry.getKey();
+                JsonNode value = entry.getValue();
+                Map<String, Object> nodeMap = new LinkedHashMap<>();
+                nodeMap.put("path", fieldPath);
+                nodeMap.put("type", jsonNodeType(value));
+                if (value != null && !value.isArray() && !value.isObject()) {
+                    nodeMap.put("sample", sampleValue(value));
+                }
+                if (value != null && (value.isArray() || value.isObject())) {
+                    List<Map<String, Object>> children = new ArrayList<>();
+                    if (value.isArray() && value.size() > 0 && value.get(0) != null && !value.get(0).isNull()) {
+                        // 数组：只展示第一个元素的结构
+                        extractSchemaNodes(value.get(0), fieldPath, children);
+                    } else if (value.isObject()) {
+                        // 对象：递归展开所有子字段
+                        extractSchemaNodes(value, fieldPath, children);
+                    }
+                    nodeMap.put("children", children);
+                }
+                out.add(nodeMap);
+            }
+        } else if (node.isArray()) {
+            // 数组根节点：展示元素结构
+            Map<String, Object> nodeMap = new LinkedHashMap<>();
+            nodeMap.put("path", prefix.isEmpty() ? "$" : prefix);
+            nodeMap.put("type", "array");
+            nodeMap.put("size", node.size());
+            if (node.size() > 0 && node.get(0) != null && !node.get(0).isNull()) {
+                List<Map<String, Object>> children = new ArrayList<>();
+                extractSchemaNodes(node.get(0), prefix, children);
+                nodeMap.put("children", children);
+            }
+            out.add(nodeMap);
+        }
+        // 基本类型节点在父节点中已处理，这里不单独输出
+    }
+
+    private static String jsonNodeType(JsonNode node) {
+        if (node == null || node.isNull()) return "null";
+        if (node.isObject()) return "object";
+        if (node.isArray()) return "array";
+        if (node.isTextual()) return "string";
+        if (node.isNumber()) {
+            return node.isInt() || node.isLong() ? "number" : "decimal";
+        }
+        if (node.isBoolean()) return "boolean";
+        return "unknown";
+    }
+
+    private static Object sampleValue(JsonNode node) {
+        if (node == null || node.isNull()) return null;
+        if (node.isTextual()) return node.asText();
+        if (node.isBoolean()) return node.asBoolean();
+        if (node.isNumber()) return node.numberValue();
+        return node.asText();
+    }
+
     @Override
     public void close() {
         if (httpClient != null) {
