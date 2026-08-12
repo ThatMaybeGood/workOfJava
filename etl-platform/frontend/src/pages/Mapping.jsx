@@ -372,7 +372,17 @@ export default function Mapping() {
     );
   };
 
-  const jdbcDsList = dsList.filter(d => (d.protocol || 'JDBC') === 'JDBC');
+  // 目的库：只列 TARGET（目标源）或 BOTH（双向）的数据源，避免选错抽取源
+  const jdbcDsList = dsList.filter(d => {
+    const proto = d.protocol || 'JDBC';
+    if (proto !== 'JDBC') return false;
+    const role = d.dsRole || 'BOTH';
+    return role === 'TARGET' || role === 'BOTH';
+  });
+  const extractDsList = dsList.filter(d => {
+    const role = d.dsRole || 'BOTH';
+    return role === 'SOURCE' || role === 'BOTH';
+  });
 
   return (
     <div className="main-area">
@@ -462,7 +472,7 @@ export default function Mapping() {
                   <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                     <select value={dstDsName} onChange={e => changeDstDs(e.target.value)} style={{ flex: 1, minWidth: 0, padding: '6px 10px', background: 'var(--bg-input)', border: '1px solid var(--border-dim)', borderRadius: 8, fontSize: 12 }}>
                       <option value="">选择目的库...</option>
-                      {jdbcDsList.map(d => <option key={d.dsName} value={d.dsName}>{d.dsName}</option>)}
+                      {jdbcDsList.map(d => <option key={d.dsName} value={d.dsName}>{d.dsName} {d.dsRole === 'TARGET' ? '🎯目标源' : '⬌双向'}</option>)}
                     </select>
                     <select value={dstTable} onChange={e => changeDstTable(e.target.value)} style={{ flex: 1, minWidth: 0, padding: '6px 10px', background: 'var(--bg-input)', border: '1px solid var(--border-dim)', borderRadius: 8, fontSize: 12 }}>
                       <option value="">选择目的表...</option>

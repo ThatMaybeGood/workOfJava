@@ -71,9 +71,15 @@ export default function Task() {
   const closeModal = () => setModalOpen(false);
   const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
-  // 过滤指定协议的数据源节点名称
+  // 过滤指定协议的数据源节点名称（不含角色过滤）
   const getDsNamesByProtocol = (protocol) =>
     dsList.filter(d => (d.protocol || 'JDBC') === protocol).map(d => d.dsName);
+
+  // 按用途角色过滤数据源：SOURCE=抽取源，TARGET=目标源，BOTH=双向
+  const isSourceDs = (d) => { const r = d.dsRole || 'BOTH'; return r === 'SOURCE' || r === 'BOTH'; };
+  const isTargetDs = (d) => { const r = d.dsRole || 'BOTH'; return r === 'TARGET' || r === 'BOTH'; };
+  const sourceDsOptions = dsList.filter(isSourceDs).map(d => d.dsName);
+  const targetDsOptions = dsList.filter(d => isTargetDs(d) && (d.protocol || 'JDBC') === 'JDBC').map(d => d.dsName);
 
   // 选中数据源节点时自动填充连接参数
   const handleDsNodeChange = (dsName) => {
@@ -274,7 +280,7 @@ export default function Task() {
                     <label>目标数据源</label>
                     <select value={form.targetDsName} onChange={e => update('targetDsName', e.target.value)}>
                       <option value="">请选择</option>
-                      {dsList.map(d => <option key={d.dsName} value={d.dsName}>{d.dsName}</option>)}
+                      {targetDsOptions.map(n => <option key={n} value={n}>{n} 🎯</option>)}
                     </select>
                   </div>
                   <div className="form-group">
@@ -339,7 +345,7 @@ export default function Task() {
                         <label>源数据源</label>
                         <select value={form.sourceDsName} onChange={e => update('sourceDsName', e.target.value)}>
                           <option value="">请选择数据库数据源</option>
-                          {getDsNamesByProtocol('JDBC').map(n => <option key={n} value={n}>{n}</option>)}
+                          {dsList.filter(d => isSourceDs(d) && (d.protocol || 'JDBC') === 'JDBC').map(d => <option key={d.dsName} value={d.dsName}>{d.dsName} ⇣</option>)}
                         </select>
                       </div>
                     </div>
@@ -390,7 +396,7 @@ export default function Task() {
                         <label>源数据源节点（可选，选择后自动填充）</label>
                         <select value={form.sourceDsName || ''} onChange={e => handleDsNodeChange(e.target.value)}>
                           <option value="">手动填写（不引用节点）</option>
-                          {getDsNamesByProtocol('HTTP').map(n => <option key={n} value={n}>{n}</option>)}
+                          {dsList.filter(d => isSourceDs(d) && d.protocol === 'HTTP').map(d => <option key={d.dsName} value={d.dsName}>{d.dsName} ⇣</option>)}
                         </select>
                       </div>
                     </div>
@@ -493,7 +499,7 @@ export default function Task() {
                         <label>源数据源节点（可选，选择后自动填充）</label>
                         <select value={form.sourceDsName || ''} onChange={e => handleDsNodeChange(e.target.value)}>
                           <option value="">手动填写（不引用节点）</option>
-                          {getDsNamesByProtocol('SOAP').map(n => <option key={n} value={n}>{n}</option>)}
+                          {dsList.filter(d => isSourceDs(d) && d.protocol === 'SOAP').map(d => <option key={d.dsName} value={d.dsName}>{d.dsName} ⇣</option>)}
                         </select>
                       </div>
                     </div>
@@ -558,7 +564,7 @@ export default function Task() {
                         <label>源数据源节点（可选，选择后自动填充）</label>
                         <select value={form.sourceDsName || ''} onChange={e => handleDsNodeChange(e.target.value)}>
                           <option value="">手动填写（不引用节点）</option>
-                          {getDsNamesByProtocol('FILE').map(n => <option key={n} value={n}>{n}</option>)}
+                          {dsList.filter(d => isSourceDs(d) && d.protocol === 'FILE').map(d => <option key={d.dsName} value={d.dsName}>{d.dsName} ⇣</option>)}
                         </select>
                       </div>
                     </div>
