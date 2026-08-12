@@ -3,12 +3,14 @@ package com.etl.controller;
 import com.etl.dto.ApiResponse;
 import com.etl.entity.EtlPipelineStep;
 import com.etl.entity.EtlStepColumnMapping;
+import com.etl.service.admin.EdgeService;
 import com.etl.service.admin.StepColumnMappingService;
 import com.etl.service.admin.StepService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +26,9 @@ public class StepController {
 
     @Autowired
     private StepColumnMappingService stepColumnMappingService;
+
+    @Autowired
+    private EdgeService edgeService;
 
     @PostMapping
     @Operation(summary = "新增步骤")
@@ -42,7 +47,14 @@ public class StepController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除步骤")
+    @Transactional
     public ApiResponse<Void> delete(@PathVariable Long id) {
+        EtlPipelineStep step = stepService.getById(id);
+        if (step == null) {
+            return ApiResponse.error("步骤不存在");
+        }
+        edgeService.deleteByStepId(id);
+        stepColumnMappingService.deleteByStepId(id);
         stepService.removeById(id);
         return ApiResponse.success("步骤删除成功");
     }

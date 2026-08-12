@@ -178,6 +178,15 @@ export default function Pipeline() {
     dsList.filter(d => (d.protocol || 'JDBC') === protocol).map(d => d.dsName);
 
   // ── Step management ──
+  const isSourceDs = (d) => {
+    const role = d.dsRole || 'BOTH';
+    return role === 'SOURCE' || role === 'BOTH';
+  };
+  const isTargetDs = (d) => {
+    const role = d.dsRole || 'BOTH';
+    return role === 'TARGET' || role === 'BOTH';
+  };
+
   const addStep = () => {
     const step = { ...STEP_TEMPLATE, _tempId: nextTempId(), stepCode: `step_${form.steps.length + 1}`, stepName: `步骤${form.steps.length + 1}`, orderIndex: form.steps.length + 1 };
     setForm(prev => ({ ...prev, steps: [...prev.steps, step] }));
@@ -274,13 +283,14 @@ export default function Pipeline() {
     }
     setSaving(true);
     try {
+      const sortedSteps = [...form.steps].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
       const data = {
         pipelineCode: form.pipelineCode,
         pipelineName: form.pipelineName,
         cronExpr: form.cronExpr || null,
         enabled: form.enabled,
         description: form.description,
-        steps: form.steps.map(s => ({
+        steps: sortedSteps.map(s => ({
           _tempId: s._tempId,
           stepCode: s.stepCode, stepName: s.stepName, stepType: s.stepType,
           stepSubType: s.stepSubType || null, orderIndex: s.orderIndex,
@@ -719,7 +729,7 @@ export default function Pipeline() {
                               }
                             }}>
                               <option value="">请选择</option>
-                              {dsList.map(d => <option key={d.dsName} value={d.dsName}>{d.dsName} ({d.protocol || 'JDBC'})</option>)}
+                              {dsList.filter(isSourceDs).map(d => <option key={d.dsName} value={d.dsName}>{d.dsName} ({d.protocol || 'JDBC'})</option>)}
                             </select>
                           </div>
                         </div>
@@ -830,8 +840,16 @@ export default function Pipeline() {
                                     <>
                                       <div className="form-group"><label>页码参数</label><input value={getStepSourceConfig(activeStep, 'httpPageParam', 'page')} onChange={e => updateStepSourceConfig(activeStepIdx, 'httpPageParam', e.target.value)} /></div>
                                       <div className="form-group"><label>每页大小</label><input type="number" value={getStepSourceConfig(activeStep, 'httpPageSize', '1000')} onChange={e => updateStepSourceConfig(activeStepIdx, 'httpPageSize', e.target.value)} /></div>
+                                      <div className="form-group"><label>最大页数</label><input type="number" min="0" placeholder="0=不限" value={getStepSourceConfig(activeStep, 'httpMaxPages', '')} onChange={e => updateStepSourceConfig(activeStepIdx, 'httpMaxPages', e.target.value)} /></div>
                                     </>
                                   )}
+                                </div>
+                                <div className="form-row">
+                                  <div className="form-group">
+                                    <label>抽取行数上限</label>
+                                    <input type="number" min="0" placeholder="0=不限" value={getStepSourceConfig(activeStep, 'httpMaxRows', '')} onChange={e => updateStepSourceConfig(activeStepIdx, 'httpMaxRows', e.target.value)} />
+                                    <small style={{ color: 'var(--text-muted)' }}>达到上限立即停止抽取，防止 OOM；不分页时按页内行数截断</small>
+                                  </div>
                                 </div>
                               </div>
                             </details>
@@ -947,7 +965,7 @@ export default function Pipeline() {
                         {(activeStep.stepSubType === 'DB_INSERT') && (
                           <>
                             <div className="form-row">
-                              <div className="form-group"><label>目标数据源</label><select value={activeStep.targetDsName || ''} onChange={e => updateStep(activeStepIdx, 'targetDsName', e.target.value)}><option value="">请选择</option>{dsList.map(d => <option key={d.dsName} value={d.dsName}>{d.dsName}</option>)}</select></div>
+                              <div className="form-group"><label>目标数据源</label><select value={activeStep.targetDsName || ''} onChange={e => updateStep(activeStepIdx, 'targetDsName', e.target.value)}><option value="">请选择</option>{dsList.filter(isTargetDs).map(d => <option key={d.dsName} value={d.dsName}>{d.dsName}{d.protocol && d.protocol !== 'JDBC' ? ` (${d.protocol})` : ''}</option>)}</select></div>
                               <div className="form-group"><label>目标表 <span className="required">*</span></label><input value={getStepTargetConfig(activeStep, 'targetTable')} onChange={e => updateStepTargetConfig(activeStepIdx, 'targetTable', e.target.value)} /></div>
                             </div>
                             <div className="form-row">

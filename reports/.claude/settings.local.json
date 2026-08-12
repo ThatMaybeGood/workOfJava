@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(mvn compile *)",
-      "Bash(ls -d \"D:/JetBrains/IdeaProjects/workOfJava/reports-web\" 2>/dev/null && echo \"EXISTS\" || echo \"NOT_FOUND\")"
+      "Bash(ls -d \"D:/JetBrains/IdeaProjects/workOfJava/reports-web\" 2>/dev/null && echo \"EXISTS\" || echo \"NOT_FOUND\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(git add *)"
     ]
   }
 }

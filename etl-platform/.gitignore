@@ -5,6 +5,9 @@
 target/
 logs/
 
+# H2 文件库本地数据（dev profile 持久化目录）
+/data/
+
 # 前端
 frontend/node_modules/
 frontend/dist/

@@ -71,6 +71,12 @@ public class DatasourceController {
         return ApiResponse.success(datasourceConfigService.listEnabled());
     }
 
+    @GetMapping("/role/{role}")
+    @Operation(summary = "按用途角色获取启用的数据源（SOURCE / TARGET / BOTH）")
+    public ApiResponse<List<DatasourceConfig>> listByRole(@PathVariable String role) {
+        return ApiResponse.success(datasourceConfigService.listEnabledByRole(role));
+    }
+
     @GetMapping("/{id}/test")
     @Operation(summary = "测试数据源连接")
     public ApiResponse<Boolean> testConnection(@PathVariable Long id) {

@@ -11,6 +11,8 @@ import java.util.Map;
 @Data
 public class StepResult {
 
+    /** 步骤ID */
+    private Long stepId;
     /** 步骤序号（从1开始） */
     private int stepOrder;
 

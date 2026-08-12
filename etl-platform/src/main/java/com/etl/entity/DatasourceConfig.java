@@ -62,6 +62,9 @@ public class DatasourceConfig {
     /** 是否启用 */
     private String enabled;
 
+    /** 用途角色: SOURCE 抽取源 / TARGET 目标源 / BOTH 双向 */
+    private String dsRole;
+
     /** 描述 */
     private String description;
 

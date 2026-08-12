@@ -26,4 +26,9 @@ public class StepColumnMappingService extends ServiceImpl<EtlStepColumnMappingMa
                 .eq("is_primary_key", "Y")
                 .eq("enabled", "Y"));
     }
+
+    public void deleteByStepId(Long stepId) {
+        remove(new QueryWrapper<EtlStepColumnMapping>()
+                .eq("step_id", stepId));
+    }
 }

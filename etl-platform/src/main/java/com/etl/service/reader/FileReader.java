@@ -138,6 +138,12 @@ public class FileReader implements DataSourceReader {
     }
 
     @Override
+    public boolean supportsStreaming() {
+        // readBatch 是按行流式读，状态机自洽，支持 chunk 边读边写
+        return true;
+    }
+
+    @Override
     public boolean testConnection(DatasourceConfig config, DataSourceManager dataSourceManager) {
         try {
             File file = new File(config.getJdbcUrl());
@@ -149,7 +155,9 @@ public class FileReader implements DataSourceReader {
 
     @Override
     public List<Map<String, Object>> preview(int limit) {
-        return readAll().subList(0, Math.min(limit, readAll().size()));
+        // 真流式预览：readBatch 不超过 limit 行，避免大文件被整体读入内存
+        if (limit <= 0) limit = 50;
+        return readBatch(limit);
     }
 
     @Override

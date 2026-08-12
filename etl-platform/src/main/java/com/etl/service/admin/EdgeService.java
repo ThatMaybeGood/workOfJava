@@ -22,4 +22,11 @@ public class EdgeService extends ServiceImpl<EtlPipelineEdgeMapper, EtlPipelineE
         remove(new QueryWrapper<EtlPipelineEdge>()
                 .eq("pipeline_id", pipelineId));
     }
+
+    public void deleteByStepId(Long stepId) {
+        remove(new QueryWrapper<EtlPipelineEdge>()
+                .eq("from_step_id", stepId)
+                .or()
+                .eq("to_step_id", stepId));
+    }
 }

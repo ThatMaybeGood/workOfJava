@@ -103,4 +103,14 @@ public class DatasourceConfigService extends ServiceImpl<DatasourceConfigMapper,
         return list(new QueryWrapper<DatasourceConfig>()
                 .eq("enabled", "Y"));
     }
+
+    /**
+     * 按用途角色查询启用的数据源。
+     * @param role SOURCE / TARGET / BOTH
+     */
+    public List<DatasourceConfig> listEnabledByRole(String role) {
+        return list(new QueryWrapper<DatasourceConfig>()
+                .eq("enabled", "Y")
+                .and(w -> w.eq("ds_role", role).or().eq("ds_role", "BOTH").or().isNull("ds_role")));
+    }
 }

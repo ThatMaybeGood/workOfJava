@@ -96,6 +96,8 @@ public class HttpReader implements DataSourceReader {
         task.setHttpPageSize(config.getHttpPageSize());
         task.setHttpTimeout(config.getHttpTimeout());
         task.setHttpEncoding(config.getHttpEncoding());
+        task.setHttpMaxRows(config.getHttpMaxRows());
+        task.setHttpMaxPages(config.getHttpMaxPages());
         task.setSoapAction(config.getSoapAction());
         task.setSoapBinding(config.getSoapBinding());
         task.setSoapNamespace(config.getSoapNamespace());
@@ -147,17 +149,40 @@ public class HttpReader implements DataSourceReader {
     @Override
     public List<Map<String, Object>> readAll() {
         List<Map<String, Object>> allResults = new ArrayList<>();
+        int maxRows = taskConfig.getHttpMaxRows() != null && taskConfig.getHttpMaxRows() > 0 ? taskConfig.getHttpMaxRows() : Integer.MAX_VALUE;
+        int maxPages = taskConfig.getHttpMaxPages() != null && taskConfig.getHttpMaxPages() > 0 ? taskConfig.getHttpMaxPages() : Integer.MAX_VALUE;
 
         if ("Y".equals(taskConfig.getHttpPagination())) {
-            while (hasMore) {
+            int pagesFetched = 0;
+            while (hasMore && pagesFetched < maxPages) {
                 List<Map<String, Object>> batch = fetchPage();
+                pagesFetched++;
                 if (batch.isEmpty()) {
                     break;
                 }
-                allResults.addAll(batch);
+                for (Map<String, Object> row : batch) {
+                    allResults.add(row);
+                    if (allResults.size() >= maxRows) {
+                        log.info("HTTP抽取达到行数上限 {}，停止后续分页 (已抽 {} 页)", maxRows, pagesFetched);
+                        hasMore = false;
+                        break;
+                    }
+                }
+                if (allResults.size() >= maxRows) break;
+            }
+            if (pagesFetched >= maxPages) {
+                log.info("HTTP抽取达到页数上限 {}，停止后续分页", maxPages);
+                hasMore = false;
             }
         } else {
-            allResults.addAll(fetchPage());
+            List<Map<String, Object>> batch = fetchPage();
+            for (Map<String, Object> row : batch) {
+                allResults.add(row);
+                if (allResults.size() >= maxRows) {
+                    log.info("HTTP抽取达到行数上限 {}，截断剩余 {} 行", maxRows, batch.size() - allResults.size());
+                    break;
+                }
+            }
         }
 
         return allResults;
@@ -272,31 +297,59 @@ public class HttpReader implements DataSourceReader {
     }
 
     /**
-     * 解析 JSON 格式响应
+     * 解析 JSON 格式响应。
+     * 当指定了 httpDataPath 时仍需先读整棵树路径解析；未指定 dataPath 时尝试流式解析顶层数组/对象。
      */
     private List<Map<String, Object>> parseJsonResponse(String body) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(body);
-
         String dataPath = taskConfig.getHttpDataPath();
-        if (dataPath != null && !dataPath.isEmpty()) {
-            root = resolveJsonPath(root, dataPath);
+
+        if (dataPath == null || dataPath.isEmpty()) {
+            // 流式解析：避免一次性 readTree 把整棵树建到内存
+            try (com.fasterxml.jackson.core.JsonParser parser = mapper.getFactory().createParser(body)) {
+                com.fasterxml.jackson.core.JsonToken token = parser.nextToken();
+                if (token == null) {
+                    return Collections.emptyList();
+                }
+                // 顶层若为数组，则按行流式映射
+                if (token == com.fasterxml.jackson.core.JsonToken.START_ARRAY) {
+                    com.fasterxml.jackson.databind.MappingIterator<Map<String, Object>> it =
+                            mapper.readerFor(Map.class).readValues(parser);
+                    List<Map<String, Object>> results = new ArrayList<>();
+                    int maxRows = taskConfig.getHttpMaxRows() != null && taskConfig.getHttpMaxRows() > 0 ? taskConfig.getHttpMaxRows() : Integer.MAX_VALUE;
+                    while (it.hasNext()) {
+                        Map<String, Object> row = it.next();
+                        results.add(row);
+                        if (results.size() >= maxRows) break;
+                    }
+                    return results;
+                }
+                // 顶层若为对象，则返回单行
+                if (token == com.fasterxml.jackson.core.JsonToken.START_OBJECT) {
+                    Map<String, Object> row = mapper.readValue(parser, Map.class);
+                    return Collections.singletonList(row);
+                }
+                return Collections.emptyList();
+            }
         }
 
+        // 带 dataPath：仍需解析到指定节点（小范围 root，影响有限）
+        JsonNode root = mapper.readTree(body);
+        root = resolveJsonPath(root, dataPath);
         if (root != null && root.isArray()) {
             List<Map<String, Object>> results = new ArrayList<>();
+            int maxRows = taskConfig.getHttpMaxRows() != null && taskConfig.getHttpMaxRows() > 0 ? taskConfig.getHttpMaxRows() : Integer.MAX_VALUE;
             for (JsonNode node : root) {
                 results.add(JsonUtil.mapToObject(JsonUtil.objectToMap(node), HashMap.class));
+                if (results.size() >= maxRows) break;
             }
             return results;
         }
-
         if (root != null && root.isObject()) {
             List<Map<String, Object>> results = new ArrayList<>();
             results.add(JsonUtil.mapToObject(JsonUtil.objectToMap(root), HashMap.class));
             return results;
         }
-
         return Collections.emptyList();
     }
 
@@ -408,6 +461,12 @@ public class HttpReader implements DataSourceReader {
     }
 
     @Override
+    public boolean supportsStreaming() {
+        // HttpReader.readBatch 单页语义明确，可按 chunk 边读边写；不分页时 readAll 即单页，等同一次 chunk
+        return true;
+    }
+
+    @Override
     public boolean testConnection(DatasourceConfig config, DataSourceManager dataSourceManager) {
         try {
             int timeout = config.getTimeout() != null ? config.getTimeout() : 10000;
@@ -435,7 +494,25 @@ public class HttpReader implements DataSourceReader {
 
     @Override
     public List<Map<String, Object>> preview(int limit) {
-        return readAll().subList(0, Math.min(limit, readAll().size()));
+        // 真流式预览：不再 readAll 后切片，直接拉一页（必要时按 limit 切），避免 OOM
+        if (limit <= 0) limit = 50;
+        List<Map<String, Object>> page;
+        try {
+            // 临时把 pageSize 缩到 limit，避免一页拉几万行只看前 50
+            Integer originalSize = taskConfig.getHttpPageSize();
+            boolean paged = "Y".equals(taskConfig.getHttpPagination());
+            if (paged) {
+                taskConfig.setHttpPageSize(Math.min(limit, originalSize != null && originalSize > 0 ? originalSize : limit));
+            }
+            page = fetchPage();
+            if (paged) {
+                taskConfig.setHttpPageSize(originalSize);
+            }
+        } catch (Exception e) {
+            log.warn("HTTP预览拉取失败", e);
+            return Collections.emptyList();
+        }
+        return page.size() <= limit ? page : new ArrayList<>(page.subList(0, limit));
     }
 
     /**

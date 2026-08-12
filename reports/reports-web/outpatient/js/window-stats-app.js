@@ -105,6 +105,7 @@ class WindowStatsController {
 
     renderOriginChart(data) {
         const chartData = (data && Array.isArray(data)) ? data : [];
+        const legendData = chartData.map(item => item.name);
         const option = {
             title: {
                 text: '窗口患者归属地分析',
@@ -122,18 +123,19 @@ class WindowStatsController {
                 top: 'center',
                 itemWidth: 10,
                 itemHeight: 10,
-                textStyle: { color: '#595959', fontSize: 12 }
+                textStyle: { color: '#595959', fontSize: 12 },
+                data: legendData
             },
             color: ['#1890ff', '#52c41a', '#13c2c2', '#faad14', '#f5222d'],
             series: [
                 {
                     type: 'pie',
                     radius: ['45%', '70%'],
-                    center: ['35%', '55%'],
+                    center: ['30%', '55%'],
                     avoidLabelOverlap: true,
                     label: {
                         show: true,
-                        formatter: '{c}\n({d}%)',
+                        formatter: '{b}\n{c}\n({d}%)',
                         fontSize: 11,
                         color: '#595959'
                     },

@@ -25,7 +25,7 @@
             AND d.dept_name LIKE '%' || #{deptName} || '%'
         </if>
         GROUP BY a.age_group, a.patient_type
-        ORDER BY a.age_group
+        ORDER BY TO_NUMBER(REGEXP_SUBSTR(a.age_group, '[0-9]+')) ASC
     </select>
 
     <!-- ============================================================ -->
@@ -33,11 +33,9 @@
     <!-- ============================================================ -->
     <select id="queryInsuranceAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitInsurEntity">
         SELECT
-        insurance_type AS insuranceType,
+        insuranceName AS insuranceName,
         NVL(SUM(patient_count), 0) AS patientCount,
-        patient_type AS patientType,
-        dept_code AS deptCode,
-        dept_name AS deptName
+        patient_type AS patientType
         FROM TR_PAT_PORTRAIT_INSUR i
         LEFT JOIN TR_DEPT_DICT d ON i.dept_code = d.dept_code
         WHERE i.stat_date BETWEEN #{startDate} AND #{endDate}
@@ -51,7 +49,7 @@
         <if test="deptName != null and deptName != ''">
             AND d.dept_name LIKE '%' || #{deptName} || '%'
         </if>
-        GROUP BY i.insurance_type, i.patient_type, i.dept_code, d.dept_name
+        GROUP BY i.insuranceName, i.patient_type
         ORDER BY patientCount DESC
     </select>
 
@@ -60,11 +58,9 @@
     <!-- ============================================================ -->
     <select id="queryIdentityAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitIdtyEntity">
         SELECT
-        identity_type AS identityType,
+        identityName AS identityName,
         NVL(SUM(patient_count), 0) AS patientCount,
-        patient_type AS patientType,
-        dept_code AS deptCode,
-        dept_name AS deptName
+        patient_type AS patientType
         FROM TR_PAT_PORTRAIT_IDTY t
         LEFT JOIN TR_DEPT_DICT d ON t.dept_code = d.dept_code
         WHERE t.stat_date BETWEEN #{startDate} AND #{endDate}
@@ -78,7 +74,7 @@
         <if test="deptName != null and deptName != ''">
             AND d.dept_name LIKE '%' || #{deptName} || '%'
         </if>
-        GROUP BY t.identity_type, t.patient_type, t.dept_code, d.dept_name
+        GROUP BY t.identityName, t.patient_type, t.dept_code, d.dept_name
         ORDER BY patientCount DESC
     </select>
 
@@ -87,11 +83,9 @@
     <!-- ============================================================ -->
     <select id="queryRegOriginAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitRegEntity">
         SELECT
-        source_type AS sourceType,
+        sourceName AS sourceName,
         NVL(SUM(patient_count), 0) AS patientCount,
-        patient_type AS patientType,
-        dept_code AS deptCode,
-        dept_name AS deptName
+        patient_type AS patientType
         FROM TR_PAT_PORTRAIT_REG r
         LEFT JOIN TR_DEPT_DICT d ON r.dept_code = d.dept_code
         WHERE r.stat_date BETWEEN #{startDate} AND #{endDate}
@@ -105,7 +99,7 @@
         <if test="deptName != null and deptName != ''">
             AND d.dept_name LIKE '%' || #{deptName} || '%'
         </if>
-        GROUP BY r.source_type, r.patient_type, r.dept_code, d.dept_name
+        GROUP BY r.sourceName, r.patient_type
         ORDER BY patientCount DESC
     </select>
 
@@ -114,11 +108,9 @@
     <!-- ============================================================ -->
     <select id="queryArcOriginAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitArcEntity">
         SELECT
-        source_type AS sourceType,
+        sourceName AS sourceName,
         NVL(SUM(patient_count), 0) AS patientCount,
-        patient_type AS patientType,
-        dept_code AS deptCode,
-        dept_name AS deptName
+        patient_type AS patientType
         FROM TR_PAT_PORTRAIT_ARC a
         LEFT JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
         WHERE a.stat_date BETWEEN #{startDate} AND #{endDate}
@@ -132,7 +124,7 @@
         <if test="deptName != null and deptName != ''">
             AND d.dept_name LIKE '%' || #{deptName} || '%'
         </if>
-        GROUP BY a.source_type, a.patient_type, a.dept_code, d.dept_name
+        GROUP BY a.sourceName, a.patient_type
         ORDER BY patientCount DESC
     </select>
 

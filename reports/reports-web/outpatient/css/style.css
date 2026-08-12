@@ -631,11 +631,11 @@ body {
 .window-stat-item {
     background-color: #f5f7fa;
     border-radius: 8px;
-    padding: 16px;
+    padding: 20px 24px;
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 12px;
+    gap: 20px;
     flex: 1;
     border: 1px solid #f0f0f0;
 }

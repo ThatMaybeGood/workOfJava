@@ -24,7 +24,14 @@ const EMPTY_DS = {
   validationQuery: 'SELECT 1 FROM DUAL',
   authType: 'NONE', authToken: '', timeout: 30000,
   encoding: 'UTF-8', enabled: 'Y', description: '',
+  dsRole: 'BOTH',
 };
+
+const DS_ROLES = [
+  { value: 'SOURCE', label: '抽取源', hint: '仅作为数据抽取来源（HTTP/FILE/数据库等）' },
+  { value: 'TARGET', label: '目标源', hint: '仅作为数据写入目的地（数据库/文件等）' },
+  { value: 'BOTH', label: '双向', hint: '同时可作为源或目标（数据库到数据库场景）' },
+];
 
 export default function Datasource() {
   const [list, setList] = useState([]);
@@ -34,6 +41,7 @@ export default function Datasource() {
   const [form, setForm] = useState({ ...EMPTY_DS });
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [roleFilter, setRoleFilter] = useState('ALL');
   const { addToast, ToastContainer } = useToast();
 
   const loadList = useCallback(async () => {
@@ -111,7 +119,7 @@ export default function Datasource() {
 
     setSaving(true);
     try {
-      const data = { ...form };
+      const data = { ...form, dsRole: form.dsRole || 'BOTH' };
       // 非JDBC协议确保username和password有默认值
       if (protocol !== 'JDBC') {
         data.username = data.username || '';
@@ -147,6 +155,24 @@ export default function Datasource() {
 
   const typeLabel = (t) => ({ ORACLE: 'Oracle', MYSQL: 'MySQL', POSTGRESQL: 'PostgreSQL', SQLSERVER: 'SQL Server', HTTP: 'HTTP', SOAP: 'SOAP', FILE: '文件' })[t] || t;
   const protocolLabel = (p) => ({ JDBC: '数据库', HTTP: 'HTTP接口', SOAP: 'WebService', FILE: '文件' })[p] || p;
+  const roleLabel = (r) => ({ SOURCE: '抽取源', TARGET: '目标源', BOTH: '双向' })[r || 'BOTH'] || '双向';
+  const roleTag = (r) => {
+    const v = r || 'BOTH';
+    if (v === 'SOURCE') return 'tag tag-blue';
+    if (v === 'TARGET') return 'tag tag-green';
+    return 'tag tag-purple';
+  };
+
+  const countByRole = (role) => list.filter(d => (d.dsRole || 'BOTH') === role).length;
+  const filteredList = roleFilter === 'ALL'
+    ? list
+    : list.filter(d => (d.dsRole || 'BOTH') === roleFilter);
+  const ROLE_TABS = [
+    { value: 'ALL', label: '全部', icon: '⊙', color: 'cyan' },
+    { value: 'SOURCE', label: '抽取源', icon: '⇄', color: 'blue' },
+    { value: 'TARGET', label: '目标源', icon: '⇲', color: 'green' },
+    { value: 'BOTH', label: '双向', icon: '⇆', color: 'purple' },
+  ];
 
   const formProtocol = form.protocol || 'JDBC';
 
@@ -160,6 +186,33 @@ export default function Datasource() {
         </div>
       </div>
 
+      {/* 用途统计 + Tab 过滤 */}
+      <div className="content-area" style={{ paddingTop: 0 }}>
+        <div className="stats-grid" style={{ marginBottom: 16 }}>
+          {ROLE_TABS.map(tab => (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => setRoleFilter(tab.value)}
+              className={`stat-card stat-${tab.color}`}
+              style={{
+                cursor: 'pointer',
+                border: roleFilter === tab.value ? '2px solid var(--accent-cyan)' : '1px solid var(--border-color)',
+                background: roleFilter === tab.value ? 'rgba(6, 182, 212, 0.08)' : undefined,
+                textAlign: 'left',
+                padding: '14px 16px',
+              }}
+            >
+              <div className="stat-icon-wrap">{tab.icon}</div>
+              <div>
+                <div className="stat-value">{tab.value === 'ALL' ? list.length : countByRole(tab.value)}</div>
+                <div className="stat-label">{tab.label}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="content-area">
         <div className="card">
           <div className="card-body" style={{ padding: 0 }}>
@@ -168,6 +221,7 @@ export default function Datasource() {
                 <thead>
                   <tr>
                     <th>节点名称</th>
+                    <th>用途</th>
                     <th>协议</th>
                     <th>类型</th>
                     <th>连接地址</th>
@@ -178,16 +232,17 @@ export default function Datasource() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40 }}>
+                    <tr><td colSpan={8} style={{ textAlign: 'center', padding: 40 }}>
                       <div className="loader" style={{ margin: '0 auto' }} />
                     </td></tr>
-                  ) : list.length === 0 ? (
-                    <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
-                      尚未配置数据节点
+                  ) : filteredList.length === 0 ? (
+                    <tr><td colSpan={8} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
+                      {roleFilter === 'ALL' ? '尚未配置数据节点' : `当前 Tab 下无${ROLE_TABS.find(t => t.value === roleFilter)?.label || ''}节点`}
                     </td></tr>
-                  ) : list.map(ds => (
+                  ) : filteredList.map(ds => (
                     <tr key={ds.id}>
                       <td style={{ fontWeight: 600, color: 'var(--accent-cyan)' }}>{ds.dsName}</td>
+                      <td><span className={roleTag(ds.dsRole)}>{roleLabel(ds.dsRole)}</span></td>
                       <td><span className="tag tag-purple">{protocolLabel(ds.protocol || 'JDBC')}</span></td>
                       <td><span className="tag tag-blue">{typeLabel(ds.dsType)}</span></td>
                       <td className="text-mono text-sm" style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }} title={ds.jdbcUrl}>{ds.jdbcUrl}</td>
@@ -233,6 +288,30 @@ export default function Datasource() {
                         <span style={{ marginRight: 4 }}>{p.icon}</span> {p.label}
                       </button>
                     ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 用途角色 */}
+              <div className="form-row">
+                <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                  <label>用途角色 <span className="required">*</span></label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {DS_ROLES.map(r => (
+                      <button
+                        key={r.value}
+                        type="button"
+                        onClick={() => update('dsRole', r.value)}
+                        className={`btn ${(form.dsRole || 'BOTH') === r.value ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                        style={{ flex: 1 }}
+                        title={r.hint}
+                      >
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-muted)' }}>
+                    {DS_ROLES.find(r => r.value === (form.dsRole || 'BOTH'))?.hint}
                   </div>
                 </div>
               </div>

@@ -52,6 +52,10 @@ public class EtlTaskConfig {
     private String httpTotalPath;
     private Integer httpTimeout;
     private String httpEncoding;
+    /** 抽取行数硬上限，超过立即停止；为 null/0 表示不限制 */
+    private Integer httpMaxRows;
+    /** 分页时最大页数，超过即停止；为 null/0 表示不限制 */
+    private Integer httpMaxPages;
 
     // SOAP/WebService related fields
     private String soapAction;

@@ -209,7 +209,7 @@ public class OutpatientPatientPortraitServiceImpl implements OutpatientPatientPo
                     request.getPatientType(), request.getDeptCode(), request.getDeptName());
             List<AnalysisItem> result = new ArrayList<>();
             for (OutpatientPatientPortraitInsurEntity entity : list) {
-                result.add(newAnalysisItem(entity.getInsuranceType(), entity.getPatientCount()));
+                result.add(newAnalysisItem(entity.getInsuranceName(), entity.getPatientCount()));
             }
             return result;
         } catch (Exception e) {
@@ -225,7 +225,7 @@ public class OutpatientPatientPortraitServiceImpl implements OutpatientPatientPo
                     request.getPatientType(), request.getDeptCode(), request.getDeptName());
             List<AnalysisItem> result = new ArrayList<>();
             for (OutpatientPatientPortraitIdtyEntity entity : list) {
-                result.add(newAnalysisItem(entity.getIdentityType(), entity.getPatientCount()));
+                result.add(newAnalysisItem(entity.getIdentityName(), entity.getPatientCount()));
             }
             return result;
         } catch (Exception e) {
@@ -241,7 +241,7 @@ public class OutpatientPatientPortraitServiceImpl implements OutpatientPatientPo
                     request.getPatientType(), request.getDeptCode(), request.getDeptName());
             List<AnalysisItem> result = new ArrayList<>();
             for (OutpatientPatientPortraitRegEntity entity : list) {
-                result.add(newAnalysisItem(entity.getSourceType(), entity.getPatientCount()));
+                result.add(newAnalysisItem(entity.getSourceName(), entity.getPatientCount()));
             }
             return result;
         } catch (Exception e) {
@@ -257,7 +257,7 @@ public class OutpatientPatientPortraitServiceImpl implements OutpatientPatientPo
                     request.getPatientType(), request.getDeptCode(), request.getDeptName());
             List<AnalysisItem> result = new ArrayList<>();
             for (OutpatientPatientPortraitArcEntity entity : list) {
-                result.add(newAnalysisItem(entity.getSourceType(), entity.getPatientCount()));
+                result.add(newAnalysisItem(entity.getSourceName(), entity.getPatientCount()));
             }
             return result;
         } catch (Exception e) {

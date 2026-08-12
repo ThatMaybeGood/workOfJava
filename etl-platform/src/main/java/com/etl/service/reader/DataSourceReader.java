@@ -29,5 +29,14 @@ public interface DataSourceReader {
 
     List<Map<String, Object>> preview(int limit);
 
+    /**
+     * 是否支持流式分批读取。返回 true 时 PipelineExecutor 可走 chunk 边读边写路径，
+     * 显著降低内存峰值；返回 false 时仍走 readAll 全量老路径。
+     * 默认 false，由各 Reader 实现自行开启。
+     */
+    default boolean supportsStreaming() {
+        return false;
+    }
+
     void close();
 }

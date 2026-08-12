@@ -50,6 +50,10 @@ public class StepConfig {
     private String httpTotalPath;
     private Integer httpTimeout;
     private String httpEncoding;
+    /** 抽取行数硬上限，超过立即停止；为 null/0 表示不限制 */
+    private Integer httpMaxRows;
+    /** 分页时最大页数，超过即停止；为 null/0 表示不限制 */
+    private Integer httpMaxPages;
     private String soapAction;
     private String soapBinding;
     private String soapNamespace;
@@ -133,6 +137,8 @@ public class StepConfig {
             if (map.containsKey("httpPageSize")) config.setHttpPageSize((Integer) map.get("httpPageSize"));
             if (map.containsKey("httpTimeout")) config.setHttpTimeout((Integer) map.get("httpTimeout"));
             if (map.containsKey("httpEncoding")) config.setHttpEncoding((String) map.get("httpEncoding"));
+            if (map.containsKey("httpMaxRows")) config.setHttpMaxRows(toInt(map.get("httpMaxRows")));
+            if (map.containsKey("httpMaxPages")) config.setHttpMaxPages(toInt(map.get("httpMaxPages")));
             if (map.containsKey("soapAction")) config.setSoapAction((String) map.get("soapAction"));
             if (map.containsKey("soapBinding")) config.setSoapBinding((String) map.get("soapBinding"));
             if (map.containsKey("soapNamespace")) config.setSoapNamespace((String) map.get("soapNamespace"));
@@ -154,5 +160,12 @@ public class StepConfig {
         } catch (Exception e) {
             // JSON 解析失败时忽略
         }
+    }
+
+    private static Integer toInt(Object v) {
+        if (v == null) return null;
+        if (v instanceof Integer) return (Integer) v;
+        if (v instanceof Number) return ((Number) v).intValue();
+        try { return Integer.parseInt(v.toString()); } catch (Exception e) { return null; }
     }
 }

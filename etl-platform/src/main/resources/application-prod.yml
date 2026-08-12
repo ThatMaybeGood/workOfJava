@@ -28,15 +28,13 @@ spring:
         url-pattern: /*
         exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*"
 
-# 生产环境日志
+# 生产环境日志（详细配置见 logback-spring.xml，此节用于快速切换默认级别）
 logging:
   level:
     root: info
     com.etl: info
     com.baomidou.mybatisplus: warn
     org.apache.ibatis.executor: warn
-  file:
-    name: logs/etl-platform-prod.log
 
 # Swagger (生产环境建议关闭)
 springdoc:

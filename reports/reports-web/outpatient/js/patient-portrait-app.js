@@ -226,6 +226,7 @@ class PatientPortraitController {
     renderPieChart(chart, data, title) {
         const colors = ['#1890ff', '#52c41a', '#13c2c2', '#faad14', '#f5222d', '#722ed1', '#eb2f96', '#fa541c'];
         const chartData = (data && Array.isArray(data)) ? data : [];
+        const legendData = chartData.map(item => item.name);
         const option = {
             title: {
                 text: title,
@@ -247,7 +248,8 @@ class PatientPortraitController {
                 top: 'center',
                 itemWidth: 10,
                 itemHeight: 10,
-                textStyle: { color: '#595959', fontSize: 12 }
+                textStyle: { color: '#595959', fontSize: 12 },
+                data: legendData
             },
             color: colors,
             series: [

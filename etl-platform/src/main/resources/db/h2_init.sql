@@ -34,6 +34,10 @@ CREATE TABLE IF NOT EXISTS datasource_config (
     updated_time        TIMESTAMP
 );
 
+-- 兼容已有库：补加用途列（SOURCE 抽取源 / TARGET 目标源 / BOTH 双向）
+-- CREATE TABLE IF NOT EXISTS 不会在表已存在时补列，故统一由 ALTER 兜底
+ALTER TABLE datasource_config ADD COLUMN IF NOT EXISTS ds_role VARCHAR(20) DEFAULT 'BOTH';
+
 -- 2. ETL任务配置表
 CREATE TABLE IF NOT EXISTS etl_task_config (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
