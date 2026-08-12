@@ -4,6 +4,7 @@ import com.etl.dto.ApiResponse;
 import com.etl.entity.EtlExecutionLog;
 import com.etl.service.admin.DatasourceConfigService;
 import com.etl.service.admin.EtlExecutionLogService;
+import com.etl.service.admin.EtlTaskConfigService;
 import com.etl.service.admin.PipelineService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,6 +31,9 @@ public class MonitorController {
 
     @Autowired
     private PipelineService pipelineService;
+
+    @Autowired
+    private EtlTaskConfigService taskConfigService;
 
     @Autowired
     private DatasourceConfigService datasourceConfigService;
@@ -62,7 +66,7 @@ public class MonitorController {
     @Operation(summary = "获取监控仪表盘数据（管线维度）")
     public ApiResponse<Map<String, Object>> getDashboard() {
         Map<String, Object> dashboard = new HashMap<>();
-        dashboard.put("totalTasks", pipelineService.count());
+        dashboard.put("totalTasks", taskConfigService.count());
         dashboard.put("totalPipelines", pipelineService.count());
         dashboard.put("runningTasks", executionLogService.countByStatus("RUNNING"));
         dashboard.put("successTasks", executionLogService.countByStatus("SUCCESS"));

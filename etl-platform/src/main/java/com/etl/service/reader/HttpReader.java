@@ -193,7 +193,12 @@ public class HttpReader implements DataSourceReader {
         if (!hasMore) {
             return Collections.emptyList();
         }
-        return fetchPage();
+        List<Map<String, Object>> page = fetchPage();
+        // 非分页模式下只有一页数据，拉取后立即结束，避免流式执行时重复拉取同一 URL 造成死循环
+        if (!"Y".equals(taskConfig.getHttpPagination())) {
+            hasMore = false;
+        }
+        return page;
     }
 
     private List<Map<String, Object>> fetchPage() {

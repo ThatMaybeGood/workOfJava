@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS etl_task_config (
     http_total_path         VARCHAR(200),
     http_timeout            INT DEFAULT 30000,
     http_encoding           VARCHAR(20) DEFAULT 'UTF-8',
+    http_max_rows           INT DEFAULT 0,
+    http_max_pages          INT DEFAULT 0,
     soap_action             VARCHAR(500),
     soap_binding            VARCHAR(20),
     soap_namespace          VARCHAR(200),
@@ -92,6 +94,10 @@ CREATE TABLE IF NOT EXISTS etl_task_config (
     created_time            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_time            TIMESTAMP
 );
+
+-- 兼容已有库：HTTP 抽取新增分页/行数上限列（CREATE IF NOT EXISTS 不补列，ALTER 兜底）
+ALTER TABLE etl_task_config ADD COLUMN IF NOT EXISTS http_max_rows INT DEFAULT 0;
+ALTER TABLE etl_task_config ADD COLUMN IF NOT EXISTS http_max_pages INT DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS idx_task_code ON etl_task_config(task_code);
 CREATE INDEX IF NOT EXISTS idx_task_enabled ON etl_task_config(enabled);

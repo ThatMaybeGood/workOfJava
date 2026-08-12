@@ -25,6 +25,8 @@ public class FileReader implements DataSourceReader {
     private EtlTaskConfig taskConfig;
     private java.io.BufferedReader bufferedReader;
     private int currentLine = 0;
+    /** 表头列名（CSV 带表头时从首行解析，否则为 null，用 column_0/column_1... 占位） */
+    private String[] headerColumns;
 
     @Override
     public String getSourceType() {
@@ -39,15 +41,25 @@ public class FileReader implements DataSourceReader {
             String encoding = task.getFileEncoding() != null ? task.getFileEncoding() : "UTF-8";
             this.bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(file), encoding));
             this.currentLine = 0;
+            this.headerColumns = null;
 
-            // 跳过标题行
-            if ("Y".equals(task.getFileHeader())) {
-                bufferedReader.readLine();
+            // 读取表头行：解析列名，后续数据行按列名取值（比 column_0 占位更利于映射）
+            if ("Y".equals(task.getFileHeader()) && isCsvFormat()) {
+                String headerLine = bufferedReader.readLine();
                 currentLine++;
+                if (headerLine != null) {
+                    String delimiter = task.getFileDelimiter() != null ? task.getFileDelimiter() : ",";
+                    headerColumns = splitCsvLine(headerLine, delimiter);
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException("初始化文件读取器失败", e);
         }
+    }
+
+    private boolean isCsvFormat() {
+        String format = taskConfig.getFileFormat();
+        return format == null || "CSV".equalsIgnoreCase(format);
     }
 
     @Override
@@ -114,12 +126,47 @@ public class FileReader implements DataSourceReader {
 
     private Map<String, Object> parseCsv(String line) {
         String delimiter = taskConfig.getFileDelimiter() != null ? taskConfig.getFileDelimiter() : ",";
-        String[] parts = line.split(delimiter);
+        String[] parts = splitCsvLine(line, delimiter);
         Map<String, Object> row = new HashMap<>();
         for (int i = 0; i < parts.length; i++) {
-            row.put("column_" + i, parts[i].trim());
+            String key = (headerColumns != null && i < headerColumns.length && headerColumns[i] != null && !headerColumns[i].isEmpty())
+                    ? headerColumns[i].trim() : "column_" + i;
+            row.put(key, parts[i].trim());
         }
         return row;
+    }
+
+    /**
+     * CSV 行解析：按分隔符拆分，正确处理双引号包裹的字段（含分隔符/引号/换行）。
+     * 与 FileReader.parseCsv 配套，同时用于解析表头行和数据行。
+     */
+    private static String[] splitCsvLine(String line, String delimiter) {
+        if (line == null || line.isEmpty()) {
+            return new String[0];
+        }
+        char d = delimiter.length() > 0 ? delimiter.charAt(0) : ',';
+        List<String> fields = new ArrayList<>();
+        StringBuilder cur = new StringBuilder();
+        boolean inQuotes = false;
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (c == '"') {
+                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                    // 转义引号 ""
+                    cur.append('"');
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (c == d && !inQuotes) {
+                fields.add(cur.toString());
+                cur.setLength(0);
+            } else {
+                cur.append(c);
+            }
+        }
+        fields.add(cur.toString());
+        return fields.toArray(new String[0]);
     }
 
     private Map<String, Object> parseJson(String line) {

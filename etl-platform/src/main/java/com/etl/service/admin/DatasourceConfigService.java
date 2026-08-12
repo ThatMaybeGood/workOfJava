@@ -44,13 +44,20 @@ public class DatasourceConfigService extends ServiceImpl<DatasourceConfigMapper,
 
     @Override
     public boolean updateById(DatasourceConfig entity) {
-        if (entity.getPassword() != null && !entity.getPassword().isEmpty()
-                && !entity.getPassword().startsWith("ENC(")) {
+        // 密码留空表示不修改，置 null 让 MyBatis-Plus 跳过该列，避免把已加密密码清空
+        if (entity.getPassword() != null && entity.getPassword().isEmpty()) {
+            entity.setPassword(null);
+        } else if (entity.getPassword() != null && !entity.getPassword().startsWith("ENC(")) {
             entity.setPassword(CryptoUtil.encrypt(entity.getPassword()));
         }
         boolean result = super.updateById(entity);
         if (result) {
-            dataSourceManager.refreshDataSource(entity.getDsName());
+            try {
+                dataSourceManager.refreshDataSource(entity.getDsName());
+            } catch (Exception e) {
+                // 连接池刷新失败（如目标库暂时不可达）不影响配置保存，记日志即可
+                log.warn("数据源 [{}] 连接池刷新失败: {}", entity.getDsName(), e.getMessage());
+            }
         }
         return result;
     }

@@ -264,7 +264,10 @@ public class PipelineController {
     @PostMapping("/{pipelineCode}/execute")
     @Operation(summary = "手动执行管线")
     public ApiResponse<Void> execute(@PathVariable String pipelineCode) {
-        pipelineExecutor.debug(pipelineCode, 0, true);
+        DebugResult result = pipelineExecutor.debug(pipelineCode, 0, true);
+        if (result == null || !"SUCCESS".equals(result.getStatus())) {
+            return ApiResponse.error("管线执行失败: " + (result != null ? result.getErrorMessage() : "未知错误"));
+        }
         return ApiResponse.success("管线执行完成");
     }
 

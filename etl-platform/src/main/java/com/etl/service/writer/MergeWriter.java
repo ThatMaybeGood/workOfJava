@@ -79,6 +79,9 @@ public class MergeWriter implements DataWriter {
 
         List<String> targetColumns = getTargetColumns(mappings, batch.get(0));
         List<String> primaryKeys = getPrimaryKeys(mappings);
+        if (primaryKeys.isEmpty()) {
+            throw new IllegalArgumentException("MERGE 写入模式必须至少配置一个主键字段（isPrimaryKey=Y）用于匹配");
+        }
 
         // Oracle MERGE INTO 语法
         String mergeSql = buildMergeSql(task.getTargetTable(), targetColumns, primaryKeys);
@@ -171,7 +174,7 @@ public class MergeWriter implements DataWriter {
         if (mappings != null) {
             for (EtlColumnMapping m : mappings) {
                 if (m.getTargetColumn().equalsIgnoreCase(targetCol)) {
-                    Object value = row.get(m.getSourceColumn());
+                    Object value = resolveDotPath(row, m.getSourceColumn());
                     if (value == null && m.getDefaultValue() != null) {
                         return m.getDefaultValue();
                     }
@@ -179,6 +182,22 @@ public class MergeWriter implements DataWriter {
                 }
             }
         }
-        return row.get(targetCol);
+        return resolveDotPath(row, targetCol);
+    }
+
+    /**
+     * 按 dot-path 从 map 中取值，支持嵌套对象和数组下标（与 InsertWriter 保持一致）。
+     */
+    @SuppressWarnings("unchecked")
+    private Object resolveDotPath(Map<String, Object> root, String path) {
+        if (path == null || path.isEmpty() || root == null) return null;
+        Object current = root;
+        for (String segment : path.split("\\.")) {
+            if (current == null) return null;
+            if (segment.startsWith("[") || segment.equals("*")) continue;
+            if (!(current instanceof Map)) return null;
+            current = ((Map<String, Object>) current).get(segment);
+        }
+        return current;
     }
 }
