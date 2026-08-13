@@ -4,7 +4,39 @@
       "Bash(mvn compile *)",
       "Bash(ls -d \"D:/JetBrains/IdeaProjects/workOfJava/reports-web\" 2>/dev/null && echo \"EXISTS\" || echo \"NOT_FOUND\")",
       "mcp__Claude_Preview__preview_start",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(python -c ' *)",
+      "Bash(grep -n \"{b}\\\\\\\\\\\\\\\\n{c}\\\\\\\\\\\\\\\\n\\({d}%\\)\" window-stats-app.js)",
+      "Read(//d/JetBrains/IdeaProjects/workOfJava/etl-platform/**)",
+      "Bash(ls target/*.jar)",
+      "Bash(ls data/)",
+      "Bash(python _tmp_replace.py)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(mvn *)",
+      "Bash(java *)",
+      "Bash(netstat *)",
+      "Bash(taskkill *)",
+      "Bash(cd *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(curl *)",
+      "Bash(python *)",
+      "Bash(git *)",
+      "Bash(cp *)",
+      "Bash(mkdir *)",
+      "Bash(touch *)",
+      "Bash(ls .claude/launch.json)",
+      "Bash(cat .claude/launch.json)",
+      "mcp__Claude_in_Chrome__list_connected_browsers",
+      "Bash(nohup java -jar target/etl-platform-1.0.0-SNAPSHOT.jar --server.port=18880)",
+      "Bash(echo \"started PID $!\")",
+      "Bash(echo \"exit: $?\")",
+      "Bash(break)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp"
+    ],
+    "additionalDirectories": [
+      "D:/JetBrains/IdeaProjects/workOfJava/etl-platform"
     ]
   }
 }

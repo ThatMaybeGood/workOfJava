@@ -130,8 +130,8 @@ class WindowStatsController {
             series: [
                 {
                     type: 'pie',
-                    radius: ['45%', '70%'],
-                    center: ['30%', '55%'],
+                    radius: ['40%', '62%'],
+                    center: ['38%', '55%'],
                     avoidLabelOverlap: true,
                     label: {
                         show: true,
