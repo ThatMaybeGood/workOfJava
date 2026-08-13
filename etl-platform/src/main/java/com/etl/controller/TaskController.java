@@ -60,7 +60,11 @@ public class TaskController {
     @GetMapping("/{id}")
     @Operation(summary = "获取任务详情")
     public ApiResponse<EtlTaskConfig> getById(@PathVariable Long id) {
-        return ApiResponse.success(taskConfigService.getById(id));
+        EtlTaskConfig task = taskConfigService.getById(id);
+        if (task == null) {
+            return ApiResponse.error("任务不存在: " + id);
+        }
+        return ApiResponse.success(task);
     }
 
     @GetMapping
@@ -82,6 +86,9 @@ public class TaskController {
         EtlTaskConfig task = taskConfigService.getByTaskCode(taskCode);
         if (task == null) {
             return ApiResponse.error("任务不存在");
+        }
+        if (task.getCronExpr() == null || task.getCronExpr().trim().isEmpty()) {
+            return ApiResponse.error("任务未配置Cron表达式，无法启动定时调度");
         }
         taskScheduler.scheduleTask(task);
         return ApiResponse.success("定时任务已启动");

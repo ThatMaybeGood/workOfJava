@@ -129,8 +129,9 @@ public class StepEngine {
     /** 抽取步骤 */
     private void executeExtract(EtlTaskConfig task, StepResult step, int limit) {
         long s = System.currentTimeMillis();
+        DataSourceReader reader = null;
         try {
-            DataSourceReader reader = readerFactory.getReader(task.getSourceType());
+            reader = readerFactory.getReader(task.getSourceType());
             reader.init(task, dataSourceManager);
             List<Map<String, Object>> data = (limit > 0) ? reader.preview(limit) : reader.readAll();
 
@@ -154,6 +155,14 @@ public class StepEngine {
             step.setStatus("FAILED");
             step.setErrorMessage(e.getMessage());
             step.setDurationMs(System.currentTimeMillis() - s);
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (Exception ex) {
+                    log.warn("关闭读取器失败: {}", ex.getMessage());
+                }
+            }
         }
     }
 

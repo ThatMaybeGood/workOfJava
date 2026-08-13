@@ -43,6 +43,14 @@ public class ExtractTestRequest {
     private String soapBinding;         // SOAP11 / SOAP12
     private String soapNamespace;       // XML 命名空间
 
+    // ── FILE 类型 ──
+    private String filePath;            // 文件路径
+    private String fileFormat;          // CSV / JSON
+    private String fileDelimiter;       // 分隔符（CSV 默认逗号）
+    private String fileEncoding;        // 编码（默认 UTF-8）
+    private String fileHeader;          // 是否首行为表头 Y / N
+    private String fileSheetName;       // 工作表名（Excel 预留）
+
     // ── 提取行数限制 ──
     private Integer limit;
 }

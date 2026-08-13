@@ -36,13 +36,14 @@ public class ExtractController {
     @Operation(summary = "测试抽取配置", description = "传入抽取配置（不需要保存任务），返回原始响应和解析后的数据")
     public ApiResponse<ExtractTestResult> testExtract(@RequestBody ExtractTestRequest req) {
         long start = System.currentTimeMillis();
+        DataSourceReader reader = null;
 
         try {
             // 构建临时 EtlTaskConfig
             EtlTaskConfig task = buildTempTask(req);
 
             // 获取 Reader
-            DataSourceReader reader = readerFactory.getReader(req.getSourceType());
+            reader = readerFactory.getReader(req.getSourceType());
 
             // 初始化
             reader.init(task, dataSourceManager);
@@ -73,7 +74,6 @@ public class ExtractController {
                 }
             }
 
-            reader.close();
             return ApiResponse.success(result, "抽取测试成功, 返回 " + result.getTotalRows() + " 条数据");
 
         } catch (Exception e) {
@@ -82,15 +82,24 @@ public class ExtractController {
             ExtractTestResult failResult = ExtractTestResult.fail(e.getMessage());
             failResult.setDurationMs(duration);
             return ApiResponse.success(failResult); // 用 success 包装，前端由 success 字段判断
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (Exception ex) {
+                    log.warn("关闭读取器失败: {}", ex.getMessage());
+                }
+            }
         }
     }
 
     @PostMapping("/raw")
     @Operation(summary = "获取原始响应", description = "仅返回 HTTP/SOAP 请求的原始响应体，不做解析")
     public ApiResponse<String> rawResponse(@RequestBody ExtractTestRequest req) {
+        DataSourceReader reader = null;
         try {
             EtlTaskConfig task = buildTempTask(req);
-            DataSourceReader reader = readerFactory.getReader(req.getSourceType());
+            reader = readerFactory.getReader(req.getSourceType());
             reader.init(task, dataSourceManager);
 
             reader.preview(req.getLimit() != null ? req.getLimit() : 10);
@@ -101,7 +110,6 @@ public class ExtractController {
                 com.etl.service.reader.HttpReader hr = (com.etl.service.reader.HttpReader) reader;
                 rawBody = hr.getLastRawResponse();
             }
-            reader.close();
 
             if (rawBody != null) {
                 return ApiResponse.success(rawBody, "原始响应获取成功");
@@ -111,6 +119,14 @@ public class ExtractController {
         } catch (Exception e) {
             log.error("获取原始响应失败", e);
             return ApiResponse.error("获取原始响应失败: " + e.getMessage());
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (Exception ex) {
+                    log.warn("关闭读取器失败: {}", ex.getMessage());
+                }
+            }
         }
     }
 
@@ -144,6 +160,12 @@ public class ExtractController {
         t.setSoapAction(req.getSoapAction());
         t.setSoapBinding(req.getSoapBinding());
         t.setSoapNamespace(req.getSoapNamespace());
+        t.setFilePath(req.getFilePath());
+        t.setFileFormat(req.getFileFormat());
+        t.setFileDelimiter(req.getFileDelimiter());
+        t.setFileEncoding(req.getFileEncoding());
+        t.setFileHeader(req.getFileHeader());
+        t.setFileSheetName(req.getFileSheetName());
         return t;
     }
 }

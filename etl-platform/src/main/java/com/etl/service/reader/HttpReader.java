@@ -249,6 +249,13 @@ public class HttpReader implements DataSourceReader {
                 String body = EntityUtils.toString(entity, StandardCharsets.UTF_8);
                 this.lastRawResponse = body;
 
+                // HTTP 非 2xx 视为请求失败，不将错误响应体当作业务数据解析
+                if (response.getCode() < 200 || response.getCode() >= 300) {
+                    String brief = body != null && body.length() > 500 ? body.substring(0, 500) : body;
+                    this.lastRawResponse = null;
+                    throw new RuntimeException("HTTP请求返回非成功状态码: " + response.getCode() + ", 响应: " + brief);
+                }
+
                 return parseResponse(body);
             }
         } catch (Exception e) {
@@ -514,8 +521,9 @@ public class HttpReader implements DataSourceReader {
                 taskConfig.setHttpPageSize(originalSize);
             }
         } catch (Exception e) {
-            log.warn("HTTP预览拉取失败", e);
-            return Collections.emptyList();
+            log.warn("HTTP预览拉取失败: {}", e.getMessage());
+            // 非2xx等错误必须向上传播，否则上层会误判为"成功但0行"
+            throw new RuntimeException("HTTP预览拉取失败: " + e.getMessage(), e);
         }
         return page.size() <= limit ? page : new ArrayList<>(page.subList(0, limit));
     }

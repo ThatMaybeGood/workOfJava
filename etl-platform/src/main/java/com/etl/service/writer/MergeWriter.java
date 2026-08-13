@@ -83,18 +83,14 @@ public class MergeWriter implements DataWriter {
             throw new IllegalArgumentException("MERGE 写入模式必须至少配置一个主键字段（isPrimaryKey=Y）用于匹配");
         }
 
-        // Oracle MERGE INTO 语法
+        // H2（Oracle 兼容模式）无法解析 Oracle 的 MERGE INTO ... USING (SELECT ? FROM DUAL) 语法，
+        // 改用 H2 原生 upsert 语法 MERGE INTO table (cols) KEY(pk) VALUES (...)
         String mergeSql = buildMergeSql(task.getTargetTable(), targetColumns, primaryKeys);
 
         List<Object[]> batchArgs = new ArrayList<>();
         for (Map<String, Object> row : batch) {
-            Object[] args = new Object[targetColumns.size() + targetColumns.size()];
+            Object[] args = new Object[targetColumns.size()];
             int idx = 0;
-            // VALUES部分（INSERT用）
-            for (String col : targetColumns) {
-                args[idx++] = getValue(row, col, mappings);
-            }
-            // UPDATE SET部分
             for (String col : targetColumns) {
                 args[idx++] = getValue(row, col, mappings);
             }
@@ -104,47 +100,28 @@ public class MergeWriter implements DataWriter {
         jdbcTemplate.batchUpdate(mergeSql, batchArgs);
     }
 
+    /**
+     * 生成 H2 原生 upsert 语法：MERGE INTO table (col...) KEY(pk...) VALUES (?...)
+     * 以主键为匹配键，命中则更新其余列，未命中则插入。H2 2.x 的 MERGE 天然兼容该写法。
+     */
     private String buildMergeSql(String tableName, List<String> columns, List<String> primaryKeys) {
         StringBuilder sb = new StringBuilder();
-        sb.append("MERGE INTO ").append(tableName).append(" t USING (SELECT ");
-
-        // SELECT 参数
-        for (int i = 0; i < columns.size(); i++) {
-            if (i > 0) sb.append(", ");
-            sb.append("? AS ").append(columns.get(i));
-        }
-        sb.append(" FROM DUAL) s ON (");
-
-        // ON 条件（主键匹配）
-        for (int i = 0; i < primaryKeys.size(); i++) {
-            if (i > 0) sb.append(" AND ");
-            sb.append("t.").append(primaryKeys.get(i)).append(" = s.").append(primaryKeys.get(i));
-        }
-        sb.append(") ");
-
-        // WHEN MATCHED THEN UPDATE
-        sb.append("WHEN MATCHED THEN UPDATE SET ");
-        List<String> nonPkColumns = columns.stream()
-                .filter(c -> !primaryKeys.contains(c))
-                .collect(Collectors.toList());
-        for (int i = 0; i < nonPkColumns.size(); i++) {
-            if (i > 0) sb.append(", ");
-            sb.append("t.").append(nonPkColumns.get(i)).append(" = s.").append(nonPkColumns.get(i));
-        }
-
-        // WHEN NOT MATCHED THEN INSERT
-        sb.append(" WHEN NOT MATCHED THEN INSERT (");
+        sb.append("MERGE INTO ").append(tableName).append(" (");
         for (int i = 0; i < columns.size(); i++) {
             if (i > 0) sb.append(", ");
             sb.append(columns.get(i));
         }
+        sb.append(") KEY (");
+        for (int i = 0; i < primaryKeys.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(primaryKeys.get(i));
+        }
         sb.append(") VALUES (");
         for (int i = 0; i < columns.size(); i++) {
             if (i > 0) sb.append(", ");
-            sb.append("s.").append(columns.get(i));
+            sb.append("?");
         }
         sb.append(")");
-
         return sb.toString();
     }
 

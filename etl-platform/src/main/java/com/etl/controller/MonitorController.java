@@ -53,7 +53,11 @@ public class MonitorController {
     @GetMapping("/logs/execution/{executionId}")
     @Operation(summary = "获取执行日志详情")
     public ApiResponse<EtlExecutionLog> getLogByExecutionId(@PathVariable String executionId) {
-        return ApiResponse.success(executionLogService.getByExecutionId(executionId));
+        EtlExecutionLog log = executionLogService.getByExecutionId(executionId);
+        if (log == null) {
+            return ApiResponse.error("执行日志不存在: " + executionId);
+        }
+        return ApiResponse.success(log);
     }
 
     @GetMapping("/logs/running")

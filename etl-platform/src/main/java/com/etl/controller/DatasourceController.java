@@ -42,21 +42,31 @@ public class DatasourceController {
     @Operation(summary = "更新数据源")
     public ApiResponse<DatasourceConfig> update(@PathVariable Long id, @RequestBody DatasourceConfig config) {
         config.setId(id);
-        datasourceConfigService.updateById(config);
+        boolean updated = datasourceConfigService.updateById(config);
+        if (!updated) {
+            return ApiResponse.error("数据源不存在: " + id);
+        }
         return ApiResponse.success(config, "数据源更新成功");
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除数据源")
     public ApiResponse<Void> delete(@PathVariable Long id) {
-        datasourceConfigService.removeById(id);
+        boolean removed = datasourceConfigService.removeById(id);
+        if (!removed) {
+            return ApiResponse.error("数据源不存在: " + id);
+        }
         return ApiResponse.success("数据源删除成功");
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "获取数据源详情")
     public ApiResponse<DatasourceConfig> getById(@PathVariable Long id) {
-        return ApiResponse.success(datasourceConfigService.getById(id));
+        DatasourceConfig config = datasourceConfigService.getById(id);
+        if (config == null) {
+            return ApiResponse.error("数据源不存在: " + id);
+        }
+        return ApiResponse.success(config);
     }
 
     @GetMapping

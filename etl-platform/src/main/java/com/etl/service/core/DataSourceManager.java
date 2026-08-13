@@ -3,6 +3,7 @@ package com.etl.service.core;
 import com.alibaba.druid.pool.DruidDataSource;
 import com.etl.entity.DatasourceConfig;
 import com.etl.service.admin.DatasourceConfigService;
+import com.etl.util.CryptoUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -26,6 +27,9 @@ public class DataSourceManager {
     private DatasourceConfigService datasourceConfigService;
 
     public JdbcTemplate getJdbcTemplate(String dsName) {
+        if (dsName == null || dsName.trim().isEmpty()) {
+            throw new RuntimeException("数据源名称不能为空，请检查任务配置的源/目标数据源");
+        }
         JdbcTemplate jdbcTemplate = jdbcTemplateMap.get(dsName);
         if (jdbcTemplate != null) {
             return jdbcTemplate;
@@ -51,6 +55,9 @@ public class DataSourceManager {
     }
 
     public DataSource getDataSource(String dsName) {
+        if (dsName == null || dsName.trim().isEmpty()) {
+            throw new RuntimeException("数据源名称不能为空，请检查任务配置的源/目标数据源");
+        }
         DruidDataSource ds = dataSourceMap.get(dsName);
         if (ds != null) {
             return ds;
@@ -78,7 +85,8 @@ public class DataSourceManager {
         dataSource.setDriverClassName(config.getDriverClass());
         dataSource.setUrl(config.getJdbcUrl());
         dataSource.setUsername(config.getUsername());
-        dataSource.setPassword(config.getPassword());
+        // 数据库存的是 ENC(...) 密文，建连接池前必须解密，否则会用密文字符串当密码连接失败
+        dataSource.setPassword(CryptoUtil.decrypt(config.getPassword()));
 
         dataSource.setInitialSize(config.getInitialSize() != null ? config.getInitialSize() : 5);
         dataSource.setMinIdle(config.getMinIdle() != null ? config.getMinIdle() : 5);

@@ -117,7 +117,7 @@ public class PipelineExecutor {
                     StepResult stepResult = executeStep(step, edgeList, stepOutputs, limit, write);
                     steps.add(stepResult);
 
-                    if (!"SUCCESS".equals(stepResult.getStatus())) {
+                    if (!"SUCCESS".equals(stepResult.getStatus()) && !"SKIPPED".equals(stepResult.getStatus())) {
                         // 检查下游步骤是否允许失败继续
                         boolean hasFailTolerant = edgeList.stream()
                                 .anyMatch(e -> e.getFromStepId().equals(step.getId()) && "FAIL_CONTINUE".equals(e.getEdgeType()));
@@ -303,7 +303,7 @@ public class PipelineExecutor {
                 stepEvt.put("finalMethod", stepResult.getFinalMethod());
                 sendEvent(onEvent, "step", stepEvt);
 
-                if (!"SUCCESS".equals(stepResult.getStatus())) {
+                if (!"SUCCESS".equals(stepResult.getStatus()) && !"SKIPPED".equals(stepResult.getStatus())) {
                     boolean hasFailTolerant = edgeList.stream()
                             .anyMatch(e -> e.getFromStepId().equals(step.getId()) && "FAIL_CONTINUE".equals(e.getEdgeType()));
                     if (!hasFailTolerant) {
