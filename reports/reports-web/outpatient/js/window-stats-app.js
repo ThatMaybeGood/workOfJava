@@ -135,7 +135,7 @@ class WindowStatsController {
                     avoidLabelOverlap: true,
                     label: {
                         show: true,
-                        formatter: '{b}\n{c}\n({d}%)',
+                        formatter: '{c}\n({d}%)',
                         fontSize: 11,
                         color: '#595959'
                     },
