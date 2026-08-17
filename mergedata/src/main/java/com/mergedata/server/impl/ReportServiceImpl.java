@@ -139,6 +139,7 @@ public class ReportServiceImpl implements ReportService {
 
             LocalDate currtDate = body.getReportDate();
 
+
             String pk = PrimaryKeyGenerator.generateKey();
             //查询出具体的类型
             String type = holidayService.queryDateType(body.getReportDate(), Constant.TYPE_OUTP);
@@ -190,7 +191,12 @@ public class ReportServiceImpl implements ReportService {
             // 预加载 HIS 数据和现金记录
             Map<String, HisOutpIncomeResponseDTO> hisDataMap = hisdata.findByDateOutp(currtDate.toString()).stream()
                     .collect(Collectors.toMap(HisOutpIncomeResponseDTO::getDbUser, Function.identity(), (v1, v2) -> v1));
-            Map<String, YQCashRegRecordEntity> cashMap = cashService.findByDate(currtDate).stream()
+
+            LocalDate cashDate = currtDate;
+            if(calculationType == 1){
+                cashDate =  currtDate.minusDays(1);
+            }
+            Map<String, YQCashRegRecordEntity> cashMap = cashService.findByDate(cashDate).stream()
                     .collect(Collectors.toMap(YQCashRegRecordEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
 
             // 获取历史数据（昨日）
@@ -581,7 +587,12 @@ public class ReportServiceImpl implements ReportService {
             // 预加载 HIS 数据和现金记录
             Map<String, HisOutpIncomeResponseDTO> hisDataMap = hisdata.findByDateOutp(currtDate.toString()).stream()
                     .collect(Collectors.toMap(HisOutpIncomeResponseDTO::getDbUser, Function.identity(), (v1, v2) -> v1));
-            Map<String, YQCashRegRecordEntity> cashMap = cashService.findByDate(currtDate).stream()
+
+            LocalDate cashDate = currtDate;
+            if("1".equals(totalFlag)){
+                cashDate = currtDate.minusDays(1);
+            }
+            Map<String, YQCashRegRecordEntity> cashMap = cashService.findByDate(cashDate).stream()
                     .collect(Collectors.toMap(YQCashRegRecordEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
 
             //查询出具体的类型
@@ -1279,6 +1290,7 @@ public class ReportServiceImpl implements ReportService {
     public OutpCashMainEntity getOutpReportData(OutpReportRequestBody body, int calculationType) {
         try {
             LocalDate currtDate = body.getReportDate();
+
             String pk = PrimaryKeyGenerator.generateKey();
             //查询出具体的类型
             String type = holidayService.queryDateType(body.getReportDate(), Constant.TYPE_OUTP);
@@ -1326,7 +1338,11 @@ public class ReportServiceImpl implements ReportService {
             Map<String, HisOutpIncomeResponseDTO> hisDataMap = hisdata.findByDateOutp(currtDate.toString()).stream()
                     .collect(Collectors.toMap(HisOutpIncomeResponseDTO::getDbUser, Function.identity(), (v1, v2) -> v1));
 
-            Map<String, YQCashRegRecordEntity> cashMap = cashService.findByDate(currtDate).stream()
+            LocalDate cashDate = currtDate ;
+            if (calculationType == 1) {
+                cashDate = currtDate.minusDays(1);
+            }
+            Map<String, YQCashRegRecordEntity> cashMap = cashService.findByDate(cashDate).stream()
                     .collect(Collectors.toMap(YQCashRegRecordEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
 
             // 获取历史数据（昨日）

@@ -13,6 +13,7 @@ class PatientPortraitController {
             deptCode: ''
         };
         this.charts = {};
+        this.lastChartData = null;
 
         this.init();
     }
@@ -41,6 +42,13 @@ class PatientPortraitController {
 
         window.addEventListener('resize', () => {
             Object.values(this.charts).forEach(chart => chart.resize());
+        });
+
+        const compactMq = window.matchMedia('(max-width: 1300px)');
+        compactMq.addEventListener('change', () => {
+            if (this.lastChartData) {
+                this.renderCharts(this.lastChartData);
+            }
         });
     }
 
@@ -129,7 +137,8 @@ class PatientPortraitController {
                 deptName: this.state.deptName,
                 deptCode: this.state.deptCode
             });
-            this.renderCharts(body || {});
+            this.lastChartData = body || {};
+            this.renderCharts(this.lastChartData);
         } catch (error) {
             console.error('Load patient portrait data failed:', error);
         }
@@ -227,6 +236,12 @@ class PatientPortraitController {
         const colors = ['#1890ff', '#52c41a', '#13c2c2', '#faad14', '#f5222d', '#722ed1', '#eb2f96', '#fa541c'];
         const chartData = (data && Array.isArray(data)) ? data : [];
         const legendData = chartData.map(item => item.name);
+        const compact = window.matchMedia('(max-width: 1300px)').matches;
+        const legend = compact
+            ? { orient: 'horizontal', bottom: 0, itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11 }, data: legendData }
+            : { orient: 'vertical', right: 10, top: 'center', itemWidth: 10, itemHeight: 10, textStyle: { color: '#595959', fontSize: 12 }, data: legendData };
+        const radius = compact ? ['36%', '56%'] : ['45%', '70%'];
+        const center = compact ? ['50%', '42%'] : ['35%', '55%'];
         const option = {
             title: {
                 text: title,
@@ -242,21 +257,13 @@ class PatientPortraitController {
                 trigger: 'item',
                 formatter: '{b}: {c} ({d}%)'
             },
-            legend: {
-                orient: 'vertical',
-                right: 10,
-                top: 'center',
-                itemWidth: 10,
-                itemHeight: 10,
-                textStyle: { color: '#595959', fontSize: 12 },
-                data: legendData
-            },
+            legend,
             color: colors,
             series: [
                 {
                     type: 'pie',
-                    radius: ['45%', '70%'],
-                    center: ['35%', '55%'],
+                    radius,
+                    center,
                     avoidLabelOverlap: true,
                     label: {
                         show: true,

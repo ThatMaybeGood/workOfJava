@@ -20,6 +20,7 @@ class NoShowController {
             }
         };
         this.charts = {};
+        this.lastPieData = null;
 
         this.init();
     }
@@ -46,6 +47,14 @@ class NoShowController {
 
         window.addEventListener('resize', () => {
             Object.values(this.charts).forEach(chart => chart.resize());
+        });
+
+        const compactMq = window.matchMedia('(max-width: 1300px)');
+        compactMq.addEventListener('change', () => {
+            if (this.lastPieData) {
+                this.renderRefundOriginChart(this.lastPieData.refundOrigin);
+                this.renderRefundChannelChart(this.lastPieData.refundChannel);
+            }
         });
     }
 
@@ -169,6 +178,7 @@ class NoShowController {
                 endDate: this.state.filter.endDate
             });
             this.renderOverview(body ? body.overview : null);
+            this.lastPieData = body ? { refundOrigin: body.refundOrigin, refundChannel: body.refundChannel } : null;
             this.renderRefundOriginChart(body ? body.refundOrigin : null);
             this.renderRefundChannelChart(body ? body.refundChannel : null);
             this.renderAgeChart(body ? body.ageAnalysis : null);
@@ -198,6 +208,12 @@ class NoShowController {
     renderPieChart(chart, data, title) {
         const colors = ['#1890ff', '#52c41a', '#13c2c2', '#faad14', '#f5222d', '#722ed1', '#eb2f96', '#fa541c'];
         const chartData = (data && Array.isArray(data)) ? data : [];
+        const compact = window.matchMedia('(max-width: 1300px)').matches;
+        const legend = compact
+            ? { orient: 'horizontal', bottom: 0, itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11 } }
+            : { orient: 'vertical', right: 10, top: 'center', itemWidth: 10, itemHeight: 10, textStyle: { color: '#595959', fontSize: 12 } };
+        const radius = compact ? ['36%', '56%'] : ['45%', '70%'];
+        const center = compact ? ['50%', '42%'] : ['35%', '55%'];
         const option = {
             title: {
                 text: title,
@@ -209,20 +225,13 @@ class NoShowController {
                 trigger: 'item',
                 formatter: '{b}: {c} ({d}%)'
             },
-            legend: {
-                orient: 'vertical',
-                right: 10,
-                top: 'center',
-                itemWidth: 10,
-                itemHeight: 10,
-                textStyle: { color: '#595959', fontSize: 12 }
-            },
+            legend,
             color: colors,
             series: [
                 {
                     type: 'pie',
-                    radius: ['45%', '70%'],
-                    center: ['35%', '55%'],
+                    radius,
+                    center,
                     avoidLabelOverlap: true,
                     label: {
                         show: true,

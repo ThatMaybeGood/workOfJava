@@ -54,6 +54,26 @@ class InpatientPrepaymentController {
         window.addEventListener('resize', () => {
             Object.values(this.charts).forEach(chart => chart && chart.resize());
         });
+
+        // 紧凑布局（iframe 宽度 <=1300px，即 1440 屏）切换时按已加载数据重绘图表
+        this.compactMq = window.matchMedia('(max-width: 1300px)');
+        this.compactMq.addEventListener('change', () => {
+            this.reRenderCharts();
+        });
+    }
+
+    reRenderCharts() {
+        // 按当前页签与已加载数据重绘，保证紧凑/非紧凑切换后图表选项正确应用
+        if (this.filter.tab === 'summary' && this.summaryChartData) {
+            this.renderTrendChart(this.charts.summaryTrend, this.summaryChartData.trend, 'summary');
+            this.renderSummaryChannelChart(this.summaryChartData.channel);
+        } else if (this.filter.tab === 'income' && this.incomeChartData) {
+            this.renderTrendChart(this.charts.incomeTrend, this.incomeChartData.trend, 'income');
+            this.renderIncomeChannelChart(this.incomeChartData.channel);
+        } else if (this.filter.tab === 'refund' && this.refundChartData) {
+            this.renderTrendChart(this.charts.refundTrend, this.refundChartData.trend, 'refund');
+            this.renderRefundPayTypeChart(this.refundChartData.payType);
+        }
     }
 
     bindEvents() {
@@ -647,6 +667,7 @@ class InpatientPrepaymentController {
                     endDate: this.filter.endDate
                 })
             ]);
+            this.summaryChartData = { trend: trendBody, channel: channelBody };
             if (trendBody && trendBody.categories) {
                 this.renderTrendChart(this.charts.summaryTrend, trendBody, 'summary');
             }
@@ -687,6 +708,7 @@ class InpatientPrepaymentController {
                     endDate: this.filter.endDate
                 })
             ]);
+            this.incomeChartData = { trend: trendBody, channel: channelBody };
             if (trendBody && trendBody.categories) {
                 this.renderTrendChart(this.charts.incomeTrend, trendBody, 'income');
             }
@@ -714,6 +736,7 @@ class InpatientPrepaymentController {
                     endDate: this.filter.endDate
                 })
             ]);
+            this.refundChartData = { trend: trendBody, payType: payTypeBody };
             if (trendBody && trendBody.categories) {
                 this.renderTrendChart(this.charts.refundTrend, trendBody, 'refund');
             }
@@ -801,6 +824,7 @@ class InpatientPrepaymentController {
 
     renderPieChart(chart, data, title) {
         const colors = ['#1890ff', '#52c41a', '#13c2c2', '#faad14'];
+        const compact = window.matchMedia('(max-width: 1300px)').matches;
         const option = {
             tooltip: {
                 trigger: 'item',
@@ -834,6 +858,18 @@ class InpatientPrepaymentController {
                 data: data
             }]
         };
+        if (compact) {
+            // 紧凑布局：图例移到底部横向、饼图居中并缩小
+            option.legend = {
+                orient: 'horizontal',
+                bottom: 0,
+                itemWidth: 10,
+                itemHeight: 10,
+                textStyle: { fontSize: 11 }
+            };
+            option.series[0].radius = ['36%', '56%'];
+            option.series[0].center = ['50%', '40%'];
+        }
         chart.setOption(option, true);
     }
 

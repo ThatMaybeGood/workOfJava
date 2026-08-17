@@ -54,10 +54,12 @@ public class OutpatientRevenueHandler implements ReportHandler<OutpatientRevenue
 
         OverviewData overview = outpatientRevenueService.queryOverview(body);
 
-        Integer page = body.getPage() != null ? body.getPage() : pageConfig.getDefaultPage();
-        Integer pageSize = body.getPageSize() != null ? body.getPageSize() : pageConfig.getDefaultPageSize();
-        PageResult<DeptTableItem> deptTable = outpatientRevenueService.queryDeptTable(body, page, pageSize);
-        PageResult<DoctorTableItem> doctorTable = outpatientRevenueService.queryDoctorTable(body, page, pageSize);
+        Integer deptPage = body.getDeptPage() != null ? body.getDeptPage() : pageConfig.getDefaultPage();
+        Integer deptPageSize = body.getDeptPageSize() != null ? body.getDeptPageSize() : pageConfig.getDefaultPageSize();
+        Integer doctorPage = body.getDoctorPage() != null ? body.getDoctorPage() : deptPage;
+        Integer doctorPageSize = body.getDoctorPageSize() != null ? body.getDoctorPageSize() : deptPageSize;
+        PageResult<DeptTableItem> deptTable = outpatientRevenueService.queryDeptTable(body, deptPage, deptPageSize);
+        PageResult<DoctorTableItem> doctorTable = outpatientRevenueService.queryDoctorTable(body, doctorPage, doctorPageSize);
 
         OutpatientRevenueResponse response = new OutpatientRevenueResponse();
         response.setOverview(overview);

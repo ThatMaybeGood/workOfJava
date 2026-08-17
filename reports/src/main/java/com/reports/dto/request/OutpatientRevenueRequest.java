@@ -52,4 +52,24 @@ public class OutpatientRevenueRequest extends BaseRequestBody {
      */
     private Integer pageSize;
 
+    /**
+     * 科室表页码（可选，默认第1页）
+     */
+    private Integer deptPage;
+
+    /**
+     * 科室表每页条数（可选，默认10条）
+     */
+    private Integer deptPageSize;
+
+    /**
+     * 医生表页码（可选，默认第1页）
+     */
+    private Integer doctorPage;
+
+    /**
+     * 医生表每页条数（可选，默认10条）
+     */
+    private Integer doctorPageSize;
+
 }

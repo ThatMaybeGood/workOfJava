@@ -26,7 +26,7 @@
         FROM TR_OUTP_ALT_DEPT a
         INNER JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
         WHERE a.stat_date BETWEEN #{startDate} AND #{endDate}
-          AND d.outp_or_inp IN (0, 2)
+
         <if test="deptCode != null and deptCode != ''">
             AND d.dept_code = #{deptCode}
         </if>
@@ -50,8 +50,7 @@
         FROM TR_OUTP_ALT_DOC a
         INNER JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
         WHERE a.stat_date BETWEEN #{startDate} AND #{endDate}
-          AND d.outp_or_inp IN (0, 2)
-        <if test="deptCode != null and deptCode != ''">
+         <if test="deptCode != null and deptCode != ''">
             AND d.dept_code = #{deptCode}
         </if>
         <if test="deptName != null and deptName != ''">

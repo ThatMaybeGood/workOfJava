@@ -192,13 +192,7 @@ function callMockService(methodKey, endpointKey, params) {
         },
         // 门诊收入分析
         'reports.outp.outpatient-revenue': {
-            endpoint: (p) => {
-                if (p && p.page && p.deptName !== undefined) {
-                    if (p._type === 'doctor') return MockService.getDoctorRevenueData(p);
-                    return MockService.getDeptRevenueData(p);
-                }
-                return MockService.getRevenueOverviewData();
-            }
+            endpoint: (p) => MockService.getRevenueStats(p)
         },
         // 患者画像
         'reports.outp.outpatient-patient-portrait': {

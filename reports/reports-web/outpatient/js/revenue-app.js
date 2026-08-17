@@ -41,10 +41,8 @@ class RevenueController {
     async init() {
         this.bindEvents();
         this.initDateRangePicker();
-        await this.initDeptSelect();
-        this.loadOverview();
-        this.loadDeptData();
-        this.loadDoctorData();
+        await this.initDeptSelect({ triggerDefault: false });
+        this.loadData();
     }
 
     initDateRangePicker() {
@@ -67,9 +65,7 @@ class RevenueController {
                     document.querySelectorAll('#timeFilter .filter-btn').forEach(b => b.classList.remove('active'));
                     this.deptState.currentPage = 1;
                     this.doctorState.currentPage = 1;
-                    this.loadOverview();
-                    this.loadDeptData();
-                    this.loadDoctorData();
+                    this.loadData();
                 }
             }
         });
@@ -87,8 +83,7 @@ class RevenueController {
                 this.filter.deptCode = dept.deptCode === '0000' ? '' : dept.deptCode;
                 this.deptState.currentPage = 1;
                 this.doctorState.currentPage = 1;
-                this.loadDeptData();
-                this.loadDoctorData();
+                this.loadData();
             },
             ...options
         });
@@ -104,14 +99,14 @@ class RevenueController {
         document.getElementById('deptPageSizeSelect').addEventListener('change', (e) => {
             this.deptState.pageSize = parseInt(e.target.value);
             this.deptState.currentPage = 1;
-            this.loadDeptData();
+            this.loadData();
         });
 
         // 医生表分页大小变更
         document.getElementById('doctorPageSizeSelect').addEventListener('change', (e) => {
             this.doctorState.pageSize = parseInt(e.target.value);
             this.doctorState.currentPage = 1;
-            this.loadDoctorData();
+            this.loadData();
         });
 
         // 科室表排序事件
@@ -146,10 +141,7 @@ class RevenueController {
         }
         this.deptState.currentPage = 1;
         this.doctorState.currentPage = 1;
-        console.log('calling loadOverview now');
-        this.loadOverview();
-        this.loadDeptData();
-        this.loadDoctorData();
+        this.loadData();
     }
 
     handleSort(e, tableType) {
@@ -194,14 +186,32 @@ class RevenueController {
         });
     }
 
-    async loadOverview() {
+    async loadData() {
         try {
-            const body = await ReportAPI.getRevenueOverview(this.filter);
-            console.log('[loadOverview] body:', JSON.stringify(body));
-            console.log('[loadOverview] body.overview:', body ? JSON.stringify(body.overview) : 'null');
+            const body = await ReportAPI.getRevenueStats({
+                startDate: this.filter.startDate,
+                endDate: this.filter.endDate,
+                timeRange: this.filter.timeRange,
+                deptName: this.filter.deptName,
+                deptCode: this.filter.deptCode,
+                deptPage: this.deptState.currentPage,
+                deptPageSize: this.deptState.pageSize,
+                doctorPage: this.doctorState.currentPage,
+                doctorPageSize: this.doctorState.pageSize
+            });
             this.renderOverview(body ? body.overview : null);
+            this.deptState.data = (body && body.deptTable && body.deptTable.list) ? body.deptTable.list : [];
+            this.deptState.total = (body && body.deptTable && body.deptTable.total) ? body.deptTable.total : 0;
+            this.renderDeptTable();
+            this.renderDeptPagination();
+            this.updateDeptPageInfo();
+            this.doctorState.data = (body && body.doctorTable && body.doctorTable.list) ? body.doctorTable.list : [];
+            this.doctorState.total = (body && body.doctorTable && body.doctorTable.total) ? body.doctorTable.total : 0;
+            this.renderDoctorTable();
+            this.renderDoctorPagination();
+            this.updateDoctorPageInfo();
         } catch (error) {
-            console.error('Load overview failed:', error);
+            console.error('Load revenue stats failed:', error);
         }
     }
 
@@ -213,46 +223,6 @@ class RevenueController {
         console.log('[renderOverview] val1:', val1, 'val2:', val2);
         document.getElementById('outpatientRevenue').textContent = val1.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '元';
         document.getElementById('serviceRevenue').textContent = val2.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '元';
-    }
-
-    async loadDeptData() {
-        try {
-            const body = await ReportAPI.getDeptRevenueStats({
-                page: this.deptState.currentPage,
-                pageSize: this.deptState.pageSize,
-                deptName: this.filter.deptName,
-                deptCode: this.filter.deptCode,
-                startDate: this.filter.startDate,
-                endDate: this.filter.endDate
-            });
-            this.deptState.data = (body && body.deptTable && body.deptTable.list) ? body.deptTable.list : [];
-            this.deptState.total = (body && body.deptTable && body.deptTable.total) ? body.deptTable.total : 0;
-            this.renderDeptTable();
-            this.renderDeptPagination();
-            this.updateDeptPageInfo();
-        } catch (error) {
-            console.error('Load dept data failed:', error);
-        }
-    }
-
-    async loadDoctorData() {
-        try {
-            const body = await ReportAPI.getDoctorRevenueStats({
-                page: this.doctorState.currentPage,
-                pageSize: this.doctorState.pageSize,
-                deptName: this.filter.deptName,
-                deptCode: this.filter.deptCode,
-                startDate: this.filter.startDate,
-                endDate: this.filter.endDate
-            });
-            this.doctorState.data = (body && body.doctorTable && body.doctorTable.list) ? body.doctorTable.list : [];
-            this.doctorState.total = (body && body.doctorTable && body.doctorTable.total) ? body.doctorTable.total : 0;
-            this.renderDoctorTable();
-            this.renderDoctorPagination();
-            this.updateDoctorPageInfo();
-        } catch (error) {
-            console.error('Load doctor data failed:', error);
-        }
     }
 
     renderDeptTable() {
@@ -394,14 +364,14 @@ class RevenueController {
         const totalPages = Math.ceil(this.deptState.total / this.deptState.pageSize);
         if (page < 1 || page > totalPages) return;
         this.deptState.currentPage = page;
-        this.loadDeptData();
+        this.loadData();
     }
 
     goToDoctorPage(page) {
         const totalPages = Math.ceil(this.doctorState.total / this.doctorState.pageSize);
         if (page < 1 || page > totalPages) return;
         this.doctorState.currentPage = page;
-        this.loadDoctorData();
+        this.loadData();
     }
 
     jumpToDeptPage() {

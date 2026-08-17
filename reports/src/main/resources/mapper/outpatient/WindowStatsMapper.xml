@@ -24,7 +24,7 @@
         FROM TR_WIN_STAT_AGE
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         GROUP BY age_group
-        ORDER BY TO_NUMBER(REGEXP_SUBSTR(a.age_group, '[0-9]+')) ASC
+        ORDER BY TO_NUMBER(REGEXP_SUBSTR(age_group, '[0-9]+')) ASC
     </select>
 
     <!-- ============================================================ -->

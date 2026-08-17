@@ -28,8 +28,7 @@
         FROM TR_OUTPATIENT_STATS_DAY_RESULT s
         INNER JOIN TR_DEPT_DICT d ON s.dept_code = d.dept_code
         WHERE s.stats_date BETWEEN #{startDate} AND #{endDate}
-          AND d.outp_or_inp IN (0, 2)
-        <if test="deptCode != null and deptCode != ''">
+         <if test="deptCode != null and deptCode != ''">
             AND d.dept_code = #{deptCode}
         </if>
         <if test="deptName != null and deptName != ''">

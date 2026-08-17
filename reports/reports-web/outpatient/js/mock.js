@@ -2,6 +2,13 @@
  * Mock 数据服务
  * 模拟后端接口返回数据
  */
+const DEPT_CODE_MAP = {
+    '心血管内科门诊': '0101', '呼吸科门诊': '0102', '消化科门诊': '0103',
+    '神经内科门诊': '0104', '肾内科门诊': '0105', '骨科门诊': '0201',
+    '泌尿外科门诊': '0202', '神经外科门诊': '0203', '心脏血管外科门诊': '0204',
+    '肝胆胰外科门诊': '0205'
+};
+
 const MockService = {
     /**
      * 获取门诊运行数据统计（概览 + 表格）
@@ -193,18 +200,19 @@ const MockService = {
     },
 
     /**
-     * 获取门诊收入概览数据
+     * 获取门诊收入分析（概览 + 科室表 + 医生表，单次请求）
      */
-    getRevenueOverviewData() {
-        return new Promise((resolve) => {
-            setTimeout(() => {
+    getRevenueStats(params = {}) {
+        return new Promise(async (resolve) => {
+            setTimeout(async () => {
+                const dept = await this.getDeptRevenueData({ page: params.deptPage, pageSize: params.deptPageSize, deptName: params.deptName, deptCode: params.deptCode });
+                const doctor = await this.getDoctorRevenueData({ page: params.doctorPage, pageSize: params.doctorPageSize, deptName: params.deptName, deptCode: params.deptCode });
                 resolve({
                     code: 200,
                     data: {
-                        overview: {
-                            outpatientRevenue: 52612536.3,
-                            serviceRevenue: 7353266.8
-                        }
+                        overview: { outpatientRevenue: 52612536.3, serviceRevenue: 7353266.8 },
+                       deptTable: dept.data,
+                       doctorTable: doctor.data
                     }
                 });
             }, 200);
@@ -251,6 +259,7 @@ const MockService = {
         ];
         return deptNames.map(deptName => ({
             deptName,
+            deptCode: DEPT_CODE_MAP[deptName],
             outpatientRevenue: (300 + Math.random() * 200).toFixed(1),
             serviceRevenue: (300 + Math.random() * 200).toFixed(1)
         }));
@@ -308,6 +317,7 @@ const MockService = {
             result.push({
                 doctorName: doctor.name,
                 deptName: doctor.dept,
+                deptCode: DEPT_CODE_MAP[doctor.dept],
                 doctorBenefit: (300 + Math.random() * 200).toFixed(1),
                 serviceRevenue: (300 + Math.random() * 200).toFixed(1)
             });

@@ -14,8 +14,7 @@
         FROM TR_PAT_PORTRAIT_AGE a
         LEFT JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
         WHERE a.stat_date BETWEEN #{startDate} AND #{endDate}
-          AND d.outp_or_inp IN (0, 2)
-        <if test="patientType != null and patientType != ''">
+         <if test="patientType != null and patientType != ''">
             AND a.patient_type = #{patientType}
         </if>
         <if test="deptCode != null and deptCode != ''">
@@ -33,14 +32,13 @@
     <!-- ============================================================ -->
     <select id="queryInsuranceAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitInsurEntity">
         SELECT
-        insuranceName AS insuranceName,
+        insurance_name AS insuranceName,
         NVL(SUM(patient_count), 0) AS patientCount,
         patient_type AS patientType
         FROM TR_PAT_PORTRAIT_INSUR i
         LEFT JOIN TR_DEPT_DICT d ON i.dept_code = d.dept_code
         WHERE i.stat_date BETWEEN #{startDate} AND #{endDate}
-          AND d.outp_or_inp IN (0, 2)
-        <if test="patientType != null and patientType != ''">
+         <if test="patientType != null and patientType != ''">
             AND i.patient_type = #{patientType}
         </if>
         <if test="deptCode != null and deptCode != ''">
@@ -49,7 +47,7 @@
         <if test="deptName != null and deptName != ''">
             AND d.dept_name LIKE '%' || #{deptName} || '%'
         </if>
-        GROUP BY i.insuranceName, i.patient_type
+        GROUP BY i.insurance_name, i.patient_type
         ORDER BY patientCount DESC
     </select>
 
@@ -58,14 +56,13 @@
     <!-- ============================================================ -->
     <select id="queryIdentityAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitIdtyEntity">
         SELECT
-        identityName AS identityName,
+        identity_name AS identityName,
         NVL(SUM(patient_count), 0) AS patientCount,
         patient_type AS patientType
         FROM TR_PAT_PORTRAIT_IDTY t
         LEFT JOIN TR_DEPT_DICT d ON t.dept_code = d.dept_code
         WHERE t.stat_date BETWEEN #{startDate} AND #{endDate}
-          AND d.outp_or_inp IN (0, 2)
-        <if test="patientType != null and patientType != ''">
+         <if test="patientType != null and patientType != ''">
             AND t.patient_type = #{patientType}
         </if>
         <if test="deptCode != null and deptCode != ''">
@@ -74,7 +71,7 @@
         <if test="deptName != null and deptName != ''">
             AND d.dept_name LIKE '%' || #{deptName} || '%'
         </if>
-        GROUP BY t.identityName, t.patient_type, t.dept_code, d.dept_name
+        GROUP BY t.identity_name, t.patient_type, t.dept_code, d.dept_name
         ORDER BY patientCount DESC
     </select>
 
@@ -83,14 +80,13 @@
     <!-- ============================================================ -->
     <select id="queryRegOriginAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitRegEntity">
         SELECT
-        sourceName AS sourceName,
+        source_name AS sourceName,
         NVL(SUM(patient_count), 0) AS patientCount,
         patient_type AS patientType
         FROM TR_PAT_PORTRAIT_REG r
         LEFT JOIN TR_DEPT_DICT d ON r.dept_code = d.dept_code
         WHERE r.stat_date BETWEEN #{startDate} AND #{endDate}
-          AND d.outp_or_inp IN (0, 2)
-        <if test="patientType != null and patientType != ''">
+         <if test="patientType != null and patientType != ''">
             AND r.patient_type = #{patientType}
         </if>
         <if test="deptCode != null and deptCode != ''">
@@ -99,7 +95,7 @@
         <if test="deptName != null and deptName != ''">
             AND d.dept_name LIKE '%' || #{deptName} || '%'
         </if>
-        GROUP BY r.sourceName, r.patient_type
+        GROUP BY r.source_name, r.patient_type
         ORDER BY patientCount DESC
     </select>
 
@@ -108,14 +104,13 @@
     <!-- ============================================================ -->
     <select id="queryArcOriginAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitArcEntity">
         SELECT
-        sourceName AS sourceName,
+        source_name AS sourceName,
         NVL(SUM(patient_count), 0) AS patientCount,
         patient_type AS patientType
         FROM TR_PAT_PORTRAIT_ARC a
         LEFT JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
         WHERE a.stat_date BETWEEN #{startDate} AND #{endDate}
-          AND d.outp_or_inp IN (0, 2)
-        <if test="patientType != null and patientType != ''">
+         <if test="patientType != null and patientType != ''">
             AND a.patient_type = #{patientType}
         </if>
         <if test="deptCode != null and deptCode != ''">
@@ -124,7 +119,7 @@
         <if test="deptName != null and deptName != ''">
             AND d.dept_name LIKE '%' || #{deptName} || '%'
         </if>
-        GROUP BY a.sourceName, a.patient_type
+        GROUP BY a.source_name, a.patient_type
         ORDER BY patientCount DESC
     </select>
 

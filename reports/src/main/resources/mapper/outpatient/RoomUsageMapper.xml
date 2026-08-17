@@ -28,7 +28,7 @@
         FROM TR_ROOM_USE_DTL r
         INNER JOIN TR_DEPT_DICT d ON r.dept_code = d.dept_code
         WHERE r.stat_date BETWEEN #{startDate} AND #{endDate}
-          AND d.outp_or_inp IN (0, 2)
+          
         <if test="deptCode != null and deptCode != ''">
             AND d.dept_code = #{deptCode}
         </if>

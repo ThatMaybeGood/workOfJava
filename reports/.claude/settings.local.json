@@ -33,7 +33,18 @@
       "Bash(echo \"started PID $!\")",
       "Bash(echo \"exit: $?\")",
       "Bash(break)",
-      "mcp__Claude_in_Chrome__tabs_context_mcp"
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(echo \"exit=$?\")",
+      "Skill(planning-with-files-zh)",
+      "Skill(planning-with-files-zh:*)",
+      "Bash(sed -n '48,55p' src/main/java/com/reports/etl/controller/EtlTaskController.java)",
+      "Bash(sed -n '105,115p' src/main/java/com/reports/etl/controller/EtlTaskController.java)",
+      "Bash(rm -f data/etl_meta.mv.db)",
+      "Bash(nohup java -jar target/reports-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(sleep 5 && tail -50 /tmp/reports-etl.log)",
+      "Bash(taskkill //PID 4777 //F)",
+      "Bash(tasklist /FI \"PID eq 5353\")"
     ],
     "additionalDirectories": [
       "D:/JetBrains/IdeaProjects/workOfJava/etl-platform"

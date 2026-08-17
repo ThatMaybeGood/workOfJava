@@ -22,27 +22,11 @@ const ReportAPI = {
     },
 
     /**
-     * 获取门诊收入概览数据
+     * 获取门诊收入分析（概览 + 科室表 + 医生表，单次请求）
      * method: reports.outp.outpatient-revenue
      */
-    getRevenueOverview(params) {
+    getRevenueStats(params) {
         return apiRequest('reports.outp.outpatient-revenue', 'endpoint', params);
-    },
-
-    /**
-     * 获取科室收入统计数据
-     * method: reports.outp.outpatient-revenue
-     */
-    getDeptRevenueStats(params) {
-        return apiRequest('reports.outp.outpatient-revenue', 'endpoint', { ...params, _type: 'dept' });
-    },
-
-    /**
-     * 获取医生收入统计数据
-     * method: reports.outp.outpatient-revenue
-     */
-    getDoctorRevenueStats(params) {
-        return apiRequest('reports.outp.outpatient-revenue', 'endpoint', { ...params, _type: 'doctor' });
     },
 
     /**

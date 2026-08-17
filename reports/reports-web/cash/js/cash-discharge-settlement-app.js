@@ -34,6 +34,14 @@ class DischargeSettlementController {
         window.addEventListener('resize', () => {
             Object.values(this.charts).forEach(chart => chart.resize());
         });
+
+        // 紧凑布局（iframe 宽度 <=1300px，即 1440 屏）切换时按已加载数据重绘图表
+        this.compactMq = window.matchMedia('(max-width: 1300px)');
+        this.compactMq.addEventListener('change', () => {
+            if (this.chartData) {
+                this.renderCharts(this.chartData);
+            }
+        });
     }
 
     bindEvents() {
@@ -133,6 +141,7 @@ class DischargeSettlementController {
     }
 
     renderCharts(data) {
+        this.chartData = data;
         this.renderPieChart(this.charts.channel, data.channelAnalysis, '结算渠道分析');
         this.renderPieChart(this.charts.patientType, data.patientTypeAnalysis, '结算费别人次分析');
         this.renderPieChart(this.charts.amountType, data.amountTypeAnalysis, '结算费别金额分析');
@@ -140,6 +149,7 @@ class DischargeSettlementController {
 
     renderPieChart(chart, data, title) {
         const colors = ['#1890ff', '#52c41a', '#13c2c2', '#faad14', '#f5222d', '#722ed1'];
+        const compact = window.matchMedia('(max-width: 1300px)').matches;
         const option = {
             title: {
                 text: title,
@@ -201,6 +211,22 @@ class DischargeSettlementController {
                 }
             ]
         };
+        if (compact) {
+            // 紧凑布局：图例移到底部横向、饼图居中并缩小，为底部图例留出空间
+            option.legend.orient = 'horizontal';
+            option.legend.bottom = 0;
+            delete option.legend.right;
+            delete option.legend.top;
+            option.legend.textStyle = {
+                fontSize: 11,
+                rich: {
+                    name: { color: '#595959', fontSize: 11 },
+                    compare: { color: '#595959', fontSize: 11 }
+                }
+            };
+            option.series[0].radius = ['36%', '56%'];
+            option.series[0].center = ['50%', '40%'];
+        }
         chart.setOption(option, true);
     }
 

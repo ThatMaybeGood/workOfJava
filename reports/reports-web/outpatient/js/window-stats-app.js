@@ -176,7 +176,7 @@ class WindowStatsController {
                 type: 'category',
                 data: categories,
                 axisLine: { lineStyle: { color: '#d9d9d9' } },
-                axisLabel: { color: '#8c8c8c', fontSize: 11 }
+                axisLabel: { color: '#8c8c8c', fontSize: 11, interval: 0 }
             },
             yAxis: {
                 type: 'value',

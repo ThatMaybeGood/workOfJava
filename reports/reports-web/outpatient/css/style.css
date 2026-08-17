@@ -737,3 +737,88 @@ body {
     height: 2px;
     background-color: var(--primary-color);
 }
+
+/* ============================================================
+   窄屏适配（iframe 宽度 ≤1300px，对应 1440×900 显示器）
+   iframe 内的媒体查询以 iframe 宽度为准（1440 屏幕下约 1205px），
+   1920×1200（iframe 约 1700px）不会命中，保持原渲染不变。
+   ============================================================ */
+@media (max-width: 1300px) {
+    /* 1. 长标签允许换行，避免被截断（统计筛选标签、分类明细标签） */
+    .filter-label,
+    .detail-label {
+        white-space: normal;
+    }
+
+    /* 2. 筛选区：收紧内边距，固定像素输入收窄，分组自动换行 */
+    .filter-section {
+        padding: 10px 12px;
+    }
+
+    .filter-section .d-flex {
+        flex-wrap: wrap;
+        min-width: 0;
+    }
+
+    .date-input {
+        width: 120px;
+    }
+
+    .range-wrapper .date-input {
+        width: 190px;
+        max-width: 100%;
+    }
+
+    .dept-select {
+        width: 160px;
+        max-width: 100%;
+    }
+
+    /* 3. 统计卡片：收紧内边距，内容区允许收缩换行，值字号保持不变 */
+    .stat-card .card-body {
+        padding: 8px 10px;
+    }
+
+    .stat-card .card-body .ms-3 {
+        min-width: 0;
+    }
+
+    .revenue-card .card-body {
+        padding: 12px 14px;
+    }
+
+    .lab-card .card-body {
+        padding: 12px 14px;
+    }
+
+    .stat-main {
+        padding-right: 16px;
+    }
+
+    .detail-item {
+        padding: 6px 2px;
+    }
+
+    /* 人工窗口统计卡片（col-md-2 窄列） */
+    .window-stat-item {
+        padding: 10px 12px;
+        gap: 10px;
+    }
+
+    /* 4. 图表容器：适度降低最小高度，帮助页面在 844px 纵向空间内容纳 */
+    .chart-container {
+        min-height: 280px;
+    }
+
+    .time-chart-container {
+        min-height: 280px;
+    }
+
+    .rank-chart-container {
+        min-height: 320px;
+    }
+
+    .age-chart-container {
+        min-height: 340px;
+    }
+}
