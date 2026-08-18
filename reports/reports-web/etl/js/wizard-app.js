@@ -1,12 +1,15 @@
 /**
- * ETL 流水线创建向导 — 三步：抽取来源 → 转换提取 → 映射匹配
+ * ETL 流水线创建向导 — 精简三步：选择来源 → 转换提取 → 映射匹配
  * 导出 window.WizardApp = { render(container) }
  * 依赖：window.etlApi / window.etlStore / window.etlComponents
  * 状态：跨刷新由 etlStore（sessionStorage）恢复，模块态 S 仅页面会话内有效
+ *
+ * 变化：第一步移除了内联新建表单，来源管理在「来源库」页完成；
+ *       第一步只显示来源卡片网格，选源后直接进入第二步。
  */
 (function () {
     const STEPS = [
-        { key: 'source', name: '抽取来源' },
+        { key: 'source', name: '选择来源' },
         { key: 'transform', name: '转换提取' },
         { key: 'mapping', name: '映射匹配' }
     ];
@@ -27,11 +30,7 @@
         step: 1,
         // 第一步
         sources: null,
-        datasources: null,
         existingId: '',
-        srcType: 'PROC',
-        form: {},
-        debugHtml: '',
         // 第二步
         structure: null,
         listPaths: [],
@@ -59,8 +58,6 @@
     function normList(data) {
         if (Array.isArray(data)) return data;
         if (data && Array.isArray(data.records)) return data.records;
-        if (data && Array.isArray(data.tables)) return data.tables;
-        if (data && Array.isArray(data.columns)) return data.columns;
         return [];
     }
     function colName(c) { return typeof c === 'string' ? c : (c.name || c.columnName || ''); }
@@ -114,7 +111,7 @@
         S.token += 1;
         S.step = window.etlStore.getStep();
         if (S.step > 1 && !window.etlStore.get().sourceId) {
-            toast('请先完成第一步：选择或新建抽取来源', 'warn');
+            toast('请先完成第一步：选择抽取来源', 'warn');
             window.etlStore.setStep(1);
             S.step = 1;
         }
@@ -134,290 +131,90 @@
     }
 
     /* ============================================================
-     * 第一步：抽取来源
+     * 第一步：选择来源（纯列表，无内联新建）
      * ============================================================ */
     async function renderStep1() {
         const t = S.token;
-        el('wiz-body').innerHTML = '<div class="etl-empty"><div class="etl-empty-text">加载来源库与数据源…</div></div>';
+        el('wiz-body').innerHTML = '<div class="etl-empty"><div class="etl-empty-text">加载来源库…</div></div>';
         try {
-            const rs = await Promise.all([
-                window.etlApi.get('/source/list'),
-                window.etlApi.get('/datasource/list')
-            ]);
+            const rs = await window.etlApi.get('/source/list');
             if (!alive(t)) return;
-            S.sources = normList(rs[0]);
-            S.datasources = normList(rs[1]);
+            S.sources = normList(rs);
+            S.existingId = '';
         } catch (e) {
             if (!alive(t)) return;
-            S.sources = S.sources || [];
-            S.datasources = S.datasources || [];
+            S.sources = [];
         }
         paintStep1();
     }
 
-    function sourceDsOptions(selected) {
-        const list = (S.datasources || []).filter(function (d) { return d.role === 'SOURCE'; });
-        if (!list.length) return '<option value="">（无 SOURCE 数据源，请先到数据源管理新建）</option>';
-        return '<option value="">请选择源数据库</option>' + list.map(function (d) {
-            return '<option value="' + esc(d.id) + '"' + (String(d.id) === String(selected || '') ? ' selected' : '') + '>' +
-                esc(d.name) + '（' + esc(d.dbType) + '）</option>';
-        }).join('');
-    }
-
     function paintStep1() {
-        const f = S.form;
-        const isProc = S.srcType === 'PROC';
-        const cardStyle = function (type) { return S.srcType === type ? SELECTED_CARD : 'cursor:pointer;'; };
-
-        // 已有来源
-        let existingHtml;
         if (!S.sources.length) {
-            existingHtml = '<div class="etl-empty"><div class="etl-empty-text">来源库暂无记录，请在下方新建来源</div></div>';
-        } else {
-            const opts = '<option value="">— 不使用已有来源（下方新建） —</option>' + S.sources.map(function (s) {
-                return '<option value="' + esc(s.id) + '"' + (String(s.id) === String(S.existingId) ? ' selected' : '') + '>' +
-                    esc(s.name) + '（' + esc(s.type) + '）</option>';
-            }).join('');
-            let info = '';
-            const picked = S.sources.filter(function (s) { return String(s.id) === String(S.existingId); })[0];
-            if (picked) {
-                info = '<div class="mt-2"><span class="etl-badge info">' + esc(picked.type) + '</span> ' +
-                    '<span style="' + MONO + 'font-size:12px;">' + esc(picked.name) + '</span> ' +
-                    '<span class="text-muted" style="font-size:12px;">已选择已有来源，可直接下一步</span></div>';
-            }
-            existingHtml = '<select class="form-select" id="wiz-existing">' + opts + '</select>' + info;
+            el('wiz-body').innerHTML =
+                '<div class="etl-empty">' +
+                '<div class="etl-empty-text">来源库暂无记录</div>' +
+                '<button class="etl-btn etl-btn-primary" onclick="location.hash=\'#/sources\'">' +
+                '<i class="bi bi-arrow-left"></i> 去来源库创建</button>' +
+                '</div>';
+            setFooter('', '');
+            return;
         }
 
-        // 新建表单
-        let typeForm;
-        if (isProc) {
-            typeForm =
-                '<div class="row g-3">' +
-                '<div class="col-md-6"><label class="form-label">源数据库</label>' +
-                '<select class="form-select" id="wiz-proc-ds">' + sourceDsOptions(f.procDs) + '</select></div>' +
-                '<div class="col-md-6"><label class="form-label">存储过程名</label>' +
-                '<input class="form-control" id="wiz-proc-name" style="' + MONO + '" value="' + esc(f.procName || '') + '" placeholder="PKG_ETL.PRC_EXPORT"></div>' +
-                '<div class="col-12"><label class="form-label">调用模板</label>' +
-                '<input class="form-control" id="wiz-proc-call" style="' + MONO + '" value="' + esc(f.procCall || '') + '" placeholder="{call PRC_EXPORT(?, ?)}"></div>' +
-                '<div class="col-md-3"><label class="form-label">游标参数名</label>' +
-                '<input class="form-control" id="wiz-proc-cursor-name" style="' + MONO + '" value="' + esc(f.cursorName || '') + '"></div>' +
-                '<div class="col-md-3"><label class="form-label">游标参数位置</label>' +
-                '<input type="number" class="form-control" id="wiz-proc-cursor-idx" value="' + esc(f.cursorIdx || '') + '" min="1"></div>' +
-                '<div class="col-12"><label class="form-label">IN 参数 JSON</label>' +
-                '<textarea class="form-control" id="wiz-proc-inparams" rows="2" style="' + MONO + '" placeholder=' + "'[{\"name\":\"p_date\",\"value\":\"20260101\"}]'" + '>' + esc(f.inParams || '') + '</textarea></div>' +
+        // 来源只有一个时直接选中，多个时显示下拉列表
+        if (S.sources.length === 1 && !S.existingId) {
+            S.existingId = String(S.sources[0].id);
+        }
+
+        const selHtml = S.sources.map(function (s) {
+            const typeCls = s.type === 'PROC' ? 'type-proc' : 'type-ws';
+            const ds = window.SourceApp && window.SourceApp.dsMap ? window.SourceApp.dsMap[s.sourceDsId] : null;
+            const dsName = ds ? esc(ds.name) : (s.sourceDsId ? 'DS#' + esc(s.sourceDsId) : '-');
+            return '<div class="etl-source-row ' + typeCls + '" onclick="WizardApp.selectSource(' + s.id + ')" style="' +
+                (S.existingId === String(s.id) ? SELECTED_CARD + 'cursor:pointer;' : '') + '">' +
+                '<div class="etl-source-row-left">' +
+                '<span class="etl-source-name">' + esc(s.name) + '</span> ' +
+                '<span class="etl-badge ' + (s.type === 'PROC' ? 'warn' : 'info') + '">' + esc(s.type || '?') + '</span>' +
+                '<span class="etl-source-meta">' + dsName + ' · ' + esc(window.etlComponents.fmtTime(s.createTime)) + '</span>' +
+                '</div>' +
+                '<span class="etl-badge ' + (S.existingId === String(s.id) ? 'ok' : '') + '">' +
+                (S.existingId === String(s.id) ? '✓ 已选' : '点击选择') + '</span>' +
                 '</div>';
+        }).join('');
+
+        let hintHtml;
+        if (S.sources.length === 1) {
+            hintHtml = '<div class="text-muted mt-2" style="font-size:12px;"><i class="bi bi-info-circle"></i> 仅有 1 个来源，已自动选中</div>';
         } else {
-            const isSoap = (f.wsType || 'REST') === 'SOAP';
-            typeForm =
-                '<div class="row g-3">' +
-                '<div class="col-md-3"><label class="form-label">接口类型</label>' +
-                '<select class="form-select" id="wiz-ws-type">' +
-                '<option value="REST"' + (!isSoap ? ' selected' : '') + '>REST</option>' +
-                '<option value="SOAP"' + (isSoap ? ' selected' : '') + '>SOAP</option></select></div>' +
-                '<div class="col-md-9"><label class="form-label">URL</label>' +
-                '<input class="form-control" id="wiz-ws-url" style="' + MONO + '" value="' + esc(f.wsUrl || '') + '" placeholder="https://example.com/api/data"></div>' +
-                (isSoap ? '<div class="col-12"><label class="form-label">SOAPAction</label>' +
-                    '<input class="form-control" id="wiz-ws-soap" style="' + MONO + '" value="' + esc(f.wsSoap || '') + '"></div>' : '') +
-                '<div class="col-md-6"><label class="form-label">请求头 JSON</label>' +
-                '<textarea class="form-control" id="wiz-ws-headers" rows="2" style="' + MONO + '" placeholder=' + "'{\"Authorization\":\"Bearer ...\"}'" + '>' + esc(f.wsHeaders || '') + '</textarea></div>' +
-                '<div class="col-md-6"><label class="form-label">请求体模板</label>' +
-                '<textarea class="form-control" id="wiz-ws-body" rows="2" style="' + MONO + '">' + esc(f.wsBody || '') + '</textarea></div>' +
-                '<div class="col-md-6"><label class="form-label">出参定位路径 responsePath</label>' +
-                '<input class="form-control" id="wiz-ws-path" style="' + MONO + '" value="' + esc(f.wsPath || '') + '" placeholder="data.list"></div>' +
-                '<div class="col-md-6"><label class="form-label">分页参数 extractParamsJson</label>' +
-                '<textarea class="form-control" id="wiz-ws-extract" rows="2" style="' + MONO + '" placeholder=' + "'{\"pageNo\":\"{page}\"}'" + '>' + esc(f.wsExtract || '') + '</textarea></div>' +
-                '</div>';
+            hintHtml = '<div class="text-muted mt-2" style="font-size:12px;"><i class="bi bi-info-circle"></i> 可从下方选择抽取来源</div>';
         }
 
         el('wiz-body').innerHTML =
-            '<h6 class="etl-card-title">从来源库选择已有来源</h6>' + existingHtml +
-            '<hr class="my-4"><h6 class="etl-card-title">或新建来源</h6>' +
-            '<div class="row g-3 mb-3">' +
-            '<div class="col-md-6"><div class="etl-source-card type-proc" id="wiz-card-proc" style="' + cardStyle('PROC') + '">' +
-            '<div class="etl-source-name">数据库存储过程</div>' +
-            '<div class="etl-source-meta">PROCEDURE · 游标分页抽取</div></div></div>' +
-            '<div class="col-md-6"><div class="etl-source-card type-ws" id="wiz-card-ws" style="' + cardStyle('WS') + '">' +
-            '<div class="etl-source-name">接口调用</div>' +
-            '<div class="etl-source-meta">WEBSERVICE · REST / SOAP</div></div></div></div>' +
-            '<div class="row g-3 mb-3"><div class="col-md-6"><label class="form-label">来源名称</label>' +
-            '<input class="form-control" id="wiz-name" value="' + esc(f.name || '') + '" placeholder="如：订单抽取"></div></div>' +
-            typeForm +
-            '<div class="row g-3 mt-0">' +
-            '<div class="col-md-2"><label class="form-label">最大页数</label>' +
-            '<input type="number" class="form-control" id="wiz-max-pages" value="' + esc(f.maxPages || '') + '" min="1"></div>' +
-            '<div class="col-md-2"><label class="form-label">最大行数</label>' +
-            '<input type="number" class="form-control" id="wiz-max-rows" value="' + esc(f.maxRows || '') + '" min="1"></div>' +
-            '<div class="col-md-2"><label class="form-label">批大小</label>' +
-            '<input type="number" class="form-control" id="wiz-batch-size" value="' + esc(f.batchSize || '') + '" min="1"></div>' +
-            '</div>' +
-            '<div id="wiz-debug" class="mt-3">' + S.debugHtml + '</div>';
+            '<h6 class="etl-card-title mb-3">选择抽取来源</h6>' +
+            '<div class="etl-source-list">' + selHtml + '</div>' +
+            hintHtml;
 
-        setFooter(
-            '<button class="etl-btn etl-btn-ghost" id="wiz-debug-btn"><i class="bi bi-bug"></i> 调试出参</button>',
-            '<button class="etl-btn etl-btn-primary" id="wiz-next1">保存并下一步 <i class="bi bi-arrow-right"></i></button>'
-        );
+        const btnDisabled = !S.existingId ? ' disabled' : '';
+        setFooter('', '<button class="etl-btn etl-btn-primary" id="wiz-next1"' + btnDisabled + '>' +
+            '下一步 <i class="bi bi-arrow-right"></i></button>');
 
-        // 绑定
-        el('wiz-card-proc').addEventListener('click', function () { collectStep1Form(); S.srcType = 'PROC'; paintStep1(); });
-        el('wiz-card-ws').addEventListener('click', function () { collectStep1Form(); S.srcType = 'WS'; paintStep1(); });
-        const ex = el('wiz-existing');
-        if (ex) ex.addEventListener('change', function () { collectStep1Form(); S.existingId = ex.value; paintStep1(); });
-        const wt = el('wiz-ws-type');
-        if (wt) wt.addEventListener('change', function () { collectStep1Form(); paintStep1(); });
-        el('wiz-debug-btn').addEventListener('click', onDebug);
-        el('wiz-next1').addEventListener('click', onSaveNext1);
-    }
-
-    function collectStep1Form() {
-        S.form = {
-            name: val('wiz-name'),
-            procDs: val('wiz-proc-ds'),
-            procName: val('wiz-proc-name'),
-            procCall: val('wiz-proc-call'),
-            cursorName: val('wiz-proc-cursor-name'),
-            cursorIdx: val('wiz-proc-cursor-idx'),
-            inParams: val('wiz-proc-inparams'),
-            wsType: val('wiz-ws-type') || S.form.wsType || 'REST',
-            wsUrl: val('wiz-ws-url'),
-            wsSoap: val('wiz-ws-soap'),
-            wsHeaders: val('wiz-ws-headers'),
-            wsBody: val('wiz-ws-body'),
-            wsPath: val('wiz-ws-path'),
-            wsExtract: val('wiz-ws-extract'),
-            maxPages: val('wiz-max-pages'),
-            maxRows: val('wiz-max-rows'),
-            batchSize: val('wiz-batch-size')
-        };
-    }
-
-    function validJsonOrEmpty(text, label) {
-        if (!text || !text.trim()) return true;
-        try { JSON.parse(text); return true; }
-        catch (e) { toast(label + ' 不是合法 JSON', 'err'); return false; }
-    }
-
-    /** 由模块态表单拼来源配置；返回 {config, sourceDsId, error} */
-    function buildSourceConfig(needName) {
-        const f = S.form;
-        if (needName && !f.name.trim()) return { error: '请填写来源名称' };
-        if (S.srcType === 'PROC') {
-            if (!f.procDs) return { error: '请选择源数据库' };
-            if (!f.procName.trim()) return { error: '请填写存储过程名' };
-            if (!validJsonOrEmpty(f.inParams, 'IN 参数 JSON')) return { error: '' };
-            return {
-                sourceDsId: f.procDs,
-                config: {
-                    procName: f.procName.trim(),
-                    callTemplate: f.procCall,
-                    cursorParamName: f.cursorName,
-                    cursorParamIdx: numOrNull(f.cursorIdx),
-                    inParamsJson: f.inParams,
-                    maxPages: numOrNull(f.maxPages),
-                    maxRows: numOrNull(f.maxRows),
-                    batchSize: numOrNull(f.batchSize)
-                }
-            };
-        }
-        if (!f.wsUrl.trim()) return { error: '请填写接口 URL' };
-        if (!validJsonOrEmpty(f.wsHeaders, '请求头 JSON')) return { error: '' };
-        if (!validJsonOrEmpty(f.wsExtract, '分页参数 JSON')) return { error: '' };
-        return {
-            sourceDsId: null,
-            config: {
-                wsType: f.wsType || 'REST',
-                url: f.wsUrl.trim(),
-                soapAction: f.wsSoap,
-                requestBodyTemplate: f.wsBody,
-                responsePath: f.wsPath,
-                headersJson: f.wsHeaders,
-                extractParamsJson: f.wsExtract,
-                maxPages: numOrNull(f.maxPages),
-                maxRows: numOrNull(f.maxRows),
-                batchSize: numOrNull(f.batchSize)
-            }
-        };
-    }
-
-    async function onDebug() {
-        collectStep1Form();
-        const built = buildSourceConfig(false);
-        if (built.error) { toast(built.error, 'warn'); return; }
-        if (built.error === '') return; // JSON 校验已 toast
-        const btn = el('wiz-debug-btn');
-        btn.disabled = true;
-        const body = Object.assign({ type: S.srcType }, built.config);
-        if (built.sourceDsId) body.sourceDsId = built.sourceDsId;
-        try {
-            const res = await window.etlApi.post('/source/preview-debug', body);
-            if (!S.container) return;
-            S.debugHtml = paintDebugOk(res);
-        } catch (e) {
-            if (!S.container) return;
-            S.debugHtml = window.etlComponents.renderDebugPanel('PREVIEW DEBUG', [
-                { label: 'STATUS', status: 'err', content: (e && e.message) || '调试失败' }
-            ]);
-        }
-        btn.disabled = false;
-        const box = el('wiz-debug');
-        if (box) box.innerHTML = S.debugHtml;
-    }
-
-    function paintDebugOk(res) {
-        const cols = res.columns || [];
-        const rows = res.rows || [];
-        const panel = window.etlComponents.renderDebugPanel('PREVIEW DEBUG', [
-            { label: 'STATUS', status: 'ok', content: '耗时 ' + window.etlComponents.fmtDuration(res.durationMs) +
-                ' · 总行数 ' + (res.totalRows != null ? res.totalRows : rows.length) + ' · 样例 ' + rows.length + ' 行' },
-            { label: 'COLUMNS', content: cols.join('  ') }
-        ]);
-        let table = '';
-        if (rows.length && cols.length) {
-            table = '<div class="table-responsive mt-2"><table class="table table-sm table-bordered mb-0" style="font-size:12px;background:#fff;">' +
-                '<thead><tr>' + cols.map(function (c) { return '<th style="' + MONO + '">' + esc(c) + '</th>'; }).join('') + '</tr></thead><tbody>' +
-                rows.slice(0, 20).map(function (r) {
-                    return '<tr>' + cols.map(function (c) {
-                        const v = Array.isArray(r) ? r[cols.indexOf(c)] : r[c];
-                        return '<td>' + esc(v == null ? '' : (typeof v === 'object' ? JSON.stringify(v) : v)) + '</td>';
-                    }).join('') + '</tr>';
-                }).join('') + '</tbody></table></div>';
-        }
-        return panel + table;
-    }
-
-    async function onSaveNext1() {
-        // 已选已有来源：直接进入第二步
-        if (S.existingId) {
+        el('wiz-next1').addEventListener('click', function () {
+            if (!S.existingId) { toast('请先选择一个来源', 'warn'); return; }
             const picked = S.sources.filter(function (s) { return String(s.id) === String(S.existingId); })[0];
             if (!picked) { toast('所选来源不存在', 'err'); return; }
             window.etlStore.set({ sourceId: picked.id, source: picked, structure: null, transforms: [], mappings: [], task: null });
             window.etlStore.setStep(2);
             render(S.container);
-            return;
-        }
-        collectStep1Form();
-        const built = buildSourceConfig(true);
-        if (built.error) { toast(built.error, 'warn'); return; }
-        if (built.error === '') return;
-        const btn = el('wiz-next1');
-        btn.disabled = true;
-        try {
-            const body = {
-                name: S.form.name.trim(),
-                type: S.srcType,
-                configJson: JSON.stringify(built.config)
-            };
-            if (built.sourceDsId) body.sourceDsId = built.sourceDsId;
-            const saved = await window.etlApi.post('/source', body);
-            const savedId = (saved && typeof saved === 'object') ? saved.id : saved;
-            if (!savedId) throw new Error('来源保存成功但未返回 id');
-            window.etlStore.set({ sourceId: savedId, source: saved, structure: null, transforms: [], mappings: [], task: null });
-            toast('来源已保存', 'ok');
-            window.etlStore.setStep(2);
-            render(S.container);
-        } catch (e) {
-            btn.disabled = false;
-        }
+        });
     }
+
+    window.WizardApp = {
+        selectSource: function (id) {
+            S.existingId = String(id);
+            paintStep1();
+            const btn = el('wiz-next1');
+            if (btn) btn.disabled = false;
+        }
+    };
 
     /* ============================================================
      * 第二步：转换提取
@@ -475,7 +272,6 @@
         const src = store.source || {};
         const typeBadge = src.type ? '<span class="etl-badge info">' + esc(src.type) + '</span> ' : '';
 
-        // 行集合说明
         let rowSetHtml;
         if (S.listPaths.length > 1) {
             rowSetHtml = '<label class="form-label">行集合（list 节点，一行=一条记录）</label>' +
@@ -489,7 +285,6 @@
             rowSetHtml = '<div class="text-muted" style="font-size:13px;">未检测到数组节点，将以根节点作为单行记录处理</div>';
         }
 
-        // 转换规则表
         const rows = S.transforms.map(function (t, i) {
             return '<tr data-i="' + i + '">' +
                 '<td style="' + MONO + 'font-size:12px;">' + esc(t.path) + '</td>' +
@@ -575,7 +370,6 @@
         S.mappings = store.mappings || [];
         S.taskCfg = store.task || defaultTaskCfg(store.source);
 
-        // 结构兜底（直接跳到第三步且 store 无结构时）
         if (!S.structure && store.sourceId) {
             el('wiz-body').innerHTML = '<div class="etl-empty"><div class="etl-empty-text">加载来源结构…</div></div>';
             try {
@@ -600,7 +394,6 @@
             }
         }
 
-        // 已选目标数据源/表时补齐下拉数据
         if (S.targetDsId) {
             try {
                 const tables = await window.etlApi.get('/datasource/' + S.targetDsId + '/tables');
@@ -740,13 +533,11 @@
             '<button class="etl-btn etl-btn-primary" id="wiz-create"><i class="bi bi-check2"></i> 创建流水线</button>'
         );
 
-        // 绑定：树点选
         window.etlComponents.bindTreePick(el('wiz-src-tree'), function (path) {
             const node = S.leafMap[path];
             if (!node) { toast('请选择叶子字段', 'warn'); return; }
             addMapping({ srcField: path, tgtField: '', defaultValue: '', isUpdateCol: false, isIndexCol: false });
         });
-        // 目标数据源/表
         const tds = el('wiz-tgt-ds');
         if (tds) tds.addEventListener('change', async function () {
             S.targetDsId = tds.value;
@@ -781,7 +572,6 @@
                 } catch (e) { /* toast 已由 api 处理 */ }
             }
         });
-        // 映射区事件委托
         const list = el('wiz-map-list');
         list.addEventListener('change', onMapEdit);
         list.addEventListener('input', onMapEdit);
@@ -798,7 +588,6 @@
             addMapping({ srcField: '', tgtField: '', defaultValue: '', isUpdateCol: false, isIndexCol: false });
         });
         el('wiz-automap').addEventListener('click', autoMatch);
-        // 任务设置
         el('wiz-write-mode').addEventListener('change', function () {
             collectTaskCfg();
             const hint = el('wiz-wm-hint');
@@ -822,7 +611,6 @@
         const k = e.target.getAttribute('data-k');
         if (!k || !S.mappings[i]) return;
         S.mappings[i][k] = (e.target.type === 'checkbox') ? e.target.checked : e.target.value;
-        // 手动行的源字段选定后，重绘使其变为 chip
         if (k === 'srcField' && e.target.value) { persistStep3(); paintMapRows(); return; }
         persistStep3();
     }
@@ -874,7 +662,6 @@
 
     async function onCreate() {
         collectTaskCfg();
-        // 校验
         if (!S.targetTable) { toast('请选择目标表', 'warn'); return; }
         const valid = S.mappings.filter(function (m) { return m.srcField && m.tgtField; });
         if (!valid.length) { toast('至少需要一条完整映射（源字段 + 目标列）', 'warn'); return; }
@@ -889,7 +676,6 @@
         if (c.incremental && !c.incField.trim()) { toast('增量抽取需填写增量字段', 'warn'); return; }
 
         const store = window.etlStore.get();
-        const srcType = (store.source && store.source.type) || S.srcType;
         const transByPath = {};
         (store.transforms || []).forEach(function (t) { transByPath[t.path] = t; });
         const colTypeByName = {};
@@ -897,7 +683,7 @@
 
         const taskBody = {
             name: c.name.trim(),
-            extractType: srcType === 'WS' ? 'WEBSERVICE' : 'PROCEDURE',
+            extractType: (store.source && store.source.type === 'WS') ? 'WEBSERVICE' : 'PROCEDURE',
             sourceId: store.sourceId,
             sourceDsId: (store.source && store.source.sourceDsId) || null,
             targetDsId: S.targetDsId,

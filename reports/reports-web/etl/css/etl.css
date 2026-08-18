@@ -710,3 +710,218 @@ body.etl-body {
         flex-wrap: wrap;
     }
 }
+
+/* ---------- Modal（来源新建弹窗） ---------- */
+.etl-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1040;
+    background: rgba(0, 0, 0, 0.35);
+    align-items: center;
+    justify-content: center;
+}
+
+.etl-modal {
+    background: var(--etl-color-surface);
+    border: 1px solid var(--etl-color-border);
+    border-radius: var(--etl-radius);
+    width: 90%;
+    max-width: 640px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+/* 大尺寸 Modal：来源创建/编辑表单 */
+.etl-modal.etl-modal-lg {
+    max-width: 1400px;
+    width: min(calc(100vw - 32px), 1400px);
+}
+
+.etl-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--etl-space-3) var(--etl-space-4);
+    border-bottom: 1px solid var(--etl-color-border);
+    flex-shrink: 0;
+}
+
+.etl-modal-title {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.etl-modal-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--etl-color-text-weak);
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.etl-modal-close:hover {
+    color: var(--etl-color-text);
+}
+
+.etl-modal-body {
+    padding: var(--etl-space-4);
+    overflow-y: auto;
+    flex: 1;
+}
+
+.etl-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--etl-space-2);
+    padding: var(--etl-space-3) var(--etl-space-4);
+    border-top: 1px solid var(--etl-color-border);
+    flex-shrink: 0;
+}
+
+/* ---------- 来源库长条列表 ---------- */
+.etl-source-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--etl-space-2);
+}
+
+.etl-source-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--etl-space-3);
+    padding: var(--etl-space-3) var(--etl-space-4);
+    background: var(--etl-color-surface);
+    border: 1px solid var(--etl-color-border);
+    border-radius: var(--etl-radius);
+    border-left: 4px solid var(--etl-color-border);
+    transition: border-color .15s ease, background .15s ease;
+}
+
+.etl-source-row:hover {
+    border-color: var(--etl-color-primary);
+    background: var(--etl-color-bg);
+}
+
+.etl-source-row.type-ws {
+    border-left-color: var(--etl-color-primary);
+}
+
+.etl-source-row.type-proc {
+    border-left-color: var(--etl-color-warning);
+}
+
+.etl-source-row-left {
+    display: flex;
+    align-items: center;
+    gap: var(--etl-space-2);
+    min-width: 0;
+    flex: 1;
+}
+
+.etl-source-row-left .etl-source-name {
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.etl-source-row-left .etl-source-meta {
+    font-family: var(--etl-font-mono);
+    font-size: 12px;
+    color: var(--etl-color-text-weak);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 260px;
+}
+
+.etl-source-row-actions {
+    display: flex;
+    gap: var(--etl-space-2);
+    flex-shrink: 0;
+}
+
+/* 调试面板展开区 — 已迁移为全屏 overlay（见 .etl-debug-overlay） */
+
+/* ---------- 调试全屏面板 ---------- */
+.etl-debug-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px;
+    overflow: auto;
+}
+
+.etl-debug-panel-inner {
+    background: var(--etl-color-surface);
+    border: 1px solid var(--etl-color-border);
+    border-radius: var(--etl-radius);
+    width: 100%;
+    max-width: calc(100vw - 48px);
+    min-height: 400px;
+    max-height: calc(100vh - 48px);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.22);
+}
+
+.etl-debug-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--etl-space-3) var(--etl-space-4);
+    border-bottom: 1px solid var(--etl-color-border);
+    flex-shrink: 0;
+}
+
+.etl-debug-panel-header h6 {
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: var(--etl-space-2);
+}
+
+.etl-debug-panel-body {
+    padding: var(--etl-space-4);
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* 调试表格：铺满面板宽度，列头 sticky */
+.debug-table-wrap-full {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--etl-color-border);
+    border-radius: var(--etl-radius);
+}
+
+.debug-table-wrap-full table {
+    width: 100%;
+    min-width: 100%;
+    font-size: 12px;
+    margin: 0;
+    border-collapse: collapse;
+}
+
+.debug-table-wrap-full table th,
+.debug-table-wrap-full table td {
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--etl-color-border);
+}
+
+.debug-table-wrap-full table thead th {
+    background: var(--etl-color-bg);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}

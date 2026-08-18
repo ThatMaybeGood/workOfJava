@@ -50,3 +50,13 @@ surefire-reports/
 
 # Claude Code worktrees
 .claude/worktrees/
+
+# ETL test databases
+/data/etl_*.mv.db
+/data/etl_*.trace.db
+
+# ETL test databases (relative and parent)
+/data/etl_*.mv.db
+/data/etl_*.trace.db
+../data/etl_*.mv.db
+../data/etl_*.trace.db
