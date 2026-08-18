@@ -37,47 +37,19 @@ public class DialectResolver {
         return "ORACLE";
     }
 
+    /**
+     * 生成 UPSERT SQL（全部使用 ? 位置参数，PreparedStatement 直接绑定）
+     * 参数顺序约定：
+     * - MERGE 方言（ORACLE/DM/SQLSERVER/H2）：allCols 绑两遍（USING 子查询一遍 + INSERT VALUES 一遍）
+     * - MYSQL / POSTGRESQL：allCols 绑一遍
+     */
     public static String getUpsertSql(String targetTable, String[] indexCols, String[] updateCols,
                                       String[] allCols, String dialect) {
         StringBuilder sql = new StringBuilder();
-        if ("ORACLE".equals(dialect) || "DM".equals(dialect) || "SQLSERVER".equals(dialect)) {
-            sql.append("MERGE INTO ").append(targetTable).append(" USING (SELECT ");
-            for (int i = 0; i < allCols.length; i++) {
-                if (i > 0) sql.append(", ");
-                sql.append(":").append(allCols[i]).append(" AS ").append(allCols[i]);
-            }
-            sql.append(" FROM DUAL) src ON (");
-            for (int i = 0; i < indexCols.length; i++) {
-                if (i > 0) sql.append(" AND ");
-                sql.append("src.").append(indexCols[i]).append(" = ").append(targetTable).append(".").append(indexCols[i]);
-            }
-            sql.append(") WHEN MATCHED THEN UPDATE SET ");
-            for (int i = 0; i < updateCols.length; i++) {
-                if (i > 0) sql.append(", ");
-                sql.append(targetTable).append(".").append(updateCols[i]).append(" = src.").append(updateCols[i]);
-            }
-            sql.append(" WHEN NOT MATCHED THEN INSERT (");
-            for (int i = 0; i < allCols.length; i++) {
-                if (i > 0) sql.append(", ");
-                sql.append(allCols[i]);
-            }
-            sql.append(") VALUES (");
-            for (int i = 0; i < allCols.length; i++) {
-                if (i > 0) sql.append(", ");
-                sql.append(":").append(allCols[i]);
-            }
-            sql.append(")");
-        } else if ("MYSQL".equals(dialect)) {
+        if ("MYSQL".equals(dialect)) {
             sql.append("INSERT INTO ").append(targetTable).append(" (");
-            for (int i = 0; i < allCols.length; i++) {
-                if (i > 0) sql.append(", ");
-                sql.append(allCols[i]);
-            }
-            sql.append(") VALUES (");
-            for (int i = 0; i < allCols.length; i++) {
-                if (i > 0) sql.append(", ");
-                sql.append(":").append(allCols[i]);
-            }
+            sql.append(String.join(", ", allCols));
+            sql.append(") VALUES (").append(placeholders(allCols.length));
             sql.append(") ON DUPLICATE KEY UPDATE ");
             for (int i = 0; i < updateCols.length; i++) {
                 if (i > 0) sql.append(", ");
@@ -85,54 +57,58 @@ public class DialectResolver {
             }
         } else if ("POSTGRESQL".equals(dialect)) {
             sql.append("INSERT INTO ").append(targetTable).append(" (");
-            for (int i = 0; i < allCols.length; i++) {
-                if (i > 0) sql.append(", ");
-                sql.append(allCols[i]);
-            }
-            sql.append(") VALUES (");
-            for (int i = 0; i < allCols.length; i++) {
-                if (i > 0) sql.append(", ");
-                sql.append(":").append(allCols[i]);
-            }
-            sql.append(") ON CONFLICT (");
-            for (int i = 0; i < indexCols.length; i++) {
-                if (i > 0) sql.append(", ");
-                sql.append(indexCols[i]);
-            }
-            sql.append(") DO UPDATE SET ");
+            sql.append(String.join(", ", allCols));
+            sql.append(") VALUES (").append(placeholders(allCols.length));
+            sql.append(") ON CONFLICT (").append(String.join(", ", indexCols)).append(") DO UPDATE SET ");
             for (int i = 0; i < updateCols.length; i++) {
                 if (i > 0) sql.append(", ");
                 sql.append(updateCols[i]).append(" = EXCLUDED.").append(updateCols[i]);
             }
+        } else if ("H2".equals(dialect)) {
+            // H2 传统语法：MERGE INTO ... KEY(...) VALUES(...)，命中 KEY 则整行更新，否则插入
+            sql.append("MERGE INTO ").append(targetTable).append(" (");
+            sql.append(String.join(", ", allCols));
+            sql.append(") KEY (").append(String.join(", ", indexCols));
+            sql.append(") VALUES (").append(placeholders(allCols.length)).append(")");
         } else {
+            // ORACLE / DM / SQLSERVER / H2：标准 MERGE INTO
             sql.append("MERGE INTO ").append(targetTable).append(" USING (SELECT ");
             for (int i = 0; i < allCols.length; i++) {
                 if (i > 0) sql.append(", ");
-                sql.append(":").append(allCols[i]).append(" AS ").append(allCols[i]);
+                sql.append("? AS ").append(allCols[i]);
             }
             sql.append(" FROM DUAL) src ON (");
             for (int i = 0; i < indexCols.length; i++) {
                 if (i > 0) sql.append(" AND ");
                 sql.append("src.").append(indexCols[i]).append(" = ").append(targetTable).append(".").append(indexCols[i]);
             }
-            sql.append(") WHEN MATCHED THEN UPDATE SET ");
-            for (int i = 0; i < updateCols.length; i++) {
-                if (i > 0) sql.append(", ");
-                sql.append(targetTable).append(".").append(updateCols[i]).append(" = src.").append(updateCols[i]);
+            sql.append(")");
+            if (updateCols.length > 0) {
+                sql.append(" WHEN MATCHED THEN UPDATE SET ");
+                for (int i = 0; i < updateCols.length; i++) {
+                    if (i > 0) sql.append(", ");
+                    sql.append(targetTable).append(".").append(updateCols[i]).append(" = src.").append(updateCols[i]);
+                }
             }
             sql.append(" WHEN NOT MATCHED THEN INSERT (");
-            for (int i = 0; i < allCols.length; i++) {
-                if (i > 0) sql.append(", ");
-                sql.append(allCols[i]);
-            }
-            sql.append(") VALUES (");
-            for (int i = 0; i < allCols.length; i++) {
-                if (i > 0) sql.append(", ");
-                sql.append(":").append(allCols[i]);
-            }
-            sql.append(")");
+            sql.append(String.join(", ", allCols));
+            sql.append(") VALUES (").append(placeholders(allCols.length)).append(")");
         }
         return sql.toString();
+    }
+
+    /** MERGE 方言（ORACLE/DM/SQLSERVER）需要绑定两遍 allCols（USING + INSERT VALUES），其余一遍 */
+    public static boolean upsertBindsTwice(String dialect) {
+        return "ORACLE".equals(dialect) || "DM".equals(dialect) || "SQLSERVER".equals(dialect);
+    }
+
+    private static String placeholders(int count) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            if (i > 0) sb.append(", ");
+            sb.append("?");
+        }
+        return sb.toString();
     }
 
 }

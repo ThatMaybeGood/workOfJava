@@ -1,31 +1,73 @@
 /**
- * ETL 管理主界面
+ * ETL 应用壳 — hash 路由
+ * 路由：#/wizard、#/sources、#/datasources、#/history（默认 #/wizard）
+ * 模块不存在时渲染「模块加载中」占位，不报错
+ * 切页不重置 sessionStorage 向导状态
  */
-document.addEventListener('DOMContentLoaded', () => {
-    const navLinks = document.querySelectorAll('.etl-nav .nav-link');
-    const contentDiv = document.getElementById('page-content');
+(function () {
+    const ROUTES = {
+        wizard: { global: 'WizardApp', title: '流水线向导' },
+        sources: { global: 'SourceApp', title: '来源库' },
+        datasources: { global: 'DatasourceApp', title: '数据源' },
+        history: { global: 'ScheduleApp', title: '调度历史' }
+    };
+    const DEFAULT_ROUTE = 'wizard';
 
-    function loadPage(pageName) {
-        navLinks.forEach(link => link.classList.remove('active'));
-        document.querySelector(`[data-page="${pageName}"]`)?.classList.add('active');
+    function currentRoute() {
+        const hash = (location.hash || '').replace(/^#\/?/, '').split('?')[0];
+        return ROUTES[hash] ? hash : DEFAULT_ROUTE;
+    }
 
-        switch(pageName) {
-            case 'datasource': DatasourceApp.render(contentDiv); break;
-            case 'task': TaskApp.render(contentDiv); break;
-            case 'mapping': MappingApp.render(contentDiv); break;
-            case 'debug': DebugApp.render(contentDiv); break;
-            case 'schedule': ScheduleApp.render(contentDiv); break;
-            default: contentDiv.innerHTML = '<p class="text-muted">请选择左侧菜单</p>';
+    function syncNav(route) {
+        document.querySelectorAll('.etl-nav-link').forEach(function (link) {
+            link.classList.toggle('active', link.getAttribute('data-route') === route);
+        });
+    }
+
+    function renderPlaceholder(container, title) {
+        container.innerHTML =
+            '<div class="etl-card">' +
+            '<div class="etl-empty">' +
+            '<div class="etl-empty-text">' + title + '模块加载中…</div>' +
+            '<span class="etl-badge info">待接入</span>' +
+            '</div>' +
+            '</div>';
+    }
+
+    function render() {
+        const container = document.getElementById('etl-main');
+        if (!container) return;
+
+        const route = currentRoute();
+        syncNav(route);
+
+        const conf = ROUTES[route];
+        const app = window[conf.global];
+        if (app && typeof app.render === 'function') {
+            try {
+                app.render(container);
+            } catch (e) {
+                console.error('[ETL] 模块渲染失败:', conf.global, e);
+                container.innerHTML =
+                    '<div class="etl-card">' +
+                    '<div class="etl-empty">' +
+                    '<div class="etl-empty-text">' + conf.title + '渲染失败</div>' +
+                    '</div>' +
+                    '</div>';
+                if (window.etlComponents && typeof window.etlComponents.toast === 'function') {
+                    window.etlComponents.toast(conf.title + '渲染失败：' + (e && e.message ? e.message : ''), 'err');
+                }
+            }
+        } else {
+            renderPlaceholder(container, conf.title);
         }
     }
 
-    navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            loadPage(link.dataset.page);
-        });
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!location.hash) {
+            location.replace('#/' + DEFAULT_ROUTE);
+        }
+        render();
+        window.addEventListener('hashchange', render);
     });
-
-    // 默认加载数据源页面
-    loadPage('datasource');
-});
+})();

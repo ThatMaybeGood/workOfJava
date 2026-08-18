@@ -2,8 +2,7 @@ package com.reports.etl.service.extractor;
 
 import com.reports.etl.entity.EtlProcConfig;
 import com.reports.etl.entity.EtlTask;
-import com.reports.etl.mapper.EtlProcConfigMapper;
-import com.reports.etl.mapper.EtlTaskMapper;
+import com.reports.etl.service.core.EtlMetaDao;
 import com.reports.etl.service.registry.EtlDataSourceRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -17,14 +16,11 @@ import java.util.*;
 @Component
 public class ProcedureExtractor {
 
-    private final EtlProcConfigMapper procConfigMapper;
-    private final EtlTaskMapper taskMapper;
+    private final EtlMetaDao metaDao;
     private final EtlDataSourceRegistry registry;
 
-    public ProcedureExtractor(EtlProcConfigMapper procConfigMapper, EtlTaskMapper taskMapper,
-                              EtlDataSourceRegistry registry) {
-        this.procConfigMapper = procConfigMapper;
-        this.taskMapper = taskMapper;
+    public ProcedureExtractor(EtlMetaDao metaDao, EtlDataSourceRegistry registry) {
+        this.metaDao = metaDao;
         this.registry = registry;
     }
 
@@ -34,69 +30,23 @@ public class ProcedureExtractor {
     }
 
     public Map<String, Object> extract(Long taskId, int batchSize) {
-        EtlProcConfig procConfig = procConfigMapper.selectById(taskId);
+        EtlProcConfig procConfig = metaDao.getProcConfig(taskId);
         if (procConfig == null) throw new RuntimeException("存储过程配置不存在: " + taskId);
 
-        EtlTask task = findTask(taskId);
+        EtlTask task = metaDao.getTask(taskId);
         Long sourceDsId = task != null ? task.getSourceDsId() : null;
-        if (sourceDsId == null) throw new RuntimeException("任务未配置抽取源数据源");
+        return extract(procConfig, sourceDsId, batchSize);
+    }
 
-        DataSource pool = registry.getPool(sourceDsId);
-        int maxPages = procConfig.getMaxPages() != null ? procConfig.getMaxPages() : 10;
+    /**
+     * 以配置对象为入参的抽取（供 SourceExtractorFacade 复用）
+     */
+    public Map<String, Object> extract(EtlProcConfig procConfig, Long sourceDsId, int batchSize) {
         int maxRows = procConfig.getMaxRows() != null ? procConfig.getMaxRows() : 10000;
+        Map<String, Object> callResult = callProc(procConfig, sourceDsId, maxRows);
 
-        List<Map<String, Object>> allRows = new ArrayList<>();
-
-        try (Connection conn = pool.getConnection()) {
-            String callTemplate = procConfig.getCallTemplate();
-            if (callTemplate == null || callTemplate.isEmpty()) {
-                callTemplate = "{call " + procConfig.getProcName() + "()}";
-            }
-
-            String cursorParamName = procConfig.getCursorParamName() != null ? procConfig.getCursorParamName() : "p_cursor";
-
-            CallableStatement stmt = conn.prepareCall(callTemplate);
-
-            // 注册游标参数
-            int cursorParamIdx = procConfig.getCursorParamIdx() != null ? procConfig.getCursorParamIdx() : 1;
-            stmt.registerOutParameter(cursorParamIdx, Types.OTHER); // Oracle REF CURSOR
-
-            // 设置 IN 参数
-            if (procConfig.getInParamsJson() != null && !procConfig.getInParamsJson().isEmpty()) {
-                // 简单实现：按顺序绑定
-                // 实际应解析 JSON 数组
-            }
-
-            stmt.execute();
-
-            // 分批读取游标
-            for (int page = 0; page < maxPages && allRows.size() < maxRows; page++) {
-                ResultSet cursor = (ResultSet) stmt.getObject(cursorParamIdx);
-                if (cursor == null) break;
-
-                ResultSetMetaData meta = cursor.getMetaData();
-                int columnCount = meta.getColumnCount();
-
-                while (cursor.next() && allRows.size() < maxRows) {
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    for (int i = 1; i <= columnCount; i++) {
-                        String colName = meta.getColumnLabel(i);
-                        Object value = cursor.getObject(i);
-                        row.put(colName, value);
-                    }
-                    allRows.add(row);
-                }
-                cursor.close();
-
-                // 刷新游标获取下一批（如果是分页游标）
-                if (page < maxPages - 1) {
-                    // 重新执行或刷新游标逻辑取决于存储过程设计
-                }
-            }
-
-        } catch (SQLException e) {
-            throw new RuntimeException("存储过程执行失败: " + e.getMessage(), e);
-        }
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> allRows = (List<Map<String, Object>>) callResult.get("rows");
 
         List<Map<String, Object>> batch = allRows.subList(0, Math.min(batchSize, allRows.size()));
         boolean more = allRows.size() > batchSize;
@@ -109,7 +59,98 @@ public class ProcedureExtractor {
         return result;
     }
 
-    private EtlTask findTask(Long taskId) {
-        return taskMapper.selectById(taskId);
+    /**
+     * 以游标 ResultSetMetaData 输出列元数据（供结构树分析：平铺，每列一个节点）
+     * 返回 [{name, jdbcType, typeName}]
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> describeColumns(EtlProcConfig procConfig, Long sourceDsId) {
+        Map<String, Object> callResult = callProc(procConfig, sourceDsId, 1);
+        return (List<Map<String, Object>>) callResult.get("columnsMeta");
+    }
+
+    /**
+     * 执行存储过程，返回 rows + columnsMeta（基于游标 ResultSetMetaData）
+     */
+    private Map<String, Object> callProc(EtlProcConfig procConfig, Long sourceDsId, int maxRows) {
+        if (sourceDsId == null) throw new RuntimeException("任务未配置抽取源数据源");
+
+        DataSource pool = registry.getPool(sourceDsId);
+        List<Map<String, Object>> allRows = new ArrayList<>();
+        List<Map<String, Object>> columnsMeta = new ArrayList<>();
+
+        try (Connection conn = pool.getConnection()) {
+            String callTemplate = procConfig.getCallTemplate();
+            if (callTemplate == null || callTemplate.isEmpty()) {
+                callTemplate = "{call " + procConfig.getProcName() + "()}";
+            }
+
+            int cursorParamIdx = procConfig.getCursorParamIdx() != null ? procConfig.getCursorParamIdx() : 1;
+
+            CallableStatement stmt = conn.prepareCall(callTemplate);
+
+            // 注册游标出参（Oracle REF CURSOR）
+            stmt.registerOutParameter(cursorParamIdx, Types.OTHER);
+
+            // 设置 IN 参数（from inParamsJson, 逐个设置）
+            setInParams(stmt, procConfig.getInParamsJson(), cursorParamIdx);
+
+            stmt.execute();
+
+            // 读取游标结果
+            try (ResultSet cursor = (ResultSet) stmt.getObject(cursorParamIdx)) {
+                if (cursor == null) throw new RuntimeException("存储过程游标为空");
+                ResultSetMetaData meta = cursor.getMetaData();
+                int columnCount = meta.getColumnCount();
+
+                for (int i = 1; i <= columnCount; i++) {
+                    Map<String, Object> col = new LinkedHashMap<>();
+                    col.put("name", meta.getColumnLabel(i));
+                    col.put("jdbcType", meta.getColumnType(i));
+                    col.put("typeName", meta.getColumnTypeName(i));
+                    columnsMeta.add(col);
+                }
+
+                while (cursor.next() && allRows.size() < maxRows) {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    for (int i = 1; i <= columnCount; i++) {
+                        String colName = meta.getColumnLabel(i);
+                        Object value = cursor.getObject(i);
+                        row.put(colName, value);
+                    }
+                    allRows.add(row);
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("存储过程执行失败: " + e.getMessage(), e);
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("rows", allRows);
+        result.put("columnsMeta", columnsMeta);
+        return result;
+    }
+
+    private void setInParams(CallableStatement stmt, String inParamsJson, int cursorParamIdx) {
+        if (inParamsJson == null || inParamsJson.isEmpty()) return;
+        try {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> params = (List<Map<String, Object>>)
+                    new com.fasterxml.jackson.databind.ObjectMapper()
+                            .readValue(inParamsJson, List.class);
+            for (int i = 0; i < params.size(); i++) {
+                Map<String, Object> param = params.get(i);
+                int idx = param.get("index") != null
+                        ? Integer.parseInt(param.get("index").toString())
+                        : i + 1;
+                // 跳过游标出参位置（通常游标是最后一个参数）
+                if (idx == cursorParamIdx) continue;
+                Object value = param.get("value");
+                stmt.setObject(idx, value);
+            }
+        } catch (Exception e) {
+            log.warn("IN参数绑定失败（忽略）: {}", e.getMessage());
+        }
     }
 }

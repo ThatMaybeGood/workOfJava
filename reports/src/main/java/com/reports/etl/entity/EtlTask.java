@@ -19,6 +19,9 @@ public class EtlTask implements Serializable {
 
     private String extractType;
 
+    /** 关联抽取来源 etl_source.id（Source 改造后优先于旧子表配置） */
+    private Long sourceId;
+
     private Long sourceDsId;
 
     private Long targetDsId;

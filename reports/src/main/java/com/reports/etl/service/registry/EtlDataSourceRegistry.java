@@ -1,7 +1,7 @@
 package com.reports.etl.service.registry;
 
 import com.reports.etl.entity.EtlDatasource;
-import com.reports.etl.mapper.EtlDatasourceMapper;
+import com.reports.etl.service.core.EtlMetaDao;
 import com.reports.etl.util.DialectResolver;
 import com.reports.etl.util.DsEncryptUtil;
 import com.zaxxer.hikari.HikariConfig;
@@ -13,7 +13,6 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
-import java.sql.Statement;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,25 +20,25 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class EtlDataSourceRegistry {
 
-    private final EtlDatasourceMapper datasourceMapper;
+    private final EtlMetaDao metaDao;
     private final ConcurrentHashMap<Long, HikariDataSource> poolCache = new ConcurrentHashMap<>();
 
-    public EtlDataSourceRegistry(EtlDatasourceMapper datasourceMapper) {
-        this.datasourceMapper = datasourceMapper;
+    public EtlDataSourceRegistry(EtlMetaDao metaDao) {
+        this.metaDao = metaDao;
     }
 
     public HikariDataSource getPool(Long dsId) {
         return poolCache.computeIfAbsent(dsId, id -> {
-            EtlDatasource ds = datasourceMapper.selectById(id);
+            EtlDatasource ds = metaDao.getDatasource(id);
             if (ds == null) throw new RuntimeException("数据源不存在: " + id);
-            if (!Boolean.TRUE.equals(ds.getEnabled())) throw new RuntimeException("数据源已禁用: " + ds.getName());
+            if (ds.getEnabled() == null || ds.getEnabled() != 1) throw new RuntimeException("数据源已禁用: " + ds.getName());
             return buildPool(ds);
         });
     }
 
     public void refresh(Long dsId) {
         poolCache.remove(dsId);
-        EtlDatasource ds = datasourceMapper.selectById(dsId);
+        EtlDatasource ds = metaDao.getDatasource(dsId);
         if (ds != null) {
             poolCache.put(dsId, buildPool(ds));
         }
@@ -92,15 +91,18 @@ public class EtlDataSourceRegistry {
         HikariDataSource pool = getPool(dsId);
         try (Connection conn = pool.getConnection()) {
             DatabaseMetaData meta = conn.getMetaData();
-            return Map.of(
-                    "success", true,
-                    "driverName", meta.getDriverName(),
-                    "databaseProductName", meta.getDatabaseProductName(),
-                    "url", conn.getMetaData().getURL(),
-                    "user", conn.getMetaData().getUserName()
-            );
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("success", true);
+            result.put("driverName", meta.getDriverName());
+            result.put("databaseProductName", meta.getDatabaseProductName());
+            result.put("url", meta.getURL());
+            result.put("user", meta.getUserName());
+            return result;
         } catch (Exception e) {
-            return Map.of("success", false, "error", e.getMessage());
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("success", false);
+            result.put("error", e.getMessage());
+            return result;
         }
     }
 

@@ -44,7 +44,15 @@
       "Bash(echo \"PID: $!\")",
       "Bash(sleep 5 && tail -50 /tmp/reports-etl.log)",
       "Bash(taskkill //PID 4777 //F)",
-      "Bash(tasklist /FI \"PID eq 5353\")"
+      "Bash(tasklist /FI \"PID eq 5353\")",
+      "Bash(rm -f src/main/java/com/reports/etl/mapper/*.java)",
+      "Bash(rm -f src/main/resources/mapper/etl/*.xml)",
+      "Bash(rmdir src/main/resources/mapper/etl)",
+      "Bash(ls src/main/java/com/reports/etl/mapper/)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(mkdir -p \"D:/JetBrains/IdeaProjects/workOfJava/reports/logs\")",
+      "Bash(java -jar target/reports-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev)",
+      "Bash(curl -s -X PUT http://localhost:18089/api/etl/task/1 -H \"Content-Type: application/json; charset=UTF-8\" --data-binary @\"D:/JetBrains/IdeaProjects/workOfJava/reports/logs/test-task-disable.json\" | head -c 150 && rm -f \"D:/JetBrains/IdeaProjects/workOfJava/reports/logs/test-\"*.json)"
     ],
     "additionalDirectories": [
       "D:/JetBrains/IdeaProjects/workOfJava/etl-platform"

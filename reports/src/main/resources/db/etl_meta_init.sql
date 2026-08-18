@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS etl_step_log (
 
 -- 日志保留策略表
 CREATE TABLE IF NOT EXISTS etl_log_config (
-    id BIGINT PRIMARY KEY DEFAULT 1,
+    id BIGINT DEFAULT 1 PRIMARY KEY,
     save_days INT DEFAULT 30 COMMENT '日志保留天数',
     auto_clean SMALLINT DEFAULT 1 COMMENT '是否自动清理',
     update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -136,7 +136,24 @@ CREATE TABLE IF NOT EXISTS etl_alert_config (
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 初始化保留策略
-INSERT INTO etl_log_config(id, save_days, auto_clean)
-VALUES (1, 30, 1)
-ON CONFLICT(id) DO NOTHING;
+-- 初始化保留策略（H2 语法：不存在才插入，不会覆盖用户修改）
+INSERT INTO etl_log_config (id, save_days, auto_clean)
+SELECT 1, 30, 1 WHERE NOT EXISTS (SELECT 1 FROM etl_log_config WHERE id = 1);
+
+-- =====================================================
+-- 抽取来源独立实体（Source 改造）
+-- =====================================================
+
+-- 抽取来源表：类型差异化配置统一存 config_json
+CREATE TABLE IF NOT EXISTS etl_source (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(200) NOT NULL COMMENT '来源名称',
+    type VARCHAR(20) NOT NULL COMMENT '类型：WS / PROC',
+    source_ds_id BIGINT COMMENT '底层数据源ID',
+    config_json TEXT COMMENT '类型差异化配置 JSON',
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 任务表关联来源（存量任务的子配置迁移由 Java 启动初始化幂等完成）
+ALTER TABLE etl_task ADD COLUMN IF NOT EXISTS source_id BIGINT;

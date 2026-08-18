@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.init.ScriptUtils;
 
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
@@ -32,7 +31,9 @@ public class EtlMetaDataSourceConfig {
         config.setMinimumIdle(1);
         config.setPoolName("etl-meta-h2");
         config.setConnectionInitSql("SELECT 1");
-        return new HikariDataSource(config);
+        HikariDataSource dataSource = new HikariDataSource(config);
+        initSchema(dataSource);
+        return dataSource;
     }
 
     @Bean(name = "etlMetaJdbcTemplate")
@@ -41,25 +42,40 @@ public class EtlMetaDataSourceConfig {
     }
 
     /**
-     * 启动时执行建表脚本
+     * 数据源创建后立即执行建表脚本，保证任何使用方拿到连接时表已存在
      */
-    @Bean
-    public Object etlMetaSchemaInit(@Qualifier("etlMetaDataSource") DataSource dataSource) {
+    private void initSchema(DataSource dataSource) {
         try {
             java.io.InputStream is = new ClassPathResource("db/etl_meta_init.sql").getInputStream();
-            byte[] bytes = is.readAllBytes();
-            String sql = new String(bytes, StandardCharsets.UTF_8);
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            byte[] buf = new byte[4096];
+            int len;
+            while ((len = is.read(buf)) != -1) {
+                bos.write(buf, 0, len);
+            }
+            is.close();
+            String sql = new String(bos.toByteArray(), StandardCharsets.UTF_8);
             try (java.sql.Connection conn = dataSource.getConnection();
                  java.sql.Statement stmt = conn.createStatement()) {
                 for (String s : sql.split(";")) {
-                    if (s.trim().startsWith("--") || s.trim().isEmpty()) continue;
-                    stmt.execute(s.trim().endsWith(";") ? s.trim() : s.trim() + ";");
+                    String trimmed = s.trim();
+                    // 去掉行首注释行
+                    StringBuilder sb = new StringBuilder();
+                    for (String line : trimmed.split("\\r?\\n")) {
+                        String t = line.trim();
+                        if (!t.startsWith("--") && !t.isEmpty()) {
+                            sb.append(line).append('\n');
+                        }
+                    }
+                    String stmtSql = sb.toString().trim();
+                    if (stmtSql.isEmpty()) continue;
+                    stmt.execute(stmtSql);
                 }
             }
             log.info("ETL 元数据库建表脚本执行完成");
         } catch (Exception e) {
-            log.warn("ETL 元数据库建表脚本执行跳过（可能已存在）: {}", e.getMessage());
+            log.error("ETL 元数据库建表脚本执行失败: {}", e.getMessage(), e);
+            throw new IllegalStateException("ETL 元数据库初始化失败", e);
         }
-        return new Object();
     }
 }

@@ -1,51 +1,61 @@
-# 进度日志
+# ETL 向导式流水线重构 - 进度记录
 
-## 会话：2026-08-17
+## 项目
 
-### 阶段 1：需求与发现
-- **状态：** complete
-- **开始时间：** 2026-08-17（当前会话）
-- 执行的操作：
-  - 读取 reports 项目 pom.xml，确认技术栈：Spring Boot 2.7.18 / Java 8 / MyBatis-Plus / Oracle / Druid / OkHttp / jackson-xml
-  - 读取 application.yml + application-dev.yml，确认 master 数据源为 Oracle yuanqi 库（报表库=当前目标库）
-  - 阅读 DataSourceConfig / DynamicDataSource / DynamicDataSourceContextHolder，确认现有动态数据源为静态配置驱动
-  - 查看后端包结构与前端 reports-web 目录结构
-  - 创建 task_plan.md / findings.md / progress.md 三份规划文件
-  - 呈现需求梳理，用户确认所有关键决策点
-- 创建/修改的文件：
-  - task_plan.md（新建）
-  - findings.md（新建）
-  - progress.md（新建）
+reports 项目 ETL 模块前端从五个平级 CRUD tab 重构为三步向导式流水线（来源 → 转换 → 映射），后端新增可复用来源实体（etl_source 表）。
 
-### 阶段 2：方案设计
-- **状态：** in_progress（方案已设计，待用户确认）
-- 执行的操作：
-  - 记录用户 6 点确认（H2 元数据 / SOAP+REST 都支持 / SYS_REFCURSOR / Kettle 式 UPSERT+查询索引 / cron+手动触发 / 日志保留策略）
-  - 记录用户补充确认：**逐环节调试**（抽取/转换/写入三环节独立调试 + 全链路一键）
-  - 记录用户确认并纳入：**内存分批流式**（用户提出 OOM 风险）、**并发互斥+重试**、**增量抽取**、**非 Oracle 目标库**、**失败告警通知**
-  - 完成总体架构、元数据表设计、数据源注册中心、两种抽取器、映射引擎、写入模式、调度、日志、逐环节调试、分批流式、增量、方言、告警方案设计
-- 创建/修改的文件：
-  - task_plan.md（重写：含全部方案设计章节）
-  - findings.md（更新技术决策与问题）
+## 完成状态
 
-## 测试结果
-| 测试 | 输入 | 预期结果 | 实际结果 | 状态 |
-|------|------|---------|---------|------|
-| （本阶段无测试） | | | | |
+- 阶段 0 契约冻结：✅ 完成
+- 阶段 1 后端来源实体：✅ 完成
+- 阶段 2 设计系统 + 公共层：✅ 完成
+- 阶段 3 向导三步页：✅ 完成
+- 阶段 4 辅助页：✅ 完成
+- 联调验证：进行中
 
-## 错误日志
-| 时间戳 | 错误 | 尝试次数 | 解决方案 |
-|--------|------|---------|---------|
-| （无） | | | |
+## 已完成清单
 
-## 五问重启检查
-| 问题 | 答案 |
-|------|------|
-| 我在哪里？ | 阶段 2：方案设计（已完成，待用户确认方案后进入实现） |
-| 我要去哪里？ | 用户确认方案 → 阶段 3 实现 |
-| 目标是什么？ | reports 内新增 ETL 定时抽取：WebService/存储过程抽取 → 映射 → 写入，前端可配置，不动现有报表库 |
-| 我学到了什么？ | 见 findings.md |
-| 我做了什么？ | 见上方记录 |
+### 后端（src/main/java/com/reports/etl/）
 
----
-*每个阶段完成后或遇到错误时更新此文件*
+- `entity/EtlSource.java`：来源实体（id/name/type/sourceDsId/configJson/createTime/updateTime）
+- `controller/EtlSourceController.java`：来源 CRUD + preview-debug + structure
+- `service/extractor/SourceExtractorFacade.java`：来源抽取门面，委托 WebServiceExtractor / ProcedureExtractor
+- `service/core/EtlStructureService.java`：JSON/XML 层级树构建（数组合并单层 + sampleCount）
+- `config/EtlWebStaticConfig.java`：暴露 reports-web 静态资源
+
+### 前端（reports-web/etl/）
+
+- `css/etl.css`：设计系统变量 + 组件类（步骤条/来源卡片/层级树/映射行/调试面板/时间线）
+- `js/store.js`：向导跨步状态（sessionStorage）
+- `js/components.js`：步骤条 / 结构树 / 调试面板渲染函数
+- `js/wizard-app.js`：三步向导（来源建/选 → 结构 + 转换 → 映射 + 任务设置）
+- `js/source-app.js`：来源库列表/编辑/调试
+- 已删除旧文件：`js/task-app.js`、`js/mapping-app.js`、`js/debug-app.js`
+
+## 已修复的关键 Bug
+
+1. **API 协议 unwrap**：后端统一返回 `{result, body}` 包装，前端 api.js 增加解包逻辑，避免各页面重复判空。
+2. **structure 路由冲突**：`/api/etl/source/{id}/structure` 与 `/api/etl/source/{id}` 在某些场景产生路径匹配歧义，调整为 `/api/etl/source/structure/{id}`。
+3. **preview-debug 兼容 configJson 包装**：来源配置既支持平铺字段也支持 `configJson` 字符串包装，反序列化时双兼容。
+4. **EtlWebStaticConfig 静态资源暴露**：补充 ResourceHandler 注册，使 `/etl/**` 直接映射到 reports-web/etl，无需手工拷贝。
+5. **task add 返回 taskId**：`POST /api/etl/task` 新增返回体中带 `taskId`，供向导第三步保存映射后立即跳转调试。
+6. **REST 抽取误用 POST**：`WebServiceExtractor.fetchPageData` 对 REST 恒发 POST（空 `{}` body），查询型 GET 接口会被误创建资源（jsonplaceholder 返回假 id=11）。修复：REST 且无请求体模板时改发 GET，SOAP/带模板仍 POST。修复后 10 列 10 行正常。
+7. **vendor 静态资源 404**：index.html 以 `../vendor` 引用 bootstrap/icons，但只暴露了 `/etl/**`。EtlWebStaticConfig 增加 `/vendor/**` → `file:reports-web/vendor/`。
+8. **mapping/batch 的 isUpdateCol 类型**：后端为 Integer，wizard-app.js 原传 boolean 会反序列化失败，改为 0/1。
+9. **任务 id=1 迁移遗留**：来源 1 URL 指向不存在的 mock 端点、responsePath 误配 `body.records`，已改为 jsonplaceholder 顶层数组；手动触发 SUCCESS（10 行）。
+
+## 端到端 API 验证结果（2026-08-18）
+
+- preview-debug：15 列（含嵌套拍平 address.street 等）、行数据正常 ✅
+- structure/34：完整嵌套树（address 子节点、sampleCount=10）✅
+- 建任务(33) → mapping/batch → 手动触发：EXTRACT/TRANSFORM/LOAD 全 SUCCESS，10 行写入 ✅（测试任务已删除）
+- 任务 1 回归：SUCCESS，extractedRows=10 / writtenRows=10 ✅
+- 静态资源：index/css/js/vendor 全部 200 ✅
+
+## 遗留事项
+
+- 浏览器端到端走查（建来源 → 调试 → 结构 → 映射 → 触发 → 调度历史）尚未完成全链路回归（Chrome 扩展未连接，可人工走查）
+
+## 验证入口
+
+http://localhost:18089/etl/index.html

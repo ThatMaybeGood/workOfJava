@@ -3,11 +3,8 @@ package com.reports.etl.service.extractor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.reports.etl.entity.EtlTask;
 import com.reports.etl.entity.EtlWsConfig;
-import com.reports.etl.mapper.EtlTaskMapper;
-import com.reports.etl.mapper.EtlWsConfigMapper;
-import com.reports.etl.service.registry.EtlDataSourceRegistry;
+import com.reports.etl.service.core.EtlMetaDao;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.springframework.stereotype.Component;
@@ -21,11 +18,9 @@ import java.util.*;
 @Component
 public class WebServiceExtractor {
 
-    private final EtlWsConfigMapper wsConfigMapper;
-    private final EtlTaskMapper taskMapper;
+    private final EtlMetaDao metaDao;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ObjectMapper xmlMapper = new XmlMapper();
-    private final EtlDataSourceRegistry registry;
 
     private static final OkHttpClient CLIENT = new OkHttpClient.Builder()
             .connectTimeout(Duration.ofSeconds(30))
@@ -33,11 +28,8 @@ public class WebServiceExtractor {
             .writeTimeout(Duration.ofSeconds(30))
             .build();
 
-    public WebServiceExtractor(EtlWsConfigMapper wsConfigMapper, EtlTaskMapper taskMapper,
-                               EtlDataSourceRegistry registry) {
-        this.wsConfigMapper = wsConfigMapper;
-        this.taskMapper = taskMapper;
-        this.registry = registry;
+    public WebServiceExtractor(EtlMetaDao metaDao) {
+        this.metaDao = metaDao;
     }
 
     @PostConstruct
@@ -46,60 +38,35 @@ public class WebServiceExtractor {
     }
 
     public Map<String, Object> extract(Long taskId, int batchSize) {
-        EtlWsConfig wsConfig = wsConfigMapper.selectById(taskId);
+        EtlWsConfig wsConfig = metaDao.getWsConfig(taskId);
         if (wsConfig == null) throw new RuntimeException("WebService配置不存在: " + taskId);
+        return extract(wsConfig, batchSize);
+    }
 
-        EtlTask task = findTask(taskId);
-        String responsePath = wsConfig.getResponsePath();
+    /**
+     * 以配置对象为入参的抽取（供 SourceExtractorFacade 复用）
+     */
+    public Map<String, Object> extract(EtlWsConfig wsConfig, int batchSize) {
         int maxPages = wsConfig.getMaxPages() != null ? wsConfig.getMaxPages() : 10;
         int maxRows = wsConfig.getMaxRows() != null ? wsConfig.getMaxRows() : 10000;
 
         List<Map<String, Object>> allRows = new ArrayList<>();
-        String bodyTemplate = wsConfig.getRequestBodyTemplate();
-        String headersJson = wsConfig.getHeadersJson();
-        Map<String, String> headers = parseJsonMap(headersJson);
 
         // 分页拉取
         for (int page = 1; page <= maxPages && allRows.size() < maxRows; page++) {
-            String body = buildRequestBody(bodyTemplate, page, wsConfig.getExtractParamsJson());
-            Request.Builder reqBuilder = new Request.Builder().url(wsConfig.getUrl());
-            headers.forEach(reqBuilder::addHeader);
-            if (wsConfig.getWsType() != null && "SOAP".equals(wsConfig.getWsType())) {
-                reqBuilder.addHeader("Content-Type", "text/xml; charset=utf-8");
-                if (wsConfig.getSoapAction() != null) {
-                    reqBuilder.addHeader("SOAPAction", wsConfig.getSoapAction());
-                }
+            JsonNode data = fetchPageData(wsConfig, page);
+            if (data == null || data.isNull()) {
+                break;
             }
-            Request request = reqBuilder.post(RequestBody.create(MediaType.parse("application/json"), body)).build();
 
-            try (Response response = CLIENT.newCall(request).execute()) {
-                if (!response.isSuccessful()) {
-                    throw new RuntimeException("WebService调用失败: HTTP " + response.code());
+            // 数组展开 / 对象包装
+            if (data.isArray()) {
+                for (JsonNode item : data) {
+                    allRows.add(flatten(item, ""));
+                    if (allRows.size() >= maxRows) break;
                 }
-                String responseBody = response.body() != null ? response.body().string() : "";
-
-                // 解析响应
-                JsonNode node = parseResponse(responseBody, wsConfig.getWsType());
-                JsonNode data = responsePath != null && !responsePath.isEmpty()
-                        ? navigate(node, responsePath)
-                        : node;
-
-                if (data == null || data.isNull()) {
-                    break;
-                }
-
-                // 如果是数组，展开；否则包装成单元素
-                if (data.isArray()) {
-                    for (JsonNode item : data) {
-                        allRows.add(flatten(item, ""));
-                        if (allRows.size() >= maxRows) break;
-                    }
-                } else if (data.isObject()) {
-                    allRows.add(flatten(data, ""));
-                }
-
-            } catch (IOException e) {
-                throw new RuntimeException("WebService响应读取失败", e);
+            } else if (data.isObject()) {
+                allRows.add(flatten(data, ""));
             }
         }
 
@@ -114,8 +81,74 @@ public class WebServiceExtractor {
         return result;
     }
 
-    private EtlTask findTask(Long taskId) {
-        return taskMapper.selectById(taskId);
+    /**
+     * 拉取未拍平的原始样例行（供结构树分析：保留嵌套层级，不走 flatten）
+     */
+    public List<JsonNode> fetchRawSample(EtlWsConfig wsConfig, int maxRows) {
+        int maxPages = wsConfig.getMaxPages() != null ? wsConfig.getMaxPages() : 10;
+        List<JsonNode> items = new ArrayList<>();
+        for (int page = 1; page <= maxPages && items.size() < maxRows; page++) {
+            JsonNode data = fetchPageData(wsConfig, page);
+            if (data == null || data.isNull()) {
+                break;
+            }
+            if (data.isArray()) {
+                for (JsonNode item : data) {
+                    items.add(item);
+                    if (items.size() >= maxRows) break;
+                }
+            } else if (data.isObject()) {
+                items.add(data);
+            } else {
+                break;
+            }
+        }
+        return items;
+    }
+
+    /**
+     * 请求一页并定位出参节点（复用 SOAP/REST 解析与 responsePath 导航）
+     */
+    private JsonNode fetchPageData(EtlWsConfig wsConfig, int page) {
+        String bodyTemplate = wsConfig.getRequestBodyTemplate();
+        Map<String, String> headers = parseJsonMap(wsConfig.getHeadersJson());
+        boolean isSoap = wsConfig.getWsType() != null && "SOAP".equals(wsConfig.getWsType());
+        String responsePath = wsConfig.getResponsePath();
+
+        String body = buildRequestBody(bodyTemplate, page, wsConfig.getExtractParamsJson());
+        Request.Builder reqBuilder = new Request.Builder().url(wsConfig.getUrl());
+        headers.forEach(reqBuilder::addHeader);
+        if (isSoap) {
+            reqBuilder.addHeader("Content-Type", "text/xml; charset=utf-8");
+            if (wsConfig.getSoapAction() != null && !wsConfig.getSoapAction().isEmpty()) {
+                reqBuilder.addHeader("SOAPAction", wsConfig.getSoapAction());
+            }
+        }
+        // REST 且无请求体模板时按 GET 抽取（多数查询型接口只接受 GET，POST 会误创建资源）；
+        // SOAP 或带 body 模板的 REST 仍走 POST
+        boolean useGet = !isSoap && (bodyTemplate == null || bodyTemplate.isEmpty());
+        Request request;
+        if (useGet) {
+            request = reqBuilder.get().build();
+        } else {
+            request = reqBuilder.post(RequestBody.create(MediaType.parse(
+                    isSoap ? "text/xml; charset=utf-8" : "application/json"), body)).build();
+        }
+
+        try (Response response = CLIENT.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new RuntimeException("WebService调用失败: HTTP " + response.code());
+            }
+            String responseBody = response.body() != null ? response.body().string() : "";
+
+            // 解析响应
+            JsonNode node = parseResponse(responseBody, wsConfig.getWsType());
+            return responsePath != null && !responsePath.isEmpty()
+                    ? navigate(node, responsePath)
+                    : node;
+        } catch (IOException e) {
+            throw new RuntimeException("WebService响应读取失败", e);
+        }
     }
 
     private String buildRequestBody(String template, int page, String paramsJson) {
@@ -123,6 +156,14 @@ public class WebServiceExtractor {
         // 简单占位符替换
         template = template.replace("{page}", String.valueOf(page));
         template = template.replace("{pageSize}", "500");
+        // 增量占位符
+        template = template.replace("{lastTime}", "");
+        template = template.replace("{today}", "");
+        template = template.replace("{lastRunTime}", "");
+        if (paramsJson != null && !paramsJson.isEmpty()) {
+            // 允许模板引用参数 json 字段，例如 {paramName}
+            // 简单实现：不做展开
+        }
         return template;
     }
 

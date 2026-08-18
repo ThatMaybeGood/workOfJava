@@ -3,56 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ETL 抽取管理</title>
+    <title>ETL 数据集成</title>
     <link href="../vendor/bootstrap@5.3.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="../vendor/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        body { background: #f5f7fa; margin: 0; padding: 0; }
-        .etl-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; }
-        .etl-nav { background: white; border-bottom: 1px solid #dee2e6; padding: 10px 0; }
-        .etl-nav .nav-link { color: #495057; font-weight: 500; }
-        .etl-nav .nav-link.active { color: #667eea; border-bottom: 2px solid #667eea; }
-        .etl-content { padding: 20px; }
-        .card { border: none; shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .step-indicator { display: flex; justify-content: center; margin: 20px 0; }
-        .step { display: flex; align-items: center; }
-        .step-circle { width: 30px; height: 30px; border-radius: 50%; background: #dee2e6; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-        .step.active .step-circle { background: #667eea; color: white; }
-        .step.completed .step-circle { background: #28a745; color: white; }
-        .step-line { width: 50px; height: 2px; background: #dee2e6; margin: 0 10px; }
-        .step.active + .step-line, .step.completed + .step-line { background: #28a745; }
-        .debug-result { background: #f8f9fa; border-radius: 8px; padding: 15px; margin-top: 15px; }
-        .debug-result pre { max-height: 300px; overflow: auto; font-size: 12px; }
-    </style>
+    <link href="css/etl.css" rel="stylesheet">
 </head>
-<body>
-    <div class="etl-header">
-        <h2><i class="bi bi-arrow-repeat"></i> ETL 数据抽取管理</h2>
-        <p class="mb-0">抽取 → 转换映射 → 写入，全流程可视化配置与调试</p>
-    </div>
+<body class="etl-body">
+    <div class="etl-shell">
+        <header class="etl-topbar">
+            <a class="etl-topbar-brand" href="#/wizard">
+                <i class="bi bi-diagram-3"></i>
+                ETL 数据集成
+                <span class="etl-env-badge">DEV</span>
+            </a>
+        </header>
 
-    <nav class="etl-nav">
-        <div class="container-fluid">
-            <ul class="nav">
-                <li class="nav-item"><a class="nav-link active" href="#" data-page="datasource">数据源管理</a></li>
-                <li class="nav-item"><a class="nav-link" href="#" data-page="task">任务配置</a></li>
-                <li class="nav-item"><a class="nav-link" href="#" data-page="mapping">字段映射</a></li>
-                <li class="nav-item"><a class="nav-link" href="#" data-page="debug">调试运行</a></li>
-                <li class="nav-item"><a class="nav-link" href="#" data-page="schedule">调度历史</a></li>
-            </ul>
-        </div>
-    </nav>
+        <nav class="etl-nav">
+            <a class="etl-nav-link" href="#/wizard" data-route="wizard">流水线向导</a>
+            <a class="etl-nav-link" href="#/sources" data-route="sources">来源库</a>
+            <a class="etl-nav-link" href="#/datasources" data-route="datasources">数据源</a>
+            <a class="etl-nav-link" href="#/history" data-route="history">调度历史</a>
+        </nav>
 
-    <div class="container-fluid etl-content">
-        <div id="page-content"></div>
+        <main class="etl-main" id="etl-main"></main>
     </div>
 
     <script src="../vendor/bootstrap@5.3.2/js/bootstrap.bundle.min.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/wizard-app.js"></script>
+    <script src="js/source-app.js"></script>
     <script src="js/datasource-app.js"></script>
-    <script src="js/task-app.js"></script>
-    <script src="js/mapping-app.js"></script>
-    <script src="js/debug-app.js"></script>
     <script src="js/schedule-app.js"></script>
     <script src="js/main.js"></script>
 </body>

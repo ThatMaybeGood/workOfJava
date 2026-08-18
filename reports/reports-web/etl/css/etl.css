@@ -1,0 +1,712 @@
+/* ============================================================
+   ETL 设计系统 — 蓝图仪器风
+   浅色工程工具：冷静浅灰底、白表面、发丝边框、深青墨主色
+   ============================================================ */
+
+:root {
+    --etl-color-bg: #F4F6F8;
+    --etl-color-surface: #FFFFFF;
+    --etl-color-border: #DCE2E8;
+    --etl-color-text: #1B2430;
+    --etl-color-text-weak: #64707D;
+    --etl-color-primary: #0C6875;
+    --etl-color-primary-strong: #0A5661;
+    --etl-color-primary-weak: #E3F1F3;
+    --etl-color-success: #17803D;
+    --etl-color-danger: #C4372C;
+    --etl-color-warning: #B7791F;
+    --etl-color-console-bg: #131B24;
+    --etl-color-console-text: #C9D6E2;
+    --etl-radius: 6px;
+    --etl-radius-sm: 4px;
+    --etl-space-1: 4px;
+    --etl-space-2: 8px;
+    --etl-space-3: 16px;
+    --etl-space-4: 24px;
+    --etl-font-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+}
+
+/* ---------- 基础 ---------- */
+body.etl-body {
+    background: var(--etl-color-bg);
+    color: var(--etl-color-text);
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    font-size: 14px;
+    margin: 0;
+}
+
+.etl-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ---------- 顶栏 ---------- */
+.etl-topbar {
+    background: var(--etl-color-surface);
+    border-bottom: 1px solid var(--etl-color-border);
+    padding: var(--etl-space-2) var(--etl-space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--etl-space-3);
+}
+
+.etl-topbar-brand {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--etl-color-text);
+    display: flex;
+    align-items: center;
+    gap: var(--etl-space-2);
+    text-decoration: none;
+}
+
+.etl-topbar-brand:hover {
+    color: var(--etl-color-primary);
+}
+
+.etl-env-badge {
+    font-family: var(--etl-font-mono);
+    font-size: 11px;
+    background: var(--etl-color-primary-weak);
+    color: var(--etl-color-primary);
+    border-radius: var(--etl-radius-sm);
+    padding: 1px var(--etl-space-2);
+    letter-spacing: .04em;
+}
+
+/* ---------- 导航 ---------- */
+.etl-nav {
+    background: var(--etl-color-surface);
+    border-bottom: 1px solid var(--etl-color-border);
+    padding: 0 var(--etl-space-4);
+    display: flex;
+    gap: var(--etl-space-4);
+}
+
+.etl-nav-link {
+    display: inline-block;
+    padding: var(--etl-space-3) var(--etl-space-1) calc(var(--etl-space-3) - 2px);
+    color: var(--etl-color-text-weak);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    border-bottom: 2px solid transparent;
+    transition: color .15s ease;
+}
+
+.etl-nav-link:hover {
+    color: var(--etl-color-primary);
+}
+
+.etl-nav-link.active {
+    color: var(--etl-color-primary);
+    border-bottom-color: var(--etl-color-primary);
+}
+
+/* ---------- 主区 ---------- */
+.etl-main {
+    flex: 1;
+    width: 100%;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: var(--etl-space-4);
+}
+
+/* ---------- 管道步骤条 ---------- */
+.etl-stepper {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: var(--etl-space-4) 0 var(--etl-space-3);
+}
+
+.etl-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    min-width: 120px;
+}
+
+.etl-step-track {
+    position: absolute;
+    top: 11px;
+    left: calc(-50% + 22px);
+    right: calc(50% + 22px);
+    height: 2px;
+    background: var(--etl-color-border);
+}
+
+.etl-step-track.done {
+    background: var(--etl-color-primary);
+}
+
+.etl-step:first-child .etl-step-track {
+    display: none;
+}
+
+.etl-step-station {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--etl-color-surface);
+    border: 2px solid var(--etl-color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--etl-font-mono);
+    font-size: 11px;
+    color: var(--etl-color-text-weak);
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+}
+
+.etl-step-station.done {
+    background: var(--etl-color-primary);
+    border-color: var(--etl-color-primary);
+    color: #fff;
+}
+
+.etl-step-station.active {
+    border-color: var(--etl-color-primary);
+    color: var(--etl-color-primary);
+    box-shadow: 0 0 0 2px var(--etl-color-primary-weak), 0 0 0 2px var(--etl-color-primary);
+    outline: 2px solid var(--etl-color-primary);
+    outline-offset: 2px;
+}
+
+.etl-step-eyebrow {
+    font-family: var(--etl-font-mono);
+    font-size: 10px;
+    letter-spacing: .08em;
+    color: var(--etl-color-text-weak);
+    margin-top: var(--etl-space-2);
+}
+
+.etl-step.active .etl-step-eyebrow {
+    color: var(--etl-color-primary);
+}
+
+.etl-step-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--etl-color-text);
+    margin-top: var(--etl-space-1);
+}
+
+.etl-step.active .etl-step-name {
+    color: var(--etl-color-primary);
+    font-weight: 600;
+}
+
+/* ---------- 卡片 ---------- */
+.etl-card {
+    background: var(--etl-color-surface);
+    border: 1px solid var(--etl-color-border);
+    border-radius: var(--etl-radius);
+    padding: var(--etl-space-4);
+}
+
+.etl-card + .etl-card {
+    margin-top: var(--etl-space-3);
+}
+
+.etl-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 var(--etl-space-3);
+}
+
+/* ---------- 来源卡片 ---------- */
+.etl-source-card {
+    background: var(--etl-color-surface);
+    border: 1px solid var(--etl-color-border);
+    border-radius: var(--etl-radius);
+    padding: var(--etl-space-3) var(--etl-space-4);
+    border-left: 3px solid var(--etl-color-border);
+    transition: border-color .15s ease, background .15s ease;
+}
+
+.etl-source-card:hover {
+    border-color: var(--etl-color-primary);
+}
+
+.etl-source-card.type-ws {
+    border-left-color: var(--etl-color-primary);
+}
+
+.etl-source-card.type-proc {
+    border-left-color: var(--etl-color-warning);
+}
+
+.etl-source-card .etl-source-name {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.etl-source-card .etl-source-meta {
+    font-family: var(--etl-font-mono);
+    font-size: 12px;
+    color: var(--etl-color-text-weak);
+    margin-top: var(--etl-space-1);
+}
+
+/* ---------- 层级树 ---------- */
+.etl-tree {
+    font-size: 13px;
+}
+
+.etl-tree ul {
+    list-style: none;
+    margin: 0;
+    padding-left: var(--etl-space-3);
+    border-left: 1px solid var(--etl-color-border);
+}
+
+.etl-tree > ul {
+    padding-left: 0;
+    border-left: none;
+}
+
+.etl-tree li {
+    padding: 2px 0;
+}
+
+.etl-tree-node {
+    display: flex;
+    align-items: center;
+    gap: var(--etl-space-2);
+    padding: 2px var(--etl-space-2);
+    border-radius: var(--etl-radius-sm);
+}
+
+.etl-tree-node.selectable {
+    cursor: pointer;
+}
+
+.etl-tree-node.selectable:hover {
+    background: var(--etl-color-primary-weak);
+}
+
+.etl-tree-path {
+    font-family: var(--etl-font-mono);
+    font-size: 12px;
+    color: var(--etl-color-text);
+}
+
+.etl-tree-type {
+    font-family: var(--etl-font-mono);
+    font-size: 11px;
+    color: var(--etl-color-text-weak);
+}
+
+.etl-tree-listbadge {
+    font-family: var(--etl-font-mono);
+    font-size: 11px;
+    background: var(--etl-color-primary-weak);
+    color: var(--etl-color-primary);
+    border-radius: var(--etl-radius-sm);
+    padding: 0 var(--etl-space-1);
+    white-space: nowrap;
+}
+
+/* ---------- 映射行 ---------- */
+.etl-map-row {
+    display: flex;
+    align-items: center;
+    gap: var(--etl-space-2);
+    padding: var(--etl-space-2);
+    border-radius: var(--etl-radius-sm);
+    border-bottom: 1px solid var(--etl-color-border);
+}
+
+.etl-map-row:hover {
+    background: var(--etl-color-bg);
+}
+
+.etl-map-src {
+    font-family: var(--etl-font-mono);
+    font-size: 12px;
+    background: var(--etl-color-bg);
+    border: 1px solid var(--etl-color-border);
+    border-radius: var(--etl-radius-sm);
+    padding: 2px var(--etl-space-2);
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.etl-map-arrow {
+    color: var(--etl-color-primary);
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.etl-map-target {
+    flex: 1;
+    min-width: 160px;
+}
+
+.etl-map-flags {
+    display: flex;
+    gap: var(--etl-space-3);
+    font-size: 12px;
+    color: var(--etl-color-text-weak);
+    flex-shrink: 0;
+}
+
+.etl-map-flags label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--etl-space-1);
+    margin: 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* ---------- 深色调试控制台 ---------- */
+.etl-debug-panel {
+    background: var(--etl-color-console-bg);
+    color: var(--etl-color-console-text);
+    font-family: var(--etl-font-mono);
+    font-size: 12px;
+    border-radius: var(--etl-radius);
+    padding: var(--etl-space-3);
+}
+
+.etl-debug-panel .etl-debug-title {
+    font-size: 12px;
+    letter-spacing: .08em;
+    color: var(--etl-color-console-text);
+    opacity: .7;
+    margin-bottom: var(--etl-space-2);
+}
+
+.etl-debug-panel .etl-debug-body {
+    max-height: 320px;
+    overflow: auto;
+}
+
+.etl-debug-panel .etl-debug-section {
+    margin-bottom: var(--etl-space-2);
+}
+
+.etl-debug-panel .etl-debug-label {
+    opacity: .7;
+}
+
+.etl-debug-panel .etl-debug-status.ok {
+    color: var(--etl-color-success);
+}
+
+.etl-debug-panel .etl-debug-status.err {
+    color: var(--etl-color-danger);
+}
+
+.etl-debug-panel pre {
+    margin: var(--etl-space-1) 0 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: inherit;
+    font-size: 12px;
+}
+
+/* ---------- 时间线 ---------- */
+.etl-timeline {
+    position: relative;
+    padding-left: var(--etl-space-4);
+}
+
+.etl-timeline::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: var(--etl-color-border);
+}
+
+.etl-timeline-item {
+    position: relative;
+    padding-bottom: var(--etl-space-3);
+}
+
+.etl-timeline-dot {
+    position: absolute;
+    left: calc(-1 * var(--etl-space-4) + 1px);
+    top: 5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--etl-color-text-weak);
+}
+
+.etl-timeline-item.ok .etl-timeline-dot {
+    background: var(--etl-color-success);
+}
+
+.etl-timeline-item.err .etl-timeline-dot {
+    background: var(--etl-color-danger);
+}
+
+.etl-timeline-time {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.etl-timeline-meta {
+    font-family: var(--etl-font-mono);
+    font-size: 12px;
+    color: var(--etl-color-text-weak);
+    margin-top: 2px;
+}
+
+.etl-timeline-err {
+    font-size: 12px;
+    color: var(--etl-color-danger);
+    margin-top: 2px;
+}
+
+/* ---------- 按钮 ---------- */
+.etl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--etl-space-1);
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: var(--etl-radius);
+    border: 1px solid var(--etl-color-border);
+    background: var(--etl-color-surface);
+    color: var(--etl-color-text);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.etl-btn:hover {
+    border-color: var(--etl-color-primary);
+    color: var(--etl-color-primary);
+}
+
+.etl-btn:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.etl-btn-primary {
+    background: var(--etl-color-primary);
+    border-color: var(--etl-color-primary);
+    color: #fff;
+}
+
+.etl-btn-primary:hover {
+    background: var(--etl-color-primary-strong);
+    border-color: var(--etl-color-primary-strong);
+    color: #fff;
+}
+
+.etl-btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--etl-color-primary);
+}
+
+.etl-btn-ghost:hover {
+    background: var(--etl-color-primary-weak);
+    border-color: transparent;
+    color: var(--etl-color-primary-strong);
+}
+
+.etl-btn-danger {
+    background: var(--etl-color-surface);
+    border-color: var(--etl-color-danger);
+    color: var(--etl-color-danger);
+}
+
+.etl-btn-danger:hover {
+    background: var(--etl-color-danger);
+    border-color: var(--etl-color-danger);
+    color: #fff;
+}
+
+/* 覆盖 Bootstrap 默认蓝 */
+.etl-shell .btn-primary {
+    --bs-btn-bg: var(--etl-color-primary);
+    --bs-btn-border-color: var(--etl-color-primary);
+    --bs-btn-hover-bg: var(--etl-color-primary-strong);
+    --bs-btn-hover-border-color: var(--etl-color-primary-strong);
+    --bs-btn-active-bg: var(--etl-color-primary-strong);
+    --bs-btn-active-border-color: var(--etl-color-primary-strong);
+    --bs-btn-disabled-bg: var(--etl-color-primary);
+    --bs-btn-disabled-border-color: var(--etl-color-primary);
+}
+
+.etl-shell a {
+    color: var(--etl-color-primary);
+}
+
+.etl-shell a:hover {
+    color: var(--etl-color-primary-strong);
+}
+
+.etl-shell .form-control:focus,
+.etl-shell .form-select:focus,
+.etl-shell .form-check-input:focus {
+    border-color: var(--etl-color-primary);
+    box-shadow: 0 0 0 .2rem rgba(12, 104, 117, .15);
+}
+
+.etl-shell .form-check-input:checked {
+    background-color: var(--etl-color-primary);
+    border-color: var(--etl-color-primary);
+}
+
+/* ---------- 徽标 ---------- */
+.etl-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px var(--etl-space-2);
+    border-radius: var(--etl-radius-sm);
+    background: var(--etl-color-bg);
+    color: var(--etl-color-text-weak);
+    border: 1px solid var(--etl-color-border);
+}
+
+.etl-badge.ok {
+    background: #E7F4EC;
+    color: var(--etl-color-success);
+    border-color: transparent;
+}
+
+.etl-badge.err {
+    background: #FBEAE8;
+    color: var(--etl-color-danger);
+    border-color: transparent;
+}
+
+.etl-badge.warn {
+    background: #F8F0E1;
+    color: var(--etl-color-warning);
+    border-color: transparent;
+}
+
+.etl-badge.info {
+    background: var(--etl-color-primary-weak);
+    color: var(--etl-color-primary);
+    border-color: transparent;
+}
+
+/* ---------- 空状态 ---------- */
+.etl-empty {
+    text-align: center;
+    padding: var(--etl-space-4);
+    color: var(--etl-color-text-weak);
+}
+
+.etl-empty .etl-empty-text {
+    margin-bottom: var(--etl-space-3);
+}
+
+/* ---------- Toast ---------- */
+.etl-toast {
+    position: fixed;
+    top: var(--etl-space-4);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1080;
+    background: var(--etl-color-surface);
+    border: 1px solid var(--etl-color-border);
+    border-left: 3px solid var(--etl-color-danger);
+    border-radius: var(--etl-radius);
+    padding: var(--etl-space-2) var(--etl-space-3);
+    font-size: 13px;
+    color: var(--etl-color-text);
+    box-shadow: 0 4px 16px rgba(27, 36, 48, .12);
+    max-width: 480px;
+    opacity: 0;
+    transition: opacity .2s ease;
+    pointer-events: none;
+}
+
+.etl-toast.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.etl-toast.ok {
+    border-left-color: var(--etl-color-success);
+}
+
+.etl-toast.warn {
+    border-left-color: var(--etl-color-warning);
+}
+
+.etl-toast.err {
+    border-left-color: var(--etl-color-danger);
+}
+
+/* ---------- focus 可见 ---------- */
+.etl-shell a:focus-visible,
+.etl-shell button:focus-visible,
+.etl-shell input:focus-visible,
+.etl-shell select:focus-visible,
+.etl-shell [tabindex]:focus-visible,
+.etl-btn:focus-visible,
+.etl-nav-link:focus-visible,
+.etl-tree-node.selectable:focus-visible {
+    outline: 2px solid var(--etl-color-primary);
+    outline-offset: 2px;
+}
+
+/* ---------- 动效收敛 ---------- */
+@media (prefers-reduced-motion: reduce) {
+    .etl-shell *,
+    .etl-toast {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 768px) {
+    .etl-main {
+        padding: var(--etl-space-3);
+    }
+
+    .etl-nav {
+        gap: var(--etl-space-3);
+        overflow-x: auto;
+    }
+
+    .etl-step {
+        min-width: 40px;
+    }
+
+    .etl-step-eyebrow,
+    .etl-step-name {
+        display: none;
+    }
+
+    .etl-step.active .etl-step-name {
+        display: block;
+        position: absolute;
+        top: 100%;
+        white-space: nowrap;
+        margin-top: var(--etl-space-2);
+    }
+
+    .etl-stepper {
+        padding-bottom: var(--etl-space-4);
+    }
+
+    .etl-map-row {
+        flex-wrap: wrap;
+    }
+}

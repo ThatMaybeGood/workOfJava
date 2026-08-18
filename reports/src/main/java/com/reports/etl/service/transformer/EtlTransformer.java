@@ -1,26 +1,24 @@
 package com.reports.etl.service.transformer;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.reports.etl.entity.EtlMapping;
-import com.reports.etl.mapper.EtlMappingMapper;
+import com.reports.etl.service.core.EtlMetaDao;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Slf4j
 @Component
 public class EtlTransformer {
 
-    private final EtlMappingMapper mappingMapper;
+    private final EtlMetaDao metaDao;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public EtlTransformer(EtlMappingMapper mappingMapper) {
-        this.mappingMapper = mappingMapper;
+    public EtlTransformer(EtlMetaDao metaDao) {
+        this.metaDao = metaDao;
     }
 
     @PostConstruct
@@ -29,11 +27,7 @@ public class EtlTransformer {
     }
 
     public List<Map<String, Object>> transform(Long taskId, List<Map<String, Object>> rows) {
-        List<EtlMapping> mappings = mappingMapper.selectList(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<EtlMapping>()
-                        .eq(EtlMapping::getTaskId, taskId)
-                        .orderByAsc(EtlMapping::getSortOrder)
-        );
+        List<EtlMapping> mappings = metaDao.listMappings(taskId);
 
         if (mappings == null || mappings.isEmpty()) {
             return rows; // 无映射则直接返回
@@ -78,40 +72,36 @@ public class EtlTransformer {
         return current;
     }
 
+    private static final java.time.format.DateTimeFormatter TS_FMT =
+            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     private Object convertType(Object value, String tgtType) {
         if (value == null) return null;
         if (tgtType == null) return value;
         String type = tgtType.toLowerCase();
+        String str = value.toString().trim();
         try {
             if (type.contains("int") || type.contains("long")) {
-                return Long.parseLong(value.toString());
-            } else if (type.contains("double") || type.contains("float") || type.contains("decimal")) {
-                return Double.parseDouble(value.toString());
+                return Long.parseLong(str);
+            } else if (type.contains("double") || type.contains("float") || type.contains("decimal") || type.contains("number")) {
+                return Double.parseDouble(str);
+            } else if (type.contains("timestamp") || type.contains("datetime")) {
+                if (value instanceof LocalDateTime) return value;
+                return LocalDateTime.parse(str.length() == 10 ? str + " 00:00:00" : str, TS_FMT);
             } else if (type.contains("date")) {
-                return LocalDateTime.now(); // 简化处理
+                if (value instanceof LocalDateTime) return value;
+                return LocalDateTime.parse(str.length() == 10 ? str + " 00:00:00" : str, TS_FMT);
             }
         } catch (Exception e) {
-            log.warn("类型转换失败: {} -> {}", value, tgtType, e);
+            log.warn("类型转换失败，保留原值: {} -> {}", value, tgtType);
         }
         return value;
     }
 
     public Map<String, Object> preview(Long taskId, List<Map<String, Object>> sampleRows) {
-        List<EtlMapping> mappings = mappingMapper.selectList(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<EtlMapping>()
-                        .eq(EtlMapping::getTaskId, taskId)
-                        .orderByAsc(EtlMapping::getSortOrder)
-        );
-
-        List<Map<String, Object>> previewRows = new ArrayList<>();
-        for (Map<String, Object> row : sampleRows) {
-            Map<String, Object> transformed = new LinkedHashMap<>();
-            for (EtlMapping m : mappings) {
-                Object value = extractValue(row, m.getSrcField());
-                transformed.put(m.getTgtField(), value);
-            }
-            previewRows.add(transformed);
-        }
+        List<EtlMapping> mappings = metaDao.listMappings(taskId);
+        // 与正式 transform 保持完全一致（含默认值填充与类型转换）
+        List<Map<String, Object>> previewRows = transform(taskId, sampleRows);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("mappings", mappings);
