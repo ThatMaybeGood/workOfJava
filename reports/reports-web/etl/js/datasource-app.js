@@ -42,18 +42,41 @@
         datasources: [],
         debugOpen: {},
         formModalOpen: false,
+        currentPage: 1,
+        pageSize: 10,
+        total: 0,
+        keyword: '',
+        roleFilter: '',
 
         render(container) {
             this.container = container;
             this._editId = null;
+            this.currentPage = 1;
+            this.pageSize = 10;
+            this.total = 0;
+            this.keyword = '';
+            this.roleFilter = '';
             container.innerHTML =
                 '<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">' +
                 '<h5 class="mb-0"><i class="bi bi-database"></i> 数据源</h5>' +
                 '<button class="etl-btn etl-btn-primary" onclick="DatasourceApp.openCreate()">' +
                 '<i class="bi bi-plus-lg"></i> 新建数据源</button>' +
                 '</div>' +
+                '<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">' +
+                '<div class="input-group" style="max-width:320px;">' +
+                '<input type="text" class="form-control form-control-sm" id="ds-search-keyword" placeholder="搜索名称 / 数据库类型" ' +
+                'onkeyup="if(event.key===\'Enter\')DatasourceApp.onSearch()">' +
+                '<button class="etl-btn btn-sm" onclick="DatasourceApp.onSearch()"><i class="bi bi-search"></i></button>' +
+                '</div>' +
+                '<div class="btn-group" role="group" id="ds-filter-tabs">' +
+                '<button class="etl-btn btn-sm ' + (this.roleFilter === '' ? 'etl-btn-primary' : '') + '" onclick="DatasourceApp.onRoleFilter(\'\')">全部</button>' +
+                '<button class="etl-btn btn-sm ' + (this.roleFilter === 'SOURCE' ? 'etl-btn-primary' : '') + '" onclick="DatasourceApp.onRoleFilter(\'SOURCE\')">SOURCE</button>' +
+                '<button class="etl-btn btn-sm ' + (this.roleFilter === 'TARGET' ? 'etl-btn-primary' : '') + '" onclick="DatasourceApp.onRoleFilter(\'TARGET\')">TARGET</button>' +
+                '</div>' +
+                '</div>' +
                 '<div id="ds-list"><div class="etl-card"><div class="etl-empty">' +
-                '<div class="etl-empty-text">加载中…</div></div></div></div>';
+                '<div class="etl-empty-text">加载中…</div></div></div></div>' +
+                '<div id="ds-pagination" class="mt-3"></div>';
             this.renderModal();
             this.load();
         },
@@ -277,13 +300,26 @@
 
         async load() {
             try {
-                const data = await window.etlApi.get('/datasource/list');
-                this.datasources = (data && data.records) || [];
+                const data = await window.etlApi.get('/datasource/list?page=' + this.currentPage + '&size=' + this.pageSize +
+                    '&keyword=' + encodeURIComponent(this.keyword || '') +
+                    '&role=' + encodeURIComponent(this.roleFilter || ''));
+                let records = [];
+                let total = 0;
+                if (Array.isArray(data)) {
+                    records = data;
+                    total = data.length;
+                } else {
+                    records = (data && data.records) || [];
+                    total = (data && data.total != null) ? data.total : records.length;
+                }
+                this.datasources = records;
+                this.total = total;
                 this.renderList();
             } catch (e) {
                 const box = document.getElementById('ds-list');
                 if (box) box.innerHTML = '<div class="etl-card"><div class="etl-empty">' +
                     '<div class="etl-empty-text">数据源加载失败</div></div></div>';
+                this.renderPagination();
             }
         },
 
@@ -294,9 +330,56 @@
                 box.innerHTML = '<div class="etl-card"><div class="etl-empty">' +
                     '<div class="etl-empty-text">还没有数据源，点击右上角「新建数据源」创建</div>' +
                     '</div></div>';
+                this.renderPagination();
                 return;
             }
             box.innerHTML = '<div class="etl-source-list">' + this.datasources.map((ds) => this.renderRow(ds)).join('') + '</div>';
+            this.renderPagination();
+        },
+
+        onSearch() {
+            const input = document.getElementById('ds-search-keyword');
+            this.keyword = (input && input.value || '').trim();
+            this.currentPage = 1;
+            this.load();
+        },
+
+        onRoleFilter(role) {
+            this.roleFilter = role;
+            this.currentPage = 1;
+            this.renderFilters();
+            this.load();
+        },
+
+        renderFilters() {
+            const tabs = document.getElementById('ds-filter-tabs');
+            if (!tabs) return;
+            const roles = ['', 'SOURCE', 'TARGET'];
+            const self = this;
+            tabs.querySelectorAll('button').forEach(function (btn, idx) {
+                if (roles[idx] === self.roleFilter) {
+                    btn.classList.add('etl-btn-primary');
+                } else {
+                    btn.classList.remove('etl-btn-primary');
+                }
+            });
+        },
+
+        renderPagination() {
+            const paginationContainer = document.getElementById('ds-pagination');
+            if (!paginationContainer) return;
+            const comp = C();
+            if (typeof comp.renderPagination !== 'function' || typeof comp.bindPagination !== 'function') {
+                paginationContainer.innerHTML = '';
+                return;
+            }
+            paginationContainer.innerHTML = comp.renderPagination({
+                total: this.total, page: this.currentPage, size: this.pageSize
+            });
+            comp.bindPagination(paginationContainer, function (page) {
+                DatasourceApp.currentPage = page;
+                DatasourceApp.load();
+            });
         },
 
         renderRow(ds) {

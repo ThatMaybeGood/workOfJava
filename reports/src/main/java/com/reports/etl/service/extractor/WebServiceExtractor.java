@@ -48,7 +48,7 @@ public class WebServiceExtractor {
      */
     public Map<String, Object> extract(EtlWsConfig wsConfig, int batchSize) {
         int maxPages = wsConfig.getMaxPages() != null ? wsConfig.getMaxPages() : 10;
-        int maxRows = wsConfig.getMaxRows() != null ? wsConfig.getMaxRows() : 10000;
+        int maxRows = wsConfig.getMaxRows() != null ? wsConfig.getMaxRows() : metaDao.getGlobalInt("defaultMaxRows", 10000);
 
         List<Map<String, Object>> allRows = new ArrayList<>();
 

@@ -58,12 +58,24 @@ public class EtlTransformer {
 
     private Object extractValue(Map<String, Object> row, String srcField) {
         if (srcField == null || srcField.isEmpty()) return null;
-        // dot-path 取值
+        // dot-path 取值，支持大小写不敏感（不同数据库返回列名大小写不一致）
         String[] parts = srcField.split("\\.");
         Object current = row;
         for (String part : parts) {
             if (current instanceof Map) {
-                current = ((Map<?, ?>) current).get(part);
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map = (Map<String, Object>) current;
+                Object value = map.get(part);
+                if (value == null) {
+                    // 大小写不敏感回退
+                    for (Map.Entry<String, Object> entry : map.entrySet()) {
+                        if (entry.getKey() != null && entry.getKey().equalsIgnoreCase(part)) {
+                            value = entry.getValue();
+                            break;
+                        }
+                    }
+                }
+                current = value;
             } else {
                 return null;
             }

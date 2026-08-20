@@ -70,6 +70,8 @@ public class SeedData {
         stmt.execute("CREATE TABLE IF NOT EXISTS fact_orders ("
                 + "order_id INT AUTO_INCREMENT PRIMARY KEY, customer_name VARCHAR(50), "
                 + "amount DECIMAL(10,2), order_date DATE, order_status VARCHAR(20))");
+        stmt.execute("CREATE TABLE IF NOT EXISTS fact_posts ("
+                + "post_id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, title VARCHAR(200), body VARCHAR(4000), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
         stmt.close(); conn.close();
         System.out.println("[OK] TARGET 测试库已创建");
     }
@@ -88,21 +90,26 @@ public class SeedData {
         stmt.execute("CREATE TABLE IF NOT EXISTS etl_log_config (id BIGINT DEFAULT 1 PRIMARY KEY, save_days INT DEFAULT 30, auto_clean SMALLINT DEFAULT 1, update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
         stmt.execute("MERGE INTO etl_log_config (id, save_days, auto_clean) KEY(id) VALUES(1, 30, 1)");
 
-        // 数据源
-        stmt.execute("INSERT INTO etl_datasource(name, db_type, driver_class, url, username, password, role, enabled) "
-                + "VALUES('测试来源H2', 'H2', 'org.h2.Driver', 'jdbc:h2:./data/etl_source_test', 'sa', '', 'SOURCE', 1)");
-        stmt.execute("INSERT INTO etl_datasource(name, db_type, driver_class, url, username, password, role, enabled) "
-                + "VALUES('测试目标H2', 'H2', 'org.h2.Driver', 'jdbc:h2:./data/etl_target_test', 'sa', '', 'TARGET', 1)");
+        // 数据源（固定 ID，确保任务引用正确）
+        stmt.execute("INSERT INTO etl_datasource(id, name, db_type, driver_class, url, username, password, role, enabled) "
+                + "VALUES(1, '测试来源H2', 'H2', 'org.h2.Driver', 'jdbc:h2:./data/etl_source_test', 'sa', '', 'SOURCE', 1)");
+        stmt.execute("INSERT INTO etl_datasource(id, name, db_type, driver_class, url, username, password, role, enabled) "
+                + "VALUES(2, '测试目标H2', 'H2', 'org.h2.Driver', 'jdbc:h2:./data/etl_target_test', 'sa', '', 'TARGET', 1)");
 
         // 来源1：PROC 员工表抽取
         long sourceProcId = 1;
-        String procCfg = "{\"procName\":\"EMPLOYEE\",\"callTemplate\":\"SELECT * FROM employee\",\"cursorParamName\":\"\",\"cursorParamIdx\":0,\"inParamsJson\":\"\",\"maxPages\":10,\"maxRows\":1000,\"batchSize\":100}";
-        stmt.execute("INSERT INTO etl_source(name, type, source_ds_id, config_json) VALUES('员工表抽取(PROC)', 'PROC', 1, '" + procCfg.replace("'", "''") + "')");
+        String procCfg = "{\"procName\":\"EMPLOYEE\",\"callTemplate\":\"SELECT * FROM employee\",\"cursorParamName\":\"\",\"cursorParamIdx\":1,\"inParamsJson\":\"\",\"maxPages\":10,\"maxRows\":1000,\"batchSize\":100}";
+        stmt.execute("INSERT INTO etl_source(id, name, type, source_ds_id, config_json) VALUES(" + sourceProcId + ", '员工表抽取(PROC)', 'PROC', 1, '" + procCfg.replace("'", "''") + "')");
 
         // 来源2：WS API
         long sourceWsId = 2;
         String wsCfg = "{\"wsType\":\"REST\",\"url\":\"https://jsonplaceholder.typicode.com/posts\",\"soapAction\":\"\",\"requestBodyTemplate\":\"\",\"responsePath\":\"\",\"headersJson\":\"{}\",\"extractParamsJson\":\"{}\",\"maxPages\":1,\"maxRows\":100,\"batchSize\":100}";
-        stmt.execute("INSERT INTO etl_source(name, type, source_ds_id, config_json) VALUES('Posts API(WS)', 'WS', NULL, '" + wsCfg.replace("'", "''") + "')");
+        stmt.execute("INSERT INTO etl_source(id, name, type, source_ds_id, config_json) VALUES(" + sourceWsId + ", 'Posts API(WS)', 'WS', NULL, '" + wsCfg.replace("'", "''") + "')");
+
+        // 来源3：PROC 订单表抽取
+        long sourceOrderId = 3;
+        String orderCfg = "{\"procName\":\"ORDERS\",\"callTemplate\":\"SELECT * FROM orders\",\"cursorParamName\":\"\",\"cursorParamIdx\":1,\"inParamsJson\":\"\",\"maxPages\":10,\"maxRows\":1000,\"batchSize\":100}";
+        stmt.execute("INSERT INTO etl_source(id, name, type, source_ds_id, config_json) VALUES(" + sourceOrderId + ", '订单表抽取(PROC)', 'PROC', 1, '" + orderCfg.replace("'", "''") + "')");
 
         // 任务1：员工 ETL
         long taskId1 = 1;
@@ -126,7 +133,7 @@ public class SeedData {
         // 任务2：订单 ETL
         long taskId2 = 2;
         stmt.execute("INSERT INTO etl_task(name, extract_type, source_id, source_ds_id, target_ds_id, target_table, write_mode, query_index_cols, update_cols, cron, enabled, max_rows, batch_size, incremental, inc_field, inc_placeholder, retry_count) "
-                + "VALUES('订单数据同步', 'PROCEDURE', " + sourceProcId + ", 1, 2, 'fact_orders', 'INSERT', 'order_id', '', '', 0, 10000, 500, 0, '', '', 0)");
+                + "VALUES('订单数据同步', 'PROCEDURE', " + sourceOrderId + ", 1, 2, 'fact_orders', 'INSERT', 'order_id', '', '', 0, 10000, 500, 0, '', '', 0)");
         String[][] m2 = {
                 {"order_id", "order_id", "", "0", "number", "NUMBER"},
                 {"customer_name", "customer_name", "", "0", "string", "VARCHAR"},
@@ -139,10 +146,22 @@ public class SeedData {
                     taskId2, m2[i][0], m2[i][1], m2[i][2], m2[i][3], m2[i][4], m2[i][5], i + 1));
         }
 
-        // 任务3：Posts API ETL
+        // 任务3：Posts API ETL（写入独立目标表 fact_posts）
         long taskId3 = 3;
         stmt.execute("INSERT INTO etl_task(name, extract_type, source_id, source_ds_id, target_ds_id, target_table, write_mode, query_index_cols, update_cols, cron, enabled, max_rows, batch_size, incremental, inc_field, inc_placeholder, retry_count) "
-                + "VALUES('Posts API同步', 'WEBSERVICE', " + sourceWsId + ", NULL, 2, 'dim_employee', 'INSERT', 'id', '', '', 0, 100, 50, 0, '', '', 0)");
+                + "VALUES('Posts API同步', 'WEBSERVICE', " + sourceWsId + ", NULL, 2, 'fact_posts', 'INSERT', 'post_id', '', '', 0, 100, 50, 0, '', '', 0)");
+
+        // 映射：API Posts → fact_posts
+        String[][] m3 = {
+                {"id", "post_id", "", "0", "number", "NUMBER"},
+                {"userId", "user_id", "", "0", "number", "INT"},
+                {"title", "title", "", "0", "string", "VARCHAR"},
+                {"body", "body", "", "0", "string", "VARCHAR"}
+        };
+        for (int i = 0; i < m3.length; i++) {
+            stmt.execute(String.format("INSERT INTO etl_mapping(task_id,src_field,tgt_field,default_value,is_update_col,src_type,tgt_type,sort_order) VALUES(%d,'%s','%s','%s',%s,'%s','%s',%d)",
+                    taskId3, m3[i][0], m3[i][1], m3[i][2], m3[i][3], m3[i][4], m3[i][5], i + 1));
+        }
 
         // 执行历史日志
         insertTaskLogs(stmt, base);

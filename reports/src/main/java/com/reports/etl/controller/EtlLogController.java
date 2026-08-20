@@ -36,15 +36,21 @@ public class EtlLogController {
         return ApiResponse.success("日志保留策略已保存");
     }
 
-    /** 全任务执行历史（最近 N 条） */
+    /** 全任务执行历史（分页） */
     @GetMapping("/history")
-    public ApiResponse<List<com.reports.etl.entity.EtlTaskLog>> history(
+    public ApiResponse<?> history(
             @RequestParam(required = false) Long taskId,
-            @RequestParam(defaultValue = "100") int size) {
-        if (taskId != null) {
-            return ApiResponse.success(metaDao.listTaskLogs(taskId, size));
-        }
-        return ApiResponse.success(metaDao.listTaskLogs(null, size));
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "1000") int size,
+            @RequestParam(required = false) String keyword) {
+        List<com.reports.etl.entity.EtlTaskLog> records = metaDao.listTaskLogs(taskId, page, size);
+        int total = metaDao.countTaskLogs(taskId);
+        Map<String, Object> wrap = new java.util.LinkedHashMap<>();
+        wrap.put("records", records);
+        wrap.put("total", total);
+        wrap.put("page", page);
+        wrap.put("size", size);
+        return ApiResponse.success(wrap);
     }
 
     /** 指定执行日志的步骤详情 */

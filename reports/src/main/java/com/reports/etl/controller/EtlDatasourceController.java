@@ -24,11 +24,18 @@ public class EtlDatasourceController {
     }
 
     @GetMapping("/list")
-    public ApiResponse<?> list() {
-        List<EtlDatasource> all = metaDao.listDatasources();
-        Map<String, Object> wrap = new java.util.HashMap<>();
-        wrap.put("records", all);
-        wrap.put("total", all.size());
+    public ApiResponse<?> list(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "1000") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String role) {
+        List<EtlDatasource> records = metaDao.listDatasources(page, size, keyword, role);
+        int total = metaDao.countDatasources(keyword, role);
+        Map<String, Object> wrap = new java.util.LinkedHashMap<>();
+        wrap.put("records", records);
+        wrap.put("total", total);
+        wrap.put("page", page);
+        wrap.put("size", size);
         return ApiResponse.success(wrap);
     }
 

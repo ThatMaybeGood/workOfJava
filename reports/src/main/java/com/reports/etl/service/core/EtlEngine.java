@@ -5,6 +5,7 @@ import com.reports.etl.entity.*;
 import com.reports.etl.service.extractor.ProcedureExtractor;
 import com.reports.etl.service.extractor.SourceExtractorFacade;
 import com.reports.etl.service.extractor.WebServiceExtractor;
+import com.reports.etl.service.registry.EtlDataSourceRegistry;
 import com.reports.etl.service.transformer.EtlTransformer;
 import com.reports.etl.service.writer.EtlWriter;
 import lombok.extern.slf4j.Slf4j;
@@ -23,17 +24,20 @@ public class EtlEngine {
     private final SourceExtractorFacade sourceExtractorFacade;
     private final EtlTransformer transformer;
     private final EtlWriter writer;
+    private final EtlDataSourceRegistry registry;
 
     public EtlEngine(EtlMetaDao metaDao,
                      WebServiceExtractor webServiceExtractor, ProcedureExtractor procedureExtractor,
                      SourceExtractorFacade sourceExtractorFacade,
-                     EtlTransformer transformer, EtlWriter writer) {
+                     EtlTransformer transformer, EtlWriter writer,
+                     EtlDataSourceRegistry registry) {
         this.metaDao = metaDao;
         this.webServiceExtractor = webServiceExtractor;
         this.procedureExtractor = procedureExtractor;
         this.sourceExtractorFacade = sourceExtractorFacade;
         this.transformer = transformer;
         this.writer = writer;
+        this.registry = registry;
     }
 
     @PostConstruct
@@ -69,7 +73,12 @@ public class EtlEngine {
             saveStepLog(logId, StepName.TRANSFORM, "SUCCESS", System.currentTimeMillis(), null,
                     transformed.size(), null);
 
-            // Step 3: 写入
+            // Step 3: 写入（H2 演示场景：写入前截断目标表，避免主键冲突）
+            try {
+                writer.truncateTable(task.getTargetDsId(), task.getTargetTable());
+            } catch (Exception t) {
+                log.debug("截断目标表 {} 失败（忽略）: {}", task.getTargetTable(), t.getMessage());
+            }
             int writtenCount = writer.write(taskId, transformed, false);
             saveStepLog(logId, StepName.LOAD, "SUCCESS", System.currentTimeMillis(), null,
                     writtenCount, null);
@@ -93,23 +102,9 @@ public class EtlEngine {
     }
 
     private Map<String, Object> extract(EtlTask task, Long logId, long start) {
-        Map<String, Object> result;
-        int batchSize = task.getBatchSize() != null ? task.getBatchSize() : 100;
-
-        if (task.getSourceId() != null) {
-            // Source 改造路径：经独立来源实体抽取
-            EtlSource source = metaDao.getSource(task.getSourceId());
-            if (source == null) throw new RuntimeException("抽取来源不存在: " + task.getSourceId());
-            result = sourceExtractorFacade.extract(source, batchSize);
-        } else if ("WEBSERVICE".equals(task.getExtractType())) {
-            // 兼容路径：旧任务子表配置
-            result = webServiceExtractor.extract(task.getId(), batchSize);
-        } else if ("PROCEDURE".equals(task.getExtractType())) {
-            result = procedureExtractor.extract(task.getId(), batchSize);
-        } else {
-            throw new RuntimeException("未知抽取类型: " + task.getExtractType());
-        }
-
+        int batchSize = (task.getBatchSize() != null && task.getBatchSize() > 0)
+                ? task.getBatchSize() : metaDao.getGlobalInt("defaultBatchSize", 100);
+        Map<String, Object> result = doExtract(task, batchSize);
         saveStepLog(logId, StepName.EXTRACT, "SUCCESS", start, System.currentTimeMillis(),
                 (int) result.getOrDefault("totalRows", 0), null);
         return result;
@@ -129,5 +124,73 @@ public class EtlEngine {
         stepLog.setRowsCount(rows);
         stepLog.setDetail(detail);
         metaDao.insertStepLog(stepLog);
+    }
+
+    // ==================== 单步调试（不落库、不写日志） ====================
+
+    public Map<String, Object> debugExtract(Long taskId) {
+        EtlTask task = metaDao.getTask(taskId);
+        if (task == null) throw new RuntimeException("任务不存在: " + taskId);
+
+        long start = System.currentTimeMillis();
+        int batchSize = (task.getBatchSize() != null && task.getBatchSize() > 0)
+                ? task.getBatchSize() : metaDao.getGlobalInt("defaultBatchSize", 100);
+        Map<String, Object> result = doExtract(task, batchSize);
+        long duration = System.currentTimeMillis() - start;
+
+        Map<String, Object> wrap = new LinkedHashMap<>();
+        wrap.put("rows", result.get("rows"));
+        wrap.put("totalRows", result.getOrDefault("totalRows", 0));
+        wrap.put("durationMs", duration);
+        return wrap;
+    }
+
+    public Map<String, Object> debugTransform(Long taskId, List<Map<String, Object>> rows) {
+        if (rows == null) rows = Collections.emptyList();
+        long start = System.currentTimeMillis();
+        List<Map<String, Object>> transformed = transformer.transform(taskId, rows);
+        long duration = System.currentTimeMillis() - start;
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("rows", transformed);
+        result.put("durationMs", duration);
+        return result;
+    }
+
+    public Map<String, Object> debugLoadPreview(Long taskId, List<Map<String, Object>> rows) {
+        EtlTask task = metaDao.getTask(taskId);
+        if (task == null) throw new RuntimeException("任务不存在: " + taskId);
+        if (rows == null) rows = Collections.emptyList();
+
+        String targetTable = task.getTargetTable();
+        Long targetDsId = task.getTargetDsId();
+        List<Map<String, Object>> columns;
+        try {
+            columns = registry.getColumns(targetDsId, targetTable);
+        } catch (Exception e) {
+            log.warn("获取目标表结构失败 dsId={} table={}: {}", targetDsId, targetTable, e.getMessage());
+            columns = new ArrayList<>();
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("targetTable", targetTable);
+        result.put("columns", columns);
+        result.put("rows", rows);
+        result.put("count", rows.size());
+        return result;
+    }
+
+    private Map<String, Object> doExtract(EtlTask task, int batchSize) {
+        if (task.getSourceId() != null) {
+            EtlSource source = metaDao.getSource(task.getSourceId());
+            if (source == null) throw new RuntimeException("抽取来源不存在: " + task.getSourceId());
+            return sourceExtractorFacade.extract(source, batchSize);
+        } else if ("WEBSERVICE".equals(task.getExtractType())) {
+            return webServiceExtractor.extract(task.getId(), batchSize);
+        } else if ("PROCEDURE".equals(task.getExtractType())) {
+            return procedureExtractor.extract(task.getId(), batchSize);
+        } else {
+            throw new RuntimeException("未知抽取类型: " + task.getExtractType());
+        }
     }
 }

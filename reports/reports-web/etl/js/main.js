@@ -10,7 +10,8 @@
         sources: { global: 'SourceApp', title: '来源库' },
         datasources: { global: 'DatasourceApp', title: '数据源' },
         tasks: { global: 'TaskApp', title: '流水线任务' },
-        history: { global: 'ScheduleApp', title: '调度历史' }
+        history: { global: 'ScheduleApp', title: '调度历史' },
+        settings: { global: 'SettingsApp', title: '系统设置' }
     };
     const DEFAULT_ROUTE = 'wizard';
 

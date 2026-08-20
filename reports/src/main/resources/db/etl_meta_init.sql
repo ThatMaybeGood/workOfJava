@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS etl_task (
     inc_placeholder VARCHAR(100) COMMENT '增量占位符：#lastTime#/#today# 等',
     retry_count INT DEFAULT 0 COMMENT '失败重试次数',
     alert_config_json TEXT COMMENT '告警配置 JSON',
+    truncate_before_write SMALLINT DEFAULT 0 COMMENT '1=写入前清空目标表（演示任务推荐开启）',
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -139,6 +140,23 @@ CREATE TABLE IF NOT EXISTS etl_alert_config (
 -- 初始化保留策略（H2 语法：不存在才插入，不会覆盖用户修改）
 INSERT INTO etl_log_config (id, save_days, auto_clean)
 SELECT 1, 30, 1 WHERE NOT EXISTS (SELECT 1 FROM etl_log_config WHERE id = 1);
+
+-- 全局执行参数键值表
+CREATE TABLE IF NOT EXISTS sys_config (
+    config_key VARCHAR(64) PRIMARY KEY,
+    config_value VARCHAR(255),
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 初始化全局执行参数默认值（不存在才插入，不覆盖用户修改）
+INSERT INTO sys_config(config_key, config_value)
+SELECT 'defaultBatchSize', '100' WHERE NOT EXISTS (SELECT 1 FROM sys_config WHERE config_key = 'defaultBatchSize');
+INSERT INTO sys_config(config_key, config_value)
+SELECT 'defaultMaxRows', '10000' WHERE NOT EXISTS (SELECT 1 FROM sys_config WHERE config_key = 'defaultMaxRows');
+INSERT INTO sys_config(config_key, config_value)
+SELECT 'maxRetryCount', '0' WHERE NOT EXISTS (SELECT 1 FROM sys_config WHERE config_key = 'maxRetryCount');
+INSERT INTO sys_config(config_key, config_value)
+SELECT 'timeoutSeconds', '0' WHERE NOT EXISTS (SELECT 1 FROM sys_config WHERE config_key = 'timeoutSeconds');
 
 -- =====================================================
 -- 抽取来源独立实体（Source 改造）

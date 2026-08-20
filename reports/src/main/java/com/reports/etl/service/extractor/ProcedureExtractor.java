@@ -42,7 +42,7 @@ public class ProcedureExtractor {
      * 以配置对象为入参的抽取（供 SourceExtractorFacade 复用）
      */
     public Map<String, Object> extract(EtlProcConfig procConfig, Long sourceDsId, int batchSize) {
-        int maxRows = procConfig.getMaxRows() != null ? procConfig.getMaxRows() : 10000;
+        int maxRows = procConfig.getMaxRows() != null ? procConfig.getMaxRows() : metaDao.getGlobalInt("defaultMaxRows", 10000);
         Map<String, Object> callResult = callProc(procConfig, sourceDsId, maxRows);
 
         @SuppressWarnings("unchecked")
@@ -70,14 +70,12 @@ public class ProcedureExtractor {
     }
 
     /**
-     * 执行存储过程，返回 rows + columnsMeta（基于游标 ResultSetMetaData）
+     * 执行存储过程或 SQL 模板，返回 rows + columnsMeta（基于游标 ResultSetMetaData）
      */
     private Map<String, Object> callProc(EtlProcConfig procConfig, Long sourceDsId, int maxRows) {
         if (sourceDsId == null) throw new RuntimeException("任务未配置抽取源数据源");
 
         DataSource pool = registry.getPool(sourceDsId);
-        List<Map<String, Object>> allRows = new ArrayList<>();
-        List<Map<String, Object>> columnsMeta = new ArrayList<>();
 
         try (Connection conn = pool.getConnection()) {
             String callTemplate = procConfig.getCallTemplate();
@@ -85,22 +83,28 @@ public class ProcedureExtractor {
                 callTemplate = "{call " + procConfig.getProcName() + "()}";
             }
 
-            int cursorParamIdx = procConfig.getCursorParamIdx() != null ? procConfig.getCursorParamIdx() : 1;
+            // 纯 SQL 查询模板（如 SELECT * FROM t）直接走 Statement.executeQuery，
+            // 不强制要求存储过程/REF CURSOR，便于 H2 等演示库使用。
+            String trimmed = callTemplate.trim();
+            if (trimmed.matches("(?i)^SELECT\\s.*")) {
+                return executeSqlQuery(conn, trimmed, maxRows);
+            }
 
-            CallableStatement stmt = conn.prepareCall(callTemplate);
+            return executeCallable(procConfig, conn, callTemplate, maxRows);
 
-            // 注册游标出参（Oracle REF CURSOR）
-            stmt.registerOutParameter(cursorParamIdx, Types.OTHER);
+        } catch (SQLException e) {
+            throw new RuntimeException("存储过程执行失败: " + e.getMessage(), e);
+        }
+    }
 
-            // 设置 IN 参数（from inParamsJson, 逐个设置）
-            setInParams(stmt, procConfig.getInParamsJson(), cursorParamIdx);
+    private Map<String, Object> executeSqlQuery(Connection conn, String sql, int maxRows) throws SQLException {
+        List<Map<String, Object>> allRows = new ArrayList<>();
+        List<Map<String, Object>> columnsMeta = new ArrayList<>();
 
-            stmt.execute();
-
-            // 读取游标结果
-            try (ResultSet cursor = (ResultSet) stmt.getObject(cursorParamIdx)) {
-                if (cursor == null) throw new RuntimeException("存储过程游标为空");
-                ResultSetMetaData meta = cursor.getMetaData();
+        try (Statement stmt = conn.createStatement()) {
+            stmt.setMaxRows(maxRows);
+            try (ResultSet rs = stmt.executeQuery(sql)) {
+                ResultSetMetaData meta = rs.getMetaData();
                 int columnCount = meta.getColumnCount();
 
                 for (int i = 1; i <= columnCount; i++) {
@@ -111,19 +115,62 @@ public class ProcedureExtractor {
                     columnsMeta.add(col);
                 }
 
-                while (cursor.next() && allRows.size() < maxRows) {
+                while (rs.next()) {
                     Map<String, Object> row = new LinkedHashMap<>();
                     for (int i = 1; i <= columnCount; i++) {
-                        String colName = meta.getColumnLabel(i);
-                        Object value = cursor.getObject(i);
-                        row.put(colName, value);
+                        row.put(meta.getColumnLabel(i), rs.getObject(i));
                     }
                     allRows.add(row);
                 }
             }
+        }
 
-        } catch (SQLException e) {
-            throw new RuntimeException("存储过程执行失败: " + e.getMessage(), e);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("rows", allRows);
+        result.put("columnsMeta", columnsMeta);
+        return result;
+    }
+
+    private Map<String, Object> executeCallable(EtlProcConfig procConfig, Connection conn,
+                                                 String callTemplate, int maxRows) throws SQLException {
+        List<Map<String, Object>> allRows = new ArrayList<>();
+        List<Map<String, Object>> columnsMeta = new ArrayList<>();
+
+        int cursorParamIdx = procConfig.getCursorParamIdx() != null ? procConfig.getCursorParamIdx() : 1;
+
+        CallableStatement stmt = conn.prepareCall(callTemplate);
+
+        // 注册游标出参（Oracle REF CURSOR）
+        stmt.registerOutParameter(cursorParamIdx, Types.OTHER);
+
+        // 设置 IN 参数（from inParamsJson, 逐个设置）
+        setInParams(stmt, procConfig.getInParamsJson(), cursorParamIdx);
+
+        stmt.execute();
+
+        // 读取游标结果
+        try (ResultSet cursor = (ResultSet) stmt.getObject(cursorParamIdx)) {
+            if (cursor == null) throw new RuntimeException("存储过程游标为空");
+            ResultSetMetaData meta = cursor.getMetaData();
+            int columnCount = meta.getColumnCount();
+
+            for (int i = 1; i <= columnCount; i++) {
+                Map<String, Object> col = new LinkedHashMap<>();
+                col.put("name", meta.getColumnLabel(i));
+                col.put("jdbcType", meta.getColumnType(i));
+                col.put("typeName", meta.getColumnTypeName(i));
+                columnsMeta.add(col);
+            }
+
+            while (cursor.next() && allRows.size() < maxRows) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                for (int i = 1; i <= columnCount; i++) {
+                    String colName = meta.getColumnLabel(i);
+                    Object value = cursor.getObject(i);
+                    row.put(colName, value);
+                }
+                allRows.add(row);
+            }
         }
 
         Map<String, Object> result = new LinkedHashMap<>();

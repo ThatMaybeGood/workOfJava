@@ -4,9 +4,9 @@
     {
       "name": "reports-web",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8080"],
+      "runtimeArgs": ["preview_proxy.py", "8080"],
       "port": 8080,
-      "cwd": "D:/JetBrains/IdeaProjects/workOfJava/reports/reports-web"
+      "cwd": "D:/JetBrains/IdeaProjects/workOfJava/reports/.claude"
     }
   ]
 }

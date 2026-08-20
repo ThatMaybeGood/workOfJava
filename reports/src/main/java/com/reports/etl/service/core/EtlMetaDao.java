@@ -11,7 +11,9 @@ import javax.annotation.PostConstruct;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -95,6 +97,34 @@ public class EtlMetaDao {
                 (rs, i) -> mapTask(rs));
     }
 
+    public List<EtlTask> listTasks(int page, int size, String keyword) {
+        StringBuilder sql = new StringBuilder("SELECT * FROM etl_task WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append(" AND (name LIKE ? OR target_table LIKE ?)");
+            String like = "%" + keyword.trim() + "%";
+            params.add(like);
+            params.add(like);
+        }
+        sql.append(" ORDER BY create_time DESC LIMIT ? OFFSET ?");
+        params.add(size);
+        params.add((page - 1) * size);
+        return jdbc.query(sql.toString(), (rs, i) -> mapTask(rs), params.toArray());
+    }
+
+    public int countTasks(String keyword) {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM etl_task WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append(" AND (name LIKE ? OR target_table LIKE ?)");
+            String like = "%" + keyword.trim() + "%";
+            params.add(like);
+            params.add(like);
+        }
+        Integer n = jdbc.queryForObject(sql.toString(), Integer.class, params.toArray());
+        return n != null ? n : 0;
+    }
+
     public EtlTask getTask(Long id) {
         List<EtlTask> list = jdbc.query("SELECT * FROM etl_task WHERE id=?", (rs, i) -> mapTask(rs), id);
         return list.isEmpty() ? null : list.get(0);
@@ -104,8 +134,8 @@ public class EtlMetaDao {
         KeyHolder kh = new GeneratedKeyHolder();
         jdbc.update(con -> {
             PreparedStatement ps = con.prepareStatement(
-                    "INSERT INTO etl_task(name, extract_type, source_id, source_ds_id, target_ds_id, target_table, write_mode, query_index_cols, update_cols, cron, enabled, max_rows, batch_size, incremental, inc_field, inc_placeholder, retry_count, alert_config_json) " +
-                            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO etl_task(name, extract_type, source_id, source_ds_id, target_ds_id, target_table, write_mode, query_index_cols, update_cols, cron, enabled, max_rows, batch_size, incremental, inc_field, inc_placeholder, retry_count, alert_config_json, truncate_before_write) " +
+                            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     new String[]{"ID"});
             ps.setString(1, t.getName());
             ps.setString(2, t.getExtractType());
@@ -125,6 +155,7 @@ public class EtlMetaDao {
             ps.setString(16, t.getIncPlaceholder());
             ps.setInt(17, t.getRetryCount() != null ? t.getRetryCount() : 0);
             ps.setString(18, t.getAlertConfigJson());
+            ps.setObject(19, t.getTruncateBeforeWrite() != null && t.getTruncateBeforeWrite() ? 1 : 0);
             return ps;
         }, kh);
         Number key = kh.getKey();
@@ -134,11 +165,12 @@ public class EtlMetaDao {
     public void updateTask(EtlTask t) {
         jdbc.update("UPDATE etl_task SET name=?, extract_type=?, source_id=?, source_ds_id=?, target_ds_id=?, target_table=?, write_mode=?, " +
                         "query_index_cols=?, update_cols=?, cron=?, enabled=?, max_rows=?, batch_size=?, incremental=?, inc_field=?, " +
-                        "inc_placeholder=?, retry_count=?, alert_config_json=? WHERE id=?",
+                        "inc_placeholder=?, retry_count=?, alert_config_json=?, truncate_before_write=? WHERE id=?",
                 t.getName(), t.getExtractType(), t.getSourceId(), t.getSourceDsId(), t.getTargetDsId(), t.getTargetTable(),
                 t.getWriteMode(), t.getQueryIndexCols(), t.getUpdateCols(), t.getCron(), t.getEnabled(),
                 t.getMaxRows(), t.getBatchSize(), t.getIncremental(), t.getIncField(), t.getIncPlaceholder(),
-                t.getRetryCount(), t.getAlertConfigJson(), t.getId());
+                t.getRetryCount(), t.getAlertConfigJson(), t.getTruncateBeforeWrite() != null && t.getTruncateBeforeWrite() ? 1 : 0,
+                t.getId());
     }
 
     public void deleteTask(Long id) {
@@ -149,6 +181,38 @@ public class EtlMetaDao {
 
     public List<EtlSource> listSources() {
         return jdbc.query("SELECT * FROM etl_source ORDER BY id DESC", (rs, i) -> mapSource(rs));
+    }
+
+    public List<EtlSource> listSources(int page, int size, String keyword, String type) {
+        StringBuilder sql = new StringBuilder("SELECT * FROM etl_source WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append(" AND name LIKE ?");
+            params.add("%" + keyword.trim() + "%");
+        }
+        if (type != null && !type.trim().isEmpty()) {
+            sql.append(" AND type = ?");
+            params.add(type.trim());
+        }
+        sql.append(" ORDER BY id DESC LIMIT ? OFFSET ?");
+        params.add(size);
+        params.add((page - 1) * size);
+        return jdbc.query(sql.toString(), (rs, i) -> mapSource(rs), params.toArray());
+    }
+
+    public int countSources(String keyword, String type) {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM etl_source WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append(" AND name LIKE ?");
+            params.add("%" + keyword.trim() + "%");
+        }
+        if (type != null && !type.trim().isEmpty()) {
+            sql.append(" AND type = ?");
+            params.add(type.trim());
+        }
+        Integer n = jdbc.queryForObject(sql.toString(), Integer.class, params.toArray());
+        return n != null ? n : 0;
     }
 
     public EtlSource getSource(Long id) {
@@ -192,6 +256,42 @@ public class EtlMetaDao {
 
     public List<EtlDatasource> listDatasources() {
         return jdbc.query("SELECT * FROM etl_datasource ORDER BY id DESC", (rs, i) -> mapDs(rs));
+    }
+
+    public List<EtlDatasource> listDatasources(int page, int size, String keyword, String role) {
+        StringBuilder sql = new StringBuilder("SELECT * FROM etl_datasource WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append(" AND (name LIKE ? OR db_type LIKE ?)");
+            String like = "%" + keyword.trim() + "%";
+            params.add(like);
+            params.add(like);
+        }
+        if (role != null && !role.trim().isEmpty()) {
+            sql.append(" AND role = ?");
+            params.add(role.trim());
+        }
+        sql.append(" ORDER BY id DESC LIMIT ? OFFSET ?");
+        params.add(size);
+        params.add((page - 1) * size);
+        return jdbc.query(sql.toString(), (rs, i) -> mapDs(rs), params.toArray());
+    }
+
+    public int countDatasources(String keyword, String role) {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM etl_datasource WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append(" AND (name LIKE ? OR db_type LIKE ?)");
+            String like = "%" + keyword.trim() + "%";
+            params.add(like);
+            params.add(like);
+        }
+        if (role != null && !role.trim().isEmpty()) {
+            sql.append(" AND role = ?");
+            params.add(role.trim());
+        }
+        Integer n = jdbc.queryForObject(sql.toString(), Integer.class, params.toArray());
+        return n != null ? n : 0;
     }
 
     public EtlDatasource getDatasource(Long id) {
@@ -361,6 +461,30 @@ public class EtlMetaDao {
                 (rs, i) -> mapTaskLog(rs), taskId, limit);
     }
 
+    public List<EtlTaskLog> listTaskLogs(Long taskId, int page, int size) {
+        StringBuilder sql = new StringBuilder("SELECT * FROM etl_task_log WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+        if (taskId != null) {
+            sql.append(" AND task_id=?");
+            params.add(taskId);
+        }
+        sql.append(" ORDER BY id DESC LIMIT ? OFFSET ?");
+        params.add(size);
+        params.add((page - 1) * size);
+        return jdbc.query(sql.toString(), (rs, i) -> mapTaskLog(rs), params.toArray());
+    }
+
+    public int countTaskLogs(Long taskId) {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM etl_task_log WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+        if (taskId != null) {
+            sql.append(" AND task_id=?");
+            params.add(taskId);
+        }
+        Integer n = jdbc.queryForObject(sql.toString(), Integer.class, params.toArray());
+        return n != null ? n : 0;
+    }
+
     public Long insertStepLog(EtlStepLog s) {
         KeyHolder kh = new GeneratedKeyHolder();
         jdbc.update(con -> {
@@ -401,6 +525,42 @@ public class EtlMetaDao {
                 c.getAutoClean() != null ? c.getAutoClean() : 1);
     }
 
+    // ==================== 全局执行参数（sys_config 键值） ====================
+
+    public Map<String, String> getGlobalConfigs() {
+        return jdbc.query("SELECT config_key, config_value FROM sys_config",
+                (rs) -> {
+                    Map<String, String> map = new LinkedHashMap<>();
+                    while (rs.next()) {
+                        map.put(rs.getString("config_key"), rs.getString("config_value"));
+                    }
+                    return map;
+                });
+    }
+
+    public int getGlobalInt(String key, int def) {
+        List<String> list = jdbc.query("SELECT config_value FROM sys_config WHERE config_key=?",
+                (rs, i) -> rs.getString("config_value"), key);
+        if (list.isEmpty()) return def;
+        String v = list.get(0);
+        if (v == null || v.trim().isEmpty()) return def;
+        try {
+            return Integer.parseInt(v.trim());
+        } catch (NumberFormatException e) {
+            return def;
+        }
+    }
+
+    public void saveGlobalConfigs(Map<String, ?> cfg) {
+        if (cfg == null) return;
+        for (Map.Entry<String, ?> e : cfg.entrySet()) {
+            if (e.getKey() == null) continue;
+            String val = e.getValue() != null ? String.valueOf(e.getValue()) : "";
+            jdbc.update("MERGE INTO sys_config (config_key, config_value, update_time) KEY(config_key) VALUES(?, ?, CURRENT_TIMESTAMP)",
+                    e.getKey(), val);
+        }
+    }
+
     // ==================== RowMapper 映射 ====================
 
     private EtlTask mapTask(java.sql.ResultSet rs) throws java.sql.SQLException {
@@ -425,6 +585,8 @@ public class EtlMetaDao {
         t.setIncPlaceholder(rs.getString("inc_placeholder"));
         t.setRetryCount(rs.getInt("retry_count"));
         t.setAlertConfigJson(rs.getString("alert_config_json"));
+        Object trunc = rs.getObject("truncate_before_write");
+        t.setTruncateBeforeWrite(trunc != null && (int) trunc == 1);
         t.setCreateTime(rs.getTimestamp("create_time"));
         t.setUpdateTime(rs.getTimestamp("update_time"));
         return t;

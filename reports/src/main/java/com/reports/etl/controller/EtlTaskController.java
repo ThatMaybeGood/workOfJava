@@ -8,6 +8,7 @@ import com.reports.etl.service.scheduler.EtlScheduler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,12 +29,31 @@ public class EtlTaskController {
     }
 
     @GetMapping("/list")
-    public ApiResponse<?> list() {
-        List<EtlTask> all = metaDao.listTasks();
+    public ApiResponse<?> list(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "1000") int size,
+            @RequestParam(required = false) String keyword) {
+        List<EtlTask> records = metaDao.listTasks(page, size, keyword);
+        int total = metaDao.countTasks(keyword);
         Map<String, Object> wrap = new LinkedHashMap<>();
-        wrap.put("records", all);
-        wrap.put("total", all.size());
+        wrap.put("records", records);
+        wrap.put("total", total);
+        wrap.put("page", page);
+        wrap.put("size", size);
         return ApiResponse.success(wrap);
+    }
+
+    @GetMapping("/simple-list")
+    public ApiResponse<List<Map<String, Object>>> simpleList() {
+        List<EtlTask> all = metaDao.listTasks();
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (EtlTask t : all) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", t.getId());
+            item.put("name", t.getName());
+            result.add(item);
+        }
+        return ApiResponse.success(result);
     }
 
     @GetMapping("/{id}")
@@ -120,5 +140,28 @@ public class EtlTaskController {
     @GetMapping("/{id}/steps/{logId}")
     public ApiResponse<List<EtlStepLog>> steps(@PathVariable Long id, @PathVariable Long logId) {
         return ApiResponse.success(metaDao.listStepLogs(logId));
+    }
+
+    @PostMapping("/{id}/debug-extract")
+    public ApiResponse<Map<String, Object>> debugExtract(@PathVariable Long id) {
+        return ApiResponse.success(etlEngine.debugExtract(id));
+    }
+
+    @PostMapping("/{id}/debug-transform")
+    public ApiResponse<Map<String, Object>> debugTransform(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> payload) {
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> rows = (List<Map<String, Object>>) payload.get("rows");
+        return ApiResponse.success(etlEngine.debugTransform(id, rows));
+    }
+
+    @PostMapping("/{id}/debug-load-preview")
+    public ApiResponse<Map<String, Object>> debugLoadPreview(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> payload) {
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> rows = (List<Map<String, Object>>) payload.get("rows");
+        return ApiResponse.success(etlEngine.debugLoadPreview(id, rows));
     }
 }

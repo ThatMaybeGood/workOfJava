@@ -17,9 +17,19 @@
         sources: [],
         dsMap: {},
         debugOpen: {},
+        currentPage: 1,
+        pageSize: 10,
+        total: 0,
+        keyword: '',
+        typeFilter: '',
 
         render(container) {
             this.container = container;
+            this.currentPage = 1;
+            this.pageSize = 10;
+            this.total = 0;
+            this.keyword = '';
+            this.typeFilter = '';
             container.innerHTML =
                 '<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">' +
                 '<h5 class="mb-0"><i class="bi bi-collection"></i> 来源库</h5>' +
@@ -27,8 +37,21 @@
                 '<button class="etl-btn etl-btn-primary" onclick="SourceApp.openCreate()"><i class="bi bi-plus-lg"></i> 新建来源</button>' +
                 '</div>' +
                 '</div>' +
+                '<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">' +
+                '<div class="input-group" style="max-width:320px;">' +
+                '<input type="text" class="form-control form-control-sm" id="source-search-keyword" placeholder="搜索来源名称" ' +
+                'onkeyup="if(event.key===\'Enter\')SourceApp.onSearch()">' +
+                '<button class="etl-btn btn-sm" onclick="SourceApp.onSearch()"><i class="bi bi-search"></i></button>' +
+                '</div>' +
+                '<div class="btn-group" role="group" id="source-filter-tabs">' +
+                '<button class="etl-btn btn-sm ' + (this.typeFilter === '' ? 'etl-btn-primary' : '') + '" onclick="SourceApp.onTypeFilter(\'\')">全部</button>' +
+                '<button class="etl-btn btn-sm ' + (this.typeFilter === 'PROC' ? 'etl-btn-primary' : '') + '" onclick="SourceApp.onTypeFilter(\'PROC\')">PROC</button>' +
+                '<button class="etl-btn btn-sm ' + (this.typeFilter === 'WS' ? 'etl-btn-primary' : '') + '" onclick="SourceApp.onTypeFilter(\'WS\')">WS</button>' +
+                '</div>' +
+                '</div>' +
                 '<div id="source-grid"><div class="etl-card"><div class="etl-empty">' +
-                '<div class="etl-empty-text">加载中…</div></div></div></div>';
+                '<div class="etl-empty-text">加载中…</div></div></div></div>' +
+                '<div id="source-pagination" class="mt-3"></div>';
             this.renderModal();
             this.load();
         },
@@ -272,12 +295,27 @@
         async load() {
             try {
                 const results = await Promise.all([
-                    window.etlApi.get('/source/list'),
-                    window.etlApi.get('/datasource/list')
+                    window.etlApi.get('/source/list?page=' + this.currentPage + '&size=' + this.pageSize +
+                        '&keyword=' + encodeURIComponent(this.keyword || '') +
+                        '&type=' + encodeURIComponent(this.typeFilter || '')),
+                    window.etlApi.get('/datasource/list?size=1000')
                 ]);
-                this.sources = (results[0] && results[0].records) || [];
+                const srcData = results[0] || {};
+                let records = [];
+                let total = 0;
+                if (Array.isArray(srcData)) {
+                    records = srcData;
+                    total = srcData.length;
+                } else {
+                    records = srcData.records || [];
+                    total = srcData.total != null ? srcData.total : records.length;
+                }
+                this.sources = records;
+                this.total = total;
                 this.dsMap = {};
-                ((results[1] && results[1].records) || []).forEach((ds) => {
+                const dsData = results[1] || {};
+                const dsRecords = Array.isArray(dsData) ? dsData : (dsData.records || []);
+                dsRecords.forEach((ds) => {
                     this.dsMap[ds.id] = ds;
                 });
                 this.renderGrid();
@@ -287,6 +325,7 @@
                     grid.innerHTML = '<div class="etl-card"><div class="etl-empty">' +
                         '<div class="etl-empty-text">来源加载失败</div></div></div>';
                 }
+                this.renderPagination();
             }
         },
 
@@ -297,10 +336,56 @@
                 grid.innerHTML = '<div class="etl-card"><div class="etl-empty">' +
                     '<div class="etl-empty-text">还没有来源，点击右上角「新建来源」创建</div>' +
                     '</div></div>';
+                this.renderPagination();
                 return;
             }
-            // 全宽长条列表
             grid.innerHTML = '<div class="etl-source-list">' + this.sources.map((s) => this.renderCard(s)).join('') + '</div>';
+            this.renderPagination();
+        },
+
+        onSearch() {
+            const input = document.getElementById('source-search-keyword');
+            this.keyword = (input && input.value || '').trim();
+            this.currentPage = 1;
+            this.load();
+        },
+
+        onTypeFilter(type) {
+            this.typeFilter = type;
+            this.currentPage = 1;
+            this.renderFilters();
+            this.load();
+        },
+
+        renderFilters() {
+            const tabs = document.getElementById('source-filter-tabs');
+            if (!tabs) return;
+            const types = ['', 'PROC', 'WS'];
+            const self = this;
+            tabs.querySelectorAll('button').forEach(function (btn, idx) {
+                if (types[idx] === self.typeFilter) {
+                    btn.classList.add('etl-btn-primary');
+                } else {
+                    btn.classList.remove('etl-btn-primary');
+                }
+            });
+        },
+
+        renderPagination() {
+            const paginationContainer = document.getElementById('source-pagination');
+            if (!paginationContainer) return;
+            const comp = C();
+            if (typeof comp.renderPagination !== 'function' || typeof comp.bindPagination !== 'function') {
+                paginationContainer.innerHTML = '';
+                return;
+            }
+            paginationContainer.innerHTML = comp.renderPagination({
+                total: this.total, page: this.currentPage, size: this.pageSize
+            });
+            comp.bindPagination(paginationContainer, function (page) {
+                SourceApp.currentPage = page;
+                SourceApp.load();
+            });
         },
 
         renderCard(s) {

@@ -30,6 +30,16 @@ public class EtlWriter {
         log.info("EtlWriter 初始化完成");
     }
 
+    public void truncateTable(Long targetDsId, String table) {
+        com.zaxxer.hikari.HikariDataSource pool = registry.getPool(targetDsId);
+        try (Connection conn = pool.getConnection()) {
+            conn.createStatement().execute("TRUNCATE TABLE " + table);
+            log.info("[TRUNCATE] {} 清空成功", table);
+        } catch (SQLException e) {
+            log.warn("[TRUNCATE] {} 清空失败（忽略）: {}", table, e.getMessage());
+        }
+    }
+
     public int write(Long taskId, List<Map<String, Object>> rows, boolean dryRun) {
         EtlTask task = metaDao.getTask(taskId);
         if (task == null) throw new RuntimeException("任务不存在: " + taskId);

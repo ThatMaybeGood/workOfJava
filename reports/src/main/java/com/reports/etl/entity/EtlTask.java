@@ -52,6 +52,9 @@ public class EtlTask implements Serializable {
 
     private String alertConfigJson;
 
+    /** 运行前是否清空目标表（演示任务建议开启，避免主键冲突） */
+    private Boolean truncateBeforeWrite;
+
     @TableField(fill = FieldFill.INSERT)
     private Date createTime;
 

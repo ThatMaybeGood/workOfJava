@@ -1,18 +1,57 @@
 /**
  * 调度历史页面（window.ScheduleApp）
- * - 执行历史 .etl-timeline（点击展开步骤日志）
- * - 日志保留小卡片：GET/PUT /log/config
+ * - 全宽平铺执行历史：每条日志「简洁行」（状态/任务/时间/耗时/读写行数）
+ * - 点击行展开「分层明细」：错误原因 + 逐步日志（抽取/转换/写入，定位失败步骤）
+ * - 日志保留策略已迁移至「系统设置」（settings-app.js）
  */
 (function () {
     function C() { return window.etlComponents; }
     function esc(s) { return C().esc(s); }
     function toast(msg, type) { C().toast(msg, type); }
 
+    const STEP_CN = { EXTRACT: '抽取', TRANSFORM: '转换', LOAD: '写入' };
+    function stepNameCN(name) {
+        return STEP_CN[String(name || '').toUpperCase()] || esc(name || '?');
+    }
+
     window.ScheduleApp = {
         logs: [],
-        logConfig: { id: 1, saveDays: 30, autoClean: 1 },
         stepsOpen: {},
         stepsCache: {},
+        page: 1,
+        size: 10,
+        total: 0,
+        taskId: null,
+        keyword: '',
+        taskOptions: [],
+
+        async loadTaskOptions() {
+            try {
+                const tasks = await window.etlApi.get('/task/simple-list');
+                this.taskOptions = Array.isArray(tasks) ? tasks : [];
+                const sel = document.getElementById('sch-task-filter');
+                if (sel) {
+                    sel.innerHTML = '<option value="">全部任务</option>' +
+                        this.taskOptions.map(t =>
+                            '<option value="' + esc(String(t.id)) + '"' +
+                            (String(this.taskId) === String(t.id) ? ' selected' : '') +
+                            '>' + esc(t.name) + '</option>'
+                        ).join('');
+                    sel.addEventListener('change', function () {
+                        ScheduleApp.taskId = sel.value ? parseInt(sel.value, 10) : null;
+                        ScheduleApp.page = 1;
+                        ScheduleApp.loadLogs();
+                    });
+                }
+            } catch (e) { /* 已 toast */ }
+        },
+
+        onKeywordSearch() {
+            const input = document.getElementById('sch-keyword');
+            this.keyword = input ? input.value.trim() : '';
+            this.page = 1;
+            this.loadLogs();
+        },
 
         render(container) {
             this.container = container;
@@ -23,37 +62,69 @@
                 '<button class="etl-btn etl-btn-ghost" onclick="ScheduleApp.loadLogs()">' +
                 '<i class="bi bi-arrow-clockwise"></i> 刷新</button>' +
                 '</div>' +
-                '<div id="sch-log-box"><div class="etl-empty"><div class="etl-empty-text">加载中…</div></div></div>' +
+                '<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">' +
+                '<div style="display:flex;align-items:center;gap:8px;">' +
+                '<span style="font-size:13px;color:var(--etl-color-text-weak);">任务：</span>' +
+                '<select class="form-select form-select-sm" id="sch-task-filter" style="max-width:300px;">' +
+                '<option value="">全部任务</option>' +
+                '</select>' +
                 '</div>' +
+                '<div class="input-group" style="max-width:220px;">' +
+                '<input type="text" class="form-control form-control-sm" id="sch-keyword" placeholder="按任务名搜索…" ' +
+                'onkeyup="if(event.key===\'Enter\')ScheduleApp.onKeywordSearch()">' +
+                '<button class="etl-btn btn-sm" onclick="ScheduleApp.onKeywordSearch()"><i class="bi bi-search"></i></button>' +
+                '</div>' +
+                '<span class="text-muted" style="font-size:12px;margin-left:auto;">点击任一行可展开步骤明细</span>' +
+                '</div>' +
+                '<div id="sch-log-box"><div class="etl-empty"><div class="etl-empty-text">加载中…</div></div></div>' +
+                '<div id="sch-pagination" class="mt-3"></div>' +
+                '</div>';
 
-                '<div class="etl-card">' +
-                '<h6 class="etl-card-title"><i class="bi bi-gear"></i> 日志保留</h6>' +
-                '<div class="row g-3 align-items-end">' +
-                '<div class="col-md-3"><label class="form-label">保存天数</label>' +
-                '<input type="number" class="form-control" id="log-save-days" min="1" value="30"></div>' +
-                '<div class="col-md-4"><div class="form-check form-switch mb-2">' +
-                '<input class="form-check-input" type="checkbox" id="log-auto-clean" checked>' +
-                '<label class="form-check-label" for="log-auto-clean">自动清理过期日志</label>' +
-                '</div></div>' +
-                '<div class="col-md-3"><button class="etl-btn etl-btn-primary" onclick="ScheduleApp.saveLogConfig()">' +
-                '<i class="bi bi-check-lg"></i> 保存</button></div>' +
-                '</div></div>';
-
+            this.loadTaskOptions();
             this.loadLogs();
-            this.loadLogConfig();
         },
 
         /* ---------- 执行历史 ---------- */
 
         async loadLogs() {
             try {
-                const data = await window.etlApi.get('/log/history?size=100');
-                this.logs = data || [];
+                const params = '?page=' + this.page + '&size=' + this.size;
+                const qs = [];
+                if (this.taskId != null) qs.push('taskId=' + this.taskId);
+                if (this.keyword) qs.push('keyword=' + encodeURIComponent(this.keyword));
+                const data = await window.etlApi.get('/log/history' + params + (qs.length ? '&' + qs.join('&') : ''));
+                let records = [];
+                let total = 0;
+                if (Array.isArray(data)) {
+                    records = data;
+                    total = data.length;
+                } else {
+                    records = (data && data.records) || [];
+                    total = (data && data.total != null) ? data.total : records.length;
+                }
+                this.logs = records;
+                this.total = total;
                 this.renderLogs();
+                this.renderPagination();
             } catch (e) {
                 const box = document.getElementById('sch-log-box');
                 if (box) box.innerHTML = '<div class="etl-empty"><div class="etl-empty-text">执行历史加载失败</div></div>';
             }
+        },
+
+        renderPagination() {
+            const box = document.getElementById('sch-pagination');
+            if (!box) return;
+            const comp = C();
+            if (typeof comp.renderPagination !== 'function' || typeof comp.bindPagination !== 'function') {
+                box.innerHTML = '';
+                return;
+            }
+            box.innerHTML = comp.renderPagination({ total: this.total, page: this.page, size: this.size });
+            comp.bindPagination(box, function (p) {
+                ScheduleApp.page = p;
+                ScheduleApp.loadLogs();
+            });
         },
 
         renderLogs() {
@@ -67,102 +138,125 @@
                 const ok = l.status === 'SUCCESS' || l.status === 'OK';
                 const cls = ok ? 'ok' : 'err';
                 const triggerBadge = l.triggerType === 'MANUAL'
-                    ? '<span class="etl-badge info">MANUAL</span>'
-                    : '<span class="etl-badge">SCHEDULED</span>';
+                    ? '<span class="etl-badge info">手动</span>'
+                    : '<span class="etl-badge">定时</span>';
                 const duration = (l.startTime && l.endTime)
                     ? C().fmtDuration(new Date(l.endTime) - new Date(l.startTime))
                     : '-';
-                const meta =
-                    esc(C().fmtTime(l.startTime)) + ' → ' + esc(C().fmtTime(l.endTime)) +
-                    ' · ' + esc(duration) +
-                    ' · 读 ' + esc(l.extractedRows != null ? l.extractedRows : 0) +
-                    ' / 写 ' + esc(l.writtenRows != null ? l.writtenRows : 0) + ' 行';
-                return '<div class="etl-timeline-item ' + cls + '">' +
-                    '<div class="etl-timeline-dot"></div>' +
-                    '<div class="etl-timeline-time">' +
-                    esc(l.taskName || '任务 #' + (l.taskId != null ? l.taskId : '?')) + ' ' +
-                    triggerBadge + ' ' +
-                    '<span class="etl-badge ' + cls + '">' + (ok ? '成功' : '失败') + '</span> ' +
-                    '<button class="etl-btn etl-btn-ghost" style="padding:1px 8px;font-size:12px;" ' +
-                    'onclick="ScheduleApp.toggleSteps(' + l.id + ')">步骤</button>' +
+                const open = !!this.stepsOpen[l.id];
+                const rowsInfo = '读 <b>' + esc(l.extractedRows != null ? l.extractedRows : 0) +
+                    '</b> / 写 <b>' + esc(l.writtenRows != null ? l.writtenRows : 0) + '</b> 行';
+                const hasError = !!l.errorMsg;
+                return '<div class="etl-log-row ' + cls + (open ? ' open' : '') + '">' +
+                    '<div class="etl-log-head" role="button" tabindex="0" ' +
+                    'onclick="ScheduleApp.toggleSteps(' + l.id + ')" ' +
+                    'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();ScheduleApp.toggleSteps(' + l.id + ')}">' +
+                    '<span class="etl-log-expand"><i class="bi bi-chevron-' + (open ? 'down' : 'right') + '"></i></span>' +
+                    '<span class="etl-badge ' + cls + '">' + (ok ? '成功' : '失败') + '</span>' +
+                    triggerBadge +
+                    '<span class="etl-log-task" title="' + esc(l.taskName || '') + '">' +
+                    esc(l.taskName || ('任务 #' + (l.taskId != null ? l.taskId : '?'))) + '</span>' +
+                    '<span class="etl-log-time">' + esc(C().fmtTime(l.startTime)) + ' → ' + esc(C().fmtTime(l.endTime)) + '</span>' +
+                    '<span class="etl-log-rows">' + rowsInfo + '</span>' +
+                    '<span class="etl-log-duration">' + esc(duration) + '</span>' +
+                    (hasError ? '<span class="etl-log-failtag"><i class="bi bi-exclamation-triangle"></i> 有错误</span>' : '') +
                     '</div>' +
-                    '<div class="etl-timeline-meta">' + meta + '</div>' +
-                    (l.errorMsg ? '<div class="etl-timeline-err">' + esc(l.errorMsg) + '</div>' : '') +
-                    '<div id="sch-steps-' + l.id + '" style="display:none;" class="mt-2"></div>' +
+                    '<div class="etl-log-detail" id="sch-steps-' + l.id + '" style="' + (open ? '' : 'display:none;') + '"></div>' +
                     '</div>';
             }).join('');
-            box.innerHTML = '<div class="etl-timeline">' + items + '</div>';
+            box.innerHTML = '<div class="etl-log-list">' + items + '</div>';
         },
 
         async toggleSteps(logId) {
             const box = document.getElementById('sch-steps-' + logId);
+            const head = box && box.previousElementSibling;
             if (!box) return;
             if (this.stepsOpen[logId]) {
                 this.stepsOpen[logId] = false;
                 box.style.display = 'none';
+                if (head) {
+                    head.parentElement.classList.remove('open');
+                    const ic = head.querySelector('.etl-log-expand i');
+                    if (ic) ic.className = 'bi bi-chevron-right';
+                }
                 return;
             }
             this.stepsOpen[logId] = true;
             box.style.display = 'block';
+            if (head) {
+                head.parentElement.classList.add('open');
+                const ic = head.querySelector('.etl-log-expand i');
+                if (ic) ic.className = 'bi bi-chevron-down';
+            }
             if (this.stepsCache[logId]) {
                 box.innerHTML = this.stepsCache[logId];
                 return;
             }
-            box.innerHTML = '<div class="etl-timeline-meta">加载步骤…</div>';
+            box.innerHTML = '<div class="etl-log-loading"><span class="spinner-border spinner-border-sm"></span> 加载步骤明细…</div>';
             try {
                 const steps = await window.etlApi.get('/log/steps/' + logId);
-                const html = (steps && steps.length)
-                    ? '<div style="border:1px solid var(--etl-color-border);border-radius:var(--etl-radius-sm);' +
-                      'padding:var(--etl-space-2) var(--etl-space-3);font-size:12px;">' +
-                      steps.map((s) => {
-                          const sOk = s.status === 'SUCCESS' || s.status === 'OK';
-                          return '<div class="d-flex align-items-center gap-2 flex-wrap" style="padding:3px 0;">' +
-                              '<span class="etl-badge ' + (sOk ? 'ok' : 'err') + '">' + esc(s.stepName || '?') + '</span>' +
-                              '<span style="font-family:var(--etl-font-mono);color:var(--etl-color-text-weak);">' +
-                              esc(s.rowsCount != null ? s.rowsCount : 0) + ' 行 · ' + esc(C().fmtDuration(s.durationMs)) + '</span>' +
-                              (s.detail ? '<span style="color:var(--etl-color-text-weak);word-break:break-all;">' + esc(s.detail) + '</span>' : '') +
-                              '</div>';
-                      }).join('') + '</div>'
-                    : '<div class="etl-timeline-meta">无步骤日志</div>';
-                this.stepsCache[logId] = html;
-                box.innerHTML = html;
+                box.innerHTML = this.buildStepDetail(logId, steps);
+                this.stepsCache[logId] = box.innerHTML;
             } catch (e) {
-                box.innerHTML = '<div class="etl-timeline-err">步骤日志加载失败</div>';
+                box.innerHTML = '<div class="etl-log-err">步骤明细加载失败</div>';
             }
         },
 
-        /* ---------- 日志保留 ---------- */
-
-        async loadLogConfig() {
-            try {
-                const cfg = await window.etlApi.get('/log/config');
-                if (cfg) {
-                    this.logConfig = cfg;
-                    const daysEl = document.getElementById('log-save-days');
-                    const cleanEl = document.getElementById('log-auto-clean');
-                    if (daysEl) daysEl.value = cfg.saveDays != null ? cfg.saveDays : 30;
-                    if (cleanEl) cleanEl.checked = cfg.autoClean !== 0;
-                }
-            } catch (e) { /* 已 toast */ }
-        },
-
-        async saveLogConfig() {
-            const days = parseInt(document.getElementById('log-save-days').value, 10);
-            if (!days || days < 1) {
-                toast('保存天数需为正整数', 'warn');
-                return;
+        buildStepDetail(logId, steps) {
+            const log = this.logs.find(function (l) { return String(l.id) === String(logId); });
+            const ok = log && (log.status === 'SUCCESS' || log.status === 'OK');
+            let html = '';
+            // 失败：错误原因条（简要）
+            if (!ok && log && log.errorMsg) {
+                html += '<div class="etl-log-errbar"><i class="bi bi-x-circle"></i> 失败原因：<code>' +
+                    esc(log.errorMsg) + '</code>' +
+                    '<button class="etl-btn etl-btn-sm etl-copy-err" onclick="ScheduleApp.copyError(' + logId + ')" ' +
+                    'title="复制错误信息"><i class="bi bi-clipboard"></i> 复制</button></div>';
             }
-            const autoClean = document.getElementById('log-auto-clean').checked ? 1 : 0;
-            try {
-                await window.etlApi.put('/log/config', {
-                    id: this.logConfig.id || 1,
-                    saveDays: days,
-                    autoClean: autoClean
+            // 分层：逐步日志（EXTRACT / TRANSFORM / LOAD）
+            if (steps && steps.length) {
+                html += '<div class="etl-log-steps">';
+                steps.forEach(function (s, i) {
+                    const sOk = s.status === 'SUCCESS' || s.status === 'OK';
+                    const dur = s.durationMs != null ? ' · 耗时 ' + C().fmtDuration(s.durationMs) : '';
+                    const rows = s.rowsCount != null ? ' · ' + s.rowsCount + ' 行' : '';
+                    const failed = !sOk;
+                    html += '<div class="etl-log-step ' + (failed ? 'err' : 'ok') + '">' +
+                        '<span class="etl-log-step-badge etl-badge ' + (failed ? 'err' : 'ok') + '">' +
+                        stepNameCN(s.stepName) + '</span>' +
+                        '<span class="etl-log-step-status">' + (failed ? '失败' : '成功') + '</span>' +
+                        '<span class="etl-log-step-meta">' + esc(C().fmtTime(s.startTime)) + rows + dur + '</span>' +
+                        (failed && s.detail ? '<div class="etl-log-step-err"><code>' + esc(s.detail) + '</code></div>' : '') +
+                        '</div>';
                 });
-                this.logConfig.saveDays = days;
-                this.logConfig.autoClean = autoClean;
-                toast('日志保留策略已保存', 'ok');
-            } catch (e) { /* 已 toast */ }
+                html += '</div>';
+            } else {
+                html += '<div class="etl-log-steps"><div class="etl-log-step">无步骤明细</div></div>';
+            }
+            // 成功：可展开显示更详细的信息（当前为精简扩展位）
+            return html;
+        },
+
+        copyError(logId) {
+            const log = this.logs.find(function (l) { return String(l.id) === String(logId); });
+            const text = (log && log.errorMsg) ? log.errorMsg : '';
+            const done = function () { toast('错误信息已复制', 'ok'); };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+            } else {
+                fallbackCopy(text);
+                done();
+            }
+            function fallbackCopy(t) {
+                const ta = document.createElement('textarea');
+                ta.value = t;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+                ta.remove();
+            }
         }
     };
 })();
