@@ -646,5 +646,124 @@ const MockService = {
                 });
             }, 300);
         });
+    },
+
+    /**
+     * 获取门诊财务报表复合数据（指标卡片 + 明细表 + 柱状图 + 饼状图）
+     * @param {Object} params - { statisticType, timeType, startDate, endDate }
+     */
+    getOutpatientFinance(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const statisticType = params.statisticType || 1;
+                const timeType = params.timeType || 1;
+                const startDate = params.startDate || '2026-04';
+                const endDate = params.endDate || '2026-04';
+
+                const dates = generateFinanceDates(startDate, endDate, timeType);
+                const detailList = dates.map((d, i) => {
+                    const ov = 320 + ((i * 7) % 60);
+                    const nc = 210 + ((i * 5) % 40);
+                    const nr = 260 + ((i * 6) % 50);
+                    const am = 95000 + ((i * 1300) % 20000);
+                    return {
+                        dateTime: d,
+                        lastYearOutpatientVolume: Math.round(ov * 0.9),
+                        currentDateOutpatientVolume: ov,
+                        lastYearNumberCharges: Math.round(nc * 0.92),
+                        currentDateNumberCharges: nc,
+                        lastYearNumberReceipt: Math.round(nr * 0.9),
+                        currentDateNumberReceipt: nr,
+                        lastYearAmount: Math.round(am * 0.88),
+                        currentDateAmount: am
+                    };
+                });
+
+                const sum = (key) => detailList.reduce((s, r) => s + (r[key] || 0), 0);
+                const indicator = {
+                    outpatientVolume: sum('currentDateOutpatientVolume'),
+                    numberCharges: sum('currentDateNumberCharges'),
+                    numberReceipt: sum('currentDateNumberReceipt'),
+                    amount: sum('currentDateAmount'),
+                    outpatientVolumeYoy: '5.20%',
+                    numberChargesYoy: '3.10%',
+                    numberReceiptYoy: '8.40%',
+                    amountYoy: '6.30%'
+                };
+
+                // 柱状图 1~4：门诊量/缴费人次/收据张数/金额
+                const metricKeys = ['OutpatientVolume', 'NumberCharges', 'NumberReceipt', 'Amount'];
+                const barList = {};
+                metricKeys.forEach((base, idx) => {
+                    barList[String(idx + 1)] = detailList.map((r) => ({
+                        dateTime: r.dateTime,
+                        lastYearNumber: r['lastYear' + base],
+                        currentDateNumber: r['currentDate' + base]
+                    }));
+                });
+
+                // 饼状图 1~10
+                const pieList = {};
+                for (let bt = 1; bt <= 10; bt++) {
+                    pieList[String(bt)] = generateFinancePie(bt);
+                }
+
+                resolve({ code: 200, data: { indicator, detailList, barList, pieList } });
+            }, 200);
+        });
     }
 };
+
+// ===== 门诊财务报表 Mock 辅助函数 =====
+
+// 饼图各业务类型类别清单（bt10 应收金额为示例类别，实际以数据为准）
+const FINANCE_PIE_CATEGORIES = {
+    '1': ['窗口', '自助机', '掌上医院', '电话预约', '网络预约'],
+    '2': ['线下取号', '线上取号'],
+    '3': ['微信公众号', 'APP', '官网', '线下'],
+    '4': ['窗口', '自助机', '移动支付', '医保'],
+    '5': ['现金', '微信', '支付宝', '银行卡', '医保'],
+    '6': ['窗口', '自助机', '移动支付', '医保'],
+    '7': ['现金', '微信', '支付宝', '银行卡', '医保'],
+    '8': ['挂号', '检查', '检验', '药品', '治疗'],
+    '9': ['应收', '实收'],
+    '10': ['挂号', '检查', '检验', '药品', '治疗']
+};
+
+function generateFinancePie(bt) {
+    const cats = FINANCE_PIE_CATEGORIES[String(bt)] || ['类别A', '类别B'];
+    const base = 5000 - bt * 300;
+    return cats.map((name, i) => ({
+        name,
+        currValue: Math.round(base + i * 800 + ((bt * 13) % 7) * 100),
+        prevValue: Math.round((base + i * 800) * 0.9)
+    }));
+}
+
+function generateFinanceDates(start, end, timeType) {
+    const list = [];
+    if (timeType === 2) {
+        const s = new Date(start + 'T00:00:00');
+        const e = new Date(end + 'T00:00:00');
+        for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+            list.push(fmtFinanceDate(d));
+        }
+    } else {
+        const sp = start.split('-');
+        const ep = end.split('-');
+        let y = parseInt(sp[0]);
+        let m = parseInt(sp[1]);
+        const ey = parseInt(ep[0]);
+        const em = parseInt(ep[1]);
+        while (y < ey || (y === ey && m <= em)) {
+            list.push(y + '-' + String(m).padStart(2, '0'));
+            m++;
+            if (m > 12) { m = 1; y++; }
+        }
+    }
+    return list;
+}
+
+function fmtFinanceDate(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}

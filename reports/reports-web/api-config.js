@@ -106,6 +106,10 @@ const API_CONFIG = {
             channelChart: '/api/cash/inpatient-prepayment/channel-chart',
             payTypeChart: '/api/cash/inpatient-prepayment/pay-type-chart',
             export: '/api/cash/inpatient-prepayment/export'
+        },
+        // 门诊财务报表
+        'reports.cash.outpatient-finance': {
+            endpoint: '/api/cash/outpatient-finance'
         }
     }
 };
@@ -274,6 +278,10 @@ function callMockService(methodKey, endpointKey, params) {
             channelChart: (p) => MockService.getInpatientPrepaymentChannelChart(p),
             payTypeChart: (p) => MockService.getInpatientPrepaymentPayTypeChart(p),
             export: (p) => MockService.exportInpatientPrepayment(p)
+        },
+        // 门诊财务报表
+        'reports.cash.outpatient-finance': {
+            endpoint: (p) => MockService.getOutpatientFinance(p)
         }
     };
 

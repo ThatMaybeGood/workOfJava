@@ -194,6 +194,18 @@ public enum ReportModule {
                     new ReportMethod("queryOverview", "查询概览数据"),
                     new ReportMethod("queryCharts", "查询图表分析数据"),
                     new ReportMethod("queryTable", "查询表格数据")
+            )),
+
+    /**
+     * 门诊财务报表
+     */
+    CASH_OUTPATIENT_FINANCE("门诊财务报表",
+            "com.reports.service.OutpatientFinanceService",
+            Arrays.asList(
+                    new ReportMethod("queryIndicator", "查询指标卡片数据"),
+                    new ReportMethod("queryDetailList", "查询明细列表数据"),
+                    new ReportMethod("queryBarList", "查询柱状图数据"),
+                    new ReportMethod("queryPieList", "查询饼状图数据")
             ));
 
     /**
