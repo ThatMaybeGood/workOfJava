@@ -60,13 +60,6 @@
             <version>1.2.18</version>
         </dependency>
 
-        <!-- H2（ETL 元数据库，独立于 Oracle 报表库） -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <version>2.2.224</version>
-        </dependency>
-
         <!-- Spring AOP -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

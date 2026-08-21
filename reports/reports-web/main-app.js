@@ -33,16 +33,6 @@ const menuConfig = [
             { label: '收费员结账统计',   file: 'cash/cash-cashier-settlement.html',       icon: 'bi-cash-stack' },
             { label: '住院预交金统计',   file: 'cash/cash-inpatient-prepayment.html',     icon: 'bi-wallet2' },
         ]
-    },
-    {
-        group: '数据集成',
-        icon: 'bi-diagram-3',
-        items: [
-            { label: '抽取来源管理', file: 'etl/index.html#/sources', icon: 'bi-collection' },
-            { label: '新建流水线向导', file: 'etl/index.html#/wizard', icon: 'bi-diagram-3-fill' },
-            { label: '流水线任务', file: 'etl/index.html#/tasks', icon: 'bi-list-task' },
-            { label: '调度历史', file: 'etl/index.html#/history', icon: 'bi-clock-history' },
-        ]
     }
 ];
 
@@ -79,26 +69,7 @@ function openPage(file, label) {
 
     // 切换 iframe
     const iframe = document.getElementById('contentFrame');
-    const hashIdx = file.indexOf('#');
-    const urlBase = hashIdx >= 0 ? file.substring(0, hashIdx) : file;
-    const urlHash = hashIdx >= 0 ? file.substring(hashIdx + 1) : '';
-    iframe.src = urlBase;
-
-    // etl/index.html 使用 hash 路由，需等加载后在子页面内设置 hash
-    // 用轮询而非 onload：缓存命中时 onload 不触发
-    if (urlHash && urlBase.endsWith('etl/index.html')) {
-        const setHash = () => {
-            try {
-                if (iframe.contentWindow && iframe.contentWindow.location) {
-                    iframe.contentWindow.location.hash = '#' + urlHash;
-                    clearInterval(timer);
-                }
-            } catch (e) { /* 跨域时忽略 */ clearInterval(timer); }
-        };
-        iframe.onload = setHash;
-        const timer = setInterval(setHash, 100);
-        setTimeout(() => clearInterval(timer), 5000);
-    }
+    iframe.src = file;
 
     // 移动端自动收起侧边栏
     if (window.innerWidth <= 768) {
