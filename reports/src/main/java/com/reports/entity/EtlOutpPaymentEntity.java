@@ -13,7 +13,7 @@ import java.util.Date;
  * 门诊财务报表-抽取：门诊支付方式明细（ETL 关联收据按就诊日期抽取，源表 outp_payments_money）
  */
 @Data
-@TableName("ETL_OUTP_PAYMENT")
+@TableName("TR_OUTP_PAYMENT")
 public class EtlOutpPaymentEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;

@@ -13,7 +13,7 @@ import java.util.Date;
  * 门诊财务报表-抽取：门诊挂号明细（ETL 按就诊日期抽取，源表 clinic_master）
  */
 @Data
-@TableName("ETL_CLINIC")
+@TableName("TR_CLINIC")
 public class EtlClinicEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;

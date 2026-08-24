@@ -100,7 +100,17 @@
       "Bash(winget --version)",
       "Bash(timeout 8 ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -T git@github.com)",
       "Bash(rm -f /d/JetBrains/IdeaProjects/etl-service/data/*.mv.db /d/JetBrains/IdeaProjects/etl-service/data/*.trace.db && echo \"data 已清空: $\\(ls /d/JetBrains/IdeaProjects/etl-service/data/ | wc -l\\) 项\")",
-      "Bash(awk '{print $2, $5}')"
+      "Bash(awk '{print $2, $5}')",
+      "Bash(rm -rf src/main/java/com/reports/etl)",
+      "Bash(rm -rf reports-web/etl)",
+      "Bash(rm -f src/main/resources/db/etl_meta_init.sql)",
+      "Bash(ls -la src/main/resources/db/)",
+      "Bash(timeout 5 bash -c 'echo > /dev/tcp/168.168.235.105/1521')",
+      "Bash(nohup mvn -q spring-boot:run)",
+      "Bash(echo \"已后台启动，PID=$!\")",
+      "Bash(for i *)",
+      "Bash(cp \"D:/Users/Downloads/outpatient-report.html\" \"D:/JetBrains/IdeaProjects/workOfJava/reports/reports-web/cash/cash-outpatient-finance.html\" && echo \"copied\" && wc -l \"D:/JetBrains/IdeaProjects/workOfJava/reports/reports-web/cash/cash-outpatient-finance.html\")",
+      "Bash(echo \"---exit $?\")"
     ],
     "additionalDirectories": [
       "D:/JetBrains/IdeaProjects/workOfJava/etl-platform"

@@ -13,7 +13,7 @@ import java.util.Date;
  * 门诊财务报表-抽取：门诊收据明细（ETL 按就诊日期抽取，源表 outp_rcpt_master）
  */
 @Data
-@TableName("ETL_OUTP_RCPT")
+@TableName("TR_OUTP_RCPT")
 public class EtlOutpRcptEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;

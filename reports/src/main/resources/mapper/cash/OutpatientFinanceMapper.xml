@@ -23,22 +23,22 @@
         </choose>
     </sql>
 
-    <!-- 收据类型筛选（r = ETL_OUTP_RCPT）：T2 排除退费 / T3 仅退费 / T1 全部 -->
+    <!-- 收据类型筛选（r = TR_OUTP_RCPT）：T2 排除退费 / T3 仅退费 / T1 全部 -->
     <sql id="rcptTypeFilter">
         <if test="statisticType == 2">AND r.REFUNDED_RCPT_NO IS NULL</if>
         <if test="statisticType == 3">AND r.REFUNDED_RCPT_NO IS NOT NULL</if>
     </sql>
 
-    <!-- 挂号类型筛选（c = ETL_CLINIC）：T2 未退号 / T3 退号 / T1 全部 -->
+    <!-- 挂号类型筛选（c = TR_CLINIC）：T2 未退号 / T3 退号 / T1 全部 -->
     <sql id="clinicTypeFilter">
         <if test="statisticType == 2">AND c.RETURNED_DATE IS NULL</if>
         <if test="statisticType == 3">AND c.RETURNED_DATE IS NOT NULL</if>
     </sql>
 
-    <!-- 收据金额表达式（r = ETL_OUTP_RCPT）：T1/T2/T3 均取 TOTAL_CHARGES，由 rcptTypeFilter 选行 -->
+    <!-- 收据金额表达式（r = TR_OUTP_RCPT）：T1/T2/T3 均取 TOTAL_CHARGES，由 rcptTypeFilter 选行 -->
     <sql id="rcptAmountExpr">NVL(SUM(NVL(r.TOTAL_CHARGES,0)),0)</sql>
 
-    <!-- 结账金额表达式（a = ETL_OUTP_ACCT）：T1 净额 / T2 含退 / T3 退费 -->
+    <!-- 结账金额表达式（a = TR_OUTP_ACCT）：T1 净额 / T2 含退 / T3 退费 -->
     <sql id="acctAmountExpr">
         <choose>
             <when test="statisticType == 1">NVL(SUM(NVL(a.TOTAL_COSTS,0)),0)</when>
@@ -47,7 +47,7 @@
         </choose>
     </sql>
 
-    <!-- 结账张数表达式（a = ETL_OUTP_ACCT） -->
+    <!-- 结账张数表达式（a = TR_OUTP_ACCT） -->
     <sql id="acctReceiptExpr">
         <choose>
             <when test="statisticType == 1">NVL(SUM(NVL(a.RCPTS_NUM,0)),0)</when>
@@ -56,7 +56,7 @@
         </choose>
     </sql>
 
-    <!-- 支付金额表达式（p = ETL_OUTP_PAYMENT）：T1 实收-退 / T2 实收 / T3 退费 -->
+    <!-- 支付金额表达式（p = TR_OUTP_PAYMENT）：T1 实收-退 / T2 实收 / T3 退费 -->
     <sql id="paymentAmountExpr">
         <choose>
             <when test="statisticType == 1">NVL(SUM(NVL(p.PAYMENT_AMOUNT,0)-NVL(p.REFUNDED_AMOUNT,0)),0)</when>
@@ -66,13 +66,13 @@
     </sql>
 
     <!-- ============================================================ -->
-    <!-- 门诊量：按周期计数（ETL_CLINIC） -->
+    <!-- 门诊量：按周期计数（TR_CLINIC） -->
     <!-- ============================================================ -->
     <select id="queryClinicCounts" resultType="map">
         SELECT
         <include refid="periodExpr"><property name="col" value="c.VISIT_DATE"/></include> AS "period",
         COUNT(1) AS "cnt"
-        FROM ETL_CLINIC c
+        FROM TR_CLINIC c
         WHERE 1=1
         <include refid="clinicTypeFilter"/>
         <include refid="dateRangeClause"><property name="col" value="c.VISIT_DATE"/></include>
@@ -81,14 +81,14 @@
     </select>
 
     <!-- ============================================================ -->
-    <!-- 收据张数/金额：按周期聚合（ETL_OUTP_ACCT，口径唯一） -->
+    <!-- 收据张数/金额：按周期聚合（TR_OUTP_ACCT，口径唯一） -->
     <!-- ============================================================ -->
     <select id="queryAcctAmounts" resultType="map">
         SELECT
         <include refid="periodExpr"><property name="col" value="a.ACCT_DATE"/></include> AS "period",
         <include refid="acctAmountExpr"/> AS "amount",
         <include refid="acctReceiptExpr"/> AS "receipt"
-        FROM ETL_OUTP_ACCT a
+        FROM TR_OUTP_ACCT a
         WHERE 1=1
         <include refid="dateRangeClause"><property name="col" value="a.ACCT_DATE"/></include>
         GROUP BY <include refid="periodExpr"><property name="col" value="a.ACCT_DATE"/></include>
@@ -110,7 +110,7 @@
         r.BILL_CLASS AS "billClass",
         r.CREATE_TIME AS "createTime",
         r.UPDATE_TIME AS "updateTime"
-        FROM ETL_OUTP_RCPT r
+        FROM TR_OUTP_RCPT r
         WHERE 1=1
         <include refid="rcptTypeFilter"/>
         <include refid="dateRangeClause"><property name="col" value="r.VISIT_DATE"/></include>
@@ -133,7 +133,7 @@
         c.OPERATOR_NO AS "operatorNo",
         c.CREATE_TIME AS "createTime",
         c.UPDATE_TIME AS "updateTime"
-        FROM ETL_CLINIC c
+        FROM TR_CLINIC c
         WHERE 1=1
         <include refid="clinicTypeFilter"/>
         <include refid="dateRangeClause"><property name="col" value="c.VISIT_DATE"/></include>
@@ -145,7 +145,7 @@
     <!-- ============================================================ -->
     <select id="queryRcptCountByOperator" resultType="map">
         SELECT r.OPERATOR_NO AS "name", COUNT(1) AS "cnt"
-        FROM ETL_OUTP_RCPT r
+        FROM TR_OUTP_RCPT r
         WHERE 1=1
         <include refid="rcptTypeFilter"/>
         <include refid="dateRangeClause"><property name="col" value="r.VISIT_DATE"/></include>
@@ -158,7 +158,7 @@
     <!-- ============================================================ -->
     <select id="queryRcptSumByOperator" resultType="map">
         SELECT r.OPERATOR_NO AS "name", <include refid="rcptAmountExpr"/> AS "amount"
-        FROM ETL_OUTP_RCPT r
+        FROM TR_OUTP_RCPT r
         WHERE 1=1
         <include refid="rcptTypeFilter"/>
         <include refid="dateRangeClause"><property name="col" value="r.VISIT_DATE"/></include>
@@ -171,8 +171,8 @@
     <!-- ============================================================ -->
     <select id="queryQueueCountByOperator" resultType="map">
         SELECT c.OPERATOR_NO AS "name", COUNT(1) AS "cnt"
-        FROM ETL_CLINIC c
-        JOIN ETL_TIMESCHEDULE_QUEUE q
+        FROM TR_CLINIC c
+        JOIN TR_TIMESCHEDULE_QUEUE q
           ON q.SCHEDULE_ID = c.CLINIC_LABEL || '|' || TO_CHAR(c.VISIT_DATE,'YYYYMMDD') || '|' || c.VISIT_TIME_DESC
         WHERE 1=1
           AND q.QUEUE_TYPE = 'reserve'
@@ -189,7 +189,7 @@
     <select id="queryPaymentCountByMoneyType" resultType="map">
         SELECT p.MONEY_TYPE AS "name",
                COUNT(DISTINCT NVL(p.PATIENT_ID,'-') || '|' || NVL(p.RCPT_NO,'-')) AS "cnt"
-        FROM ETL_OUTP_PAYMENT p
+        FROM TR_OUTP_PAYMENT p
         WHERE 1=1
         <if test="statisticType == 2">AND NVL(p.PAYMENT_AMOUNT,0) > 0</if>
         <if test="statisticType == 3">AND NVL(p.REFUNDED_AMOUNT,0) > 0</if>
@@ -203,7 +203,7 @@
     <!-- ============================================================ -->
     <select id="queryPaymentSumByMoneyType" resultType="map">
         SELECT p.MONEY_TYPE AS "name", <include refid="paymentAmountExpr"/> AS "amount"
-        FROM ETL_OUTP_PAYMENT p
+        FROM TR_OUTP_PAYMENT p
         WHERE 1=1
         <include refid="dateRangeClause"><property name="col" value="p.VISIT_DATE"/></include>
         GROUP BY p.MONEY_TYPE
@@ -216,7 +216,7 @@
     <!-- ============================================================ -->
     <select id="queryPaymentSumByCategory" resultType="map">
         SELECT p.MONEY_TYPE AS "name", <include refid="paymentAmountExpr"/> AS "amount"
-        FROM ETL_OUTP_PAYMENT p
+        FROM TR_OUTP_PAYMENT p
         WHERE 1=1
         <include refid="dateRangeClause"><property name="col" value="p.VISIT_DATE"/></include>
         GROUP BY p.MONEY_TYPE

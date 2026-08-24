@@ -14,7 +14,7 @@ import java.util.Date;
  * 收据张数 / 金额的唯一口径。
  */
 @Data
-@TableName("ETL_OUTP_ACCT")
+@TableName("TR_OUTP_ACCT")
 public class EtlOutpAcctEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;

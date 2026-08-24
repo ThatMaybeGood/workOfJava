@@ -13,7 +13,7 @@ import java.util.Date;
  * 仅 bt2 取号渠道分析使用。
  */
 @Data
-@TableName("ETL_TIMESCHEDULE_QUEUE")
+@TableName("TR_TIMESCHEDULE_QUEUE")
 public class EtlTimescheduleQueueEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;

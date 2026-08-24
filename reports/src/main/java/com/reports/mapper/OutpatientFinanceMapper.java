@@ -10,14 +10,14 @@ import java.util.Map;
 
 /**
  * 门诊财务报表 Mapper
- * <p>读取 ETL 抽取的明细存储（ETL_CLINIC / ETL_OUTP_ACCT / ETL_OUTP_RCPT /
- * ETL_OUTP_PAYMENT / ETL_TIMESCHEDULE_QUEUE），指标计算与人次去重均在 Service 完成。</p>
+ * <p>读取 ETL 抽取的明细存储（TR_CLINIC / TR_OUTP_ACCT / TR_OUTP_RCPT /
+ * TR_OUTP_PAYMENT / TR_TIMESCHEDULE_QUEUE），指标计算与人次去重均在 Service 完成。</p>
  */
 @Mapper
 public interface OutpatientFinanceMapper {
 
     /**
-     * 门诊量：按周期分组计数（T2 未退号 / T3 退号，取自 ETL_CLINIC）
+     * 门诊量：按周期分组计数（T2 未退号 / T3 退号，取自 TR_CLINIC）
      *
      * @return [{period, cnt}]
      */
@@ -53,7 +53,7 @@ public interface OutpatientFinanceMapper {
                                           @Param("timeType") Integer timeType);
 
     /**
-     * bt1/bt3/bt4 订单来源/订单渠道/人次渠道：按操作员计数（取自 ETL_OUTP_RCPT）
+     * bt1/bt3/bt4 订单来源/订单渠道/人次渠道：按操作员计数（取自 TR_OUTP_RCPT）
      *
      * @return [{name, cnt}]
      */
@@ -63,7 +63,7 @@ public interface OutpatientFinanceMapper {
                                                        @Param("timeType") Integer timeType);
 
     /**
-     * bt6 渠道金额：按操作员求和（取自 ETL_OUTP_RCPT）
+     * bt6 渠道金额：按操作员求和（取自 TR_OUTP_RCPT）
      *
      * @return [{name, amount}]
      */
@@ -93,7 +93,7 @@ public interface OutpatientFinanceMapper {
                                                            @Param("timeType") Integer timeType);
 
     /**
-     * bt7 支付方式金额：按支付方式求和（取自 ETL_OUTP_PAYMENT）
+     * bt7 支付方式金额：按支付方式求和（取自 TR_OUTP_PAYMENT）
      *
      * @return [{name, amount}]
      */
@@ -103,7 +103,7 @@ public interface OutpatientFinanceMapper {
                                                          @Param("timeType") Integer timeType);
 
     /**
-     * bt9 应收/实收：按支付方式归类求和（取自 ETL_OUTP_PAYMENT）
+     * bt9 应收/实收：按支付方式归类求和（取自 TR_OUTP_PAYMENT）
      *
      * @return [{name, amount}]
      */
