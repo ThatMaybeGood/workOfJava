@@ -116,19 +116,20 @@ public class HolidayServiceImpl implements YQHolidayService {
 
             return Constant.HOLIDAY_IS;
         } else {
-            // ❗当前是工作日 且 是月末最后一天
-            if (holidayDate.getDayOfMonth() == holidayDate.lengthOfMonth()) {
-                return Constant.HOLIDAY_NOT_MONTH_LASTDAY;
-            }
-            // ❗当前是工作日 且 前一天是节假日/周末
+            // ❗当前是工作日 且 前一天是节假日/周末   这个放在前面，避免是月末优先判断
             if (isHoliday(holidayDate.minusDays(1))) {
                 return Constant.HOLIDAY_AFTER;
             }
+
+            // ❗当前是工作日 且 是月末最后一天
+            if (holidayDate.getDayOfMonth() == holidayDate.lengthOfMonth() && !isHoliday(holidayDate.minusDays(1))) {
+                return Constant.HOLIDAY_NOT_MONTH_LASTDAY;
+            }
+
             // ❗当前是工作日 且 后一天是节假日/周末
             if (isHoliday(holidayDate.plusDays(1))) {
                 return Constant.HOLIDAY_PRE;
             }
-
 
         }
         return Constant.HOLIDAY_NOT;
