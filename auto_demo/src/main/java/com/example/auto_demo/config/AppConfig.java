@@ -1,5 +1,6 @@
 package com.example.auto_demo.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
@@ -8,6 +9,9 @@ import javax.annotation.PostConstruct;
 
 @Component
 public class AppConfig {
+
+    @Autowired
+    private DynamicConfig dynamicConfig;
 
     @Value("${browser.port}")
     private String browserPort;
@@ -23,12 +27,6 @@ public class AppConfig {
 
     @Value("${yb.setl.url}")
     private String setlUrl;
-
-    @Value("${yb.token}")
-    private String token;
-
-    @Value("${yb.session}")
-    private String session;
 
     @Value("${yb.pageSize}")
     private String pageSize;
@@ -83,11 +81,11 @@ public class AppConfig {
     }
 
     public String getToken() {
-        return token;
+        return dynamicConfig.getToken();
     }
 
     public String getSession() {
-        return session;
+        return dynamicConfig.getSession();
     }
 
     public String getPageSize() {
@@ -137,9 +135,9 @@ public class AppConfig {
                 ", insuType='" + insuType + '\'' +
                 ", insuTypeCn='" + insuTypeCn + '\'' +
                 ", billUrl='" + billUrl + '\'' +
-                ", token='" + (token != null && token.length() > 5 ?
-                token.substring(0, 3) + "***" : "***") + '\'' + // 敏感信息脱敏
-                ", session='" + session + '\'' +
+                ", token='" + (dynamicConfig.getToken() != null && dynamicConfig.getToken().length() > 5 ?
+                dynamicConfig.getToken().substring(0, 3) + "***" : "***") + '\'' +
+                ", session='" + (dynamicConfig.getSession() != null ? dynamicConfig.getSession().substring(0, 6) + "****" : "****") + '\'' +
                 ", pageSize='" + pageSize + '\'' +
                 ", frontUrl='" + frontUrl + '\'' +
                 ", fixmedinsCode='" + fixmedinsCode + '\'' +

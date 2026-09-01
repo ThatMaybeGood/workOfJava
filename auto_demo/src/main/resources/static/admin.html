@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>凭证管理</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; padding: 40px 16px; }
+        .wrap { max-width: 400px; margin: 0 auto; }
+        h2 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .sub { font-size: 12px; color: #999; margin-bottom: 24px; }
+        .card { background: #fff; border-radius: 8px; border: 1px solid #e8e8e8; padding: 16px; margin-bottom: 12px; }
+        .label { font-size: 12px; color: #666; margin-bottom: 6px; }
+        input {
+            width: 100%; padding: 8px 10px; border: 1px solid #d9d9d9; border-radius: 4px;
+            font-size: 13px; font-family: 'Courier New', monospace; outline: none; transition: border 0.2s;
+        }
+        input:focus { border-color: #1890ff; }
+        input::placeholder { color: #bbb; }
+        .field + .field { margin-top: 12px; }
+        .btn-row { display: flex; gap: 8px; margin-top: 16px; }
+        .btn {
+            flex: 1; padding: 8px 0; border: none; border-radius: 4px; font-size: 13px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn-save { background: #1890ff; color: #fff; }
+        .btn-save:hover { background: #40a9ff; }
+        .btn-check { background: #f0f0f0; color: #333; border: 1px solid #d9d9d9; }
+        .btn-check:hover { background: #e6f7ff; border-color: #91d5ff; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .msg { font-size: 12px; margin-top: 8px; min-height: 18px; }
+        .msg.ok   { color: #52c41a; }
+        .msg.err  { color: #ff4d4f; }
+        .msg.info { color: #999; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <h2>凭证管理</h2>
+    <p class="sub">Token & Session 运行时更新 · localhost:18888</p>
+
+    <div class="card">
+        <div class="field">
+            <div class="label">Token</div>
+            <input type="text" id="tokenInput" placeholder="输入新 Token">
+        </div>
+        <div class="field">
+            <div class="label">Session</div>
+            <input type="text" id="sessionInput" placeholder="输入新 Session">
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-save" onclick="saveConfig()">保存配置</button>
+            <button class="btn btn-check" id="checkBtn" onclick="checkHealth()">检测连通性</button>
+        </div>
+        <div class="msg info" id="msgBox">点击「检测」验证凭证是否有效</div>
+    </div>
+</div>
+
+<script>
+    window.addEventListener('DOMContentLoaded', loadConfig);
+
+    function msg(text, type) {
+        const el = document.getElementById('msgBox');
+        el.textContent = text;
+        el.className = 'msg ' + type;
+    }
+
+    async function loadConfig() {
+        try {
+            const d = await fetch('/api/admin/config').then(r => r.json());
+            // token 后端脱敏，保持空让用户输入新值；session 完整显示方便查看修改
+            document.getElementById('tokenInput').value = d.token || '';
+            document.getElementById('sessionInput').value = d.session || '';
+        } catch(e) { msg('加载失败', 'err'); }
+    }
+
+    async function saveConfig() {
+        const token = document.getElementById('tokenInput').value.trim();
+        const session = document.getElementById('sessionInput').value.trim();
+        if (!token || !session) { msg('Token 和 Session 不能为空', 'err'); return; }
+        const d = await fetch('/api/admin/config', {
+            method: 'PUT', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({token, session})
+        }).then(r => r.json());
+        if (d.success) { msg('已保存，配置立即生效', 'ok'); loadConfig(); }
+        else msg(d.message || '保存失败', 'err');
+    }
+
+    async function checkHealth() {
+        const btn = document.getElementById('checkBtn');
+        btn.disabled = true; btn.textContent = '检测中…';
+        msg('正在调用两定平台接口…', 'info');
+        try {
+            const d = await fetch('/api/admin/health', {method: 'POST'}).then(r => r.json());
+            const time = d.checkTime ? ' (' + d.checkTime.split(' ')[1] + ')' : '';
+            if (d.valid) msg('凭证有效' + time, 'ok');
+            else msg(d.status + (d.message ? ' — ' + d.message : '') + time, 'err');
+        } catch(e) { msg('检测异常: ' + e.message, 'err'); }
+        finally { btn.disabled = false; btn.textContent = '检测连通性'; }
+    }
+</script>
+</body>
+</html>

@@ -17,20 +17,21 @@ import java.util.stream.Collectors;
 public class HttpUtil {
 
     public String post(String url, Map<String, Object> data, Map<String, String> headerMap) {
+        ApiResult result = postWithResult(url, data, headerMap);
+        return result != null ? result.body : "";
+    }
 
+    public ApiResult postWithResult(String url, Map<String, Object> data, Map<String, String> headerMap) {
         OkHttpClient client = new OkHttpClient();
 
-        FormBody.Builder formBodybuilder = new FormBody.Builder();
-        // 遍历 Map，动态添加 Header
+        FormBody.Builder formBodyBuilder = new FormBody.Builder();
         for (Map.Entry<String, Object> entry : data.entrySet()) {
-            formBodybuilder.add(entry.getKey(), String.valueOf(entry.getValue()));
+            formBodyBuilder.add(entry.getKey(), String.valueOf(entry.getValue()));
         }
 
-        RequestBody formBody = formBodybuilder.build();
+        RequestBody formBody = formBodyBuilder.build();
 
         Request.Builder requestBuilder = new Request.Builder();
-
-        // 遍历 Map，动态添加 Header
         for (Map.Entry<String, String> entry : headerMap.entrySet()) {
             requestBuilder.addHeader(entry.getKey(), entry.getValue());
         }
@@ -39,26 +40,32 @@ public class HttpUtil {
         Log.info("调用两定平台header：" + headerMap.toString());
         Log.info("调用两定平台url：" + url);
 
-        Request request = requestBuilder
-                .url(url)
-                .post(formBody)
-                .build();
+        Request request = requestBuilder.url(url).post(formBody).build();
 
-        // 发送请求
-        Response response = null;
         try {
-            response = client.newCall(request).execute();
+            Response response = client.newCall(request).execute();
+            String body = response.body() != null ? response.body().string() : "";
+            Log.info("调用两定平台出参[{}]: " + body, response.code());
 
-            if (response.isSuccessful() && response.body() != null) {
-                return response.body().string();
-            } else {
-                Log.error("调用两定平台异常:" + response.code());
-            }
+            ApiResult result = new ApiResult();
+            result.code = response.code();
+            result.body = body;
+            result.success = response.isSuccessful();
+            return result;
         } catch (Exception e) {
             Log.error("调用两定平台异常:", e);
-            return "";
+            ApiResult result = new ApiResult();
+            result.success = false;
+            result.code = -1;
+            result.body = "连接异常: " + e.getMessage();
+            return result;
         }
-        return "";
+    }
+
+    public static class ApiResult {
+        public boolean success;
+        public int code;
+        public String body;
     }
 
 

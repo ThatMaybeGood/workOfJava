@@ -379,8 +379,65 @@ public class ApiLogic {
 
     public String getBillDetail(String sessionId, String fixmedinsCode, String billDate, String insutype,
                                 int pageNum, int pageSize, String type) {
-        Map<String, Object> map = new HashMap<>();
+        Map<String, Object> map = buildBillMap(fixmedinsCode, billDate, insutype, pageNum, pageSize);
+        String url = config.getBillUrl();
+        Map<String, String> headerMap = buildAuthHeaders();
 
+        Log.info("调两定接口[" + insutype + "]入参:" + map.toString());
+        return new HttpUtil().post(url, map, headerMap);
+    }
+
+    public HealthCheckResult healthCheck() {
+        String today = java.time.LocalDate.now().toString();
+        HttpUtil.ApiResult apiResult = callHealthApi(today);
+        HealthCheckResult r = new HealthCheckResult();
+
+        if (!apiResult.success) {
+            r.valid = false;
+            r.status = "连接失败";
+            r.message = apiResult.body != null && !apiResult.body.isEmpty()
+                    ? apiResult.body : "无法连接到两定平台";
+            return r;
+        }
+
+        if (apiResult.body == null || apiResult.body.isEmpty()) {
+            r.valid = false;
+            r.status = "响应为空";
+            r.message = "接口返回了空响应";
+            return r;
+        }
+
+        Log.info("健康检测原始响应[{}]: {}", apiResult.code, apiResult.body);
+        try {
+            JSONObject json = JSONObject.parseObject(apiResult.body);
+            Integer code = json.getInteger("code");
+            String msg = json.getString("message");
+            if (Integer.valueOf(0).equals(code)) {
+                r.valid = true;
+                r.status = "有效";
+                r.message = msg != null ? msg : "接口正常";
+            } else {
+                r.valid = false;
+                r.status = "凭证过期";
+                r.message = msg != null ? msg : "接口返回失败";
+            }
+        } catch (Exception e) {
+            r.valid = false;
+            r.status = "响应异常";
+            r.message = apiResult.body;
+        }
+        return r;
+    }
+
+    private HttpUtil.ApiResult callHealthApi(String date) {
+        Map<String, Object> map = buildBillMap(config.getFixmedinsCode(), date, "515253", 1, 1);
+        String url = config.getBillUrl();
+        Map<String, String> headerMap = buildAuthHeaders();
+        return new HttpUtil().postWithResult(url, map, headerMap);
+    }
+
+    private Map<String, Object> buildBillMap(String fixmedinsCode, String billDate, String insutype, int pageNum, int pageSize) {
+        Map<String, Object> map = new HashMap<>();
         map.put("fixmedinsCode", fixmedinsCode);
         map.put("billDate", billDate);
         map.put("pageNum", pageNum);
@@ -388,28 +445,36 @@ public class ApiLogic {
         map.put("insutype", insutype);
         map.put("pageSize", pageSize);
         map.put("_modulePartId_", "");
-        String frontUrl = config.getFrontUrl();
-        map.put("frontUrl", frontUrl);
+        map.put("frontUrl", config.getFrontUrl());
+        return map;
+    }
 
-        String url = config.getBillUrl();
+    private Map<String, String> buildAuthHeaders() {
         String token = config.getToken();
         String session = config.getSession();
-
         Map<String, String> headerMap = new HashMap<>();
         headerMap.put("Content-Type", "application/x-www-form-urlencoded");
         headerMap.put("X-XSRF-TOKEN", token);
         headerMap.put("Cookie", "XSRF-TOKEN=" + token + ";SESSION=" + session);
+        return headerMap;
+    }
 
-        Log.info("调两定接口[" + insutype + "]入参:" + map.toString());
+    private String truncate(String s, int maxLen) {
+        return s.length() <= maxLen ? s : s.substring(0, maxLen) + "...";
+    }
 
-        String result = "";
+    public static class HealthCheckResult {
+        public boolean valid;
+        public String status;
+        public String message;
+        public int totalCount = 0;
+        public String checkTime;
 
-        result = new HttpUtil().post(url, map, headerMap);
-
-
-//        Log.info("调两定接口[" + insutype + "]出参:" + result);
-
-        return result;
+        public boolean isValid() { return valid; }
+        public String getStatus() { return status; }
+        public String getMessage() { return message; }
+        public String getCheckTime() { return checkTime; }
+        public void setCheckTime(String checkTime) { this.checkTime = checkTime; }
     }
 
 
