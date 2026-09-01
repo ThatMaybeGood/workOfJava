@@ -6,8 +6,8 @@ import com.reports.dto.response.cash.outpatient.finance.BarItem;
 import com.reports.dto.response.cash.outpatient.finance.DetailListItem;
 import com.reports.dto.response.cash.outpatient.finance.IndicatorData;
 import com.reports.dto.response.cash.outpatient.finance.PieItem;
-import com.reports.entity.EtlClinicEntity;
-import com.reports.entity.EtlOutpRcptEntity;
+import com.reports.entity.cash.OutpFinanceClinicMaster;
+import com.reports.entity.cash.OutpFinanceRcptAcct;
 import com.reports.mapper.OutpatientFinanceMapper;
 import com.reports.service.OutpatientFinanceService;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +32,7 @@ import java.util.function.Function;
 /**
  * 门诊财务报表服务实现
  * <p>读取 ETL 抽取的明细存储，指标计算（人次去重、业务类型分界、同比自关联）均在 Java 完成。</p>
+ * <p>核心规则：汇总 = 进项 − 退项，四个指标全部满足。</p>
  */
 @Slf4j
 @Service
@@ -60,8 +61,6 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
     public IndicatorData queryIndicator(OutpatientFinanceRequest request) {
         if (dataConfig.isMock()) {
             return queryIndicatorMock(request);
-        } else if (dataConfig.isJdbc()) {
-            return queryIndicatorMock(request);
         } else {
             return queryIndicatorByMybatisPlus(request);
         }
@@ -71,8 +70,6 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
     public List<DetailListItem> queryDetailList(OutpatientFinanceRequest request) {
         if (dataConfig.isMock()) {
             return queryDetailListMock(request);
-        } else if (dataConfig.isJdbc()) {
-            return queryDetailListMock(request);
         } else {
             return queryDetailListByMybatisPlus(request);
         }
@@ -80,15 +77,12 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
 
     @Override
     public Map<String, List<BarItem>> queryBarList(OutpatientFinanceRequest request) {
-        // 柱状图由明细列表派生，避免重复查库
         return buildBarFromDetail(queryDetailList(request));
     }
 
     @Override
     public Map<String, List<PieItem>> queryPieList(OutpatientFinanceRequest request) {
         if (dataConfig.isMock()) {
-            return buildPieListMock();
-        } else if (dataConfig.isJdbc()) {
             return buildPieListMock();
         } else {
             return queryPieListByMybatisPlus(request);
@@ -118,13 +112,18 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
 
     private List<DetailListItem> queryDetailListByMybatisPlus(OutpatientFinanceRequest request) {
         try {
-            List<DetailListItem> curr = loadPeriods(request.getStatisticType(), request.getTimeType(),
-                    request.getStartDate(), request.getEndDate());
-            // 同比自关联：同期（周期 -12 个月）按周期对齐
-            String pStart = offsetPeriod(request.getStartDate(), -12);
-            String pEnd = offsetPeriod(request.getEndDate(), -12);
+            Integer type = request.getStatisticType();
+            Integer tt = request.getTimeType();
+            String start = normalizeStart(type, tt, request.getStartDate());
+            String end = normalizeEnd(type, tt, request.getEndDate());
+
+            List<DetailListItem> curr = loadPeriods(type, tt, start, end);
+
+            // 同比：同期（区间向前推 12 个月）
+            String pStart = offsetPeriod(start, -12);
+            String pEnd = offsetPeriod(end, -12);
             Map<String, DetailListItem> prevByPeriod = new HashMap<>();
-            for (DetailListItem item : loadPeriods(request.getStatisticType(), request.getTimeType(), pStart, pEnd)) {
+            for (DetailListItem item : loadPeriods(type, tt, pStart, pEnd)) {
                 prevByPeriod.put(item.getDateTime(), item);
             }
             for (DetailListItem item : curr) {
@@ -146,12 +145,14 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
     }
 
     /**
-     * 加载指定范围内的各周期指标（仅当期值），门诊量/金额/收据张数来自 SQL 聚合，
-     * 缴费人次由连续收据去重在 Java 计算。
+     * 加载各周期指标。
+     * 人次（netCares）对 T1 拆成 T2 − T3，T2/T3 直接用对应过滤行计算。
      */
-    private List<DetailListItem> loadPeriods(Integer statisticType, Integer timeType, String startDate, String endDate) {
+    private List<DetailListItem> loadPeriods(Integer statisticType, Integer timeType,
+                                             String startDate, String endDate) {
         Map<String, Double> clinic = toPeriodMap(
                 financeMapper.queryClinicCounts(statisticType, startDate, endDate, timeType), "cnt");
+
         Map<String, Double> amount = new HashMap<>();
         Map<String, Double> receipt = new HashMap<>();
         for (Map<String, Object> row : financeMapper.queryAcctAmounts(statisticType, startDate, endDate, timeType)) {
@@ -159,20 +160,38 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             amount.put(period, toMapDouble(row.get("amount")));
             receipt.put(period, toMapDouble(row.get("receipt")));
         }
-        Map<String, Double> charges = countRcptVisits(
-                financeMapper.queryRcptRows(statisticType, startDate, endDate, timeType), timeType);
+
+        // 人次：T1 = T2 − T3（净量），T2/T3 直接按对应过滤行去重
+        Map<String, Double> netCares;
+        if (statisticType != null && statisticType == 1) {
+            Map<String, Double> careIn = countRcptVisits(
+                    financeMapper.queryRcptRows(2, startDate, endDate, timeType), timeType);
+            Map<String, Double> careOut = countRcptVisits(
+                    financeMapper.queryRcptRows(3, startDate, endDate, timeType), timeType);
+            netCares = new HashMap<>();
+            for (Map.Entry<String, Double> e : careIn.entrySet()) {
+                netCares.merge(e.getKey(), e.getValue(), Double::sum);
+            }
+            for (Map.Entry<String, Double> e : careOut.entrySet()) {
+                netCares.merge(e.getKey(), -e.getValue(), Double::sum);
+            }
+        } else {
+            netCares = countRcptVisits(
+                    financeMapper.queryRcptRows(statisticType, startDate, endDate, timeType), timeType);
+        }
 
         Set<String> periods = new TreeSet<>();
         periods.addAll(clinic.keySet());
         periods.addAll(amount.keySet());
-        periods.addAll(charges.keySet());
+        periods.addAll(receipt.keySet());
+        periods.addAll(netCares.keySet());
 
         List<DetailListItem> list = new ArrayList<>();
         for (String period : periods) {
             DetailListItem item = new DetailListItem();
             item.setDateTime(period);
             item.setCurrentDateOutpatientVolume(clinic.getOrDefault(period, 0.0));
-            item.setCurrentDateNumberCharges(charges.getOrDefault(period, 0.0));
+            item.setCurrentDateNumberCharges(netCares.getOrDefault(period, 0.0));
             item.setCurrentDateNumberReceipt(receipt.getOrDefault(period, 0.0));
             item.setCurrentDateAmount(amount.getOrDefault(period, 0.0));
             list.add(item);
@@ -182,14 +201,14 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
 
     /**
      * 缴费人次：按患者+收据前缀，序号连续（num == 上一条 + 1）视为同一人次，
-     * 否则（含重复收据）记为新人次；对全范围去重后按周期计数。
+     * 否则记为新人次；对全范围去重后按周期计数。
      */
-    private Map<String, Double> countRcptVisits(List<EtlOutpRcptEntity> rows, Integer timeType) {
+    private Map<String, Double> countRcptVisits(List<OutpFinanceRcptAcct> rows, Integer timeType) {
         Map<String, Double> countByPeriod = new HashMap<>();
         String lastPatient = null;
         String lastPrefix = null;
         long lastNum = -1;
-        for (EtlOutpRcptEntity row : rows) {
+        for (OutpFinanceRcptAcct row : rows) {
             String[] prefixNum = parseRcptNo(row.getRcptNo());
             String prefix = prefixNum[0];
             long num = Long.parseLong(prefixNum[1]);
@@ -212,8 +231,8 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         try {
             Integer type = request.getStatisticType();
             Integer tt = request.getTimeType();
-            String start = request.getStartDate();
-            String end = request.getEndDate();
+            String start = normalizeStart(type, tt, request.getStartDate());
+            String end = normalizeEnd(type, tt, request.getEndDate());
             String pStart = offsetPeriod(start, -12);
             String pEnd = offsetPeriod(end, -12);
 
@@ -232,7 +251,6 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             map.put("8", buildBizTypePie(request));
             map.put("9", buildPie(financeMapper.queryPaymentSumByCategory(type, start, end, tt),
                     financeMapper.queryPaymentSumByCategory(type, pStart, pEnd, tt), null));
-            // 应收金额（business_type=10）：类别清单待数据补充后实现
             map.put("10", new ArrayList<>());
         } catch (Exception e) {
             log.warn("查询门诊财务饼图失败", e);
@@ -258,7 +276,8 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         return items;
     }
 
-    private Map<String, Double> aggregatePie(List<Map<String, Object>> rows, Function<String, String> nameMapper) {
+    private Map<String, Double> aggregatePie(List<Map<String, Object>> rows,
+                                             Function<String, String> nameMapper) {
         Map<String, Double> agg = new LinkedHashMap<>();
         for (Map<String, Object> row : rows) {
             String name = String.valueOf(row.get("name"));
@@ -274,9 +293,12 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
     private List<PieItem> buildBizTypePie(OutpatientFinanceRequest request) {
         Integer type = request.getStatisticType();
         Integer tt = request.getTimeType();
-        Map<String, Double> curr = computeBizType(type, tt, request.getStartDate(), request.getEndDate());
-        Map<String, Double> prev = computeBizType(type, tt,
-                offsetPeriod(request.getStartDate(), -12), offsetPeriod(request.getEndDate(), -12));
+        String start = normalizeStart(type, tt, request.getStartDate());
+        String end = normalizeEnd(type, tt, request.getEndDate());
+        Map<String, Double> curr = computeBizType(type, tt, start, end);
+        String pStart = offsetPeriod(start, -12);
+        String pEnd = offsetPeriod(end, -12);
+        Map<String, Double> prev = computeBizType(type, tt, pStart, pEnd);
         List<PieItem> items = new ArrayList<>();
         for (Map.Entry<String, Double> e : curr.entrySet()) {
             PieItem item = new PieItem();
@@ -292,24 +314,26 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
      * bt8 业务类型金额：分界前挂号费取自 clinic（REGIST_FEE+CLINIC_FEE），
      * 分界后按收据 bill_class='1' 判定当日挂号，其余为门诊缴费。
      */
-    private Map<String, Double> computeBizType(Integer statisticType, Integer timeType, String startDate, String endDate) {
+    private Map<String, Double> computeBizType(Integer statisticType, Integer timeType,
+                                               String startDate, String endDate) {
         Map<String, Double> m = new LinkedHashMap<>();
         m.put("当日挂号", 0.0);
         m.put("门诊缴费", 0.0);
         Date split = Date.from(BIZ_SPLIT_DATE.atStartOfDay(ZoneId.systemDefault()).toInstant());
-        for (EtlClinicEntity c : financeMapper.queryClinicRows(statisticType, startDate, endDate, timeType)) {
+        for (OutpFinanceClinicMaster c : financeMapper.queryClinicRows(statisticType, startDate, endDate, timeType)) {
             if (c.getVisitDate() != null && c.getVisitDate().before(split)) {
                 m.merge("当日挂号", toDouble(c.getRegistFee()) + toDouble(c.getClinicFee()), Double::sum);
             }
         }
-        for (EtlOutpRcptEntity r : financeMapper.queryRcptRows(statisticType, startDate, endDate, timeType)) {
-            boolean regist = r.getVisitDate() != null && !r.getVisitDate().before(split) && "1".equals(r.getBillClass());
+        for (OutpFinanceRcptAcct r : financeMapper.queryRcptRows(statisticType, startDate, endDate, timeType)) {
+            boolean regist = r.getVisitDate() != null
+                    && !r.getVisitDate().before(split)
+                    && "1".equals(r.getBillClass());
             m.merge(regist ? "当日挂号" : "门诊缴费", toDouble(r.getTotalCharges()), Double::sum);
         }
         return m;
     }
 
-    /** 操作员归类：9101 自助机 / C746 线上退费 / 其余 窗口 */
     private String mapOperator(String operatorNo) {
         if (operatorNo == null) {
             return OP_WINDOW;
@@ -322,6 +346,33 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             default:
                 return OP_WINDOW;
         }
+    }
+
+    // ==================== 日期归一化工具 ====================
+
+    /**
+     * 将前端传入的时间字符串归一化为真实日期边界字符串（YYYY-MM-DD）。
+     * timeType=1（月）：startDate = yyyy-MM-01，endDate = 当月最后一天。
+     * timeType=2（天）：直接解析，不变。
+     */
+    private String normalizeStart(Integer statisticType, Integer timeType, String input) {
+        if (input == null) {
+            return null;
+        }
+        if (timeType != null && timeType == 1) {
+            return YearMonth.parse(input).atDay(1).toString();
+        }
+        return input;
+    }
+
+    private String normalizeEnd(Integer statisticType, Integer timeType, String input) {
+        if (input == null) {
+            return null;
+        }
+        if (timeType != null && timeType == 1) {
+            return YearMonth.parse(input).atEndOfMonth().toString();
+        }
+        return input;
     }
 
     // ==================== 组装与工具方法 ====================
@@ -431,7 +482,7 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                 {"窗口", "自助机", "移动支付", "医保"},
                 {"现金", "微信", "支付宝", "银行卡", "医保"},
                 {"挂号", "检查", "检验", "药品", "治疗"},
-                {"应收", "实收"},
+                {"应收账款", "实收金额"},
                 {"挂号", "检查", "检验", "药品", "治疗"}
         };
         Map<String, List<PieItem>> map = new LinkedHashMap<>();

@@ -3,19 +3,13 @@
 <mapper namespace="com.reports.mapper.OutpatientFinanceMapper">
 
     <!-- ============================================================ -->
-    <!-- 通用片段：日期范围（col 通过 property 传入，如 c.VISIT_DATE） -->
-    <!-- 月模式 yyyy-MM（含月末）/ 天模式 yyyy-MM-dd -->
+    <!-- 通用片段：日期范围（归一化后 startDate/endDate 已是真实日期边界） -->
     <!-- ============================================================ -->
     <sql id="dateRangeClause">
-        <if test="timeType == 1">
-            AND ${col} BETWEEN TO_DATE(#{startDate},'YYYY-MM') AND LAST_DAY(TO_DATE(#{endDate},'YYYY-MM'))
-        </if>
-        <if test="timeType == 2">
-            AND ${col} BETWEEN TO_DATE(#{startDate},'YYYY-MM-DD') AND TO_DATE(#{endDate},'YYYY-MM-DD')
-        </if>
+        AND ${col} BETWEEN #{startDate} AND #{endDate}
     </sql>
 
-    <!-- 周期表达式：月模式 YYYY-MM / 天模式 YYYY-MM-DD -->
+    <!-- 周期表达式：月模式 YYYY-MM / 天模式 YYYY-MM-DD（仅 GROUP BY 用） -->
     <sql id="periodExpr">
         <choose>
             <when test="timeType == 1">TO_CHAR(${col},'YYYY-MM')</when>
@@ -23,22 +17,25 @@
         </choose>
     </sql>
 
-    <!-- 收据类型筛选（r = TR_OUTP_RCPT）：T2 排除退费 / T3 仅退费 / T1 全部 -->
+    <!-- 收据进项/退项筛选（rcpt_type=2 进项 / 3 退项） -->
+    <!-- 进项：total_charges >= 0（含 NULL 视为正） -->
+    <!-- 退项：refunded_rcpt_no IS NOT NULL AND total_charges &lt; 0 -->
     <sql id="rcptTypeFilter">
-        <if test="statisticType == 2">AND r.REFUNDED_RCPT_NO IS NULL</if>
-        <if test="statisticType == 3">AND r.REFUNDED_RCPT_NO IS NOT NULL</if>
+        <if test="statisticType == 2">AND NVL(r.TOTAL_CHARGES, 0) &gt;= 0</if>
+        <if test="statisticType == 3">AND r.REFUNDED_RCPT_NO IS NOT NULL AND r.TOTAL_CHARGES &lt; 0</if>
     </sql>
 
-    <!-- 挂号类型筛选（c = TR_CLINIC）：T2 未退号 / T3 退号 / T1 全部 -->
-    <sql id="clinicTypeFilter">
-        <if test="statisticType == 2">AND c.RETURNED_DATE IS NULL</if>
-        <if test="statisticType == 3">AND c.RETURNED_DATE IS NOT NULL</if>
+    <!-- 挂号净量 CASE 表达式（门诊量指标①） -->
+    <!-- T1(汇总)=净量(未退号−退号)；T2=未退号计数；T3=退号计数 -->
+    <sql id="clinicNetCase">
+        <choose>
+            <when test="statisticType == 1">SUM(CASE WHEN c.RETURNED_DATE IS NULL THEN 1 ELSE -1 END)</when>
+            <when test="statisticType == 2">SUM(CASE WHEN c.RETURNED_DATE IS NULL THEN 1 ELSE 0 END)</when>
+            <otherwise>SUM(CASE WHEN c.RETURNED_DATE IS NOT NULL THEN 1 ELSE 0 END)</otherwise>
+        </choose>
     </sql>
 
-    <!-- 收据金额表达式（r = TR_OUTP_RCPT）：T1/T2/T3 均取 TOTAL_CHARGES，由 rcptTypeFilter 选行 -->
-    <sql id="rcptAmountExpr">NVL(SUM(NVL(r.TOTAL_CHARGES,0)),0)</sql>
-
-    <!-- 结账金额表达式（a = TR_OUTP_ACCT）：T1 净额 / T2 含退 / T3 退费 -->
+    <!-- 结账金额表达式（TR_OUTP_FIN_ACCT_MASTER）：T1 净额 / T2 含退 / T3 退费 -->
     <sql id="acctAmountExpr">
         <choose>
             <when test="statisticType == 1">NVL(SUM(NVL(a.TOTAL_COSTS,0)),0)</when>
@@ -47,7 +44,7 @@
         </choose>
     </sql>
 
-    <!-- 结账张数表达式（a = TR_OUTP_ACCT） -->
+    <!-- 结账张数表达式 -->
     <sql id="acctReceiptExpr">
         <choose>
             <when test="statisticType == 1">NVL(SUM(NVL(a.RCPTS_NUM,0)),0)</when>
@@ -56,7 +53,7 @@
         </choose>
     </sql>
 
-    <!-- 支付金额表达式（p = TR_OUTP_PAYMENT）：T1 实收-退 / T2 实收 / T3 退费 -->
+    <!-- 支付金额表达式（TR_OUTP_FIN_PAYMENTS_MONEY）：T1 实收-退 / T2 实收 / T3 退费 -->
     <sql id="paymentAmountExpr">
         <choose>
             <when test="statisticType == 1">NVL(SUM(NVL(p.PAYMENT_AMOUNT,0)-NVL(p.REFUNDED_AMOUNT,0)),0)</when>
@@ -66,160 +63,176 @@
     </sql>
 
     <!-- ============================================================ -->
-    <!-- 门诊量：按周期计数（TR_CLINIC） -->
+    <!-- 1. 门诊量净口径：按 visit_date 分组 -->
     <!-- ============================================================ -->
     <select id="queryClinicCounts" resultType="map">
         SELECT
-        <include refid="periodExpr"><property name="col" value="c.VISIT_DATE"/></include> AS "period",
-        COUNT(1) AS "cnt"
-        FROM TR_CLINIC c
+            <include refid="periodExpr"><property name="col" value="c.VISIT_DATE"/></include> AS "period",
+            <include refid="clinicNetCase"/> AS "cnt"
+        FROM TR_OUTP_FIN_CLINIC_MASTER c
         WHERE 1=1
-        <include refid="clinicTypeFilter"/>
-        <include refid="dateRangeClause"><property name="col" value="c.VISIT_DATE"/></include>
+            <include refid="dateRangeClause"><property name="col" value="c.VISIT_DATE"/></include>
         GROUP BY <include refid="periodExpr"><property name="col" value="c.VISIT_DATE"/></include>
         ORDER BY "period"
     </select>
 
     <!-- ============================================================ -->
-    <!-- 收据张数/金额：按周期聚合（TR_OUTP_ACCT，口径唯一） -->
+    <!-- 2. 收据张数/金额：按 acct_date 分组 -->
     <!-- ============================================================ -->
     <select id="queryAcctAmounts" resultType="map">
         SELECT
-        <include refid="periodExpr"><property name="col" value="a.ACCT_DATE"/></include> AS "period",
-        <include refid="acctAmountExpr"/> AS "amount",
-        <include refid="acctReceiptExpr"/> AS "receipt"
-        FROM TR_OUTP_ACCT a
+            <include refid="periodExpr"><property name="col" value="a.ACCT_DATE"/></include> AS "period",
+            <include refid="acctAmountExpr"/> AS "amount",
+            <include refid="acctReceiptExpr"/> AS "receipt"
+        FROM TR_OUTP_FIN_ACCT_MASTER a
         WHERE 1=1
-        <include refid="dateRangeClause"><property name="col" value="a.ACCT_DATE"/></include>
+            <include refid="dateRangeClause"><property name="col" value="a.ACCT_DATE"/></include>
         GROUP BY <include refid="periodExpr"><property name="col" value="a.ACCT_DATE"/></include>
         ORDER BY "period"
     </select>
 
     <!-- ============================================================ -->
-    <!-- 门诊收据原始行：人次去重在 Service（连续收据规则） -->
+    <!-- 3. 门诊收据原始行：人次去重在 Service -->
     <!-- ============================================================ -->
-    <select id="queryRcptRows" resultType="com.reports.entity.EtlOutpRcptEntity">
+    <select id="queryRcptRows" resultType="com.reports.entity.cash.OutpFinanceRcptAcct">
         SELECT
-        r.ID AS "id",
-        r.RCPT_NO AS "rcptNo",
-        r.PATIENT_ID AS "patientId",
-        r.VISIT_DATE AS "visitDate",
-        r.TOTAL_CHARGES AS "totalCharges",
-        r.REFUNDED_RCPT_NO AS "refundedRcptNo",
-        r.OPERATOR_NO AS "operatorNo",
-        r.BILL_CLASS AS "billClass",
-        r.CREATE_TIME AS "createTime",
-        r.UPDATE_TIME AS "updateTime"
-        FROM TR_OUTP_RCPT r
+            r.RCPT_NO            AS "rcptNo",
+            r.PATIENT_ID         AS "patientId",
+            r.VISIT_DATE         AS "visitDate",
+            r.TOTAL_CHARGES      AS "totalCharges",
+            r.REFUNDED_RCPT_NO   AS "refundedRcptNo",
+            r.OPERATOR_NO        AS "operatorNo",
+            r.BILL_CLASS         AS "billClass",
+            r.CREATE_TIME        AS "createTime",
+            r.UPDATE_TIME        AS "updateTime"
+        FROM TR_OUTP_FIN_RCPT_ACCT r
         WHERE 1=1
-        <include refid="rcptTypeFilter"/>
-        <include refid="dateRangeClause"><property name="col" value="r.VISIT_DATE"/></include>
+            <include refid="rcptTypeFilter"/>
+            <include refid="dateRangeClause"><property name="col" value="r.VISIT_DATE"/></include>
         ORDER BY r.PATIENT_ID, r.RCPT_NO
     </select>
 
     <!-- ============================================================ -->
-    <!-- 门诊挂号原始行：bt8 分界前挂号费计算 -->
+    <!-- 4. 门诊挂号原始行：bt8 分界前挂号费 -->
     <!-- ============================================================ -->
-    <select id="queryClinicRows" resultType="com.reports.entity.EtlClinicEntity">
+    <select id="queryClinicRows" resultType="com.reports.entity.cash.OutpFinanceClinicMaster">
         SELECT
-        c.ID AS "id",
-        c.PATIENT_ID AS "patientId",
-        c.VISIT_DATE AS "visitDate",
-        c.RETURNED_DATE AS "returnedDate",
-        c.REGIST_FEE AS "registFee",
-        c.CLINIC_FEE AS "clinicFee",
-        c.CLINIC_LABEL AS "clinicLabel",
-        c.VISIT_TIME_DESC AS "visitTimeDesc",
-        c.OPERATOR_NO AS "operatorNo",
-        c.CREATE_TIME AS "createTime",
-        c.UPDATE_TIME AS "updateTime"
-        FROM TR_CLINIC c
+            c.PATIENT_ID         AS "patientId",
+            c.VISIT_DATE         AS "visitDate",
+            c.RETURNED_DATE      AS "returnedDate",
+            c.REGIST_FEE         AS "registFee",
+            c.CLINIC_FEE         AS "clinicFee",
+            c.CLINIC_LABEL       AS "clinicLabel",
+            c.VISIT_TIME_DESC    AS "visitTimeDesc",
+            c.OPERATOR_NO        AS "operatorNo",
+            c.CREATE_TIME        AS "createTime",
+            c.UPDATE_TIME        AS "updateTime"
+        FROM TR_OUTP_FIN_CLINIC_MASTER c
         WHERE 1=1
-        <include refid="clinicTypeFilter"/>
-        <include refid="dateRangeClause"><property name="col" value="c.VISIT_DATE"/></include>
+            <include refid="dateRangeClause"><property name="col" value="c.VISIT_DATE"/></include>
         ORDER BY c.VISIT_DATE
     </select>
 
     <!-- ============================================================ -->
-    <!-- bt1/bt3/bt4 订单来源/订单渠道/人次渠道：按操作员计数 -->
+    <!-- 5. bt1/bt3/bt4 订单来源/渠道：按操作员计数 -->
     <!-- ============================================================ -->
     <select id="queryRcptCountByOperator" resultType="map">
-        SELECT r.OPERATOR_NO AS "name", COUNT(1) AS "cnt"
-        FROM TR_OUTP_RCPT r
+        SELECT r.OPERATOR_NO AS "name",
+               SUM(CASE WHEN NVL(r.TOTAL_CHARGES, 0) &gt;= 0 THEN 1 ELSE -1 END) AS "cnt"
+        FROM TR_OUTP_FIN_RCPT_ACCT r
         WHERE 1=1
-        <include refid="rcptTypeFilter"/>
-        <include refid="dateRangeClause"><property name="col" value="r.VISIT_DATE"/></include>
+            <include refid="dateRangeClause"><property name="col" value="r.VISIT_DATE"/></include>
+            <if test="statisticType == 2">AND NVL(r.TOTAL_CHARGES, 0) &gt;= 0</if>
+            <if test="statisticType == 3">AND r.REFUNDED_RCPT_NO IS NOT NULL AND r.TOTAL_CHARGES &lt; 0</if>
         GROUP BY r.OPERATOR_NO
         ORDER BY "cnt" DESC
     </select>
 
     <!-- ============================================================ -->
-    <!-- bt6 渠道金额：按操作员求和 -->
+    <!-- 6. bt6 渠道金额：按操作员求和 -->
     <!-- ============================================================ -->
     <select id="queryRcptSumByOperator" resultType="map">
-        SELECT r.OPERATOR_NO AS "name", <include refid="rcptAmountExpr"/> AS "amount"
-        FROM TR_OUTP_RCPT r
+        SELECT r.OPERATOR_NO AS "name",
+               SUM(CASE WHEN NVL(r.TOTAL_CHARGES, 0) &gt;= 0 THEN NVL(r.TOTAL_CHARGES, 0) ELSE -NVL(r.TOTAL_CHARGES, 0) END) AS "amount"
+        FROM TR_OUTP_FIN_RCPT_ACCT r
         WHERE 1=1
-        <include refid="rcptTypeFilter"/>
-        <include refid="dateRangeClause"><property name="col" value="r.VISIT_DATE"/></include>
+            <include refid="dateRangeClause"><property name="col" value="r.VISIT_DATE"/></include>
+            <if test="statisticType == 2">AND NVL(r.TOTAL_CHARGES, 0) &gt;= 0</if>
+            <if test="statisticType == 3">AND r.REFUNDED_RCPT_NO IS NOT NULL AND r.TOTAL_CHARGES &lt; 0</if>
         GROUP BY r.OPERATOR_NO
         ORDER BY "amount" DESC
     </select>
 
     <!-- ============================================================ -->
-    <!-- bt2 取号渠道：clinic ⋈ timeschedule_queue 按操作员计数 -->
+    <!-- 7. bt2 取号渠道：MOP_QUEUE 直接查（reserve+used + returned_date 非空） -->
     <!-- ============================================================ -->
     <select id="queryQueueCountByOperator" resultType="map">
-        SELECT c.OPERATOR_NO AS "name", COUNT(1) AS "cnt"
-        FROM TR_CLINIC c
-        JOIN TR_TIMESCHEDULE_QUEUE q
+        SELECT c.OPERATOR_NO AS "name",
+               SUM(CASE WHEN c.RETURNED_DATE IS NULL THEN 1 ELSE -1 END) AS "cnt"
+        FROM TR_OUTP_FIN_CLINIC_MASTER c
+        JOIN TR_OUTP_FIN_MOP_QUEUE q
           ON q.SCHEDULE_ID = c.CLINIC_LABEL || '|' || TO_CHAR(c.VISIT_DATE,'YYYYMMDD') || '|' || c.VISIT_TIME_DESC
-        WHERE 1=1
-          AND q.QUEUE_TYPE = 'reserve'
-          AND q.IS_USED = 'used'
-        <include refid="clinicTypeFilter"/>
-        <include refid="dateRangeClause"><property name="col" value="c.VISIT_DATE"/></include>
+         AND q.PATIENT_ID  = c.PATIENT_ID
+        WHERE q.QUEUE_TYPE = 'reserve'
+          AND q.IS_USED    = 'used'
+          AND c.RETURNED_DATE IS NOT NULL
+          <include refid="dateRangeClause"><property name="col" value="c.VISIT_DATE"/></include>
         GROUP BY c.OPERATOR_NO
         ORDER BY "cnt" DESC
     </select>
 
     <!-- ============================================================ -->
-    <!-- bt5 人次支付：按支付方式统计人次（同一患者同一收据去重） -->
+    <!-- 8. bt5 人次支付：PAYMENTS_MONEY ⋈ RCPT_ACCT 按 MoneyType 去重人次 -->
     <!-- ============================================================ -->
     <select id="queryPaymentCountByMoneyType" resultType="map">
         SELECT p.MONEY_TYPE AS "name",
-               COUNT(DISTINCT NVL(p.PATIENT_ID,'-') || '|' || NVL(p.RCPT_NO,'-')) AS "cnt"
-        FROM TR_OUTP_PAYMENT p
+               COUNT(DISTINCT NVL(rc.PATIENT_ID,'-') || '|' || NVL(p.RCPT_NO,'-')) AS "cnt"
+        FROM TR_OUTP_FIN_PAYMENTS_MONEY p
+        JOIN TR_OUTP_FIN_RCPT_ACCT rc ON rc.RCPT_NO = p.RCPT_NO
         WHERE 1=1
-        <if test="statisticType == 2">AND NVL(p.PAYMENT_AMOUNT,0) > 0</if>
-        <if test="statisticType == 3">AND NVL(p.REFUNDED_AMOUNT,0) > 0</if>
-        <include refid="dateRangeClause"><property name="col" value="p.VISIT_DATE"/></include>
+            <include refid="dateRangeClause"><property name="col" value="rc.VISIT_DATE"/></include>
+            <if test="statisticType == 2">AND NVL(p.PAYMENT_AMOUNT,0) &gt; 0</if>
+            <if test="statisticType == 3">AND NVL(p.REFUNDED_AMOUNT,0) &gt; 0</if>
         GROUP BY p.MONEY_TYPE
         ORDER BY "cnt" DESC
     </select>
 
     <!-- ============================================================ -->
-    <!-- bt7 支付方式金额：按支付方式求和 -->
+    <!-- 9. bt7 支付方式金额：PAYMENTS_MONEY ⋈ RCPT_ACCT 按 MoneyType 求和 -->
     <!-- ============================================================ -->
     <select id="queryPaymentSumByMoneyType" resultType="map">
-        SELECT p.MONEY_TYPE AS "name", <include refid="paymentAmountExpr"/> AS "amount"
-        FROM TR_OUTP_PAYMENT p
+        SELECT p.MONEY_TYPE AS "name",
+               <include refid="paymentAmountExpr"/> AS "amount"
+        FROM TR_OUTP_FIN_PAYMENTS_MONEY p
+        JOIN TR_OUTP_FIN_RCPT_ACCT rc ON rc.RCPT_NO = p.RCPT_NO
         WHERE 1=1
-        <include refid="dateRangeClause"><property name="col" value="p.VISIT_DATE"/></include>
+            <include refid="dateRangeClause"><property name="col" value="rc.VISIT_DATE"/></include>
         GROUP BY p.MONEY_TYPE
         ORDER BY "amount" DESC
     </select>
 
     <!-- ============================================================ -->
-    <!-- bt9 应收/实收：按支付方式归类求和 -->
-    <!-- 说明：类别分组（医改统筹/医院垫支=应收，实收方式=实收）待数据确认后细化 CASE -->
+    <!-- 10. bt9 应收/实收：PAYMENTS_MONEY ⋈ RCPT_ACCT，按 MoneyType 归类 -->
+    <!-- 医改统筹/医院垫支 → 应收账款；现金/微信/支付宝/银行卡/医保/自助POS/支票 → 实收；其余 → 其他 -->
     <!-- ============================================================ -->
     <select id="queryPaymentSumByCategory" resultType="map">
-        SELECT p.MONEY_TYPE AS "name", <include refid="paymentAmountExpr"/> AS "amount"
-        FROM TR_OUTP_PAYMENT p
+        SELECT
+            CASE
+                WHEN p.MONEY_TYPE IN ('医改统筹','医院垫支') THEN '应收账款'
+                WHEN p.MONEY_TYPE IN ('支付宝','现金','信用卡','银行卡','微信','自助POS','支票') THEN '实收金额'
+                ELSE '其他'
+            END AS "name",
+            <include refid="paymentAmountExpr"/> AS "amount"
+        FROM TR_OUTP_FIN_PAYMENTS_MONEY p
+        JOIN TR_OUTP_FIN_RCPT_ACCT rc ON rc.RCPT_NO = p.RCPT_NO
         WHERE 1=1
-        <include refid="dateRangeClause"><property name="col" value="p.VISIT_DATE"/></include>
-        GROUP BY p.MONEY_TYPE
+            <include refid="dateRangeClause"><property name="col" value="rc.VISIT_DATE"/></include>
+        GROUP BY
+            CASE
+                WHEN p.MONEY_TYPE IN ('医改统筹','医院垫支') THEN '应收账款'
+                WHEN p.MONEY_TYPE IN ('支付宝','现金','信用卡','银行卡','微信','自助POS','支票') THEN '实收金额'
+                ELSE '其他'
+            END
         ORDER BY "amount" DESC
     </select>
 
