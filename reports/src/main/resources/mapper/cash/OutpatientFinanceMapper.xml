@@ -19,13 +19,13 @@
             <include refid="periodExpr"><property name="col" value="c.VISIT_DATE"/></include> AS "period",
             <choose>
                 <when test="statisticType == 1">
-                    SUM(CASE WHEN c.RETURNED_DATE IS NULL THEN 1 ELSE -1 END) AS "cnt"
+                    SUM(CASE WHEN c.IS_RETURN_TYPE = 1 IS NULL THEN 1 ELSE -1 END) AS "cnt"
                 </when>
                 <when test="statisticType == 2">
-                    SUM(CASE WHEN c.RETURNED_DATE IS NULL THEN 1 ELSE 0 END) AS "cnt"
+                    SUM(CASE WHEN c.IS_RETURN_TYPE = 1 THEN 1 ELSE 0 END) AS "cnt"
                 </when>
                 <otherwise>
-                    SUM(CASE WHEN c.RETURNED_DATE IS NOT NULL THEN 1 ELSE 0 END) AS "cnt"
+                    SUM(CASE WHEN c.IS_RETURN_TYPE = -1 THEN 1 ELSE 0 END) AS "cnt"
                 </otherwise>
             </choose>
         FROM TR_OUTP_FIN_CLINIC_MASTER c
@@ -35,25 +35,25 @@
     </select>
 
     <!-- ============================================================ -->
-    <!-- 2. 收据张数/金额：按 acct_date 分组 -->
+    <!-- 2. 收据张数/金额：按 STAT_DATE 分组 -->
     <!-- T1(汇总)=净额/净张数；T2(进项)=含退总额/含退张数；T3(退项)=退费/退费张数 -->
     <!-- ============================================================ -->
     <select id="queryAcctAmounts" resultType="map">
         SELECT
-            <include refid="periodExpr"><property name="col" value="a.ACCT_DATE"/></include> AS "period",
-            <choose>
-                <when test="statisticType == 1">NVL(SUM(NVL(a.TOTAL_COSTS,0)),0)</when>
-                <when test="statisticType == 2">NVL(SUM(NVL(a.TOTAL_COSTS,0)+NVL(a.REFUND_AMOUNT,0)),0)</when>
-                <otherwise>NVL(SUM(NVL(a.REFUND_AMOUNT,0)),0)</otherwise>
-            </choose> AS "amount",
-            <choose>
-                <when test="statisticType == 1">NVL(SUM(NVL(a.RCPTS_NUM,0)),0)</when>
-                <when test="statisticType == 2">NVL(SUM(NVL(a.RCPTS_NUM,0)+NVL(a.REFUND_NUM,0)),0)</when>
-                <otherwise>NVL(SUM(NVL(a.REFUND_NUM,0)),0)</otherwise>
-            </choose> AS "receipt"
+        <include refid="periodExpr"><property name="col" value="a.STAT_DATE"/></include> AS "period",
+        <choose>
+            <when test="statisticType == 1">SUM(NVL(a.TOTAL_COSTS, 0) - NVL(a.REFUND_AMOUNT, 0))</when>
+            <when test="statisticType == 2">SUM(NVL(a.TOTAL_COSTS, 0))</when>
+            <otherwise>SUM(NVL(a.REFUND_AMOUNT, 0))</otherwise>
+        </choose> AS "amount",
+        <choose>
+            <when test="statisticType == 1">SUM(NVL(a.RCPTS_NUM, 0) - NVL(a.REFUND_NUM, 0))</when>
+            <when test="statisticType == 2">SUM(NVL(a.RCPTS_NUM, 0))</when>
+            <otherwise>SUM(NVL(a.REFUND_NUM, 0))</otherwise>
+        </choose> AS "receipt"
         FROM TR_OUTP_FIN_ACCT_MASTER a
-        WHERE a.ACCT_DATE BETWEEN #{startDate} AND #{endDate}
-        GROUP BY <include refid="periodExpr"><property name="col" value="a.ACCT_DATE"/></include>
+        WHERE a.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+        GROUP BY <include refid="periodExpr"><property name="col" value="a.STAT_DATE"/></include>
         ORDER BY "period"
     </select>
 

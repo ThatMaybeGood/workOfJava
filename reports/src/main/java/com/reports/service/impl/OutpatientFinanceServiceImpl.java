@@ -58,6 +58,15 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
     }
 
     @Override
+    public IndicatorData queryIndicator(OutpatientFinanceRequest request, List<DetailListItem> detailList) {
+        if (dataConfig.isMock()) {
+            return buildIndicatorFromDetail(queryDetailListMock(request));
+        } else {
+            return buildIndicatorFromDetail(detailList);
+        }
+    }
+
+    @Override
     public IndicatorData queryIndicator(OutpatientFinanceRequest request) {
         if (dataConfig.isMock()) {
             return queryIndicatorMock(request);
@@ -73,6 +82,11 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         } else {
             return queryDetailListByMybatisPlus(request);
         }
+    }
+
+    @Override
+    public Map<String, List<BarItem>> queryBarList(OutpatientFinanceRequest request, List<DetailListItem> detailList) {
+        return buildBarFromDetail(detailList);
     }
 
     @Override
@@ -373,7 +387,8 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         if (date == null) {
             return null;
         }
-        LocalDate ld = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate ld = new java.util.Date(date.getTime()).toInstant()
+                .atZone(ZoneId.systemDefault()).toLocalDate();
         return java.sql.Date.valueOf(ld.minusMonths(months));
     }
 
@@ -544,7 +559,8 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         if (date == null) {
             return "";
         }
-        LocalDate ld = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate ld = new java.util.Date(date.getTime()).toInstant()
+                .atZone(ZoneId.systemDefault()).toLocalDate();
         return (timeType != null && timeType == 2) ? ld.toString() : YearMonth.from(ld).toString();
     }
 

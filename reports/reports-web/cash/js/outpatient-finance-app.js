@@ -18,9 +18,10 @@ var statisticTypeMap = { summary: '1', income: '2', refund: '3' };
 var cardsIdMap = { summary: 'cards-summary', income: 'cards-income', refund: 'cards-refund' };
 var currentOuter = 'summary';
 
-// 复合响应缓存（当前外层tab）
+// 复合响应缓存（按 outerType + 日期范围 + 时间粒度 缓存）
 var cachedData = null;
 var cachedOuter = null;
+var cachedDateRange = null; // "startTime|endTime|timeType"
 
 // ===== 全局加载计数器 =====
 var loadingCount = 0;
@@ -52,12 +53,14 @@ async function fetchAll(outerType) {
         endDate: dateRange.endTime
     };
 
+    var dateRangeKey = dateRange.startTime + '|' + dateRange.endTime + '|' + params.timeType;
     console.log('[门诊财务] 请求:', outerType, params);
     showLoading();
     try {
         var data = await apiRequest('reports.cash.outpatient-finance', 'endpoint', params);
         cachedData = data;
         cachedOuter = outerType;
+        cachedDateRange = dateRangeKey;
 
         updateCards(outerType, data.indicator || {});
 
@@ -71,6 +74,8 @@ async function fetchAll(outerType) {
     } catch (err) {
         console.error('[门诊财务] 接口调用失败:', err);
         cachedData = null;
+        cachedOuter = null;
+        cachedDateRange = null;
         updateCards(outerType, {});
         listState[outerType].data = [];
         renderTable(outerType);
@@ -247,7 +252,19 @@ document.querySelectorAll('.outer-tab').forEach(function (tab) {
         document.querySelectorAll('.container > .tab-content').forEach(function (c) { c.classList.remove('active'); });
         document.getElementById('outer-' + id).classList.add('active');
         setTimeout(resizeAllCharts, 50);
-        fetchAll(id);
+        // 检查缓存：outerType + 日期范围 + 时间粒度一致则直接用缓存
+        var dateRangeKey = getDateRange().startTime + '|' + getDateRange().endTime + '|' + (pickerMode === 'day' ? 2 : 1);
+        if (cachedOuter === id && cachedDateRange === dateRangeKey && cachedData) {
+            updateCards(id, cachedData.indicator || {});
+            listState[id].data = cachedData.detailList || [];
+            listState[id].page = 1;
+            renderTable(id);
+            var suffix = getActiveInnerSuffix(id);
+            updateBarFromCache(suffix);
+            updatePiesFromCache(suffix);
+        } else {
+            fetchAll(id);
+        }
     });
 });
 

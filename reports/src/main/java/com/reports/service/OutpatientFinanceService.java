@@ -15,6 +15,11 @@ import java.util.Map;
 public interface OutpatientFinanceService {
 
     /**
+     * 查询指标卡片数据（从已计算的明细列表聚合）
+     */
+    IndicatorData queryIndicator(OutpatientFinanceRequest request, List<DetailListItem> detailList);
+
+    /**
      * 查询指标卡片数据
      */
     IndicatorData queryIndicator(OutpatientFinanceRequest request);
@@ -23,6 +28,11 @@ public interface OutpatientFinanceService {
      * 查询明细列表数据
      */
     List<DetailListItem> queryDetailList(OutpatientFinanceRequest request);
+
+    /**
+     * 查询柱状图数据（business_type 1~4）（从已计算的明细列表组装）
+     */
+    Map<String, List<BarItem>> queryBarList(OutpatientFinanceRequest request, List<DetailListItem> detailList);
 
     /**
      * 查询柱状图数据（business_type 1~4）

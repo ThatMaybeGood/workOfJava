@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.reports.dto.common.ApiRequest;
 import com.reports.dto.common.ApiResponse;
 import com.reports.dto.request.OutpatientFinanceRequest;
+import com.reports.dto.response.cash.outpatient.finance.DetailListItem;
 import com.reports.dto.response.cash.outpatient.finance.OutpatientFinanceResponse;
 import com.reports.enums.ReportModule;
 import com.reports.service.OutpatientFinanceService;
@@ -13,6 +14,8 @@ import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * 门诊财务报表处理器
@@ -49,9 +52,10 @@ public class OutpatientFinanceHandler implements ReportHandler<OutpatientFinance
         }
 
         OutpatientFinanceResponse response = new OutpatientFinanceResponse();
-        response.setIndicator(outpatientFinanceService.queryIndicator(body));
-        response.setDetailList(outpatientFinanceService.queryDetailList(body));
-        response.setBarList(outpatientFinanceService.queryBarList(body));
+        List<DetailListItem> detailList = outpatientFinanceService.queryDetailList(body);
+        response.setIndicator(outpatientFinanceService.queryIndicator(body, detailList));
+        response.setDetailList(detailList);
+        response.setBarList(outpatientFinanceService.queryBarList(body, detailList));
         response.setPieList(outpatientFinanceService.queryPieList(body));
 
         return ApiResponse.success(response, MODULE.getChineseName() + "查询成功！");
