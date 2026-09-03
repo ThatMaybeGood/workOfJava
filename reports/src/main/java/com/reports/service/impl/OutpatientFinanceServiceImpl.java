@@ -237,7 +237,7 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                     && lastPatient.equals(row.getPatientId())
                     && prefix.equals(lastPrefix)
                     && num == lastNum + 1;
-            if (!continuation) {
+            if (!continuation && row.getVisitDate() != null) {
                 countByPeriod.merge(formatPeriod(row.getVisitDate(), timeType), 1.0, Double::sum);
             }
             lastPatient = row.getPatientId();
