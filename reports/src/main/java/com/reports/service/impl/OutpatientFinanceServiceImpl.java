@@ -379,6 +379,10 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         if (period == null) {
             return null;
         }
+        // 月模式 "yyyy-MM" 补上 ".01" 转 Date
+        if (period.length() == 7) {
+            return java.sql.Date.valueOf(period + "-01");
+        }
         return java.sql.Date.valueOf(period);
     }
 
