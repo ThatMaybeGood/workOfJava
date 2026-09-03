@@ -147,8 +147,9 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                 prevByPeriod.put(item.getDateTime(), item);
             }
             for (DetailListItem item : curr) {
-                Date dt = item.getDateTime(); if (dt == null) continue;
-                Date prevDate = offsetDate(parseDate(dt), -12);
+                String period = item.getDateTime();
+                if (period == null) continue;
+                Date prevDate = offsetDate(parseDate(period), -12);
                 DetailListItem prev = prevByPeriod.get(formatPeriod(prevDate, tt));
                 double prevOv = prev != null ? prev.getCurrentDateOutpatientVolume() : 0.0;
                 double prevNc = prev != null ? prev.getCurrentDateNumberCharges() : 0.0;
