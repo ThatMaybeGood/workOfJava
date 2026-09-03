@@ -110,24 +110,45 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         return buildIndicatorFromDetail(queryDetailListByMybatisPlus(request));
     }
 
+    private List<PieItem> buildBizTypePie(OutpatientFinanceRequest request) {
+        Integer type = request.getStatisticType();
+        Integer tt = request.getTimeType();
+        Date start = normalizeDate(type, tt, request.getStartDate());
+        Date end = normalizeDate(type, tt, request.getEndDate());
+        Map<String, Double> curr = computeBizType(type, tt, start, end);
+        Date pStart = offsetDate(start, -12);
+        Date pEnd = offsetDate(end, -12);
+        Map<String, Double> prev = computeBizType(type, tt, pStart, pEnd);
+        List<PieItem> items = new ArrayList<>();
+        for (Map.Entry<String, Double> e : curr.entrySet()) {
+            PieItem item = new PieItem();
+            item.setName(e.getKey());
+            item.setCurrValue(round(e.getValue()));
+            item.setPrevValue(round(prev.getOrDefault(e.getKey(), 0.0)));
+            items.add(item);
+        }
+        return items;
+    }
+
     private List<DetailListItem> queryDetailListByMybatisPlus(OutpatientFinanceRequest request) {
         try {
             Integer type = request.getStatisticType();
             Integer tt = request.getTimeType();
-            String start = normalizeStart(type, tt, request.getStartDate());
-            String end = normalizeEnd(type, tt, request.getEndDate());
+            Date start = normalizeDate(type, tt, request.getStartDate());
+            Date end = normalizeDate(type, tt, request.getEndDate());
 
             List<DetailListItem> curr = loadPeriods(type, tt, start, end);
 
             // 同比：同期（区间向前推 12 个月）
-            String pStart = offsetPeriod(start, -12);
-            String pEnd = offsetPeriod(end, -12);
+            Date pStart = offsetDate(start, -12);
+            Date pEnd = offsetDate(end, -12);
             Map<String, DetailListItem> prevByPeriod = new HashMap<>();
             for (DetailListItem item : loadPeriods(type, tt, pStart, pEnd)) {
                 prevByPeriod.put(item.getDateTime(), item);
             }
             for (DetailListItem item : curr) {
-                DetailListItem prev = prevByPeriod.get(offsetPeriod(item.getDateTime(), -12));
+                Date prevDate = offsetDate(parseDate(item.getDateTime()), -12);
+                DetailListItem prev = prevByPeriod.get(formatPeriod(prevDate, tt));
                 double prevOv = prev != null ? prev.getCurrentDateOutpatientVolume() : 0.0;
                 double prevNc = prev != null ? prev.getCurrentDateNumberCharges() : 0.0;
                 double prevNr = prev != null ? prev.getCurrentDateNumberReceipt() : 0.0;
@@ -149,7 +170,7 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
      * 人次（netCares）对 T1 拆成 T2 − T3，T2/T3 直接用对应过滤行计算。
      */
     private List<DetailListItem> loadPeriods(Integer statisticType, Integer timeType,
-                                             String startDate, String endDate) {
+                                             Date startDate, Date endDate) {
         Map<String, Double> clinic = toPeriodMap(
                 financeMapper.queryClinicCounts(statisticType, startDate, endDate, timeType), "cnt");
 
@@ -231,10 +252,10 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         try {
             Integer type = request.getStatisticType();
             Integer tt = request.getTimeType();
-            String start = normalizeStart(type, tt, request.getStartDate());
-            String end = normalizeEnd(type, tt, request.getEndDate());
-            String pStart = offsetPeriod(start, -12);
-            String pEnd = offsetPeriod(end, -12);
+            Date start = normalizeDate(type, tt, request.getStartDate());
+            Date end = normalizeDate(type, tt, request.getEndDate());
+            Date pStart = offsetDate(start, -12);
+            Date pEnd = offsetDate(end, -12);
 
             map.put("1", buildPie(financeMapper.queryRcptCountByOperator(type, start, end, tt),
                     financeMapper.queryRcptCountByOperator(type, pStart, pEnd, tt), this::mapOperator));
@@ -290,32 +311,12 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         return agg;
     }
 
-    private List<PieItem> buildBizTypePie(OutpatientFinanceRequest request) {
-        Integer type = request.getStatisticType();
-        Integer tt = request.getTimeType();
-        String start = normalizeStart(type, tt, request.getStartDate());
-        String end = normalizeEnd(type, tt, request.getEndDate());
-        Map<String, Double> curr = computeBizType(type, tt, start, end);
-        String pStart = offsetPeriod(start, -12);
-        String pEnd = offsetPeriod(end, -12);
-        Map<String, Double> prev = computeBizType(type, tt, pStart, pEnd);
-        List<PieItem> items = new ArrayList<>();
-        for (Map.Entry<String, Double> e : curr.entrySet()) {
-            PieItem item = new PieItem();
-            item.setName(e.getKey());
-            item.setCurrValue(round(e.getValue()));
-            item.setPrevValue(round(prev.getOrDefault(e.getKey(), 0.0)));
-            items.add(item);
-        }
-        return items;
-    }
-
     /**
      * bt8 业务类型金额：分界前挂号费取自 clinic（REGIST_FEE+CLINIC_FEE），
      * 分界后按收据 bill_class='1' 判定当日挂号，其余为门诊缴费。
      */
     private Map<String, Double> computeBizType(Integer statisticType, Integer timeType,
-                                               String startDate, String endDate) {
+                                               Date startDate, Date endDate) {
         Map<String, Double> m = new LinkedHashMap<>();
         m.put("当日挂号", 0.0);
         m.put("门诊缴费", 0.0);
@@ -351,28 +352,34 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
     // ==================== 日期归一化工具 ====================
 
     /**
-     * 将前端传入的时间字符串归一化为真实日期边界字符串（YYYY-MM-DD）。
-     * timeType=1（月）：startDate = yyyy-MM-01，endDate = 当月最后一天。
-     * timeType=2（天）：直接解析，不变。
+     * 将前端传入的时间字符串归一化为 java.util.Date 边界。
+     * timeType=1（月）：startDate = 当月1日，endDate = 当月最后一天。
+     * timeType=2（天）：直接 parse yyyy-MM-dd。
      */
-    private String normalizeStart(Integer statisticType, Integer timeType, String input) {
+    private Date normalizeDate(Integer statisticType, Integer timeType, String input) {
         if (input == null) {
             return null;
         }
         if (timeType != null && timeType == 1) {
-            return YearMonth.parse(input).atDay(1).toString();
+            YearMonth ym = YearMonth.parse(input);
+            return java.sql.Date.valueOf(ym.atDay(1));
         }
-        return input;
+        return java.sql.Date.valueOf(input);
     }
 
-    private String normalizeEnd(Integer statisticType, Integer timeType, String input) {
-        if (input == null) {
+    private Date offsetDate(Date date, int months) {
+        if (date == null) {
             return null;
         }
-        if (timeType != null && timeType == 1) {
-            return YearMonth.parse(input).atEndOfMonth().toString();
+        LocalDate ld = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        return java.sql.Date.valueOf(ld.minusMonths(months));
+    }
+
+    private Date parseDate(String period) {
+        if (period == null) {
+            return null;
         }
-        return input;
+        return java.sql.Date.valueOf(period);
     }
 
     // ==================== 组装与工具方法 ====================
@@ -535,15 +542,6 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         return (timeType != null && timeType == 2) ? ld.toString() : YearMonth.from(ld).toString();
     }
 
-    private String offsetPeriod(String period, int months) {
-        if (period == null) {
-            return period;
-        }
-        if (period.length() == 7) {
-            return YearMonth.parse(period).minusMonths(months).toString();
-        }
-        return LocalDate.parse(period).minusMonths(months).toString();
-    }
 
     private String calcYoy(double current, double lastYear) {
         if (lastYear == 0) {
