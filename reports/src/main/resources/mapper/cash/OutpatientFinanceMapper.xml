@@ -87,6 +87,47 @@
     </select>
 
     <!-- ============================================================ -->
+    <!-- 3b. 人次：同患者+同日+同前缀+票号连续合并为一人次（窗口函数在库内完成） -->
+    <!-- 前缀=票号尾部数字串之前的部分，纯数字票号用 '#' 哨兵（Oracle 空串即 NULL，会致连续判断失效） -->
+    <!-- 连续性始终按"天"判断（与月/天模式无关），分组按 periodExpr -->
+    <!-- ============================================================ -->
+    <select id="queryVisitCounts" resultType="map">
+        WITH extracted AS (
+            SELECT
+                r.PATIENT_ID AS patient_id,
+                TO_CHAR(r.STAT_DATE, 'YYYY-MM-DD') AS day_str,
+                <include refid="periodExpr"><property name="col" value="r.STAT_DATE"/></include> AS period,
+                NVL(SUBSTR(r.RCPT_NO, 1, LENGTH(r.RCPT_NO) - NVL(LENGTH(REGEXP_SUBSTR(r.RCPT_NO, '[0-9]+$')), 0)), '#') AS prefix,
+                TO_NUMBER(REGEXP_SUBSTR(r.RCPT_NO, '[0-9]+$')) AS num_part
+            FROM TR_OUTP_FIN_RCPT_ACCT r
+            WHERE r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+            <choose>
+                <when test="statisticType == 2">
+                    AND NVL(r.TOTAL_CHARGES, 0) &gt;= 0
+                </when>
+                <when test="statisticType == 3">
+                    AND r.REFUNDED_RCPT_NO IS NOT NULL AND r.TOTAL_CHARGES &lt; 0
+                </when>
+            </choose>
+        ),
+        ordered AS (
+            SELECT period,
+                CASE
+                    WHEN patient_id = LAG(patient_id) OVER (ORDER BY patient_id, day_str, prefix, num_part)
+                     AND day_str = LAG(day_str) OVER (ORDER BY patient_id, day_str, prefix, num_part)
+                     AND prefix = LAG(prefix) OVER (ORDER BY patient_id, day_str, prefix, num_part)
+                     AND num_part = LAG(num_part) OVER (ORDER BY patient_id, day_str, prefix, num_part) + 1
+                    THEN 0 ELSE 1
+                END AS is_new_visit
+            FROM extracted
+        )
+        SELECT period, SUM(is_new_visit) AS "cnt"
+        FROM ordered
+        GROUP BY period
+        ORDER BY period
+    </select>
+
+    <!-- ============================================================ -->
     <!-- 4. 门诊挂号原始行：bt8 分界前挂号费 -->
     <!-- ============================================================ -->
     <select id="queryClinicRows" resultType="com.reports.entity.cash.OutpFinanceClinicMaster">

@@ -12,7 +12,7 @@ import java.util.Map;
 
 /**
  * 门诊财务报表 Mapper
- * <p>读取 ETL 抽取的 5 张明细存储，指标计算与人次去重均在 Service 完成。</p>
+ * <p>读取 ETL 抽取的 5 张明细存储；人次去重由 queryVisitCounts 在库内完成，其余指标计算在 Service。</p>
  */
 @Mapper
 public interface OutpatientFinanceMapper {
@@ -40,6 +40,14 @@ public interface OutpatientFinanceMapper {
                                             @Param("startDate") Date startDate,
                                             @Param("endDate") Date endDate,
                                             @Param("timeType") Integer timeType);
+
+    /**
+     * 缴费人次：同患者+同日+同前缀+票号连续合并为一人次（窗口函数在库内完成，只返回周期+人次）
+     */
+    List<Map<String, Object>> queryVisitCounts(@Param("statisticType") Integer statisticType,
+                                               @Param("startDate") Date startDate,
+                                               @Param("endDate") Date endDate,
+                                               @Param("timeType") Integer timeType);
 
     /**
      * 门诊挂号原始行（bt8 分界前挂号费计算）

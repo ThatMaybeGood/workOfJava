@@ -20,7 +20,6 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -218,13 +217,13 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             receipt.put(period, toMapDouble(row.get("receipt")));
         }
 
-        // 人次：T1 = T2 − T3（净量），T2/T3 直接按对应过滤行去重
+        // 人次：T1 = T2 − T3（净量），人次合并由 SQL 窗口函数完成（同患者+同日+同前缀+票号连续）
         Map<String, Double> netCares;
         if (statisticType != null && statisticType == 1) {
-            Map<String, Double> careIn = countRcptVisits(
-                    financeMapper.queryRcptRows(2, startDate, endDate, timeType), timeType);
-            Map<String, Double> careOut = countRcptVisits(
-                    financeMapper.queryRcptRows(3, startDate, endDate, timeType), timeType);
+            Map<String, Double> careIn = toPeriodMap(
+                    financeMapper.queryVisitCounts(2, startDate, endDate, timeType), "cnt");
+            Map<String, Double> careOut = toPeriodMap(
+                    financeMapper.queryVisitCounts(3, startDate, endDate, timeType), "cnt");
             netCares = new HashMap<>();
             for (Map.Entry<String, Double> e : careIn.entrySet()) {
                 netCares.merge(e.getKey(), e.getValue(), Double::sum);
@@ -233,8 +232,8 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                 netCares.merge(e.getKey(), -e.getValue(), Double::sum);
             }
         } else {
-            netCares = countRcptVisits(
-                    financeMapper.queryRcptRows(statisticType, startDate, endDate, timeType), timeType);
+            netCares = toPeriodMap(
+                    financeMapper.queryVisitCounts(statisticType, startDate, endDate, timeType), "cnt");
         }
 
         Set<String> periods = new TreeSet<>();
@@ -254,59 +253,6 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             list.add(item);
         }
         return list;
-    }
-
-    /**
-     * 缴费人次：同一患者 + 同一天 + 同一前缀 + 序号连续（num == 上一条 + 1）视为同一人次，
-     * 否则记为新人次；按周期（天/月）分组计数。
-     */
-    private Map<String, Double> countRcptVisits(List<OutpFinanceRcptAcct> rows, Integer timeType) {
-        // 先按 patient_id, statDate, prefix, num 排序，确保连续判断正确
-        List<OutpFinanceRcptAcct> sorted = new ArrayList<>(rows);
-        sorted.sort(Comparator
-                .comparing(OutpFinanceRcptAcct::getPatientId,
-                        Comparator.nullsLast(String::compareTo))
-                .thenComparing(r -> parseDate(r.getStatDate()) != null
-                        ? parseDate(r.getStatDate()).getTime() : Long.MAX_VALUE)
-                .thenComparing(r -> parseRcptNo(r.getRcptNo())[0])
-                .thenComparingLong(r -> {
-                    try {
-                        return Long.parseLong(parseRcptNo(r.getRcptNo())[1]);
-                    } catch (NumberFormatException e) {
-                        return Long.MAX_VALUE;
-                    }
-                }));
-
-        Map<String, Double> countByPeriod = new HashMap<>();
-        String lastPatient = null;
-        String lastDay = null;
-        String lastPrefix = null;
-        long lastNum = -1;
-        for (OutpFinanceRcptAcct row : sorted) {
-            String[] prefixNum = parseRcptNo(row.getRcptNo());
-            String prefix = prefixNum[0];
-            long num;
-            try {
-                num = Long.parseLong(prefixNum[1]);
-            } catch (NumberFormatException e) {
-                num = -1;
-            }
-            Date statDate = parseDate(row.getStatDate());
-            String day = statDate != null ? formatPeriod(statDate, 2) : "";
-            boolean continuation = lastPatient != null
-                    && lastPatient.equals(row.getPatientId())
-                    && lastDay.equals(day)
-                    && prefix.equals(lastPrefix)
-                    && num == lastNum + 1;
-            if (!continuation && statDate != null) {
-                countByPeriod.merge(formatPeriod(statDate, timeType), 1.0, Double::sum);
-            }
-            lastPatient = row.getPatientId();
-            lastDay = day;
-            lastPrefix = prefix;
-            lastNum = num;
-        }
-        return countByPeriod;
     }
 
     private Map<String, List<PieItem>> queryPieListByMybatisPlus(OutpatientFinanceRequest request, Set<String> types) {
@@ -605,19 +551,6 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
 
     private double toMapDouble(Object value) {
         return value instanceof Number ? ((Number) value).doubleValue() : 0.0;
-    }
-
-    private String[] parseRcptNo(String rcptNo) {
-        if (rcptNo == null || rcptNo.isEmpty()) {
-            return new String[]{"", "0"};
-        }
-        int i = rcptNo.length() - 1;
-        while (i >= 0 && Character.isDigit(rcptNo.charAt(i))) {
-            i--;
-        }
-        String prefix = rcptNo.substring(0, i + 1);
-        String numStr = rcptNo.substring(i + 1);
-        return new String[]{prefix, numStr.isEmpty() ? "0" : numStr};
     }
 
     private String formatPeriod(Date date, Integer timeType) {
