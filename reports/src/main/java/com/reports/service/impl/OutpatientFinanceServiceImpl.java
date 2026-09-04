@@ -212,7 +212,9 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         Map<String, Double> amount = new HashMap<>();
         Map<String, Double> receipt = new HashMap<>();
         for (Map<String, Object> row : financeMapper.queryAcctAmounts(statisticType, startDate, endDate, timeType)) {
-            String period = String.valueOf(row.get("period"));
+            Object p = row.get("period");
+            if (p == null) continue;
+            String period = String.valueOf(p);
             amount.put(period, toMapDouble(row.get("amount")));
             receipt.put(period, toMapDouble(row.get("receipt")));
         }
@@ -406,11 +408,16 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         if (dateStr.length() > 10) {
             dateStr = dateStr.substring(0, 10);
         }
-        // 月模式 "yyyy-MM" 补上 "-01" 转 Date
-        if (dateStr.length() == 7) {
-            return java.sql.Date.valueOf(dateStr + "-01");
+        try {
+            // 月模式 "yyyy-MM" 补上 "-01" 转 Date
+            if (dateStr.length() == 7) {
+                return java.sql.Date.valueOf(dateStr + "-01");
+            }
+            return java.sql.Date.valueOf(dateStr);
+        } catch (IllegalArgumentException e) {
+            log.warn("无法解析的周期字符串: [{}]", period);
+            return null;
         }
-        return java.sql.Date.valueOf(dateStr);
     }
 
     // ==================== 组装与工具方法 ====================
@@ -544,7 +551,9 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
     private Map<String, Double> toPeriodMap(List<Map<String, Object>> rows, String key) {
         Map<String, Double> map = new LinkedHashMap<>();
         for (Map<String, Object> row : rows) {
-            map.put(String.valueOf(row.get("period")), toMapDouble(row.get(key)));
+            Object p = row.get("period");
+            if (p == null) continue;
+            map.put(String.valueOf(p), toMapDouble(row.get(key)));
         }
         return map;
     }
