@@ -269,9 +269,12 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             Date end = normalizeDate(type, tt, request.getEndDate());
             Date pStart = offsetDate(start, -12);
             Date pEnd = offsetDate(end, -12);
+            log.info("[门诊财务饼图] 请求类型 bt={}, 当期 [{}, {}], 同比 [{}, {}]",
+                    types, start, end, pStart, pEnd);
 
             // bt1/3/4 共用同一查询（订单来源/收据来源/渠道）
             if (types.contains("1") || types.contains("3") || types.contains("4")) {
+                log.info("[门诊财务饼图] bt1/3/4: 订单来源/收据来源/渠道 → queryRcptCountByOperator");
                 List<PieItem> pieOperator = buildPie(
                         financeMapper.queryRcptCountByOperator(type, start, end, tt),
                         financeMapper.queryRcptCountByOperator(type, pStart, pEnd, tt), this::mapOperator);
@@ -280,29 +283,36 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                 if (types.contains("4")) map.put("4", pieOperator);
             }
             if (types.contains("2")) {
+                log.info("[门诊财务饼图] bt2: 取号渠道 → queryQueueCountByOperator");
                 map.put("2", buildPie(financeMapper.queryQueueCountByOperator(type, start, end, tt),
                         financeMapper.queryQueueCountByOperator(type, pStart, pEnd, tt), this::mapOperator));
             }
             if (types.contains("5")) {
+                log.info("[门诊财务饼图] bt5: 人次支付(按支付方式人次) → queryPaymentCountByMoneyType");
                 map.put("5", buildPie(financeMapper.queryPaymentCountByMoneyType(type, start, end, tt),
                         financeMapper.queryPaymentCountByMoneyType(type, pStart, pEnd, tt), null));
             }
             if (types.contains("6")) {
+                log.info("[门诊财务饼图] bt6: 渠道金额(按操作员金额) → queryRcptSumByOperator");
                 map.put("6", buildPie(financeMapper.queryRcptSumByOperator(type, start, end, tt),
                         financeMapper.queryRcptSumByOperator(type, pStart, pEnd, tt), this::mapOperator));
             }
             if (types.contains("7")) {
+                log.info("[门诊财务饼图] bt7: 支付方式金额(按支付方式金额) → queryPaymentSumByMoneyType");
                 map.put("7", buildPie(financeMapper.queryPaymentSumByMoneyType(type, start, end, tt),
                         financeMapper.queryPaymentSumByMoneyType(type, pStart, pEnd, tt), null));
             }
             if (types.contains("8")) {
+                log.info("[门诊财务饼图] bt8: 业务类型金额(当日挂号/门诊缴费) → computeBizType(分界: 2025-02-08)");
                 map.put("8", buildBizTypePie(request));
             }
             if (types.contains("9")) {
+                log.info("[门诊财务饼图] bt9: 应收/实收 → queryPaymentSumByCategory");
                 map.put("9", buildPie(financeMapper.queryPaymentSumByCategory(type, start, end, tt),
                         financeMapper.queryPaymentSumByCategory(type, pStart, pEnd, tt), null));
             }
             if (types.contains("10")) {
+                log.info("[门诊财务饼图] bt10: 应收金额(占位, 无数据)");
                 map.put("10", new ArrayList<>());
             }
         } catch (Exception e) {
