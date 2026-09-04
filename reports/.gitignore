@@ -60,3 +60,10 @@ surefire-reports/
 /data/etl_*.trace.db
 ../data/etl_*.mv.db
 ../data/etl_*.trace.db
+
+# 本地工具与配置目录（不提交）
+.qoder/
+.vscode/
+.gitattributes
+.claude/*
+!.claude/settings.local.json
