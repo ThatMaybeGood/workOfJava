@@ -44,16 +44,38 @@ function getDateRange() {
 }
 
 // ===== 单接口复合请求 =====
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+// 月模式：start=当月1号；end与start同月→当月最后一天，否则→前一个月最后一天
+function toQueryDateRange() {
+    if (pickerMode === 'day') {
+        return {
+            startDate: rangeStart.year + '-' + pad2(rangeStart.month) + '-' + pad2(rangeStart.day),
+            endDate: rangeEnd.year + '-' + pad2(rangeEnd.month) + '-' + pad2(rangeEnd.day)
+        };
+    }
+    var startDate = rangeStart.year + '-' + pad2(rangeStart.month) + '-01';
+    var endDate;
+    if (rangeStart.year === rangeEnd.year && rangeStart.month === rangeEnd.month) {
+        endDate = rangeEnd.year + '-' + pad2(rangeEnd.month) + '-' + getDaysInMonth(rangeEnd.year, rangeEnd.month);
+    } else {
+        var ly = rangeEnd.month === 1 ? rangeEnd.year - 1 : rangeEnd.year;
+        var lm = rangeEnd.month === 1 ? 12 : rangeEnd.month - 1;
+        endDate = ly + '-' + pad2(lm) + '-' + getDaysInMonth(ly, lm);
+    }
+    return { startDate: startDate, endDate: endDate };
+}
+
 async function fetchAll(outerType) {
-    var dateRange = getDateRange();
+    var queryRange = toQueryDateRange();
     var params = {
         statisticType: parseInt(statisticTypeMap[outerType]),
         timeType: pickerMode === 'day' ? 2 : 1,
-        startDate: dateRange.startTime,
-        endDate: dateRange.endTime
+        startDate: queryRange.startDate,
+        endDate: queryRange.endDate
     };
 
-    var dateRangeKey = dateRange.startTime + '|' + dateRange.endTime + '|' + params.timeType;
+    var dateRangeKey = queryRange.startDate + '|' + queryRange.endDate + '|' + params.timeType;
     console.log('[门诊财务] 请求:', outerType, params);
     showLoading();
     try {
@@ -252,8 +274,9 @@ document.querySelectorAll('.outer-tab').forEach(function (tab) {
         document.querySelectorAll('.container > .tab-content').forEach(function (c) { c.classList.remove('active'); });
         document.getElementById('outer-' + id).classList.add('active');
         setTimeout(resizeAllCharts, 50);
-        // 检查缓存：outerType + 日期范围 + 时间粒度一致则直接用缓存
-        var dateRangeKey = getDateRange().startTime + '|' + getDateRange().endTime + '|' + (pickerMode === 'day' ? 2 : 1);
+        // 检查缓存：outerType + 查询日期范围 + 时间粒度一致则直接用缓存
+        var queryRange = toQueryDateRange();
+        var dateRangeKey = queryRange.startDate + '|' + queryRange.endDate + '|' + (pickerMode === 'day' ? 2 : 1);
         if (cachedOuter === id && cachedDateRange === dateRangeKey && cachedData) {
             updateCards(id, cachedData.indicator || {});
             listState[id].data = cachedData.detailList || [];

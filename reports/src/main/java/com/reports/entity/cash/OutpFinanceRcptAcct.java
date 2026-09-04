@@ -13,6 +13,8 @@ import java.util.Date;
 public class OutpFinanceRcptAcct implements Serializable {
 
     private static final long serialVersionUID = 1L;
+    @TableField("stat_date")
+    private String statDate;
 
     @TableField("rcpt_no")
     private String rcptNo;

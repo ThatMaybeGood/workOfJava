@@ -20,6 +20,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -237,26 +238,52 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
     }
 
     /**
-     * 缴费人次：按患者+收据前缀，序号连续（num == 上一条 + 1）视为同一人次，
-     * 否则记为新人次；对全范围去重后按周期计数。
+     * 缴费人次：同一患者 + 同一天 + 同一前缀 + 序号连续（num == 上一条 + 1）视为同一人次，
+     * 否则记为新人次；按周期（天/月）分组计数。
      */
     private Map<String, Double> countRcptVisits(List<OutpFinanceRcptAcct> rows, Integer timeType) {
+        // 先按 patient_id, statDate, prefix, num 排序，确保连续判断正确
+        List<OutpFinanceRcptAcct> sorted = new ArrayList<>(rows);
+        sorted.sort(Comparator
+                .comparing(OutpFinanceRcptAcct::getPatientId,
+                        Comparator.nullsLast(String::compareTo))
+                .thenComparing(r -> parseDate(r.getStatDate()) != null
+                        ? parseDate(r.getStatDate()).getTime() : Long.MAX_VALUE)
+                .thenComparing(r -> parseRcptNo(r.getRcptNo())[0])
+                .thenComparingLong(r -> {
+                    try {
+                        return Long.parseLong(parseRcptNo(r.getRcptNo())[1]);
+                    } catch (NumberFormatException e) {
+                        return Long.MAX_VALUE;
+                    }
+                }));
+
         Map<String, Double> countByPeriod = new HashMap<>();
         String lastPatient = null;
+        String lastDay = null;
         String lastPrefix = null;
         long lastNum = -1;
-        for (OutpFinanceRcptAcct row : rows) {
+        for (OutpFinanceRcptAcct row : sorted) {
             String[] prefixNum = parseRcptNo(row.getRcptNo());
             String prefix = prefixNum[0];
-            long num = Long.parseLong(prefixNum[1]);
+            long num;
+            try {
+                num = Long.parseLong(prefixNum[1]);
+            } catch (NumberFormatException e) {
+                num = -1;
+            }
+            Date statDate = parseDate(row.getStatDate());
+            String day = statDate != null ? formatPeriod(statDate, 2) : "";
             boolean continuation = lastPatient != null
                     && lastPatient.equals(row.getPatientId())
+                    && lastDay.equals(day)
                     && prefix.equals(lastPrefix)
                     && num == lastNum + 1;
-            if (!continuation && row.getVisitDate() != null) {
-                countByPeriod.merge(formatPeriod(row.getVisitDate(), timeType), 1.0, Double::sum);
+            if (!continuation && statDate != null) {
+                countByPeriod.merge(formatPeriod(statDate, timeType), 1.0, Double::sum);
             }
             lastPatient = row.getPatientId();
+            lastDay = day;
             lastPrefix = prefix;
             lastNum = num;
         }
@@ -368,17 +395,11 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
     // ==================== 日期归一化工具 ====================
 
     /**
-     * 将前端传入的时间字符串归一化为 java.util.Date 边界。
-     * timeType=1（月）：startDate = 当月1日，endDate = 当月最后一天。
-     * timeType=2（天）：直接 parse yyyy-MM-dd。
+     * 前端已将月/天模式统一转为日期范围传入，直接解析 yyyy-MM-dd。
      */
     private Date normalizeDate(Integer statisticType, Integer timeType, String input) {
         if (input == null) {
             return null;
-        }
-        if (timeType != null && timeType == 1) {
-            YearMonth ym = YearMonth.parse(input);
-            return java.sql.Date.valueOf(ym.atDay(1));
         }
         return java.sql.Date.valueOf(input);
     }
@@ -389,18 +410,23 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         }
         LocalDate ld = new java.util.Date(date.getTime()).toInstant()
                 .atZone(ZoneId.systemDefault()).toLocalDate();
-        return java.sql.Date.valueOf(ld.minusMonths(months));
+        return java.sql.Date.valueOf(ld.plusMonths(months));
     }
 
     private Date parseDate(String period) {
         if (period == null) {
             return null;
         }
-        // 月模式 "yyyy-MM" 补上 ".01" 转 Date
-        if (period.length() == 7) {
-            return java.sql.Date.valueOf(period + "-01");
+        // 去掉时间部分，只保留日期
+        String dateStr = period.trim();
+        if (dateStr.length() > 10) {
+            dateStr = dateStr.substring(0, 10);
         }
-        return java.sql.Date.valueOf(period);
+        // 月模式 "yyyy-MM" 补上 "-01" 转 Date
+        if (dateStr.length() == 7) {
+            return java.sql.Date.valueOf(dateStr + "-01");
+        }
+        return java.sql.Date.valueOf(dateStr);
     }
 
     // ==================== 组装与工具方法 ====================

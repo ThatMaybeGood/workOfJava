@@ -19,7 +19,7 @@
             <include refid="periodExpr"><property name="col" value="c.VISIT_DATE"/></include> AS "period",
             <choose>
                 <when test="statisticType == 1">
-                    SUM(CASE WHEN c.IS_RETURN_TYPE = 1 IS NULL THEN 1 ELSE -1 END) AS "cnt"
+                    SUM(CASE WHEN c.IS_RETURN_TYPE = 1 THEN 1 ELSE -1 END) AS "cnt"
                 </when>
                 <when test="statisticType == 2">
                     SUM(CASE WHEN c.IS_RETURN_TYPE = 1 THEN 1 ELSE 0 END) AS "cnt"
@@ -63,6 +63,7 @@
     <!-- ============================================================ -->
     <select id="queryRcptRows" resultType="com.reports.entity.cash.OutpFinanceRcptAcct">
         SELECT
+            r.STAT_DATE          AS "statDate",
             r.RCPT_NO            AS "rcptNo",
             r.PATIENT_ID         AS "patientId",
             r.VISIT_DATE         AS "visitDate",
@@ -73,7 +74,7 @@
             r.CREATE_TIME        AS "createTime",
             r.UPDATE_TIME        AS "updateTime"
         FROM TR_OUTP_FIN_RCPT_ACCT r
-        WHERE r.VISIT_DATE BETWEEN #{startDate} AND #{endDate}
+        WHERE r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
         <choose>
             <when test="statisticType == 2">
                 AND NVL(r.TOTAL_CHARGES, 0) &gt;= 0
@@ -82,7 +83,7 @@
                 AND r.REFUNDED_RCPT_NO IS NOT NULL AND r.TOTAL_CHARGES &lt; 0
             </when>
         </choose>
-        ORDER BY r.PATIENT_ID, r.RCPT_NO
+        ORDER BY r.PATIENT_ID, r.STAT_DATE, r.RCPT_NO
     </select>
 
     <!-- ============================================================ -->
