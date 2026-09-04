@@ -44,4 +44,9 @@ public interface OutpatientFinanceService {
      */
     Map<String, List<PieItem>> queryPieList(OutpatientFinanceRequest request);
 
+    /**
+     * 按指定业务类型查询饼状图数据（逗号分隔，如 "1,2,3"），用于内层 tab 按需加载
+     */
+    Map<String, List<PieItem>> queryPieList(OutpatientFinanceRequest request, String pieTypes);
+
 }

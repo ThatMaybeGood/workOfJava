@@ -1,7 +1,8 @@
 /**
  * 门诊财务报表 - 页面逻辑
- * 请求走统一网关 apiRequest('reports.cash.outpatient-finance')，一次调用返回复合数据：
- *   indicator（卡片）/ detailList（明细表）/ barList（柱图 1~4）/ pieList（饼图 1~10）
+ * 请求走统一网关 apiRequest('reports.cash.outpatient-finance')：
+ *   主请求（不带 pieTypes）：一次调用返回 indicator（卡片）/ detailList（明细表）/ barList（柱图 1~4）
+ *   饼图按需请求（带 pieTypes，如 "1,2,3"）：点内层分析 tab 时才查询对应类型的饼图，前端按 outerType+日期范围+tab 缓存
  * 外层tab切换时请求一次并缓存，内层tab切换读缓存，避免重复请求。
  */
 
@@ -92,7 +93,7 @@ async function fetchAll(outerType) {
 
         var suffix = getActiveInnerSuffix(outerType);
         updateBarFromCache(suffix);
-        updatePiesFromCache(suffix);
+        ensurePies(outerType, suffix);
     } catch (err) {
         console.error('[门诊财务] 接口调用失败:', err);
         cachedData = null;
@@ -102,7 +103,7 @@ async function fetchAll(outerType) {
         listState[outerType].data = [];
         renderTable(outerType);
         updateBarFromCache(getActiveInnerSuffix(outerType));
-        updatePiesFromCache(getActiveInnerSuffix(outerType));
+        ensurePies(outerType, getActiveInnerSuffix(outerType));
     } finally {
         hideLoading();
     }
@@ -284,7 +285,7 @@ document.querySelectorAll('.outer-tab').forEach(function (tab) {
             renderTable(id);
             var suffix = getActiveInnerSuffix(id);
             updateBarFromCache(suffix);
-            updatePiesFromCache(suffix);
+            ensurePies(id, suffix);
         } else {
             fetchAll(id);
         }
@@ -365,7 +366,7 @@ document.querySelectorAll('.inner-tab').forEach(function (tab) {
         var suffix = parts[parts.length - 1];
         if (cachedOuter === currentOuter && cachedData) {
             updateBarFromCache(suffix);
-            updatePiesFromCache(suffix);
+            ensurePies(currentOuter, suffix);
         } else {
             fetchAll(currentOuter);
         }
@@ -525,8 +526,7 @@ function updatePieChart(domId, pieData) {
     renderPieLegend(domId, pieData);
 }
 
-function updatePiesFromCache(innerSuffix) {
-    if (!cachedData) return;
+function updatePiesFromList(innerSuffix, pieList) {
     var pieNums = innerTabPieMap[innerSuffix];
     if (!pieNums || pieNums.length === 0) return;
     var map = pieChartMap[currentOuter];
@@ -535,7 +535,7 @@ function updatePiesFromCache(innerSuffix) {
         var domId = 'pie-' + currentOuter + '-' + innerSuffix + '-' + num;
         var bt = map[domId];
         if (!bt) return;
-        var list = (cachedData.pieList || {})[String(bt)] || [];
+        var list = (pieList || {})[String(bt)] || [];
         var pieData = [];
         list.forEach(function (item) {
             if (item.name && item.name.trim() !== '') {
@@ -548,6 +548,54 @@ function updatePiesFromCache(innerSuffix) {
         });
         updatePieChart(domId, pieData);
     });
+}
+
+// ===== 饼图按需加载（内层 tab 点击时才请求对应类型的饼图） =====
+// 内层tab后缀 -> 需要的饼图业务类型（与后端 business_type 对应）
+var innerTabPieTypesMap = {
+    'visit': '1,2,3',
+    'pay': '4,5',
+    'receipt': '4,5',
+    'net': '6,7,8,9,10',
+    'amount': '6,7,8,9,10'
+};
+
+// 饼图缓存：outerType|日期范围|innerSuffix -> pieList
+var pieCache = {};
+
+function currentRangeKey() {
+    var queryRange = toQueryDateRange();
+    return queryRange.startDate + '|' + queryRange.endDate + '|' + (pickerMode === 'day' ? 2 : 1);
+}
+
+async function ensurePies(outerType, innerSuffix) {
+    var types = innerTabPieTypesMap[innerSuffix];
+    if (!types) return;
+    var key = outerType + '|' + currentRangeKey() + '|' + innerSuffix;
+    if (pieCache[key]) {
+        updatePiesFromList(innerSuffix, pieCache[key]);
+        return;
+    }
+    var queryRange = toQueryDateRange();
+    var params = {
+        statisticType: parseInt(statisticTypeMap[outerType]),
+        timeType: pickerMode === 'day' ? 2 : 1,
+        startDate: queryRange.startDate,
+        endDate: queryRange.endDate,
+        pieTypes: types
+    };
+    console.log('[门诊财务] 请求饼图:', outerType, innerSuffix, types);
+    showLoading();
+    try {
+        var data = await apiRequest('reports.cash.outpatient-finance', 'endpoint', params);
+        pieCache[key] = data.pieList || {};
+        updatePiesFromList(innerSuffix, pieCache[key]);
+    } catch (err) {
+        console.error('[门诊财务] 饼图查询失败:', err);
+        updatePiesFromList(innerSuffix, {});
+    } finally {
+        hideLoading();
+    }
 }
 
 // 初始化空柱状图（页面加载后由接口填充数据）

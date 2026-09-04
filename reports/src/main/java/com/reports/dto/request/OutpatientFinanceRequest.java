@@ -33,4 +33,10 @@ public class OutpatientFinanceRequest extends BaseRequestBody {
      */
     private String endDate;
 
+    /**
+     * 按需查询的饼图业务类型（逗号分隔，如 "1,2,3"）。
+     * 不传表示查全部；传入时后端只返回这些类型的饼图数据（仅 pieList 有值）
+     */
+    private String pieTypes;
+
 }

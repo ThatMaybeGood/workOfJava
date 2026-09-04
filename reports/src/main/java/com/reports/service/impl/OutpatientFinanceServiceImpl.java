@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,10 +98,28 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
 
     @Override
     public Map<String, List<PieItem>> queryPieList(OutpatientFinanceRequest request) {
-        if (dataConfig.isMock()) {
-            return buildPieListMock();
+        return queryPieList(request, null);
+    }
+
+    @Override
+    public Map<String, List<PieItem>> queryPieList(OutpatientFinanceRequest request, String pieTypes) {
+        Set<String> types = new HashSet<>();
+        if (pieTypes != null && !pieTypes.trim().isEmpty()) {
+            for (String t : pieTypes.split(",")) {
+                String v = t.trim();
+                if (!v.isEmpty()) {
+                    types.add(v);
+                }
+            }
         } else {
-            return queryPieListByMybatisPlus(request);
+            for (int i = 1; i <= 10; i++) {
+                types.add(String.valueOf(i));
+            }
+        }
+        if (dataConfig.isMock()) {
+            return buildPieListMock(types);
+        } else {
+            return queryPieListByMybatisPlus(request, types);
         }
     }
 
@@ -290,7 +309,7 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         return countByPeriod;
     }
 
-    private Map<String, List<PieItem>> queryPieListByMybatisPlus(OutpatientFinanceRequest request) {
+    private Map<String, List<PieItem>> queryPieListByMybatisPlus(OutpatientFinanceRequest request, Set<String> types) {
         Map<String, List<PieItem>> map = new LinkedHashMap<>();
         try {
             Integer type = request.getStatisticType();
@@ -300,26 +319,45 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             Date pStart = offsetDate(start, -12);
             Date pEnd = offsetDate(end, -12);
 
-            map.put("1", buildPie(financeMapper.queryRcptCountByOperator(type, start, end, tt),
-                    financeMapper.queryRcptCountByOperator(type, pStart, pEnd, tt), this::mapOperator));
-            map.put("2", buildPie(financeMapper.queryQueueCountByOperator(type, start, end, tt),
-                    financeMapper.queryQueueCountByOperator(type, pStart, pEnd, tt), this::mapOperator));
-            map.put("3", map.get("1"));
-            map.put("4", map.get("1"));
-            map.put("5", buildPie(financeMapper.queryPaymentCountByMoneyType(type, start, end, tt),
-                    financeMapper.queryPaymentCountByMoneyType(type, pStart, pEnd, tt), null));
-            map.put("6", buildPie(financeMapper.queryRcptSumByOperator(type, start, end, tt),
-                    financeMapper.queryRcptSumByOperator(type, pStart, pEnd, tt), this::mapOperator));
-            map.put("7", buildPie(financeMapper.queryPaymentSumByMoneyType(type, start, end, tt),
-                    financeMapper.queryPaymentSumByMoneyType(type, pStart, pEnd, tt), null));
-            map.put("8", buildBizTypePie(request));
-            map.put("9", buildPie(financeMapper.queryPaymentSumByCategory(type, start, end, tt),
-                    financeMapper.queryPaymentSumByCategory(type, pStart, pEnd, tt), null));
-            map.put("10", new ArrayList<>());
+            // bt1/3/4 共用同一查询（订单来源/收据来源/渠道）
+            if (types.contains("1") || types.contains("3") || types.contains("4")) {
+                List<PieItem> pieOperator = buildPie(
+                        financeMapper.queryRcptCountByOperator(type, start, end, tt),
+                        financeMapper.queryRcptCountByOperator(type, pStart, pEnd, tt), this::mapOperator);
+                if (types.contains("1")) map.put("1", pieOperator);
+                if (types.contains("3")) map.put("3", pieOperator);
+                if (types.contains("4")) map.put("4", pieOperator);
+            }
+            if (types.contains("2")) {
+                map.put("2", buildPie(financeMapper.queryQueueCountByOperator(type, start, end, tt),
+                        financeMapper.queryQueueCountByOperator(type, pStart, pEnd, tt), this::mapOperator));
+            }
+            if (types.contains("5")) {
+                map.put("5", buildPie(financeMapper.queryPaymentCountByMoneyType(type, start, end, tt),
+                        financeMapper.queryPaymentCountByMoneyType(type, pStart, pEnd, tt), null));
+            }
+            if (types.contains("6")) {
+                map.put("6", buildPie(financeMapper.queryRcptSumByOperator(type, start, end, tt),
+                        financeMapper.queryRcptSumByOperator(type, pStart, pEnd, tt), this::mapOperator));
+            }
+            if (types.contains("7")) {
+                map.put("7", buildPie(financeMapper.queryPaymentSumByMoneyType(type, start, end, tt),
+                        financeMapper.queryPaymentSumByMoneyType(type, pStart, pEnd, tt), null));
+            }
+            if (types.contains("8")) {
+                map.put("8", buildBizTypePie(request));
+            }
+            if (types.contains("9")) {
+                map.put("9", buildPie(financeMapper.queryPaymentSumByCategory(type, start, end, tt),
+                        financeMapper.queryPaymentSumByCategory(type, pStart, pEnd, tt), null));
+            }
+            if (types.contains("10")) {
+                map.put("10", new ArrayList<>());
+            }
         } catch (Exception e) {
             log.warn("查询门诊财务饼图失败", e);
-            for (int bt = 1; bt <= 10; bt++) {
-                map.putIfAbsent(String.valueOf(bt), new ArrayList<>());
+            for (String bt : types) {
+                map.putIfAbsent(bt, new ArrayList<>());
             }
         }
         return map;
@@ -526,7 +564,7 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         }
     }
 
-    private Map<String, List<PieItem>> buildPieListMock() {
+    private Map<String, List<PieItem>> buildPieListMock(Set<String> types) {
         String[][] categories = {
                 {"窗口", "自助机", "掌上医院", "电话预约", "网络预约"},
                 {"线下取号", "线上取号"},
@@ -541,6 +579,7 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         };
         Map<String, List<PieItem>> map = new LinkedHashMap<>();
         for (int bt = 1; bt <= 10; bt++) {
+            if (!types.contains(String.valueOf(bt))) continue;
             List<PieItem> items = new ArrayList<>();
             String[] cats = categories[bt - 1];
             double base = 5000 - bt * 300;

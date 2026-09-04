@@ -52,11 +52,18 @@ public class OutpatientFinanceHandler implements ReportHandler<OutpatientFinance
         }
 
         OutpatientFinanceResponse response = new OutpatientFinanceResponse();
+
+        // 按需饼图请求：前端点内层分析 tab 时携带 pieTypes，只查询指定业务类型并直接返回
+        if (body.getPieTypes() != null && !body.getPieTypes().trim().isEmpty()) {
+            response.setPieList(outpatientFinanceService.queryPieList(body, body.getPieTypes()));
+            return ApiResponse.success(response, MODULE.getChineseName() + "饼图查询成功！");
+        }
+
         List<DetailListItem> detailList = outpatientFinanceService.queryDetailList(body);
         response.setIndicator(outpatientFinanceService.queryIndicator(body, detailList));
         response.setDetailList(detailList);
         response.setBarList(outpatientFinanceService.queryBarList(body, detailList));
-        response.setPieList(outpatientFinanceService.queryPieList(body));
+        // 饼图不再随主请求返回，由前端按内层 tab 携带 pieTypes 按需查询
 
         return ApiResponse.success(response, MODULE.getChineseName() + "查询成功！");
     }
