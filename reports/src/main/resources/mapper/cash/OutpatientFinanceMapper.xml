@@ -121,7 +121,7 @@
                 END AS is_new_visit
             FROM extracted
         )
-        SELECT period, SUM(is_new_visit) AS "cnt"
+        SELECT period AS "period", SUM(is_new_visit) AS "cnt"
         FROM ordered
         GROUP BY period
         ORDER BY period

@@ -213,7 +213,10 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         Map<String, Double> receipt = new HashMap<>();
         for (Map<String, Object> row : financeMapper.queryAcctAmounts(statisticType, startDate, endDate, timeType)) {
             Object p = row.get("period");
-            if (p == null) continue;
+            if (p == null) {
+                log.warn("queryAcctAmounts 结果缺少 period 字段，row={}", row);
+                continue;
+            }
             String period = String.valueOf(p);
             amount.put(period, toMapDouble(row.get("amount")));
             receipt.put(period, toMapDouble(row.get("receipt")));
@@ -552,7 +555,10 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         Map<String, Double> map = new LinkedHashMap<>();
         for (Map<String, Object> row : rows) {
             Object p = row.get("period");
-            if (p == null) continue;
+            if (p == null) {
+                log.warn("查询结果缺少 period 字段，row={}", row);
+                continue;
+            }
             map.put(String.valueOf(p), toMapDouble(row.get(key)));
         }
         return map;
