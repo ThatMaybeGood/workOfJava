@@ -379,6 +379,9 @@ var PIE_COLORS = ['#1890ff', '#36cbcb', '#52c41a', '#faad14', '#f5222d', '#722ed
 var pieLegendState = {};
 var PIE_LEGEND_PAGE_SIZE = 5;
 
+// 金额类饼图（显示保留两位小数）；人次/张数类（bt1-5）显示整数
+var AMOUNT_BT_MAP = { '6': true, '7': true, '8': true, '9': true, '10': true };
+
 // 饼图 DOM ID -> business_type 映射（新增第5个：应收金额 -> 10）
 var pieChartMap = {
     summary: {
@@ -460,7 +463,7 @@ function renderPieLegend(domId, pieData) {
         html += '<div class="pie-legend-item">';
         html += '<span class="pie-legend-dot" style="background:' + color + '"></span>';
         html += '<span class="pie-legend-name">' + (item.name || '未知') + '</span>';
-        html += '<span class="pie-legend-val">' + item.value + '</span>';
+        html += '<span class="pie-legend-val">' + (item.disp != null ? item.disp : item.value) + '</span>';
         html += '<span class="pie-legend-pct">' + pct + '</span>';
         if (item.per) {
             var perCls = item.per.indexOf('-') === 0 ? 'pie-legend-per down' : 'pie-legend-per up';
@@ -507,7 +510,7 @@ function updatePieChart(domId, pieData) {
             trigger: 'item',
             formatter: function (params) {
                 var d = params.data;
-                return d.name + ': ' + params.value + ' (' + params.percent + '%)<br/>同比: ' + (d.per || '-');
+                return d.name + ': ' + (d.disp != null ? d.disp : params.value) + ' (' + params.percent + '%)<br/>同比: ' + (d.per || '-');
             }
         },
         legend: { show: false },
@@ -539,9 +542,11 @@ function updatePiesFromList(innerSuffix, pieList) {
         var pieData = [];
         list.forEach(function (item) {
             if (item.name && item.name.trim() !== '') {
+                var v = Math.abs(parseFloat(item.currValue)) || 0;
                 pieData.push({
                     name: item.name,
-                    value: Math.abs(item.currValue) || '0',
+                    value: v,
+                    disp: AMOUNT_BT_MAP[String(bt)] ? v.toFixed(2) : String(v),
                     per: calcPer(item.currValue, item.prevValue)
                 });
             }
