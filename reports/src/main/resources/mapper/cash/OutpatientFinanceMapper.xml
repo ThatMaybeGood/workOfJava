@@ -114,7 +114,7 @@
         ORDER BY period
     </select>
 
-    <!-- bt8 业务类型金额饼图·挂号原始行（分界 2025-02-08 前的挂号费来源） -->
+    <!-- bt8 金额分析： 业务类型金额分析（挂号原始行，分界 2025-02-08 前挂号费来源） -->
     <select id="queryClinicRows" resultType="com.reports.entity.cash.OutpFinanceClinicMaster">
         SELECT
             c.PATIENT_ID         AS "patientId",
@@ -132,12 +132,14 @@
         ORDER BY c.VISIT_DATE
     </select>
 
-    <!-- bt1 订单来源饼图：挂号表按 SOURCE_TYPE 净人次（未退+1/退号-1） -->
+    <!-- bt1 门诊量分析： 订单来源分析 -->
     <select id="queryClinicCountBySource" resultType="map">
-        -- bt1: 订单来源 → 门诊挂号表按 SOURCE_TYPE 净人次
-        SELECT c.SOURCE_TYPE AS "name",
+         SELECT q.SOURCE_NAME AS "name",
                SUM(CASE WHEN c.RETURNED_DATE IS NULL THEN 1 ELSE -1 END) AS "cnt"
         FROM TR_OUTP_FIN_CLINIC_MASTER c
+        LEFT JOIN TR_OUTP_FIN_MOP_QUEUE q
+        ON q.STAT_DATE = c.STAT_DATE
+        AND q.visit_no  = c.visit_no
         WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
         <choose>
             <when test="statisticType == 2">
@@ -151,7 +153,7 @@
         ORDER BY "cnt" DESC
     </select>
 
-    <!-- bt3 订单渠道 / bt4 收据张数渠道饼图：收据表按渠道净张数（SQL 内 DECODE 渠道名） -->
+    <!-- bt3 门诊量分析： 订单渠道分析 / bt4 缴费人次·收据张数分析： 渠道分析 -->
     <select id="queryRcptCountByOperator" resultType="map">
         -- bt3 / bt4: 订单渠道/收据张数渠道 → 按渠道净张数（操作员编码在SQL内DECODE成中文）
         SELECT DECODE(r.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
@@ -173,7 +175,7 @@
         ORDER BY "cnt" DESC
     </select>
 
-    <!-- bt6 渠道金额饼图：收据表按渠道金额（SQL 内 DECODE 渠道名） -->
+    <!-- bt6 金额分析： 渠道金额分析 -->
     <select id="queryRcptSumByOperator" resultType="map">
         -- bt6: 渠道金额 → 按渠道金额（操作员编码在SQL内DECODE成中文）
         SELECT DECODE(r.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
@@ -195,17 +197,12 @@
         ORDER BY "amount" DESC
     </select>
 
-    <!-- bt2 取号渠道饼图：挂号表⋈取号队列，按渠道净人次（SQL 内 DECODE 渠道名） -->
+    <!-- bt2 门诊量分析： 取号渠道分析 -->
     <select id="queryQueueCountByOperator" resultType="map">
         -- bt2: 取号渠道 → 按渠道净人次（操作员编码在SQL内DECODE成中文）
         SELECT DECODE(c.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
                SUM(CASE WHEN c.RETURNED_DATE IS NULL THEN 1 ELSE -1 END) AS "cnt"
         FROM TR_OUTP_FIN_CLINIC_MASTER c
-        LEFT JOIN TR_OUTP_FIN_MOP_QUEUE q
-          ON q.SCHEDULE_ID = c.CLINIC_LABEL || '|' || TO_CHAR(c.VISIT_DATE,'YYYYMMDD') || '|' || c.VISIT_TIME_DESC
-         AND q.PATIENT_ID  = c.PATIENT_ID
-         AND q.QUEUE_TYPE = 'reserve'
-          AND q.IS_USED    = 'used'
           WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
         <choose>
             <when test="statisticType == 2">
@@ -219,7 +216,7 @@
         ORDER BY "cnt" DESC
     </select>
 
-    <!-- bt5 缴费人次支付方式饼图：支付方式按 患者+收据 去重人次 -->
+    <!-- bt5 缴费人次·收据张数分析： 支付方式分析 -->
     <select id="queryPaymentCountByMoneyType" resultType="map">
         -- bt5: 人次支付 → 按支付方式人次
         SELECT p.MONEY_TYPE AS "name",
@@ -239,7 +236,7 @@
         ORDER BY "cnt" DESC
     </select>
 
-    <!-- bt7 支付方式金额饼图：按支付方式金额（T1净/T2实收/T3退费） -->
+    <!-- bt7 金额分析： 支付方式金额分析 -->
     <select id="queryPaymentSumByMoneyType" resultType="map">
         -- bt7: 支付方式金额 → 按支付方式金额
         SELECT p.MONEY_TYPE AS "name",
@@ -255,7 +252,7 @@
         ORDER BY "amount" DESC
     </select>
 
-    <!-- bt9 金额应收/实收饼图：按 MoneyType 归类（医改统筹/医院垫支、实收七类、其余归应收账款） -->
+    <!-- bt9 金额分析： 金额应收/实收分析 -->
     <select id="queryPaymentSumByCategory" resultType="map">
         -- bt9: 应收/实收 → 按金额归类（医保统筹，医院垫支→医改统筹/医院垫支；现金/微信/支付宝/银行卡/医保/自助POS/支票→实收）
         SELECT
@@ -281,7 +278,7 @@
         ORDER BY "amount" DESC
     </select>
 
-    <!-- bt10 应收金额饼图（收入金额分析 tab）：bt9"应收账款"桶按支付方式明细 -->
+    <!-- bt10 金额分析： 应收金额分析 -->
     <select id="queryPaymentSumReceivable" resultType="map">
         SELECT p.MONEY_TYPE AS "name",
                <choose>
