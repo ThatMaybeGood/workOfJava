@@ -134,7 +134,7 @@
 
     <!-- bt1 门诊量分析： 订单来源分析 -->
     <select id="queryClinicCountBySource" resultType="map">
-         SELECT q.SOURCE_NAME AS "name",
+         SELECT nvl(q.SOURCE_NAME,decode(c.operator_no,'9101','自助机','窗口')) AS "name",
                SUM(CASE WHEN c.RETURNED_DATE IS NULL THEN 1 ELSE -1 END) AS "cnt"
         FROM TR_OUTP_FIN_CLINIC_MASTER c
         LEFT JOIN TR_OUTP_FIN_MOP_QUEUE q
@@ -149,7 +149,7 @@
                 AND c.RETURNED_DATE IS NOT NULL
             </when>
         </choose>
-        GROUP BY c.SOURCE_TYPE
+        GROUP BY nvl(q.SOURCE_NAME,decode(c.operator_no,'9101','自助机','窗口'))
         ORDER BY "cnt" DESC
     </select>
 
