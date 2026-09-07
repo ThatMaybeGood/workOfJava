@@ -42,10 +42,6 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
     /** bt8 业务类型金额分界日期：此前挂号费取自 clinic，此后按收据 bill_class 区分 */
     private static final LocalDate BIZ_SPLIT_DATE = LocalDate.of(2025, 2, 8);
 
-    private static final String OP_SELF_SERVICE = "自助机";
-    private static final String OP_ONLINE_REFUND = "线上退费";
-    private static final String OP_WINDOW = "窗口";
-
     private final ReportDataConfig dataConfig;
     private final JdbcTemplate jdbcTemplate;
 
@@ -283,14 +279,14 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                 log.info("[门诊财务饼图] bt3/4: 订单渠道/收据张数渠道(收据表按操作员净张数) → queryRcptCountByOperator");
                 List<PieItem> pieOperator = buildPie(
                         financeMapper.queryRcptCountByOperator(type, start, end, tt),
-                        financeMapper.queryRcptCountByOperator(type, pStart, pEnd, tt), this::mapOperator);
+                        financeMapper.queryRcptCountByOperator(type, pStart, pEnd, tt), null);
                 if (types.contains("3")) map.put("3", pieOperator);
                 if (types.contains("4")) map.put("4", pieOperator);
             }
             if (types.contains("2")) {
                 log.info("[门诊财务饼图] bt2: 取号渠道 → queryQueueCountByOperator");
                 map.put("2", buildPie(financeMapper.queryQueueCountByOperator(type, start, end, tt),
-                        financeMapper.queryQueueCountByOperator(type, pStart, pEnd, tt), this::mapOperator));
+                        financeMapper.queryQueueCountByOperator(type, pStart, pEnd, tt), null));
             }
             if (types.contains("5")) {
                 log.info("[门诊财务饼图] bt5: 人次支付(按支付方式人次) → queryPaymentCountByMoneyType");
@@ -300,7 +296,7 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             if (types.contains("6")) {
                 log.info("[门诊财务饼图] bt6: 渠道金额(按操作员金额) → queryRcptSumByOperator");
                 map.put("6", buildPie(financeMapper.queryRcptSumByOperator(type, start, end, tt),
-                        financeMapper.queryRcptSumByOperator(type, pStart, pEnd, tt), this::mapOperator));
+                        financeMapper.queryRcptSumByOperator(type, pStart, pEnd, tt), null));
             }
             if (types.contains("7")) {
                 log.info("[门诊财务饼图] bt7: 支付方式金额(按支付方式金额) → queryPaymentSumByMoneyType");
@@ -390,20 +386,6 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             return "未知来源";
         }
         return sourceType;
-    }
-
-    private String mapOperator(String operatorNo) {
-        if (operatorNo == null) {
-            return OP_WINDOW;
-        }
-        switch (operatorNo) {
-            case "9101":
-                return OP_SELF_SERVICE;
-            case "C746":
-                return OP_ONLINE_REFUND;
-            default:
-                return OP_WINDOW;
-        }
     }
 
     // ==================== 日期归一化工具 ====================
