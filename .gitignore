@@ -76,5 +76,10 @@ D:/logs/18081
 # 忽略 Claude Code 的本地工作树和临时状态
 .claude/worktrees/
 .claude/settings.local.json
- 
+
+.idea
+
+.qoder
+.vscode
+
  
