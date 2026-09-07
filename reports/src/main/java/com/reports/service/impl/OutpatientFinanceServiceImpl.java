@@ -272,11 +272,11 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             log.info("[门诊财务饼图][{}] 请求类型 bt={}, 当期 [{}, {}], 同比 [{}, {}]",
                     request.getPieTab(), types, start, end, pStart, pEnd);
 
-            // bt1 订单来源：门诊挂号表按操作员净人次（未退号+1/退号-1）
+            // bt1 订单来源：门诊挂号表按 SOURCE_TYPE 净人次（未退号+1/退号-1）
             if (types.contains("1")) {
-                log.info("[门诊财务饼图] bt1: 订单来源(门诊量, 挂号表按操作员净人次) → queryClinicCountByOperator");
-                map.put("1", buildPie(financeMapper.queryClinicCountByOperator(type, start, end, tt),
-                        financeMapper.queryClinicCountByOperator(type, pStart, pEnd, tt), this::mapOperator));
+                log.info("[门诊财务饼图] bt1: 订单来源(门诊量, 挂号表按 SOURCE_TYPE 净人次) → queryClinicCountBySource");
+                map.put("1", buildPie(financeMapper.queryClinicCountBySource(type, start, end, tt),
+                        financeMapper.queryClinicCountBySource(type, pStart, pEnd, tt), this::mapSourceType));
             }
             // bt3/bt4 共用同一查询（订单渠道/收据张数渠道：收据表按操作员净张数）
             if (types.contains("3") || types.contains("4")) {
@@ -380,6 +380,16 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             m.merge(regist ? "当日挂号" : "门诊缴费", toDouble(r.getTotalCharges()), Double::sum);
         }
         return m;
+    }
+
+    /**
+     * SOURCE_TYPE 值字典：目前原样展示，待确认编码含义后可加映射
+     */
+    private String mapSourceType(String sourceType) {
+        if (sourceType == null || sourceType.trim().isEmpty()) {
+            return "未知来源";
+        }
+        return sourceType;
     }
 
     private String mapOperator(String operatorNo) {

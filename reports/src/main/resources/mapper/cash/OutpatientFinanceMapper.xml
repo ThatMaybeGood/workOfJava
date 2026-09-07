@@ -148,11 +148,11 @@
     </select>
 
     <!-- ============================================================ -->
-    <!-- 5a. bt1 订单来源：门诊挂号表按操作员净人次（未退号+1，退号-1） -->
+    <!-- 5a. bt1 订单来源：门诊挂号表按 SOURCE_TYPE 净人次（未退号+1，退号-1） -->
     <!-- ============================================================ -->
-    <select id="queryClinicCountByOperator" resultType="map">
-        -- bt1: 订单来源 → 门诊挂号表按操作员净人次
-        SELECT c.OPERATOR_NO AS "name",
+    <select id="queryClinicCountBySource" resultType="map">
+        -- bt1: 订单来源 → 门诊挂号表按 SOURCE_TYPE 净人次
+        SELECT c.SOURCE_TYPE AS "name",
                SUM(CASE WHEN c.RETURNED_DATE IS NULL THEN 1 ELSE -1 END) AS "cnt"
         FROM TR_OUTP_FIN_CLINIC_MASTER c
         WHERE c.VISIT_DATE BETWEEN #{startDate} AND #{endDate}
@@ -164,7 +164,7 @@
                 AND c.RETURNED_DATE IS NOT NULL
             </when>
         </choose>
-        GROUP BY c.OPERATOR_NO
+        GROUP BY c.SOURCE_TYPE
         ORDER BY "cnt" DESC
     </select>
 

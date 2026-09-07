@@ -58,9 +58,9 @@ public interface OutpatientFinanceMapper {
                                                   @Param("timeType") Integer timeType);
 
     /**
-     * bt1 订单来源：门诊挂号表按操作员净人次（未退号+1，退号-1）
+     * bt1 订单来源：门诊挂号表按 SOURCE_TYPE 净人次（未退号+1，退号-1）
      */
-    List<Map<String, Object>> queryClinicCountByOperator(@Param("statisticType") Integer statisticType,
+    List<Map<String, Object>> queryClinicCountBySource(@Param("statisticType") Integer statisticType,
                                                          @Param("startDate") Date startDate,
                                                          @Param("endDate") Date endDate,
                                                          @Param("timeType") Integer timeType);
