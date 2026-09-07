@@ -10,10 +10,7 @@
         </choose>
     </sql>
 
-    <!-- ============================================================ -->
-    <!-- 1. 门诊量净口径：按 visit_date 分组 -->
-    <!-- T1(汇总)=净量(未退号−退号)；T2=未退号计数；T3=退号计数 -->
-    <!-- ============================================================ -->
+    <!-- 门诊量·明细/柱图：挂号表按 STAT_DATE 分组净量（T1净=T2未退−T3退号） -->
     <select id="queryClinicCounts" resultType="map">
         SELECT
             <include refid="periodExpr"><property name="col" value="c.STAT_DATE"/></include> AS "period",
@@ -34,10 +31,7 @@
         ORDER BY "period"
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 2. 收据张数/金额：按 STAT_DATE 分组 -->
-    <!-- T1(汇总)=净额/净张数；T2(进项)=含退总额/含退张数；T3(退项)=退费/退费张数 -->
-    <!-- ============================================================ -->
+    <!-- 收据张数/金额·明细：结账主表按 STAT_DATE 分组（T1净/T2含退/T3退费） -->
     <select id="queryAcctAmounts" resultType="map">
         SELECT
         <include refid="periodExpr"><property name="col" value="a.STAT_DATE"/></include> AS "period",
@@ -57,10 +51,7 @@
         ORDER BY "period"
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 3. 门诊收据原始行：人次去重在 Service -->
-    <!-- T2(进项)：total_charges>=0；T3(退项)：refunded_rcpt_no非空且total_charges<0；T1全量 -->
-    <!-- ============================================================ -->
+    <!-- 收据原始行：按 statisticType 过滤（人次/金额 Service 计算用） -->
     <select id="queryRcptRows" resultType="com.reports.entity.cash.OutpFinanceRcptAcct">
         SELECT
             r.STAT_DATE          AS "statDate",
@@ -86,11 +77,7 @@
         ORDER BY r.PATIENT_ID, r.STAT_DATE, r.RCPT_NO
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 3b. 人次：同患者+同日+同前缀+票号连续合并为一人次（窗口函数在库内完成） -->
-    <!-- 前缀=票号尾部数字串之前的部分，纯数字票号用 '#' 哨兵（Oracle 空串即 NULL，会致连续判断失效） -->
-    <!-- 连续性始终按"天"判断（与月/天模式无关），分组按 periodExpr -->
-    <!-- ============================================================ -->
+    <!-- 人次·明细/柱图：同患者+同日+同前缀+票号连续合并一人次（纯数字票号用 '#' 哨兵防 Oracle 空串=NULL） -->
     <select id="queryVisitCounts" resultType="map">
         WITH extracted AS (
             SELECT
@@ -127,9 +114,7 @@
         ORDER BY period
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 4. 门诊挂号原始行：bt8 分界前挂号费 -->
-    <!-- ============================================================ -->
+    <!-- bt8 业务类型金额饼图·挂号原始行（分界 2025-02-08 前的挂号费来源） -->
     <select id="queryClinicRows" resultType="com.reports.entity.cash.OutpFinanceClinicMaster">
         SELECT
             c.PATIENT_ID         AS "patientId",
@@ -147,9 +132,7 @@
         ORDER BY c.VISIT_DATE
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 5a. bt1 订单来源：门诊挂号表按 SOURCE_TYPE 净人次（未退号+1，退号-1） -->
-    <!-- ============================================================ -->
+    <!-- bt1 订单来源饼图：挂号表按 SOURCE_TYPE 净人次（未退+1/退号-1） -->
     <select id="queryClinicCountBySource" resultType="map">
         -- bt1: 订单来源 → 门诊挂号表按 SOURCE_TYPE 净人次
         SELECT c.SOURCE_TYPE AS "name",
@@ -168,11 +151,7 @@
         ORDER BY "cnt" DESC
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 5. bt3/bt4 订单渠道/收据张数渠道：按操作员净张数（收据表） -->
-    <!-- T2(进项)过滤：total_charges>=0；T3(退项)过滤：refunded_rcpt_no非空且total_charges<0 -->
-    <!-- cnt 统一净计数：进项+1，退项-1，这样 T1=全量=进项-退项 -->
-    <!-- ============================================================ -->
+    <!-- bt3 订单渠道 / bt4 收据张数渠道饼图：收据表按渠道净张数（SQL 内 DECODE 渠道名） -->
     <select id="queryRcptCountByOperator" resultType="map">
         -- bt3 / bt4: 订单渠道/收据张数渠道 → 按渠道净张数（操作员编码在SQL内DECODE成中文）
         SELECT DECODE(r.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
@@ -194,10 +173,7 @@
         ORDER BY "cnt" DESC
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 6. bt6 渠道金额：按操作员求和 -->
-    <!-- 进项金额取正，退项金额取负，T1=全部自然相抵 -->
-    <!-- ============================================================ -->
+    <!-- bt6 渠道金额饼图：收据表按渠道金额（SQL 内 DECODE 渠道名） -->
     <select id="queryRcptSumByOperator" resultType="map">
         -- bt6: 渠道金额 → 按渠道金额（操作员编码在SQL内DECODE成中文）
         SELECT DECODE(r.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
@@ -219,10 +195,7 @@
         ORDER BY "amount" DESC
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 7. bt2 取号渠道：MOP_QUEUE 直接查（reserve+used + 退号者计入净量） -->
-    <!-- 进项=未退号取号(+1)，退项=已退号取号(-1)，T1=净量 -->
-    <!-- ============================================================ -->
+    <!-- bt2 取号渠道饼图：挂号表⋈取号队列，按渠道净人次（SQL 内 DECODE 渠道名） -->
     <select id="queryQueueCountByOperator" resultType="map">
         -- bt2: 取号渠道 → 按渠道净人次（操作员编码在SQL内DECODE成中文）
         SELECT DECODE(c.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
@@ -246,10 +219,7 @@
         ORDER BY "cnt" DESC
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 8. bt5 人次支付：PAYMENTS_MONEY ⋈ RCPT_ACCT 按 MoneyType 去重人次 -->
-    <!-- T2(进项)：payment_amount>0；T3(退项)：refunded_amount>0 -->
-    <!-- ============================================================ -->
+    <!-- bt5 缴费人次支付方式饼图：支付方式按 患者+收据 去重人次 -->
     <select id="queryPaymentCountByMoneyType" resultType="map">
         -- bt5: 人次支付 → 按支付方式人次
         SELECT p.MONEY_TYPE AS "name",
@@ -269,10 +239,7 @@
         ORDER BY "cnt" DESC
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 9. bt7 支付方式金额：PAYMENTS_MONEY ⋈ RCPT_ACCT 按 MoneyType 求和 -->
-    <!-- T1(汇总)=实收-退费；T2(进项)=实收；T3(退项)=退费 -->
-    <!-- ============================================================ -->
+    <!-- bt7 支付方式金额饼图：按支付方式金额（T1净/T2实收/T3退费） -->
     <select id="queryPaymentSumByMoneyType" resultType="map">
         -- bt7: 支付方式金额 → 按支付方式金额
         SELECT p.MONEY_TYPE AS "name",
@@ -288,11 +255,7 @@
         ORDER BY "amount" DESC
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 10. bt9 应收/实收：PAYMENTS_MONEY ⋈ RCPT_ACCT，按 MoneyType 归类 -->
-    <!-- 医改统筹/医院垫支 → 应收账款；现金/微信/支付宝/银行卡/医保/自助POS/支票 → 实收 -->
-    <!-- 金额口径同上（T1净、T2实收、T3退费） -->
-    <!-- ============================================================ -->
+    <!-- bt9 金额应收/实收饼图：按 MoneyType 归类（医改统筹/医院垫支、实收七类、其余归应收账款） -->
     <select id="queryPaymentSumByCategory" resultType="map">
         -- bt9: 应收/实收 → 按金额归类（医保统筹，医院垫支→医改统筹/医院垫支；现金/微信/支付宝/银行卡/医保/自助POS/支票→实收）
         SELECT
@@ -318,13 +281,8 @@
         ORDER BY "amount" DESC
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 10b. bt10 应收金额：bt9 CASE 中 ELSE（应收账款）桶的按支付方式明细 -->
-    <!-- 排除：医改统筹/医院垫支 + 实收类（支付宝/现金/信用卡/银行卡/微信/自助POS/支票） -->
-    <!-- 金额口径同上（T1净、T2实收、T3退费） -->
-    <!-- ============================================================ -->
+    <!-- bt10 应收金额饼图（收入金额分析 tab）：bt9"应收账款"桶按支付方式明细 -->
     <select id="queryPaymentSumReceivable" resultType="map">
-        -- bt10: 应收金额 → 应收账款类按支付方式明细（除医改统筹/医院垫支/实收类外）
         SELECT p.MONEY_TYPE AS "name",
                <choose>
                    <when test="statisticType == 1">NVL(SUM(NVL(p.PAYMENT_AMOUNT,0)-NVL(p.REFUNDED_AMOUNT,0)),0)</when>
