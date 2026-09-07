@@ -146,7 +146,8 @@ function updateCards(outerType, indicator) {
         var valEl = container.querySelector('[data-field="' + field + '"]');
         var yoyEl = container.querySelector('[data-field="' + field + '_yoy"]');
         if (valEl && indicator[fieldMap[field]] !== undefined) {
-            valEl.textContent = formatNumber(indicator[fieldMap[field]]);
+            // 金额卡片始终两位小数，其余（门诊量/人次/张数）整数
+            valEl.textContent = field === 'amount' ? fmtAmount(indicator[fieldMap[field]]) : formatNumber(indicator[fieldMap[field]]);
         }
         if (yoyEl && indicator[yoyMap[field]]) {
             yoyEl.textContent = '同比 ' + indicator[yoyMap[field]];
@@ -216,8 +217,8 @@ function renderTable(outerType) {
         html += '<td>' + fmtCell(row.lastYearNumberReceipt) + '</td>';
         html += '<td>' + fmtCell(row.currentDateNumberReceipt) + '</td>';
         html += '<td>' + nrYoy + '</td>';
-        html += '<td>' + fmtCell(row.lastYearAmount) + '</td>';
-        html += '<td>' + fmtCell(row.currentDateAmount) + '</td>';
+        html += '<td>' + fmtAmount(row.lastYearAmount) + '</td>';
+        html += '<td>' + fmtAmount(row.currentDateAmount) + '</td>';
         html += '<td>' + amYoy + '</td>';
         html += '</tr>';
     });
@@ -248,6 +249,14 @@ function fmtCell(v) {
     if (v === undefined || v === null || v === '') return '0';
     var n = parseFloat(v);
     return (isNaN(n) ? '0' : n.toLocaleString('zh-CN', { maximumFractionDigits: 2 }));
+}
+
+// 金额格式化：始终保留两位小数（用于明细表/卡片/柱图/饼图的金额）
+function fmtAmount(v) {
+    if (v === undefined || v === null || v === '') return '0.00';
+    var n = parseFloat(v);
+    if (isNaN(n)) return '0.00';
+    return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function gotoPage(outerType, page) {
@@ -316,11 +325,15 @@ function getOrCreateBarChart(domId) {
     return chart;
 }
 
-function updateBarChart(domId, xData, lastYearData, currentData) {
+function updateBarChart(domId, xData, lastYearData, currentData, isAmount) {
     var chart = getOrCreateBarChart(domId);
     if (!chart) return;
     chart.setOption({
-        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        tooltip: {
+            trigger: 'axis', axisPointer: { type: 'shadow' },
+            // 金额分析(bt4)柱图数值两位小数
+            valueFormatter: isAmount ? function (v) { return fmtAmount(v); } : undefined
+        },
         legend: { data: ['去年同期', '当前日期'], top: 0, right: 20, textStyle: { fontSize: 12 } },
         grid: { left: 50, right: 30, top: 35, bottom: 40 },
         xAxis: { type: 'category', data: xData },
@@ -338,13 +351,14 @@ function updateBarFromCache(innerSuffix) {
     if (!bt) return;
     var domId = barChartMap[currentOuter][String(bt)];
     var bars = (cachedData.barList || {})[String(bt)] || [];
+    var isAmount = String(bt) === '4'; // 金额分析：保留小数，不能取整
     var xData = [], lastYearData = [], currentData = [];
     bars.forEach(function (item) {
         xData.push(item.dateTime || '');
-        lastYearData.push(parseInt(item.lastYearNumber) || 0);
-        currentData.push(parseInt(item.currentDateNumber) || 0);
+        lastYearData.push(isAmount ? (parseFloat(item.lastYearNumber) || 0) : (parseInt(item.lastYearNumber) || 0));
+        currentData.push(isAmount ? (parseFloat(item.currentDateNumber) || 0) : (parseInt(item.currentDateNumber) || 0));
     });
-    updateBarChart(domId, xData, lastYearData, currentData);
+    updateBarChart(domId, xData, lastYearData, currentData, isAmount);
 }
 
 // ===== 内层标签切换 =====
