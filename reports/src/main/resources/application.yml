@@ -21,6 +21,18 @@ reports:
   data:
     # 数据模式: mock(默认) / jdbc / mybatis-plus
     mode: mybatis-plus
+  # ===== ETL 按需补数触发（新增独立功能，不挂 @EtlTask 注解即零影响） =====
+  etl:
+    # 总开关：false = 整个 ETL 触发关闭（出问题可一键停用，报表不受影响）
+    enabled: true
+    # ETL 平台 run 接口地址（真实值建议按环境用环境变量注入）
+    run-url: ${ETL_RUN_URL:http://localhost:18090/api/etl/run}
+    # 鉴权令牌：严禁明文入库，请用环境变量 ETL_API_TOKEN 注入
+    api-token: ${ETL_API_TOKEN:}
+    # 同一 (任务+参数) 两次触发的最小间隔（秒）：防空表被反复刷新导致的重复触发
+    cooldown-seconds: 600
+    # 单任务停用名单：填真实 taskToken 即停用该任务（只停某一个，其余保留，无需动注解）
+    disabled-task-tokens: []
   # 分页默认配置
   page:
     # 默认当前页码
