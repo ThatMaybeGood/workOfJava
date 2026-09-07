@@ -313,8 +313,9 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                         financeMapper.queryPaymentSumByCategory(type, pStart, pEnd, tt), null));
             }
             if (types.contains("10")) {
-                log.info("[门诊财务饼图] bt10: 应收金额(占位, 无数据)");
-                map.put("10", new ArrayList<>());
+                log.info("[门诊财务饼图] bt10: 应收金额(应收账款类按支付方式明细) → queryPaymentSumReceivable");
+                map.put("10", buildPie(financeMapper.queryPaymentSumReceivable(type, start, end, tt),
+                        financeMapper.queryPaymentSumReceivable(type, pStart, pEnd, tt), null));
             }
         } catch (Exception e) {
             log.warn("查询门诊财务饼图失败", e);

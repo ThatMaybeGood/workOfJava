@@ -113,4 +113,12 @@ public interface OutpatientFinanceMapper {
                                                         @Param("endDate") Date endDate,
                                                         @Param("timeType") Integer timeType);
 
+    /**
+     * bt10 应收金额：应收账款类（ELSE 桶）按支付方式明细
+     */
+    List<Map<String, Object>> queryPaymentSumReceivable(@Param("statisticType") Integer statisticType,
+                                                        @Param("startDate") Date startDate,
+                                                        @Param("endDate") Date endDate,
+                                                        @Param("timeType") Integer timeType);
+
 }
