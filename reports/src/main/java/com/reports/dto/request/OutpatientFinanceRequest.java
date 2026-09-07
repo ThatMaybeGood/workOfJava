@@ -39,4 +39,9 @@ public class OutpatientFinanceRequest extends BaseRequestBody {
      */
     private String pieTypes;
 
+    /**
+     * 发起饼图请求的分析 tab 名称（如 "进项-缴费人次分析"），仅用于后端日志标识，不参与查询
+     */
+    private String pieTab;
+
 }

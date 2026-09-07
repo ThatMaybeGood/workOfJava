@@ -563,6 +563,20 @@ var innerTabPieTypesMap = {
 // 饼图缓存：outerType|日期范围|innerSuffix -> pieList
 var pieCache = {};
 
+// tab 名称映射（与 cash-outpatient-finance.html 的 data-inner / pie-title 对应，用于后端日志标识）
+var outerTypeNameMap = { summary: '汇总', income: '进项', refund: '退项' };
+var innerTabNameMap = {
+    'summary-visit': '门诊量分析', 'summary-pay': '缴费人次分析', 'summary-receipt': '收据张数分析', 'summary-net': '净收入金额分析',
+    'income-visit': '门诊量分析', 'income-pay': '缴费人次分析', 'income-receipt': '收据张数分析', 'income-amount': '收入金额分析',
+    'refund-visit': '门诊量分析', 'refund-pay': '退费人次分析', 'refund-receipt': '收据张数分析', 'refund-amount': '退费金额分析'
+};
+
+function pieTabName(outerType, innerSuffix) {
+    var outer = outerTypeNameMap[outerType] || outerType;
+    var inner = innerTabNameMap[outerType + '-' + innerSuffix] || innerSuffix;
+    return outer + '-' + inner;
+}
+
 function currentRangeKey() {
     var queryRange = toQueryDateRange();
     return queryRange.startDate + '|' + queryRange.endDate + '|' + (pickerMode === 'day' ? 2 : 1);
@@ -582,7 +596,8 @@ async function ensurePies(outerType, innerSuffix) {
         timeType: pickerMode === 'day' ? 2 : 1,
         startDate: queryRange.startDate,
         endDate: queryRange.endDate,
-        pieTypes: types
+        pieTypes: types,
+        pieTab: pieTabName(outerType, innerSuffix)
     };
     console.log('[门诊财务] 请求饼图:', outerType, innerSuffix, types);
     showLoading();

@@ -160,7 +160,7 @@
                    ELSE -1
                END) AS "cnt"
         FROM TR_OUTP_FIN_RCPT_ACCT r
-        WHERE r.VISIT_DATE BETWEEN #{startDate} AND #{endDate}
+        WHERE r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
         <choose>
             <when test="statisticType == 2">
                 AND NVL(r.TOTAL_CHARGES, 0) &gt;= 0

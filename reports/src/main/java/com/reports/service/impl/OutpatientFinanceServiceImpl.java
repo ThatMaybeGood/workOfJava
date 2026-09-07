@@ -269,8 +269,8 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             Date end = normalizeDate(type, tt, request.getEndDate());
             Date pStart = offsetDate(start, -12);
             Date pEnd = offsetDate(end, -12);
-            log.info("[门诊财务饼图] 请求类型 bt={}, 当期 [{}, {}], 同比 [{}, {}]",
-                    types, start, end, pStart, pEnd);
+            log.info("[门诊财务饼图][{}] 请求类型 bt={}, 当期 [{}, {}], 同比 [{}, {}]",
+                    request.getPieTab(), types, start, end, pStart, pEnd);
 
             // bt1/3/4 共用同一查询（订单来源/收据来源/渠道）
             if (types.contains("1") || types.contains("3") || types.contains("4")) {
