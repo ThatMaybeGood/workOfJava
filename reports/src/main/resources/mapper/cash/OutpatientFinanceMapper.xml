@@ -16,7 +16,7 @@
     <!-- ============================================================ -->
     <select id="queryClinicCounts" resultType="map">
         SELECT
-            <include refid="periodExpr"><property name="col" value="c.VISIT_DATE"/></include> AS "period",
+            <include refid="periodExpr"><property name="col" value="c.STAT_DATE"/></include> AS "period",
             <choose>
                 <when test="statisticType == 1">
                     SUM(CASE WHEN c.IS_RETURN_TYPE = 1 THEN 1 ELSE -1 END) AS "cnt"
@@ -29,8 +29,8 @@
                 </otherwise>
             </choose>
         FROM TR_OUTP_FIN_CLINIC_MASTER c
-        WHERE c.VISIT_DATE BETWEEN #{startDate} AND #{endDate}
-        GROUP BY <include refid="periodExpr"><property name="col" value="c.VISIT_DATE"/></include>
+        WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+        GROUP BY <include refid="periodExpr"><property name="col" value="c.STAT_DATE"/></include>
         ORDER BY "period"
     </select>
 
@@ -143,7 +143,7 @@
             c.CREATE_TIME        AS "createTime",
             c.UPDATE_TIME        AS "updateTime"
         FROM TR_OUTP_FIN_CLINIC_MASTER c
-        WHERE c.VISIT_DATE BETWEEN #{startDate} AND #{endDate}
+        WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
         ORDER BY c.VISIT_DATE
     </select>
 
@@ -155,7 +155,7 @@
         SELECT c.SOURCE_TYPE AS "name",
                SUM(CASE WHEN c.RETURNED_DATE IS NULL THEN 1 ELSE -1 END) AS "cnt"
         FROM TR_OUTP_FIN_CLINIC_MASTER c
-        WHERE c.VISIT_DATE BETWEEN #{startDate} AND #{endDate}
+        WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
         <choose>
             <when test="statisticType == 2">
                 AND c.RETURNED_DATE IS NULL
@@ -233,7 +233,7 @@
          AND q.PATIENT_ID  = c.PATIENT_ID
         WHERE q.QUEUE_TYPE = 'reserve'
           AND q.IS_USED    = 'used'
-          AND c.VISIT_DATE BETWEEN #{startDate} AND #{endDate}
+          AND c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
         <choose>
             <when test="statisticType == 2">
                 AND c.RETURNED_DATE IS NULL
