@@ -272,13 +272,18 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             log.info("[门诊财务饼图][{}] 请求类型 bt={}, 当期 [{}, {}], 同比 [{}, {}]",
                     request.getPieTab(), types, start, end, pStart, pEnd);
 
-            // bt1/3/4 共用同一查询（订单来源/收据来源/渠道）
-            if (types.contains("1") || types.contains("3") || types.contains("4")) {
-                log.info("[门诊财务饼图] bt1/3/4: 订单来源/收据来源/渠道 → queryRcptCountByOperator");
+            // bt1 订单来源：门诊挂号表按操作员净人次（未退号+1/退号-1）
+            if (types.contains("1")) {
+                log.info("[门诊财务饼图] bt1: 订单来源(门诊量, 挂号表按操作员净人次) → queryClinicCountByOperator");
+                map.put("1", buildPie(financeMapper.queryClinicCountByOperator(type, start, end, tt),
+                        financeMapper.queryClinicCountByOperator(type, pStart, pEnd, tt), this::mapOperator));
+            }
+            // bt3/bt4 共用同一查询（订单渠道/收据张数渠道：收据表按操作员净张数）
+            if (types.contains("3") || types.contains("4")) {
+                log.info("[门诊财务饼图] bt3/4: 订单渠道/收据张数渠道(收据表按操作员净张数) → queryRcptCountByOperator");
                 List<PieItem> pieOperator = buildPie(
                         financeMapper.queryRcptCountByOperator(type, start, end, tt),
                         financeMapper.queryRcptCountByOperator(type, pStart, pEnd, tt), this::mapOperator);
-                if (types.contains("1")) map.put("1", pieOperator);
                 if (types.contains("3")) map.put("3", pieOperator);
                 if (types.contains("4")) map.put("4", pieOperator);
             }
