@@ -33,11 +33,11 @@
 
 | 文件 | 作用 |
 |---|---|
-| `annotation/EtlTask.java` | 方法级注解：`taskToken()`（ETL 任务 ID）、`params()`（透传 @Param 白名单）、`dateFormats()`（可选，日期转字符串格式，如 `"startDate=yyyy-MM-dd"`） |
+| `annotation/EtlTask.java` | 方法级注解：`taskToken()`（ETL 任务 ID）、`params()`（透传 @Param 白名单）、`dateFormats()`（可选，日期转字符串格式，如 `"startDate=yyyy-MM-dd"`）；以及范围展开五元组 `rangeStart/rangeEnd/rangeTarget/rangePattern/rangeParsePattern/rangeMaxDays` |
 | `constant/EtlTaskConst.java` | taskToken 常量集中（每报表/任务一个），注解引用避免魔法字符串 |
 | `config/EtlProperties.java` | `reports.etl.*` 配置项 |
 | `service/EtlClient.java` | 公共触发客户端（开关/冷却/异步/HTTP/停用名单 都在这里） |
-| `aspect/EtlTriggerAspect.java` | 切面：判空 → 抽 vars → 调 `EtlClient.ensure`；`@Order(0)`（在 `DataSourceAspect` 之后） |
+| `aspect/EtlTriggerAspect.java` | 切面：判空 → 抽 vars（或按天展开）→ 调 `EtlClient.ensure`；`@Order(0)`（在 `DataSourceAspect` 之后） |
 | `resources/application.yml` | 新增 `reports.etl` 配置段 |
 | `src/test/.../EtlClientTest`、`EtlTriggerAspectTest` | 不依赖数据库的桩验证 |
 
@@ -91,6 +91,27 @@ List<Map<String, Object>> queryClinicCountBySource(
 - `dateFormats` **可省略**：不写时 Date 原样透传（JSON 为毫秒时间戳）；写 `"参数名=yyyy-MM-dd"` 则转成字符串。非法 pattern 会告警并按原值透传。
 - 建议：**只加在主数据查询**（整表业务），不要加在联动下拉/分页等小查询上（那些空是常态）。
 
+**②-b ETL 任务只接收单日期时：用「范围按天展开」**
+
+查询方法入参是日期范围（`startDate/endDate`），但 ETL 任务一次只补一天——配置 `rangeStart/rangeEnd/rangeTarget` 三件套，查空时把范围逐日拆分，每天触发一次补数：
+
+```java
+@EtlTask(
+    taskToken = EtlTaskConst.OUTP_FINANCE_PIE,
+    rangeStart = "startDate",            // 起点 @Param 名
+    rangeEnd = "endDate",                // 终点 @Param 名
+    rangeTarget = "statDate",            // 单日变量的 vars 名（按 ETL 任务实际定义）
+    rangeParsePattern = "yyyy-MM-dd",    // 入参解析格式（Date 直接取日期；String 按此解析，
+                                         // 月/年格式自动兜底：起点取月初、终点取月末/年末）
+    rangePattern = "yyyy-MM-dd",         // 展开后每天写给 ETL 的格式（与入参格式无关）
+    rangeMaxDays = 31                    // 单次展开天数上限，超出截断并告警
+)
+```
+
+- 展开模式下 **`params`/`dateFormats` 不生效**（互斥，二选一）；不配 range 三件套则走 ② 的整段透传。
+- 去重按天生效：冷却期内同一天不会重复触发，不同天各补各的。
+- 起止参数缺失/解析失败时退化为整段触发一次（`vars = {rangeTarget: 起点原值}`），不会因格式问题把补数搞丢。
+
 **③ 启动时注入 token**：
 
 ```bash
@@ -118,7 +139,7 @@ export ETL_API_TOKEN=<真实token>     # run-url 若不同环境不同，另用 
 
 1. **非强校验**：空时触发是"尽力而为"，本次请求原样返回空。若某个本来就无数据的日期，只会触发一次并记 SUCCESS（冷却由 `cooldown-seconds` 兜底），不会连环打 ETL。
 2. **冷却 key 含参数**：`taskToken + 规范化参数`。同任务不同日期（不同 vars）互不影响、各自可触发；同日期才会被冷却拦截。
-3. **vars 与 ETL 任务 vars 要对齐**：名字、格式都按 ETL 平台任务定义来；Date 默认是时间戳，需要 `"yyyy-MM-dd"` 就用 `dateFormats`。
+3. **vars 与 ETL 任务 vars 要对齐**：名字、格式都按 ETL 平台任务定义来；Date 默认是时间戳，需要 `"yyyy-MM-dd"` 就用 `dateFormats`；ETL 只收单日期时用范围展开（②-b），`rangeParsePattern`/`rangePattern` 分管入参解析与出参格式化。
 4. **异步写库**：真实触发会调 ETL 抽数并写目标表，验证时请用不影响生产的测试日期。
 5. **不影响现有报表**：所有代码是新增；切面只拦标了 `@EtlTask` 的方法，现有 mapper 没标 → 行为零变化。`mvn test` 全量通过。
 

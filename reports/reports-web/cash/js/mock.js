@@ -702,9 +702,9 @@ const MockService = {
                     }));
                 });
 
-                // 饼状图 1~10
+                // 饼状图 1~12
                 const pieList = {};
-                for (let bt = 1; bt <= 10; bt++) {
+                for (let bt = 1; bt <= 12; bt++) {
                     pieList[String(bt)] = generateFinancePie(bt);
                 }
 
@@ -727,7 +727,9 @@ const FINANCE_PIE_CATEGORIES = {
     '7': ['现金', '微信', '支付宝', '银行卡', '医保'],
     '8': ['挂号', '检查', '检验', '药品', '治疗'],
     '9': ['应收', '实收'],
-    '10': ['挂号', '检查', '检验', '药品', '治疗']
+    '10': ['挂号', '检查', '检验', '药品', '治疗'],
+    '11': ['窗口', '自助机', '移动支付', '医保'],
+    '12': ['现金', '微信', '支付宝', '银行卡', '医保']
 };
 
 function generateFinancePie(bt) {

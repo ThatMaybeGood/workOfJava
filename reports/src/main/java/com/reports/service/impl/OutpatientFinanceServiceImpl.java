@@ -6,8 +6,6 @@ import com.reports.dto.response.cash.outpatient.finance.BarItem;
 import com.reports.dto.response.cash.outpatient.finance.DetailListItem;
 import com.reports.dto.response.cash.outpatient.finance.IndicatorData;
 import com.reports.dto.response.cash.outpatient.finance.PieItem;
-import com.reports.entity.cash.OutpFinanceClinicMaster;
-import com.reports.entity.cash.OutpFinanceRcptAcct;
 import com.reports.mapper.OutpatientFinanceMapper;
 import com.reports.service.OutpatientFinanceService;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +38,6 @@ import java.util.function.Function;
 public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
 
     /** bt8 业务类型金额分界日期：此前挂号费取自 clinic，此后按收据 bill_class 区分 */
-    private static final LocalDate BIZ_SPLIT_DATE = LocalDate.of(2025, 2, 8);
 
     private final ReportDataConfig dataConfig;
     private final JdbcTemplate jdbcTemplate;
@@ -107,7 +104,7 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                 }
             }
         } else {
-            for (int i = 1; i <= 10; i++) {
+            for (int i = 1; i <= 12; i++) {
                 types.add(String.valueOf(i));
             }
         }
@@ -137,26 +134,6 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
 
     private IndicatorData queryIndicatorByMybatisPlus(OutpatientFinanceRequest request) {
         return buildIndicatorFromDetail(queryDetailListByMybatisPlus(request));
-    }
-
-    private List<PieItem> buildBizTypePie(OutpatientFinanceRequest request) {
-        Integer type = request.getStatisticType();
-        Integer tt = request.getTimeType();
-        Date start = normalizeDate(type, tt, request.getStartDate());
-        Date end = normalizeDate(type, tt, request.getEndDate());
-        Map<String, Double> curr = computeBizType(type, tt, start, end);
-        Date pStart = offsetDate(start, -12);
-        Date pEnd = offsetDate(end, -12);
-        Map<String, Double> prev = computeBizType(type, tt, pStart, pEnd);
-        List<PieItem> items = new ArrayList<>();
-        for (Map.Entry<String, Double> e : curr.entrySet()) {
-            PieItem item = new PieItem();
-            item.setName(e.getKey());
-            item.setCurrValue(round(e.getValue()));
-            item.setPrevValue(round(prev.getOrDefault(e.getKey(), 0.0)));
-            items.add(item);
-        }
-        return items;
     }
 
     private List<DetailListItem> queryDetailListByMybatisPlus(OutpatientFinanceRequest request) {
@@ -270,31 +247,34 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
 
             // bt1 订单来源：门诊挂号表按 SOURCE_TYPE 净人次（未退号+1/退号-1）
             if (types.contains("1")) {
-                log.info("[门诊财务饼图] bt1: 订单来源(门诊量, 挂号表按 SOURCE_TYPE 净人次) → queryClinicCountBySource");
+                log.info("[门诊财务饼图] bt1: 门诊量分析(订单来分析) → queryClinicCountBySource");
                 map.put("1", buildPie(financeMapper.queryClinicCountBySource(type, start, end, tt),
                         financeMapper.queryClinicCountBySource(type, pStart, pEnd, tt), this::mapSourceType));
             }
-            // bt3/bt4 共用同一查询（订单渠道/收据张数渠道：收据表按操作员净张数）
-            if (types.contains("3") || types.contains("4")) {
-                log.info("[门诊财务饼图] bt3/4: 订单渠道/收据张数渠道(收据表按操作员净张数) → queryRcptCountByOperator");
-                List<PieItem> pieOperator = buildPie(
-                        financeMapper.queryRcptCountByOperator(type, start, end, tt),
-                        financeMapper.queryRcptCountByOperator(type, pStart, pEnd, tt), null);
-                if (types.contains("3")) map.put("3", pieOperator);
-                if (types.contains("4")) map.put("4", pieOperator);
-            }
             if (types.contains("2")) {
-                log.info("[门诊财务饼图] bt2: 取号渠道 → queryQueueCountByOperator");
+                log.info("[门诊财务饼图] bt2: 门诊量分析(取号渠道) → queryQueueCountByOperator");
                 map.put("2", buildPie(financeMapper.queryQueueCountByOperator(type, start, end, tt),
                         financeMapper.queryQueueCountByOperator(type, pStart, pEnd, tt), null));
             }
+             if (types.contains("3")) {
+                log.info("[门诊财务饼图] bt3: 门诊量分析(订单渠道分析) → queryClinicCountByOperator");
+                map.put("3", buildPie(
+                        financeMapper.queryClinicCountByOperator(type, start, end, tt),
+                        financeMapper.queryClinicCountByOperator(type, pStart, pEnd, tt), null));
+             }
+            if (types.contains("4")) {
+                log.info("[门诊财务饼图] bt4: 缴费人次分析(缴费人次渠道分析) → queryRcptCountByOperator");
+                map.put("4", buildPie(financeMapper.queryRcptCountByOperator(type, start, end, tt),
+                        financeMapper.queryRcptCountByOperator(type, pStart, pEnd, tt), null));
+            }
+
             if (types.contains("5")) {
-                log.info("[门诊财务饼图] bt5: 人次支付(按支付方式人次) → queryPaymentCountByMoneyType");
+                log.info("[门诊财务饼图] bt5: 缴费人次分析(支付方式金额) → queryPaymentCountByMoneyType");
                 map.put("5", buildPie(financeMapper.queryPaymentCountByMoneyType(type, start, end, tt),
                         financeMapper.queryPaymentCountByMoneyType(type, pStart, pEnd, tt), null));
             }
             if (types.contains("6")) {
-                log.info("[门诊财务饼图] bt6: 渠道金额(按操作员金额) → queryRcptSumByOperator");
+                log.info("[门诊财务饼图] bt6: 收据张数(渠道分析) → queryRcptSumByOperator");
                 map.put("6", buildPie(financeMapper.queryRcptSumByOperator(type, start, end, tt),
                         financeMapper.queryRcptSumByOperator(type, pStart, pEnd, tt), null));
             }
@@ -304,8 +284,9 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                         financeMapper.queryPaymentSumByMoneyType(type, pStart, pEnd, tt), null));
             }
             if (types.contains("8")) {
-                log.info("[门诊财务饼图] bt8: 业务类型金额(当日挂号/门诊缴费) → computeBizType(分界: 2025-02-08)");
-                map.put("8", buildBizTypePie(request));
+                log.info("[门诊财务饼图] bt8: 业务类型金额(当日挂号/门诊缴费) → queryBizTypeAmount");
+                map.put("8", buildPie(financeMapper.queryBizTypeAmount(type, start, end, tt),
+                        financeMapper.queryBizTypeAmount(type, pStart, pEnd, tt), null));
             }
             if (types.contains("9")) {
                 log.info("[门诊财务饼图] bt9: 应收/实收 → queryPaymentSumByCategory");
@@ -316,6 +297,16 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                 log.info("[门诊财务饼图] bt10: 应收金额(应收账款类按支付方式明细) → queryPaymentSumReceivable");
                 map.put("10", buildPie(financeMapper.queryPaymentSumReceivable(type, start, end, tt),
                         financeMapper.queryPaymentSumReceivable(type, pStart, pEnd, tt), null));
+            }
+            if (types.contains("11")) {
+                log.info("[门诊财务饼图] bt11: 收入金额分析(渠道分析) → queryIncomeSumByOperator");
+                map.put("11", buildPie(financeMapper.queryIncomeSumByOperator(type, start, end, tt),
+                        financeMapper.queryIncomeSumByOperator(type, pStart, pEnd, tt), null));
+            }
+            if (types.contains("12")) {
+                log.info("[门诊财务饼图] bt12: 收入金额分析(支付方式分析) → queryIncomeSumByMoneyType");
+                map.put("12", buildPie(financeMapper.queryIncomeSumByMoneyType(type, start, end, tt),
+                        financeMapper.queryIncomeSumByMoneyType(type, pStart, pEnd, tt), null));
             }
         } catch (Exception e) {
             log.warn("查询门诊财务饼图失败", e);
@@ -353,30 +344,6 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             agg.merge(name, toMapDouble(value), Double::sum);
         }
         return agg;
-    }
-
-    /**
-     * bt8 业务类型金额：分界前挂号费取自 clinic（REGIST_FEE+CLINIC_FEE），
-     * 分界后按收据 bill_class='1' 判定当日挂号，其余为门诊缴费。
-     */
-    private Map<String, Double> computeBizType(Integer statisticType, Integer timeType,
-                                               Date startDate, Date endDate) {
-        Map<String, Double> m = new LinkedHashMap<>();
-        m.put("当日挂号", 0.0);
-        m.put("门诊缴费", 0.0);
-        Date split = Date.from(BIZ_SPLIT_DATE.atStartOfDay(ZoneId.systemDefault()).toInstant());
-        for (OutpFinanceClinicMaster c : financeMapper.queryClinicRows(statisticType, startDate, endDate, timeType)) {
-            if (c.getVisitDate() != null && c.getVisitDate().before(split)) {
-                m.merge("当日挂号", toDouble(c.getRegistFee()) + toDouble(c.getClinicFee()), Double::sum);
-            }
-        }
-        for (OutpFinanceRcptAcct r : financeMapper.queryRcptRows(statisticType, startDate, endDate, timeType)) {
-            boolean regist = r.getVisitDate() != null
-                    && !r.getVisitDate().before(split)
-                    && "1".equals(r.getBillClass());
-            m.merge(regist ? "当日挂号" : "门诊缴费", toDouble(r.getTotalCharges()), Double::sum);
-        }
-        return m;
     }
 
     /**
@@ -539,7 +506,9 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                 {"现金", "微信", "支付宝", "银行卡", "医保"},
                 {"挂号", "检查", "检验", "药品", "治疗"},
                 {"应收账款", "实收金额"},
-                {"挂号", "检查", "检验", "药品", "治疗"}
+                {"挂号", "检查", "检验", "药品", "治疗"},
+                {"窗口", "自助机", "移动支付", "医保"},
+                {"现金", "微信", "支付宝", "银行卡", "医保"}
         };
         Map<String, List<PieItem>> map = new LinkedHashMap<>();
         for (int bt = 1; bt <= 10; bt++) {

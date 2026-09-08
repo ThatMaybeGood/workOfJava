@@ -394,27 +394,27 @@ var pieLegendState = {};
 var PIE_LEGEND_PAGE_SIZE = 5;
 
 // 金额类饼图（显示保留两位小数）；人次/张数类（bt1-5）显示整数
-var AMOUNT_BT_MAP = { '6': true, '7': true, '8': true, '9': true, '10': true };
+var AMOUNT_BT_MAP = { '5': true, '7': true, '8': true, '9': true, '10': true, '11': true, '12': true };
 
 // 饼图 DOM ID -> business_type 映射（新增第5个：应收金额 -> 10）
 var pieChartMap = {
     summary: {
         'pie-summary-visit-1': '1', 'pie-summary-visit-2': '2', 'pie-summary-visit-3': '3',
         'pie-summary-pay-1': '4', 'pie-summary-pay-2': '5',
-        'pie-summary-receipt-1': '4', 'pie-summary-receipt-2': '5',
-        'pie-summary-net-1': '6', 'pie-summary-net-2': '7', 'pie-summary-net-3': '8', 'pie-summary-net-4': '9', 'pie-summary-net-5': '10'
+        'pie-summary-receipt-1': '6', 'pie-summary-receipt-2': '7',
+        'pie-summary-net-1': '11', 'pie-summary-net-2': '12', 'pie-summary-net-3': '8', 'pie-summary-net-4': '9', 'pie-summary-net-5': '10'
     },
     income: {
         'pie-income-visit-1': '1', 'pie-income-visit-2': '2', 'pie-income-visit-3': '3',
         'pie-income-pay-1': '4', 'pie-income-pay-2': '5',
-        'pie-income-receipt-1': '4', 'pie-income-receipt-2': '5',
-        'pie-income-amount-1': '6', 'pie-income-amount-2': '7', 'pie-income-amount-3': '8', 'pie-income-amount-4': '9', 'pie-income-amount-5': '10'
+        'pie-income-receipt-1': '6', 'pie-income-receipt-2': '7',
+        'pie-income-amount-1': '11', 'pie-income-amount-2': '12', 'pie-income-amount-3': '8', 'pie-income-amount-4': '9', 'pie-income-amount-5': '10'
     },
     refund: {
         'pie-refund-visit-1': '1', 'pie-refund-visit-2': '2', 'pie-refund-visit-3': '3',
         'pie-refund-pay-1': '4', 'pie-refund-pay-2': '5',
-        'pie-refund-receipt-1': '4', 'pie-refund-receipt-2': '5',
-        'pie-refund-amount-1': '6', 'pie-refund-amount-2': '7', 'pie-refund-amount-3': '8', 'pie-refund-amount-4': '9', 'pie-refund-amount-5': '10'
+        'pie-refund-receipt-1': '6', 'pie-refund-receipt-2': '7',
+        'pie-refund-amount-1': '11', 'pie-refund-amount-2': '12', 'pie-refund-amount-3': '8', 'pie-refund-amount-4': '9', 'pie-refund-amount-5': '10'
     }
 };
 
@@ -574,9 +574,9 @@ function updatePiesFromList(innerSuffix, pieList) {
 var innerTabPieTypesMap = {
     'visit': '1,2,3',
     'pay': '4,5',
-    'receipt': '4,5',
-    'net': '6,7,8,9,10',
-    'amount': '6,7,8,9,10'
+    'receipt': '6,7',
+    'net': '8,9,10,11,12',
+    'amount': '8,9,10,11,12'
 };
 
 // 饼图缓存：outerType|日期范围|innerSuffix -> pieList

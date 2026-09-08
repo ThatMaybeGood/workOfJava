@@ -1,7 +1,7 @@
 package com.reports.mapper;
 
-import com.reports.entity.cash.OutpFinanceClinicMaster;
-import com.reports.entity.cash.OutpFinanceRcptAcct;
+import com.reports.annotation.EtlTask;
+import com.reports.constant.EtlTaskConst;
 import com.reports.entity.cash.OutpFinancePaymentsMoney;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -34,14 +34,6 @@ public interface OutpatientFinanceMapper {
                                                @Param("timeType") Integer timeType);
 
     /**
-     * 门诊收据原始行（人次去重在 Service，只负责按 statisticType 过滤+排序）
-     */
-    List<OutpFinanceRcptAcct> queryRcptRows(@Param("statisticType") Integer statisticType,
-                                            @Param("startDate") Date startDate,
-                                            @Param("endDate") Date endDate,
-                                            @Param("timeType") Integer timeType);
-
-    /**
      * 缴费人次：同患者+同日+同前缀+票号连续合并为一人次（窗口函数在库内完成，只返回周期+人次）
      */
     List<Map<String, Object>> queryVisitCounts(@Param("statisticType") Integer statisticType,
@@ -50,12 +42,12 @@ public interface OutpatientFinanceMapper {
                                                @Param("timeType") Integer timeType);
 
     /**
-     * 门诊挂号原始行（bt8 分界前挂号费计算）
+     * bt8 业务类型金额：挂号费(分界前)+收据 bill_class 分类
      */
-    List<OutpFinanceClinicMaster> queryClinicRows(@Param("statisticType") Integer statisticType,
-                                                  @Param("startDate") Date startDate,
-                                                  @Param("endDate") Date endDate,
-                                                  @Param("timeType") Integer timeType);
+    List<Map<String, Object>> queryBizTypeAmount(@Param("statisticType") Integer statisticType,
+                                                 @Param("startDate") Date startDate,
+                                                 @Param("endDate") Date endDate,
+                                                 @Param("timeType") Integer timeType);
 
     /**
      * bt1 订单来源：门诊挂号表按 SOURCE_TYPE 净人次（未退号+1，退号-1）
@@ -66,7 +58,15 @@ public interface OutpatientFinanceMapper {
                                                          @Param("timeType") Integer timeType);
 
     /**
-     * bt3/bt4 订单渠道/收据张数渠道：按操作员净张数（收据表）
+     * bt3 订单渠道 ：按操作员净张数（收据表）
+     */
+    List<Map<String, Object>> queryClinicCountByOperator(@Param("statisticType") Integer statisticType,
+                                                       @Param("startDate") Date startDate,
+                                                       @Param("endDate") Date endDate,
+                                                       @Param("timeType") Integer timeType);
+
+    /**
+     * bt4 缴费人次渠道：按操作员分类（queryVisitCounts 同口径）
      */
     List<Map<String, Object>> queryRcptCountByOperator(@Param("statisticType") Integer statisticType,
                                                        @Param("startDate") Date startDate,
@@ -74,15 +74,20 @@ public interface OutpatientFinanceMapper {
                                                        @Param("timeType") Integer timeType);
 
     /**
-     * bt6 渠道金额：按操作员求和（进项正+退项负）
+     * bt6 收据张数渠道：结账主表按操作员分类（张数口径）
      */
+    @EtlTask(
+            taskToken = EtlTaskConst.OUTP_FINANCE_PIE,                       // 任务标识
+            params = {"startDate", "endDate"},                                // 透传给 ETL vars 的参数
+            dateFormats = {"startDate=yyyy-MM-dd", "endDate=yyyy-MM-dd"}     // 可选：Date → 字符串
+    )
     List<Map<String, Object>> queryRcptSumByOperator(@Param("statisticType") Integer statisticType,
                                                      @Param("startDate") Date startDate,
                                                      @Param("endDate") Date endDate,
                                                      @Param("timeType") Integer timeType);
 
     /**
-     * bt2 取号渠道：MOP_QUEUE 直接查（reserve+used + 退号者计入净量）
+     * bt2 取号渠道：挂号表按操作员净人次（IS_RETURN_TYPE 口径，与 queryClinicCounts 一致）
      */
     List<Map<String, Object>> queryQueueCountByOperator(@Param("statisticType") Integer statisticType,
                                                         @Param("startDate") Date startDate,
@@ -90,7 +95,7 @@ public interface OutpatientFinanceMapper {
                                                         @Param("timeType") Integer timeType);
 
     /**
-     * bt5 人次支付：按支付方式统计人次（PAYMENTS_MONEY ⋈ RCPT_ACCT，同一患者同一收据去重）
+     * bt5 缴费人次支付：按支付方式求金额
      */
     List<Map<String, Object>> queryPaymentCountByMoneyType(@Param("statisticType") Integer statisticType,
                                                            @Param("startDate") Date startDate,
@@ -98,7 +103,7 @@ public interface OutpatientFinanceMapper {
                                                            @Param("timeType") Integer timeType);
 
     /**
-     * bt7 支付方式金额：按支付方式求和（PAYMENTS_MONEY ⋈ RCPT_ACCT）
+     * bt7 支付方式金额：结账主表⋈结账支付表
      */
     List<Map<String, Object>> queryPaymentSumByMoneyType(@Param("statisticType") Integer statisticType,
                                                          @Param("startDate") Date startDate,
@@ -106,7 +111,7 @@ public interface OutpatientFinanceMapper {
                                                          @Param("timeType") Integer timeType);
 
     /**
-     * bt9 应收/实收：按支付方式归类求和（PAYMENTS_MONEY ⋈ RCPT_ACCT）
+     * bt9 应收/实收：结账支付按类别归类求和
      */
     List<Map<String, Object>> queryPaymentSumByCategory(@Param("statisticType") Integer statisticType,
                                                         @Param("startDate") Date startDate,
@@ -117,6 +122,22 @@ public interface OutpatientFinanceMapper {
      * bt10 应收金额：应收账款类（ELSE 桶）按支付方式明细
      */
     List<Map<String, Object>> queryPaymentSumReceivable(@Param("statisticType") Integer statisticType,
+                                                        @Param("startDate") Date startDate,
+                                                        @Param("endDate") Date endDate,
+                                                        @Param("timeType") Integer timeType);
+
+    /**
+     * bt11 收入金额渠道：结账主表按操作员分类（总收入口径）
+     */
+    List<Map<String, Object>> queryIncomeSumByOperator(@Param("statisticType") Integer statisticType,
+                                                       @Param("startDate") Date startDate,
+                                                       @Param("endDate") Date endDate,
+                                                       @Param("timeType") Integer timeType);
+
+    /**
+     * bt12 收入金额支付：结账主表⋈结账支付表（总收入口径）
+     */
+    List<Map<String, Object>> queryIncomeSumByMoneyType(@Param("statisticType") Integer statisticType,
                                                         @Param("startDate") Date startDate,
                                                         @Param("endDate") Date endDate,
                                                         @Param("timeType") Integer timeType);

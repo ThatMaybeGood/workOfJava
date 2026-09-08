@@ -70,15 +70,127 @@ public class EtlTriggerAspect {
         // 结果为空：进入「尽力补数」。补数过程中的任何问题都不得影响本次查询返回，因此整体 try-catch 兜住。
         log.info("检测到空结果，尝试触发 ETL 补数: taskToken={}", et.taskToken());
         try {
-            Map<String, Object> vars = extractVars(method, pjp.getArgs(), et.params(), et.dateFormats());
             String ds = DynamicDataSourceContextHolder.get();
-            etlClient.ensure(ds, et.taskToken(), vars);
+            if (hasRangeExpansion(et)) {
+                triggerByDay(pjp, et, ds);
+            } else {
+                Map<String, Object> vars = extractVars(method, pjp.getArgs(), et.params(), et.dateFormats());
+                etlClient.ensure(ds, et.taskToken(), vars);
+            }
         } catch (Throwable ex) {
             log.error("ETL 补数触发异常（不影响本次查询返回）: taskToken={}", et.taskToken(), ex);
         }
 
         // 返回原始（空）结果，本次请求仍按空结果返回。
         return result;
+    }
+
+    /**
+     * 是否启用「范围按天展开」补数。
+     */
+    private boolean hasRangeExpansion(EtlTask et) {
+        return et.rangeStart() != null && !et.rangeStart().isEmpty()
+                && et.rangeEnd() != null && !et.rangeEnd().isEmpty()
+                && et.rangeTarget() != null && !et.rangeTarget().isEmpty();
+    }
+
+    /**
+     * 范围展开补数：把 [rangeStart, rangeEnd] 逐日拆分，每天以 {@code {rangeTarget: 当日}} 触发一次。
+     * <p>
+     * 起点/终点参数缺失或不是 Date 时退化为整段一次触发（vars 仅含 rangeTarget=起点，避免空 vars 误补）。
+     * 超出 rangeMaxDays 按最大天数截断，防止超大范围刷爆触发线程池。
+     * 去重由 {@link com.reports.service.EtlClient} 按 (taskToken + 参数) 按天自然生效。
+     */
+    private void triggerByDay(ProceedingJoinPoint pjp, EtlTask et, String ds) {
+        Method method = ((MethodSignature) pjp.getSignature()).getMethod();
+        Map<String, Object> rangeArgs = extractVars(method, pjp.getArgs(),
+                new String[]{et.rangeStart(), et.rangeEnd()}, new String[0]);
+        Object startObj = rangeArgs.get(et.rangeStart());
+        Object endObj = rangeArgs.get(et.rangeEnd());
+
+        java.time.format.DateTimeFormatter parseFormatter =
+                java.time.format.DateTimeFormatter.ofPattern(et.rangeParsePattern());
+        java.time.LocalDate startDay = resolveDay(startObj, parseFormatter, true);
+        java.time.LocalDate endDay = resolveDay(endObj, parseFormatter, false);
+        if (startDay == null || endDay == null) {
+            log.warn("范围展开参数缺失或无法解析，退化为整段触发: taskToken={}, rangeStart={}, rangeEnd={}",
+                    et.taskToken(), et.rangeStart(), et.rangeEnd());
+            Map<String, Object> vars = new LinkedHashMap<>();
+            if (startObj != null) {
+                vars.put(et.rangeTarget(), startObj);
+            }
+            etlClient.ensure(ds, et.taskToken(), vars);
+            return;
+        }
+        if (endDay.isBefore(startDay)) {
+            log.warn("范围展开起点晚于终点，跳过补数: taskToken={}, start={}, end={}",
+                    et.taskToken(), startDay, endDay);
+            return;
+        }
+
+        long days = java.time.temporal.ChronoUnit.DAYS.between(startDay, endDay) + 1;
+        if (days > et.rangeMaxDays()) {
+            log.warn("范围展开天数 {} 超过上限 {}，按上限截断: taskToken={}", days, et.rangeMaxDays(), et.taskToken());
+            endDay = startDay.plusDays(et.rangeMaxDays() - 1L);
+        }
+
+        java.time.format.DateTimeFormatter formatter =
+                java.time.format.DateTimeFormatter.ofPattern(et.rangePattern());
+        for (java.time.LocalDate d = startDay; !d.isAfter(endDay); d = d.plusDays(1)) {
+            Map<String, Object> vars = new LinkedHashMap<>();
+            vars.put(et.rangeTarget(), d.format(formatter));
+            etlClient.ensure(ds, et.taskToken(), vars);
+        }
+    }
+
+    /**
+     * 把范围端点实参解析成 LocalDate。
+     * <p>
+     * Date 直接取日期部分；String 先按 LocalDate 解析，失败按 YearMonth / Year 兜底
+     * （起点取月初/年初，终点取月末/年末，保证整个月/年被展开覆盖）。解析不了返回 null。
+     *
+     * @param arg       实参（Date 或 String）
+     * @param formatter 解析格式（来自 rangeParsePattern）
+     * @param isStart   true=起点（取月初/年初），false=终点（取月末/年末）
+     */
+    private java.time.LocalDate resolveDay(Object arg,
+                                           java.time.format.DateTimeFormatter formatter,
+                                           boolean isStart) {
+        if (arg == null) {
+            return null;
+        }
+        if (arg instanceof Date) {
+            return toLocalDate((Date) arg);
+        }
+        if (!(arg instanceof String)) {
+            return null;
+        }
+        String text = ((String) arg).trim();
+        if (text.isEmpty()) {
+            return null;
+        }
+        try {
+            return java.time.LocalDate.parse(text, formatter);
+        } catch (java.time.format.DateTimeParseException ignored) {
+            // 继续按 YearMonth / Year 兜底
+        }
+        try {
+            java.time.YearMonth ym = java.time.YearMonth.parse(text, formatter);
+            return isStart ? ym.atDay(1) : ym.atEndOfMonth();
+        } catch (java.time.format.DateTimeParseException ignored) {
+            // 继续按 Year 兜底
+        }
+        try {
+            java.time.Year year = java.time.Year.parse(text, formatter);
+            java.time.LocalDate first = year.atDay(1);
+            return isStart ? first : year.atMonth(12).atEndOfMonth();
+        } catch (java.time.format.DateTimeParseException e) {
+            return null;
+        }
+    }
+
+    private java.time.LocalDate toLocalDate(Date date) {
+        return date.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
     }
 
     /**
