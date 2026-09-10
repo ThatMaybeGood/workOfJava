@@ -73,7 +73,7 @@ class LabStatsController {
         this.state.startDate = range.startDate;
         this.state.endDate = range.endDate;
         if (this.datePicker) {
-            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)]);
+            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)], false);
         }
         this.loadData();
     }

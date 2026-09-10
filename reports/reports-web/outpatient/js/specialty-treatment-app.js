@@ -54,6 +54,7 @@ class SpecialtyTreatmentController {
                     this.state.filter.startDate = this.formatDate(selectedDates[0]);
                     this.state.filter.endDate = this.formatDate(selectedDates[1]);
                     this.state.currentPage = 1;
+                    this.loadOverview();
                     this.loadTableData();
                 }
             }
@@ -71,6 +72,7 @@ class SpecialtyTreatmentController {
                 this.state.filter.deptName = dept.deptName === '全部' ? '' : dept.deptName;
                 this.state.filter.deptCode = dept.deptCode === '0000' ? '' : dept.deptCode;
                 this.state.currentPage = 1;
+                this.loadOverview();
                 this.loadTableData();
             },
             ...options
@@ -102,7 +104,7 @@ class SpecialtyTreatmentController {
         this.state.filter.startDate = range.startDate;
         this.state.filter.endDate = range.endDate;
         if (this.datePicker) {
-            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)]);
+            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)], false);
         }
         this.state.currentPage = 1;
         this.loadOverview();
@@ -150,7 +152,9 @@ class SpecialtyTreatmentController {
             const body = await ReportAPI.getSpecialtyTreatmentStats({
                 timeRange: this.state.filter.timeRange,
                 startDate: this.state.filter.startDate,
-                endDate: this.state.filter.endDate
+                endDate: this.state.filter.endDate,
+                deptName: this.state.filter.deptName,
+                deptCode: this.state.filter.deptCode
             });
             this.renderOverview(body ? body.overview : null);
         } catch (error) {

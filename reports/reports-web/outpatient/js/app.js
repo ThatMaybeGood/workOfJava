@@ -131,7 +131,7 @@ class ReportController {
         this.state.filter.startDate = range.startDate;
         this.state.filter.endDate = range.endDate;
         if (this.datePicker) {
-            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)]);
+            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)], false);
         }
         this.state.currentPage = 1;
         this.loadData();

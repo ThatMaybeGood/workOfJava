@@ -96,7 +96,8 @@ async function initDeptSelect(options = {}) {
         return {
             deptCode: select.value,
             deptName: defaultOption ? (defaultOption.dataset.deptName || defaultOption.textContent) : '',
-            deptType: defaultOption ? (defaultOption.dataset.deptType || deptType) : deptType
+            deptType: defaultOption ? (defaultOption.dataset.deptType || deptType) : deptType,
+            list: optionsList
         };
     } catch (error) {
         console.error('[initDeptSelect] 加载科室字典失败:', error);

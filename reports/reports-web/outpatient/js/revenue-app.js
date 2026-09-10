@@ -133,7 +133,7 @@ class RevenueController {
         try {
             if (this.datePicker) {
                 this._ignoreDateChange = true;
-                this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)]);
+                this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)], false);
                 this._ignoreDateChange = false;
             }
         } catch (err) {
