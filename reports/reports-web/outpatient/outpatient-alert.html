@@ -176,6 +176,7 @@
     <script src="../api-config.js"></script>
     <script src="js/mock.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/dept-select.js"></script>
     <script>
         (function() {
             const toggle = document.getElementById('mockToggle');
@@ -193,6 +194,74 @@
             }
         })();
     </script>
+    <!-- 早退明细抽屉 -->
+    <div class="offcanvas offcanvas-end detail-drawer" tabindex="-1" id="detailDrawer" aria-labelledby="detailDrawerLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="detailDrawerLabel">早退明细</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="关闭"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="filter-section mb-3">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="filter-label">日期：</span>
+                        <input type="text" class="form-control form-control-sm date-input" id="detailDateRange" readonly>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="filter-label">科室：</span>
+                        <select class="form-select form-select-sm" id="detailDeptSelect">
+                            <option value="">全部</option>
+                        </select>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="filter-label">医生：</span>
+                        <input type="text" class="form-control form-control-sm" id="detailDoctorInput" placeholder="输入医生姓名">
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="filter-label">出诊时间段：</span>
+                        <select class="form-select form-select-sm" id="detailClinicPeriod">
+                            <option value="">全部</option>
+                            <option value="上午">上午</option>
+                            <option value="下午">下午</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-sm btn-primary" onclick="reloadDetailModal()">查询</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>日期</th>
+                            <th>科室</th>
+                            <th>医生</th>
+                            <th>出诊时间段</th>
+                            <th>HIS工作站最后登出时间</th>
+                            <th>早退次数</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detailTableBody"></tbody>
+                </table>
+            </div>
+            <div id="detailEmpty" class="text-center text-muted py-4 d-none">暂无数据</div>
+            <div class="pagination-wrapper d-flex justify-content-center align-items-center mt-3 gap-3">
+                <div class="pagination-info"><span id="detailPageInfo">10条/页 共0条</span></div>
+                <nav aria-label="Page navigation"><ul class="pagination mb-0" id="detailPagination"></ul></nav>
+                <div class="pagination-controls d-flex align-items-center gap-1">
+                    <select class="form-select form-select-sm" id="detailPageSizeSelect">
+                        <option value="10" selected>10条/页</option>
+                        <option value="20">20条/页</option>
+                        <option value="50">50条/页</option>
+                    </select>
+                    <span>跳至</span>
+                    <input type="number" class="form-control form-control-sm page-jump-input" id="detailJumpPage" min="1">
+                    <span>页</span>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="jumpToDetailPage()">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="../vendor/xlsx@0.18.5/xlsx.full.min.js"></script>
     <script src="js/date-utils.js"></script>
     <script src="js/alert-app.js"></script>

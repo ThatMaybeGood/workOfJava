@@ -15,49 +15,78 @@
     </select>
 
     <!-- ============================================================ -->
-    <!-- 查询门诊预警科室明细 -->
+    <!-- 查询门诊预警科室汇总 -->
     <!-- ============================================================ -->
-    <select id="queryDeptDetail" resultType="com.reports.entity.OutpatientAlertDeptEntity">
+    <select id="queryDeptDetail" resultType="com.reports.entity.OutpatientAlertOvEntity">
         SELECT
         dept_name AS deptName,
         NVL(SUM(remain_alert), 0) AS remainAlert,
         NVL(SUM(appointment_alert), 0) AS appointmentAlert,
         NVL(SUM(early_leave), 0) AS earlyLeave
-        FROM TR_OUTP_ALT_DEPT a
-        INNER JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
-        WHERE a.stat_date BETWEEN #{startDate} AND #{endDate}
-
+        FROM TR_OUTP_ALT_OV
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         <if test="deptCode != null and deptCode != ''">
-            AND d.dept_code = #{deptCode}
+            AND dept_code = #{deptCode}
         </if>
         <if test="deptName != null and deptName != ''">
-            AND d.dept_name LIKE '%' || #{deptName} || '%'
+            AND dept_name LIKE '%' || #{deptName} || '%'
         </if>
-        GROUP BY d.dept_name
+        GROUP BY dept_name
         ORDER BY remainAlert DESC
     </select>
 
     <!-- ============================================================ -->
-    <!-- 查询门诊预警医生明细 -->
+    <!-- 查询门诊预警医生汇总 -->
     <!-- ============================================================ -->
-    <select id="queryDoctorDetail" resultType="com.reports.entity.OutpatientAlertDocEntity">
+    <select id="queryDoctorDetail" resultType="com.reports.entity.OutpatientAlertOvEntity">
         SELECT
         doctor_name AS doctorName,
         dept_name AS deptName,
         NVL(SUM(remain_alert), 0) AS remainAlert,
         NVL(SUM(appointment_alert), 0) AS appointmentAlert,
         NVL(SUM(early_leave), 0) AS earlyLeave
-        FROM TR_OUTP_ALT_DOC a
-        INNER JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
-        WHERE a.stat_date BETWEEN #{startDate} AND #{endDate}
-         <if test="deptCode != null and deptCode != ''">
-            AND d.dept_code = #{deptCode}
+        FROM TR_OUTP_ALT_OV
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+          AND doctor_name IS NOT NULL
+        <if test="deptCode != null and deptCode != ''">
+            AND dept_code = #{deptCode}
         </if>
         <if test="deptName != null and deptName != ''">
-            AND d.dept_name LIKE '%' || #{deptName} || '%'
+            AND dept_name LIKE '%' || #{deptName} || '%'
         </if>
-        GROUP BY a.doctor_name, d.dept_name
+        GROUP BY doctor_name, dept_name
         ORDER BY remainAlert DESC
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 查询早退明细（弹窗用，不分组，返回原始记录） -->
+    <!-- ============================================================ -->
+    <select id="queryEarlyLeaveDetail" resultType="com.reports.entity.OutpatientAlertOvEntity">
+        SELECT
+        dept_name AS deptName,
+        doctor_name AS doctorName,
+        stat_date AS statDate,
+        clinic_period AS clinicPeriod,
+        his_logout_time AS hisLogoutTime,
+        NVL(remain_alert, 0) AS remainAlert,
+        NVL(appointment_alert, 0) AS appointmentAlert,
+        NVL(early_leave, 0) AS earlyLeave
+        FROM TR_OUTP_ALT_OV
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+          AND NVL(early_leave, 0) > 0
+        <if test="deptCode != null and deptCode != ''">
+            AND dept_code = #{deptCode}
+        </if>
+        <if test="deptName != null and deptName != ''">
+            AND dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+        <if test="doctorName != null and doctorName != ''">
+            AND doctor_name LIKE '%' || #{doctorName} || '%'
+        </if>
+        <if test="clinicPeriod != null and clinicPeriod != ''">
+            AND clinic_period LIKE '%' || #{clinicPeriod} || '%'
+        </if>
+        ORDER BY stat_date DESC, dept_name, doctor_name
     </select>
 
 </mapper>

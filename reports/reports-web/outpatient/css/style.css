@@ -822,3 +822,62 @@ body {
         min-height: 340px;
     }
 }
+
+
+.clickable {
+    cursor: pointer;
+    user-select: none;
+    color: var(--primary-color);
+}
+
+.clickable:hover {
+    text-decoration: underline;
+}
+
+/* 表格内可点击数字：覆盖 Bootstrap 表格文字色 */
+.table td.clickable,
+.table td .clickable {
+    color: var(--primary-color);
+    cursor: pointer;
+    user-select: none;
+}
+
+.table td.clickable:hover,
+.table td .clickable:hover {
+    text-decoration: underline;
+}
+
+/* 明细抽屉（.offcanvas.detail-drawer 提高优先级，覆盖 Bootstrap 默认 400px） */
+.offcanvas.detail-drawer {
+    --bs-offcanvas-width: min(1100px, 92vw);
+    width: min(1100px, 92vw);
+}
+
+.detail-drawer .offcanvas-body {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.detail-drawer .filter-section {
+    flex: 0 0 auto;
+    background-color: #fafafa;
+    border: 1px solid #e8e8e8;
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+
+.detail-drawer .table-responsive {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+.detail-drawer .pagination-wrapper {
+    flex: 0 0 auto;
+}
+
+/* 抽屉内日期范围输入框需显示完整区间 */
+.detail-drawer .date-input {
+    width: 210px;
+}

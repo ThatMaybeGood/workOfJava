@@ -3,6 +3,8 @@ package com.reports.dto.response.outpatient.alert;
 import com.reports.dto.common.PageResult;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 门诊预警统计 - 响应体
  */
@@ -25,5 +27,10 @@ public class OutpatientAlertResponse {
      * 医生预警统计表格
      */
     private PageResult<DoctorTableItem> doctorTable;
+
+    /**
+     * 早退明细（detail=true 时返回）
+     */
+    private List<DetailItem> detailList;
 
 }

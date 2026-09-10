@@ -622,6 +622,36 @@ const MockService = {
                     });
                 }
 
+                // 早退明细（抽屉用）
+                if (params.detail) {
+                    let detailList = [];
+                    for (let i = 0; i < 26; i++) {
+                        const d = doctors[i % doctors.length];
+                        const isMorning = Math.floor(i / doctors.length) % 2 === 0;
+                        detailList.push({
+                            statDate: '2025-10-0' + ((i % 9) + 1),
+                            deptName: d.dept,
+                            doctorName: d.name,
+                            clinicPeriod: isMorning ? '上午' : '下午',
+                            hisLogoutTime: isMorning ? '11:25:00' : '16:30:00',
+                            remainAlert: 2,
+                            appointmentAlert: 1,
+                            earlyLeave: 1
+                        });
+                    }
+                    if (params.deptName) {
+                        detailList = detailList.filter(item => item.deptName.includes(params.deptName));
+                    }
+                    if (params.doctorName) {
+                        detailList = detailList.filter(item => item.doctorName.includes(params.doctorName));
+                    }
+                    if (params.clinicPeriod) {
+                        detailList = detailList.filter(item => item.clinicPeriod.includes(params.clinicPeriod));
+                    }
+                    resolve({ code: 200, data: { detailList } });
+                    return;
+                }
+
                 const page = params.page || 1;
                 const pageSize = params.pageSize || 10;
 

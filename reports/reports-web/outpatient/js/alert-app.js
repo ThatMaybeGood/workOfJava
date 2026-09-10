@@ -114,6 +114,19 @@ class AlertController {
         document.querySelectorAll('#doctorTable .sortable').forEach(th => {
             th.addEventListener('click', (e) => this.handleSort(e, 'doctor'));
         });
+
+        // 抽屉内切换科室：以抽屉选择为准，清掉来自表格行的科室编码
+        document.getElementById('detailDeptSelect').addEventListener('change', () => {
+            detailState.deptCode = '';
+        });
+
+        document.getElementById('detailPageSizeSelect').addEventListener('change', (e) => {
+            detailState.pageSize = parseInt(e.target.value);
+            detailState.currentPage = 1;
+            renderDetailTable();
+            renderDetailPagination();
+            updateDetailPageInfo();
+        });
     }
 
     handleTimeFilter(e) {
@@ -125,7 +138,7 @@ class AlertController {
         this.filter.startDate = range.startDate;
         this.filter.endDate = range.endDate;
         if (this.datePicker) {
-            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)]);
+            this.datePicker.setDate([toFlatpickrDate(range.startDate), toFlatpickrDate(range.endDate)], false);
         }
         this.deptState.currentPage = 1;
         this.doctorState.currentPage = 1;
@@ -246,12 +259,13 @@ class AlertController {
         const tbody = document.getElementById('deptTableBody');
         let html = '';
         this.deptState.data.forEach(row => {
+            const deptCode = this._resolveDeptCode(row.deptName);
             html += `
                 <tr>
                     <td>${row.deptName}</td>
                     <td>${row.remainAlert}</td>
                     <td>${row.appointmentAlert}</td>
-                    <td>${row.earlyLeave}</td>
+                    <td class="clickable" onclick="openDeptDetailModal('${deptCode || ''}', '${row.deptName || ''}', '${this.filter.startDate}', '${this.filter.endDate}')">${row.earlyLeave}</td>
                 </tr>
             `;
         });
@@ -262,13 +276,21 @@ class AlertController {
                     <td>全列表数据合计</td>
                     <td>${summary.remainAlert}</td>
                     <td>${summary.appointmentAlert}</td>
-                    <td>${summary.earlyLeave}</td>
+                    <td class="clickable" onclick="openDeptDetailModal('', '', '${this.filter.startDate}', '${this.filter.endDate}')">${summary.earlyLeave}</td>
                 </tr>
             `;
         } else {
             html += '<tr><td colspan="4" class="text-center text-muted py-4">暂无数据</td></tr>';
         }
         tbody.innerHTML = html;
+    }
+
+    /** 根据科室名称解析对应的科室编码（用于抽屉过滤） */
+    _resolveDeptCode(deptName) {
+        const list = (this.deptInfo && Array.isArray(this.deptInfo.list)) ? this.deptInfo.list : [];
+        if (!deptName || list.length === 0) return '';
+        const found = list.find(d => d.deptName === deptName);
+        return found ? (found.deptCode || '') : '';
     }
 
     calculateDeptSummary() {
@@ -285,13 +307,14 @@ class AlertController {
         const tbody = document.getElementById('doctorTableBody');
         let html = '';
         this.doctorState.data.forEach(row => {
+            const deptCode = this._resolveDeptCode(row.deptName);
             html += `
                 <tr>
                     <td>${row.doctorName}</td>
                     <td>${row.deptName}</td>
                     <td>${row.remainAlert}</td>
                     <td>${row.appointmentAlert}</td>
-                    <td>${row.earlyLeave}</td>
+                    <td class="clickable" onclick="openDoctorDetailModal('${deptCode || ''}', '${row.deptName || ''}', '${row.doctorName || ''}', '${this.filter.startDate}', '${this.filter.endDate}')">${row.earlyLeave}</td>
                 </tr>
             `;
         });
@@ -303,7 +326,7 @@ class AlertController {
                     <td></td>
                     <td>${summary.remainAlert}</td>
                     <td>${summary.appointmentAlert}</td>
-                    <td>${summary.earlyLeave}</td>
+                    <td class="clickable" onclick="openDoctorDetailModal('', '', '', '${this.filter.startDate}', '${this.filter.endDate}')">${summary.earlyLeave}</td>
                 </tr>
             `;
         } else {
@@ -539,3 +562,201 @@ function jumpToDoctorPage() {
 }
 
 const alertController = new AlertController();
+
+// ==================== 早退明细抽屉 ====================
+
+const detailState = {
+    startDate: '',
+    endDate: '',
+    deptCode: '',
+    currentPage: 1,
+    pageSize: 10,
+    total: 0,
+    data: []
+};
+
+let detailController = null;
+
+/** 初始化抽屉内的日期范围选择器 */
+function initDetailDatePicker(startDate, endDate) {
+    const input = document.getElementById('detailDateRange');
+    if (!input) return;
+    if (!detailController) {
+        detailController = flatpickr(input, {
+            mode: 'range',
+            dateFormat: 'Y/m/d',
+            locale: 'zh',
+            allowInput: false,
+            onChange: (selectedDates) => {
+                if (selectedDates.length === 2) {
+                    detailState.startDate = formatDateObj(selectedDates[0]);
+                    detailState.endDate = formatDateObj(selectedDates[1]);
+                    detailState.currentPage = 1;
+                    loadDetailModalData();
+                }
+            }
+        });
+    }
+    detailController.setDate([toFlatpickrDate(startDate), toFlatpickrDate(endDate)], false);
+    input.value = `${startDate} ~ ${endDate}`;
+}
+
+function formatDateObj(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+/** 打开早退明细抽屉（从科室维度点击触发） */
+function openDeptDetailModal(deptCode, deptName, startDate, endDate) {
+    detailState.deptCode = deptCode;
+    detailState.startDate = startDate;
+    detailState.endDate = endDate;
+    detailState.currentPage = 1;
+    populateDetailDeptSelect(deptName);
+    document.getElementById('detailDoctorInput').value = '';
+    document.getElementById('detailClinicPeriod').value = '';
+    initDetailDatePicker(startDate, endDate);
+    bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('detailDrawer')).show();
+    loadDetailModalData();
+}
+
+/** 打开早退明细抽屉（从医生维度点击触发） */
+function openDoctorDetailModal(deptCode, deptName, doctorName, startDate, endDate) {
+    openDeptDetailModal(deptCode, deptName, startDate, endDate);
+    document.getElementById('detailDoctorInput').value = doctorName || '';
+    loadDetailModalData();
+}
+
+/** 填充抽屉科室下拉 */
+function populateDetailDeptSelect(highlightDept) {
+    const sel = document.getElementById('detailDeptSelect');
+    sel.innerHTML = '<option value="">全部</option>';
+    const list = (alertController.deptInfo && Array.isArray(alertController.deptInfo.list))
+        ? alertController.deptInfo.list : [];
+    for (const d of list) {
+        // 跳过字典里的「全部」(0000)，避免与默认「全部」选项重复
+        if (!d.deptName || d.deptCode === '0000' || d.deptName === '全部') continue;
+        const opt = document.createElement('option');
+        opt.value = d.deptName;
+        opt.textContent = d.deptName;
+        if (d.deptName === highlightDept) opt.selected = true;
+        sel.appendChild(opt);
+    }
+}
+
+function reloadDetailModal() {
+    detailState.currentPage = 1;
+    loadDetailModalData();
+}
+
+async function loadDetailModalData() {
+    const deptName = document.getElementById('detailDeptSelect').value;
+    const doctorName = document.getElementById('detailDoctorInput').value.trim();
+    const clinicPeriod = document.getElementById('detailClinicPeriod').value;
+    const body = await ReportAPI.getAlertStats({
+        detail: true,
+        startDate: detailState.startDate,
+        endDate: detailState.endDate,
+        deptCode: detailState.deptCode,
+        deptName: deptName || '',
+        doctorName: doctorName || '',
+        clinicPeriod: clinicPeriod || ''
+    });
+    detailState.data = (body && Array.isArray(body.detailList)) ? body.detailList : [];
+    detailState.total = detailState.data.length;
+    renderDetailTable();
+    renderDetailPagination();
+    updateDetailPageInfo();
+}
+
+function renderDetailTable() {
+    const tbody = document.getElementById('detailTableBody');
+    const empty = document.getElementById('detailEmpty');
+    const start = (detailState.currentPage - 1) * detailState.pageSize;
+    const rows = detailState.data.slice(start, start + detailState.pageSize);
+
+    if (detailState.data.length === 0) {
+        tbody.innerHTML = '';
+        empty.classList.remove('d-none');
+        return;
+    }
+    empty.classList.add('d-none');
+    tbody.innerHTML = rows.map(r => `
+        <tr>
+            <td>${r.statDate || ''}</td>
+            <td>${r.deptName || ''}</td>
+            <td>${r.doctorName || ''}</td>
+            <td>${r.clinicPeriod || ''}</td>
+            <td>${r.hisLogoutTime || ''}</td>
+            <td>${r.earlyLeave != null ? r.earlyLeave : 0}</td>
+        </tr>
+    `).join('');
+}
+
+function renderDetailPagination() {
+    const totalPages = Math.ceil(detailState.total / detailState.pageSize);
+    const current = detailState.currentPage;
+    let html = '';
+
+    html += `<li class="page-item ${current === 1 ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="goToDetailPage(${current - 1}); return false;"><</a>
+    </li>`;
+
+    const maxVisible = 5;
+    let start = Math.max(1, current - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) {
+        start = Math.max(1, end - maxVisible + 1);
+    }
+
+    if (start > 1) {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="goToDetailPage(1); return false;">1</a></li>`;
+        if (start > 2) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+    }
+
+    for (let i = start; i <= end; i++) {
+        html += `<li class="page-item ${i === current ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="goToDetailPage(${i}); return false;">${i}</a>
+        </li>`;
+    }
+
+    if (end < totalPages) {
+        if (end < totalPages - 1) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="goToDetailPage(${totalPages}); return false;">${totalPages}</a></li>`;
+    }
+
+    html += `<li class="page-item ${current === totalPages ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="goToDetailPage(${current + 1}); return false;">></a>
+    </li>`;
+
+    document.getElementById('detailPagination').innerHTML = html;
+}
+
+function updateDetailPageInfo() {
+    document.getElementById('detailPageInfo').textContent =
+        `${detailState.pageSize}条/页 共${detailState.total}条`;
+}
+
+function goToDetailPage(page) {
+    const totalPages = Math.ceil(detailState.total / detailState.pageSize);
+    if (page < 1 || page > totalPages) return;
+    detailState.currentPage = page;
+    renderDetailTable();
+    renderDetailPagination();
+    updateDetailPageInfo();
+}
+
+function jumpToDetailPage() {
+    const input = document.getElementById('detailJumpPage');
+    const page = parseInt(input.value);
+    if (page) {
+        goToDetailPage(page);
+        input.value = '';
+    }
+}

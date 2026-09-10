@@ -9,7 +9,7 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 门诊预警统计-概览
+ * 门诊预警统计（单表：日期+科室+医生粒度，概览/科室表/医生表/早退明细均由此聚合）
  */
 @Data
 @TableName("TR_OUTP_ALT_OV")
@@ -29,23 +29,53 @@ public class OutpatientAlertOvEntity implements Serializable {
      */
     private Date statDate;
 
+    @TableField("dept_code")
+    /**
+     * 科室编码
+     */
+    private String deptCode;
+
+    @TableField("dept_name")
+    /**
+     * 科室名称
+     */
+    private String deptName;
+
+    @TableField("doctor_name")
+    /**
+     * 医生姓名（无医生维度的预警为空）
+     */
+    private String doctorName;
+
     @TableField("remain_alert")
     /**
-     * 滞留预警
+     * 当日余号预警次数
      */
     private Integer remainAlert;
 
     @TableField("appointment_alert")
     /**
-     * 预约预警
+     * 号源预约预警次数
      */
     private Integer appointmentAlert;
 
     @TableField("early_leave")
     /**
-     * 早退人数
+     * 早退次数
      */
     private Integer earlyLeave;
+
+    @TableField("clinic_period")
+    /**
+     * 出诊时间段（早退明细用）
+     */
+    private String clinicPeriod;
+
+    @TableField("his_logout_time")
+    /**
+     * HIS工作站最后登出时间（早退明细用）
+     */
+    private String hisLogoutTime;
 
     @TableField("create_time")
     /**

@@ -6,6 +6,7 @@ import com.reports.dto.common.ApiRequest;
 import com.reports.dto.common.ApiResponse;
 import com.reports.dto.common.PageResult;
 import com.reports.dto.request.OutpatientAlertRequest;
+import com.reports.dto.response.outpatient.alert.DetailItem;
 import com.reports.dto.response.outpatient.alert.*;
 import com.reports.service.OutpatientAlertService;
 import com.reports.enums.ReportModule;
@@ -15,6 +16,8 @@ import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * 门诊预警统计处理器
@@ -50,6 +53,13 @@ public class OutpatientAlertHandler implements ReportHandler<OutpatientAlertRequ
         }
         if (body == null) {
             body = new OutpatientAlertRequest();
+        }
+
+        // 明细查询：返回 detailList，不走原有分页逻辑
+        if (Boolean.TRUE.equals(body.getDetail())) {
+            OutpatientAlertResponse detailResponse = new OutpatientAlertResponse();
+            detailResponse.setDetailList(outpatientAlertService.queryEarlyLeaveDetail(body));
+            return ApiResponse.success(detailResponse, MODULE.getChineseName() + "明细查询成功！");
         }
 
         OverviewData overview = outpatientAlertService.queryOverview(body);

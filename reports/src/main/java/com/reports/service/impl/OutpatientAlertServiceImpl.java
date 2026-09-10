@@ -4,8 +4,6 @@ import com.reports.config.ReportDataConfig;
 import com.reports.dto.common.PageResult;
 import com.reports.dto.request.OutpatientAlertRequest;
 import com.reports.dto.response.outpatient.alert.*;
-import com.reports.entity.OutpatientAlertDeptEntity;
-import com.reports.entity.OutpatientAlertDocEntity;
 import com.reports.entity.OutpatientAlertOvEntity;
 import com.reports.mapper.OutpatientAlertMapper;
 import com.reports.service.OutpatientAlertService;
@@ -15,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -131,9 +130,24 @@ public class OutpatientAlertServiceImpl implements OutpatientAlertService {
 
     // ==================== MyBatis-Plus 模式 ====================
 
+    /**
+     * 请求体日期（yyyy-MM-dd 字符串）转 java.sql.Date，格式非法时返回 null
+     */
+    private java.sql.Date parseDate(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return java.sql.Date.valueOf(dateStr.trim());
+        } catch (IllegalArgumentException e) {
+            log.warn("日期格式非法: {}", dateStr);
+            return null;
+        }
+    }
+
     private OverviewData queryOverviewByMybatisPlus(OutpatientAlertRequest request) {
         try {
-            OutpatientAlertOvEntity entity = alertMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            OutpatientAlertOvEntity entity = alertMapper.queryOverview(parseDate(request.getStartDate()), parseDate(request.getEndDate()));
             return buildOverviewData(entity);
         } catch (Exception e) {
             log.warn("查询概览数据失败", e);
@@ -143,9 +157,9 @@ public class OutpatientAlertServiceImpl implements OutpatientAlertService {
 
     private PageResult<DeptTableItem> queryDeptTableByMybatisPlus(OutpatientAlertRequest request, Integer page, Integer pageSize) {
         try {
-            List<OutpatientAlertDeptEntity> rows = alertMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), request.getDeptCode(), request.getDeptName());
+            List<OutpatientAlertOvEntity> rows = alertMapper.queryDeptDetail(parseDate(request.getStartDate()), parseDate(request.getEndDate()), request.getDeptCode(), request.getDeptName());
             List<DeptTableItem> allItems = new ArrayList<>();
-            for (OutpatientAlertDeptEntity row : rows) {
+            for (OutpatientAlertOvEntity row : rows) {
                 allItems.add(buildDeptTableItem(row));
             }
             int total = allItems.size();
@@ -161,9 +175,9 @@ public class OutpatientAlertServiceImpl implements OutpatientAlertService {
 
     private PageResult<DoctorTableItem> queryDoctorTableByMybatisPlus(OutpatientAlertRequest request, Integer page, Integer pageSize) {
         try {
-            List<OutpatientAlertDocEntity> rows = alertMapper.queryDoctorDetail(request.getStartDate(), request.getEndDate(), request.getDeptCode(), request.getDeptName());
+            List<OutpatientAlertOvEntity> rows = alertMapper.queryDoctorDetail(parseDate(request.getStartDate()), parseDate(request.getEndDate()), request.getDeptCode(), request.getDeptName());
             List<DoctorTableItem> allItems = new ArrayList<>();
-            for (OutpatientAlertDocEntity row : rows) {
+            for (OutpatientAlertOvEntity row : rows) {
                 allItems.add(buildDoctorTableItem(row));
             }
             int total = allItems.size();
@@ -188,7 +202,7 @@ public class OutpatientAlertServiceImpl implements OutpatientAlertService {
         return dto;
     }
 
-    private DeptTableItem buildDeptTableItem(OutpatientAlertDeptEntity entity) {
+    private DeptTableItem buildDeptTableItem(OutpatientAlertOvEntity entity) {
         if (entity == null) return new DeptTableItem();
         DeptTableItem item = new DeptTableItem();
         item.setDeptName(entity.getDeptName());
@@ -198,7 +212,7 @@ public class OutpatientAlertServiceImpl implements OutpatientAlertService {
         return item;
     }
 
-    private DoctorTableItem buildDoctorTableItem(OutpatientAlertDocEntity entity) {
+    private DoctorTableItem buildDoctorTableItem(OutpatientAlertOvEntity entity) {
         if (entity == null) return new DoctorTableItem();
         DoctorTableItem item = new DoctorTableItem();
         item.setDoctorName(entity.getDoctorName());
@@ -207,6 +221,55 @@ public class OutpatientAlertServiceImpl implements OutpatientAlertService {
         item.setAppointmentAlert(entity.getAppointmentAlert());
         item.setEarlyLeave(entity.getEarlyLeave());
         return item;
+    }
+
+    @Override
+    public List<DetailItem> queryEarlyLeaveDetail(OutpatientAlertRequest request) {
+        log.info("查询早退明细，mode={}", dataConfig.getMode());
+        if (dataConfig.isMock()) {
+            return queryEarlyLeaveDetailMock(request);
+        }
+        try {
+            List<OutpatientAlertOvEntity> rows = alertMapper.queryEarlyLeaveDetail(
+                    parseDate(request.getStartDate()), parseDate(request.getEndDate()),
+                    request.getDeptCode(), request.getDeptName(),
+                    request.getDoctorName(), request.getClinicPeriod());
+            List<DetailItem> result = new ArrayList<>();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            for (OutpatientAlertOvEntity row : rows) {
+                DetailItem item = new DetailItem();
+                item.setDeptName(row.getDeptName());
+                item.setDoctorName(row.getDoctorName());
+                item.setStatDate(row.getStatDate() != null ? sdf.format(row.getStatDate()) : null);
+                item.setClinicPeriod(row.getClinicPeriod());
+                item.setHisLogoutTime(row.getHisLogoutTime());
+                item.setRemainAlert(row.getRemainAlert());
+                item.setAppointmentAlert(row.getAppointmentAlert());
+                item.setEarlyLeave(row.getEarlyLeave());
+                result.add(item);
+            }
+            return result;
+        } catch (Exception e) {
+            log.warn("查询早退明细失败", e);
+            return new ArrayList<>();
+        }
+    }
+
+    private List<DetailItem> queryEarlyLeaveDetailMock(OutpatientAlertRequest request) {
+        List<DetailItem> list = new ArrayList<>();
+        for (int i = 0; i < 20; i++) {
+            DetailItem item = new DetailItem();
+            item.setDeptName("心血管内科");
+            item.setDoctorName("张医生" + (i + 1));
+            item.setStatDate(request.getStartDate() != null ? request.getStartDate() : "2025-10-01");
+            item.setClinicPeriod("08:00-11:30");
+            item.setHisLogoutTime("11:25:00");
+            item.setRemainAlert(2);
+            item.setAppointmentAlert(1);
+            item.setEarlyLeave(1);
+            list.add(item);
+        }
+        return list;
     }
 
 }
