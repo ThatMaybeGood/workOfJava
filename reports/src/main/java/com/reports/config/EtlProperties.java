@@ -55,4 +55,14 @@ public class EtlProperties {
      */
     private int readTimeoutSeconds = 5;
 
+    /**
+     * 轮询 ETL 任务执行结果的超时时间（秒），默认 300 秒
+     */
+    private int pollTimeoutSeconds = 300;
+
+    /**
+     * 轮询间隔（秒），默认 3 秒
+     */
+    private int pollIntervalSeconds = 3;
+
 }

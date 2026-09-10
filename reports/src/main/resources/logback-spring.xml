@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  日志留存策略由 application.yml 的 logging.logback.* 配置，此处只负责装配，改留存不动本文件。
+  日志级别仍由 logging.level.* 控制（Spring Boot 在加载本文件后统一应用，优先级高于此处）。
+-->
+<configuration>
+
+    <!-- ===== 从 application.yml 读取的配置项 ===== -->
+    <springProperty name="LOG_PATH" source="logging.logback.path" defaultValue="logs"/>
+    <springProperty name="MAX_HISTORY" source="logging.logback.max-history" defaultValue="30"/>
+    <springProperty name="ERROR_MAX_HISTORY" source="logging.logback.error-max-history" defaultValue="90"/>
+    <springProperty name="SQL_MAX_HISTORY" source="logging.logback.sql-max-history" defaultValue="7"/>
+    <springProperty name="MAX_FILE_SIZE" source="logging.logback.max-file-size" defaultValue="100MB"/>
+    <springProperty name="TOTAL_SIZE_CAP" source="logging.logback.total-size-cap" defaultValue="2GB"/>
+
+    <!-- 输出格式（含 traceId/seq，原 logging.pattern.console 已挪到这里统一管理） -->
+    <property name="LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - [%X{traceId}] [%X{seq}] %msg%n"/>
+
+    <!-- ===== 控制台 ===== -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder charset="UTF-8">
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ===== 主日志：INFO 及以上，按天 + 大小滚动 ===== -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/reports.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/reports.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+            <maxHistory>${MAX_HISTORY}</maxHistory>
+            <totalSizeCap>${TOTAL_SIZE_CAP}</totalSizeCap>
+        </rollingPolicy>
+        <encoder charset="UTF-8">
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ===== 错误日志：WARN 及以上单独归档，便于回溯 ===== -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/reports-error.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>WARN</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/reports-error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+            <maxHistory>${ERROR_MAX_HISTORY}</maxHistory>
+            <totalSizeCap>${TOTAL_SIZE_CAP}</totalSizeCap>
+        </rollingPolicy>
+        <encoder charset="UTF-8">
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ===== SQL 日志：mapper DEBUG 单独成文件，不进主日志 ===== -->
+    <appender name="SQL_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/reports-sql.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/reports-sql.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+            <maxHistory>${SQL_MAX_HISTORY}</maxHistory>
+            <totalSizeCap>${TOTAL_SIZE_CAP}</totalSizeCap>
+        </rollingPolicy>
+        <encoder charset="UTF-8">
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- mapper SQL：只进 SQL 文件与控制台；additivity=false 避免重复进主日志 -->
+    <logger name="com.reports.mapper" level="DEBUG" additivity="false">
+        <appender-ref ref="SQL_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+        <appender-ref ref="ERROR_FILE"/>
+    </root>
+
+</configuration>

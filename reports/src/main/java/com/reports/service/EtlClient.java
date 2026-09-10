@@ -10,12 +10,14 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.PreDestroy;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * ETL 任务触发客户端（公共、尽力而为的“补数”能力）
+ * ETL 任务触发客户端（公共、尽力而为的"补数"能力）
  * <p>
  * 设计要点：
  * <ul>
@@ -105,12 +107,19 @@ public class EtlClient {
      * @return true = 本次已提交触发（或允许触发）；false = 未触发（未启用 / 冷却期内 / 内部异常）
      */
     public boolean ensure(String dsKey, String taskToken, Map<String, Object> vars) {
+        return ensure(dsKey, taskToken, MDC.get("traceId"), vars);
+    }
+
+    /**
+     * 确保 ETL 任务被触发（携带显式 traceId 的重载）
+     */
+    public boolean ensure(String dsKey, String taskToken, String traceId, Map<String, Object> vars) {
         try {
             // 1. 短路：未启用或缺少必填配置时直接跳过
             if (!etlProperties.isEnabled()
                     || !StringUtils.hasText(etlProperties.getRunUrl())
                     || !StringUtils.hasText(etlProperties.getApiToken())) {
-                log.debug("ETL 触发未启用或配置缺失(runUrl/apiToken)，跳过，dsKey=[{}], taskToken=[{}]",
+                log.info("ETL 触发未启用或配置缺失(runUrl/apiToken)，跳过，dsKey=[{}], taskToken=[{}]",
                         dsKey, taskToken);
                 return false;
             }
@@ -118,7 +127,7 @@ public class EtlClient {
             // 1.1 单任务停用名单：命中即跳过（只停某一个，其余不受影响）
             if (etlProperties.getDisabledTaskTokens() != null
                     && etlProperties.getDisabledTaskTokens().contains(taskToken)) {
-                log.debug("ETL 任务已通过 disabled-task-tokens 停用，跳过，dsKey=[{}], taskToken=[{}]",
+                log.info("ETL 任务已通过 disabled-task-tokens 停用，跳过，dsKey=[{}], taskToken=[{}]",
                         dsKey, taskToken);
                 return false;
             }
@@ -137,13 +146,13 @@ public class EtlClient {
                 return now;      // 记录本次触发时间
             });
             if (!allow[0]) {
-                log.debug("ETL 同任务在冷却期内重复触发，已忽略，dsKey=[{}], taskToken=[{}], key=[{}]",
+                log.info("ETL 同任务在冷却期内重复触发，已忽略，dsKey=[{}], taskToken=[{}], key=[{}]",
                         dsKey, taskToken, key);
                 return false;
             }
 
             // 3. 提交到独立线程池异步执行（队列满时由 EtlDiscardPolicy 丢弃并告警，不阻塞调用方）
-            executor.execute(new EtlTriggerTask(dsKey, taskToken, vars));
+            executor.execute(new EtlTriggerTask(dsKey, taskToken, vars, traceId));
             return true;
         } catch (Exception e) {
             // 外层兜底：任何异常都不上抛，确保不影响报表查询主流程
@@ -160,7 +169,7 @@ public class EtlClient {
      * header 携带 X-API-Token 与 Content-Type。2xx 记 info，其它状态码记 warn，
      * IO/运行时异常记 warn，全程不向外抛出。
      */
-    protected void doRunHttp(String dsKey, String taskToken, Map<String, Object> vars) {
+    protected void doRunHttp(String dsKey, String taskToken, Map<String, Object> vars, String traceId) {
         try {
             // 组装请求体
             Map<String, Object> payload = new HashMap<>(4);
@@ -188,19 +197,26 @@ public class EtlClient {
                 String respBody = (response.body() == null) ? "" : response.body().string();
 
                 // 尽力从响应体解析 logId / status 用于日志（非 JSON 时忽略，不影响主流程）
+                // ApiResponse 结构：logId/status 在 body 字段里；兼容直接返回的情况
                 String logId = null;
                 String respStatus = null;
+                String pollUrl = null;
                 if (StringUtils.hasText(respBody)) {
                     try {
                         JsonNode root = objectMapper.readTree(respBody);
                         if (root != null) {
-                            JsonNode node = root.get("logId");
+                            JsonNode body = root.get("body");
+                            JsonNode node = (body != null && body.isObject()) ? body.get("logId") : root.get("logId");
                             if (node != null) {
                                 logId = node.asText();
                             }
-                            node = root.get("status");
+                            node = (body != null && body.isObject()) ? body.get("status") : root.get("status");
                             if (node != null) {
                                 respStatus = node.asText();
+                            }
+                            node = (body != null && body.isObject()) ? body.get("pollUrl") : root.get("pollUrl");
+                            if (node != null) {
+                                pollUrl = node.asText();
                             }
                         }
                     } catch (IOException ignored) {
@@ -209,12 +225,33 @@ public class EtlClient {
                 }
 
                 if (code >= 200 && code < 300) {
-                    log.info("ETL 任务触发成功，dsKey=[{}], taskToken=[{}], httpStatus=[{}], logId=[{}], respStatus=[{}]",
-                            dsKey, taskToken, code, logId, respStatus);
+                    // 解析 result.success，失败时打 warn 并带完整响应体，便于排查
+                    boolean bizSuccess = false;
+                    if (StringUtils.hasText(respBody)) {
+                        try {
+                            JsonNode root = objectMapper.readTree(respBody);
+                            JsonNode result = root != null ? root.get("result") : null;
+                            JsonNode successNode = result != null ? result.get("success") : null;
+                            bizSuccess = successNode != null && successNode.asBoolean();
+                        } catch (IOException ignored) {
+                            // 响应体非 JSON，忽略
+                        }
+                    }
+                    if (bizSuccess) {
+                        log.info("ETL 任务触发成功，dsKey=[{}], taskToken=[{}], vars=[{}], httpStatus=[{}], logId=[{}], respStatus=[{}]",
+                                dsKey, taskToken, vars, code, logId, respStatus);
+                    } else {
+                        log.warn("ETL 任务触发失败（业务异常），dsKey=[{}], taskToken=[{}], vars=[{}], httpStatus=[{}], respBody=[{}]",
+                                dsKey, taskToken, vars, code, truncate(respBody));
+                    }
                     if (isExplicitFailure(respStatus)) {
                         log.warn("ETL 接口返回 2xx 但业务状态明确为失败（该任务未触发成功），"
                                         + "dsKey=[{}], taskToken=[{}], respStatus=[{}], respBody=[{}]",
                                 dsKey, taskToken, respStatus, truncate(respBody));
+                    }
+                    // 异步轮询：返回了轮询地址且状态为 RUNNING 时，启动 daemon 线程等待终态
+                    if (StringUtils.hasText(pollUrl) && "RUNNING".equalsIgnoreCase(respStatus)) {
+                        startPolling(dsKey, taskToken, logId, pollUrl);
                     }
                 } else {
                     log.warn("ETL 接口返回非 2xx，任务可能未触发成功，dsKey=[{}], taskToken=[{}], "
@@ -229,6 +266,95 @@ public class EtlClient {
             log.warn("ETL 触发执行发生运行时异常，任务未触发成功，dsKey=[{}], taskToken=[{}], msg=[{}]",
                     dsKey, taskToken, e.getMessage(), e);
         }
+    }
+
+    /**
+     * 在独立 daemon 线程里启动轮询，等待 ETL 任务到达终态（SUCCESS / FAILED / CANCELLED 或超时）
+     * <p>
+     * 轮询地址用 ETL 返回的 pollUrl（形如 {@code /api/etl/log/{pollToken}}，相对地址按 runUrl 解析成绝对地址）：
+     * 自增 logId 的日志接口需要登录，外部调用方只能走 pollToken。
+     */
+    private void startPolling(String dsKey, String taskToken, String logId, String pollUrl) {
+        final String logUrl;
+        try {
+            logUrl = URI.create(etlProperties.getRunUrl()).resolve(pollUrl.trim()).toString();
+        } catch (IllegalArgumentException e) {
+            log.warn("ETL 轮询地址解析失败，跳过轮询，logId=[{}], pollUrl=[{}], msg=[{}]",
+                    logId, pollUrl, e.getMessage());
+            return;
+        }
+        Thread poller = new Thread(() -> {
+            try {
+                long deadline = System.currentTimeMillis() + etlProperties.getPollTimeoutSeconds() * 1000L;
+                while (System.currentTimeMillis() < deadline) {
+                    Thread.sleep(TimeUnit.SECONDS.toMillis(etlProperties.getPollIntervalSeconds()));
+                    Request req = new Request.Builder()
+                            .url(logUrl)
+                            .header("X-API-Token", etlProperties.getApiToken())
+                            .get()
+                            .build();
+                    try (Response resp = httpClient.newCall(req).execute()) {
+                        String body = (resp.body() == null) ? "" : resp.body().string();
+                        String status = null;
+                        String errorMsg = null;
+                        Long extractedRows = null;
+                        try {
+                            if (StringUtils.hasText(body)) {
+                                JsonNode root = objectMapper.readTree(body);
+                                if (root != null) {
+                                    JsonNode bodyNode = root.get("body");
+                                    JsonNode n;
+                                    n = (bodyNode != null && bodyNode.isObject()) ? bodyNode.get("status") : root.get("status");
+                                    if (n != null) {
+                                        status = n.asText();
+                                    }
+                                    n = (bodyNode != null && bodyNode.isObject()) ? bodyNode.get("errorMsg") : root.get("errorMsg");
+                                    if (n != null) {
+                                        errorMsg = n.asText();
+                                    }
+                                    n = (bodyNode != null && bodyNode.isObject()) ? bodyNode.get("extractedRows") : root.get("extractedRows");
+                                    if (n != null) {
+                                        extractedRows = n.asLong();
+                                    }
+                                }
+                            }
+                        } catch (IOException ignored) {
+                            // 响应非 JSON，继续轮询
+                        }
+                        if (StringUtils.hasText(status)) {
+                            if ("SUCCESS".equalsIgnoreCase(status)) {
+                                log.info("ETL 任务执行完成，logId=[{}], status=[{}], extractedRows=[{}], errorMsg=[{}]",
+                                        logId, status, extractedRows, errorMsg);
+                                return;
+                            }
+                            if ("FAILED".equalsIgnoreCase(status)) {
+                                log.warn("ETL 任务执行失败，logId=[{}], status=[{}], errorMsg=[{}]",
+                                        logId, status, errorMsg);
+                                return;
+                            }
+                            if ("CANCELLED".equalsIgnoreCase(status)) {
+                                log.warn("ETL 任务被取消，logId=[{}], status=[{}]",
+                                        logId, status);
+                                return;
+                            }
+                            // 未知终态：记录并退出
+                            log.warn("ETL 任务到达未知终态，logId=[{}], status=[{}]",
+                                    logId, status);
+                            return;
+                        }
+                        // 尚未到达终态，继续轮询
+                    } catch (IOException e) {
+                        log.warn("ETL 轮询请求失败，logId=[{}], msg=[{}]", logId, e.getMessage());
+                    }
+                }
+                // 超时未返回终态
+                log.warn("ETL 任务轮询超时，logId=[{}]", logId);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }, "etl-poll-" + logId);
+        poller.setDaemon(true);
+        poller.start();
     }
 
     /**
@@ -267,7 +393,7 @@ public class EtlClient {
     }
 
     /**
-     * 判断业务响应状态是否为“明确失败”，用于在 2xx 时额外告警
+     * 判断业务响应状态是否为"明确失败"，用于在 2xx 时额外告警
      */
     private static boolean isExplicitFailure(String respStatus) {
         if (!StringUtils.hasText(respStatus)) {
@@ -295,16 +421,25 @@ public class EtlClient {
         private final String dsKey;
         private final String taskToken;
         private final Map<String, Object> vars;
+        private final String traceId;
 
-        EtlTriggerTask(String dsKey, String taskToken, Map<String, Object> vars) {
+        EtlTriggerTask(String dsKey, String taskToken, Map<String, Object> vars, String traceId) {
             this.dsKey = dsKey;
             this.taskToken = taskToken;
             this.vars = vars;
+            this.traceId = traceId;
         }
 
         @Override
         public void run() {
-            doRunHttp(dsKey, taskToken, vars);
+            if (StringUtils.hasText(traceId)) {
+                MDC.put("traceId", traceId);
+            }
+            try {
+                doRunHttp(dsKey, taskToken, vars, traceId);
+            } finally {
+                MDC.remove("traceId");
+            }
         }
     }
 

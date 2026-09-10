@@ -48,7 +48,7 @@ class EtlTriggerAspectTest {
         }
 
         @Override
-        protected void doRunHttp(String dsKey, String taskToken, Map<String, Object> vars) {
+        protected void doRunHttp(String dsKey, String taskToken, Map<String, Object> vars, String traceId) {
             lastToken = taskToken;
             lastVars = vars;
             calls.incrementAndGet();

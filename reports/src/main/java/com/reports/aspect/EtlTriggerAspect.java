@@ -9,6 +9,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -71,11 +72,13 @@ public class EtlTriggerAspect {
         log.info("检测到空结果，尝试触发 ETL 补数: taskToken={}", et.taskToken());
         try {
             String ds = DynamicDataSourceContextHolder.get();
+            String traceId = MDC.get("traceId");
             if (hasRangeExpansion(et)) {
-                triggerByDay(pjp, et, ds);
+                triggerByDay(pjp, et, ds, traceId);
             } else {
                 Map<String, Object> vars = extractVars(method, pjp.getArgs(), et.params(), et.dateFormats());
-                etlClient.ensure(ds, et.taskToken(), vars);
+                log.info("ETL 补数触发请求体: taskToken={}, vars={}", et.taskToken(), vars);
+                etlClient.ensure(ds, et.taskToken(), traceId, vars);
             }
         } catch (Throwable ex) {
             log.error("ETL 补数触发异常（不影响本次查询返回）: taskToken={}", et.taskToken(), ex);
@@ -101,7 +104,7 @@ public class EtlTriggerAspect {
      * 超出 rangeMaxDays 按最大天数截断，防止超大范围刷爆触发线程池。
      * 去重由 {@link com.reports.service.EtlClient} 按 (taskToken + 参数) 按天自然生效。
      */
-    private void triggerByDay(ProceedingJoinPoint pjp, EtlTask et, String ds) {
+    private void triggerByDay(ProceedingJoinPoint pjp, EtlTask et, String ds, String traceId) {
         Method method = ((MethodSignature) pjp.getSignature()).getMethod();
         Map<String, Object> rangeArgs = extractVars(method, pjp.getArgs(),
                 new String[]{et.rangeStart(), et.rangeEnd()}, new String[0]);
@@ -119,7 +122,7 @@ public class EtlTriggerAspect {
             if (startObj != null) {
                 vars.put(et.rangeTarget(), startObj);
             }
-            etlClient.ensure(ds, et.taskToken(), vars);
+            etlClient.ensure(ds, et.taskToken(), traceId, vars);
             return;
         }
         if (endDay.isBefore(startDay)) {
@@ -139,7 +142,7 @@ public class EtlTriggerAspect {
         for (java.time.LocalDate d = startDay; !d.isAfter(endDay); d = d.plusDays(1)) {
             Map<String, Object> vars = new LinkedHashMap<>();
             vars.put(et.rangeTarget(), d.format(formatter));
-            etlClient.ensure(ds, et.taskToken(), vars);
+            etlClient.ensure(ds, et.taskToken(), traceId, vars);
         }
     }
 
@@ -190,7 +193,10 @@ public class EtlTriggerAspect {
     }
 
     private java.time.LocalDate toLocalDate(Date date) {
-        return date.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+        long epochMilli = date.getTime();
+        long zoneOffset = java.util.TimeZone.getDefault().getOffset(epochMilli);
+        long epochDay = (epochMilli + zoneOffset) / (1000L * 60 * 60 * 24);
+        return java.time.LocalDate.ofEpochDay(epochDay);
     }
 
     /**

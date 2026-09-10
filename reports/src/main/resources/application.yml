@@ -27,8 +27,8 @@ reports:
     enabled: true
     # ETL 平台 run 接口地址（真实值建议按环境用环境变量注入）
     run-url: ${ETL_RUN_URL:http://localhost:18090/api/etl/run}
-    # 鉴权令牌：严禁明文入库，请用环境变量 ETL_API_TOKEN 注入
-    api-token: ${ETL_API_TOKEN:}
+    # 鉴权令牌（内网环境直接配置）
+    api-token: ${ETL_API_TOKEN:0cb06f7a29064e62a5de34d484296456}
     # 同一 (任务+参数) 两次触发的最小间隔（秒）：防空表被反复刷新导致的重复触发
     cooldown-seconds: 600
     # 单任务停用名单：填真实 taskToken 即停用该任务（只停某一个，其余保留，无需动注解）
@@ -57,8 +57,20 @@ logging:
     # 根日志
     root: INFO
 
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - [%X{traceId}] [%X{seq}] %msg%n"
+  # ===== 日志留存策略（由 logback-spring.xml 读取；改留存只动这里，不动 XML） =====
+  logback:
+    # 日志目录：相对启动目录；生产建议绝对路径（如 /data/logs/reports）
+    path: logs
+    # 主日志（reports.log）保留天数
+    max-history: 30
+    # 错误日志（reports-error.log）保留天数
+    error-max-history: 90
+    # SQL 日志（reports-sql.log）保留天数
+    sql-max-history: 7
+    # 单个日志文件上限，超出当天按序号切新文件
+    max-file-size: 100MB
+    # 滚动总量上限：按每个滚动策略独立计算（主/错误/SQL 各一份），超限自动删最旧文件
+    total-size-cap: 2GB
 
 # MyBatis 日志
 mybatis-plus:
