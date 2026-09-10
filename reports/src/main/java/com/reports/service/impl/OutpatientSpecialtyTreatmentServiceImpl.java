@@ -7,7 +7,6 @@ import com.reports.dto.response.outpatient.specialty.treatment.*;
 import com.reports.service.OutpatientSpecialtyTreatmentService;
 import com.reports.mapper.SpecialtyTreatmentMapper;
 import com.reports.entity.SpecialtyTreatmentOvEntity;
-import com.reports.entity.SpecialtyTreatmentDtlEntity;
 import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -98,9 +97,24 @@ public class OutpatientSpecialtyTreatmentServiceImpl implements OutpatientSpecia
 
     // ==================== MyBatis-Plus 模式 ====================
 
+    /**
+     * 请求体日期（yyyy-MM-dd 字符串）转 java.sql.Date，格式非法时返回 null
+     */
+    private java.sql.Date parseDate(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return java.sql.Date.valueOf(dateStr.trim());
+        } catch (IllegalArgumentException e) {
+            log.warn("日期格式非法: {}", dateStr);
+            return null;
+        }
+    }
+
     private OverviewData queryOverviewByMybatisPlus(OutpatientSpecialtyTreatmentRequest request) {
         try {
-            SpecialtyTreatmentOvEntity entity = specialtyTreatmentMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            SpecialtyTreatmentOvEntity entity = specialtyTreatmentMapper.queryOverview(parseDate(request.getStartDate()), parseDate(request.getEndDate()), request.getDeptCode(), request.getDeptName());
             return buildOverviewData(entity);
         } catch (Exception e) {
             log.warn("查询专科治疗量概览失败", e);
@@ -110,9 +124,9 @@ public class OutpatientSpecialtyTreatmentServiceImpl implements OutpatientSpecia
 
     private PageResult<TableItem> queryTableByMybatisPlus(OutpatientSpecialtyTreatmentRequest request, Integer page, Integer pageSize) {
         try {
-            List<SpecialtyTreatmentDtlEntity> rows = specialtyTreatmentMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), request.getDeptCode(), request.getDeptName());
+            List<SpecialtyTreatmentOvEntity> rows = specialtyTreatmentMapper.queryDeptDetail(parseDate(request.getStartDate()), parseDate(request.getEndDate()), request.getDeptCode(), request.getDeptName());
             List<TableItem> allItems = new ArrayList<>();
-            for (SpecialtyTreatmentDtlEntity row : rows) {
+            for (SpecialtyTreatmentOvEntity row : rows) {
                 allItems.add(buildTableItem(row));
             }
             int total = allItems.size();
@@ -139,7 +153,7 @@ public class OutpatientSpecialtyTreatmentServiceImpl implements OutpatientSpecia
         return overview;
     }
 
-    private TableItem buildTableItem(SpecialtyTreatmentDtlEntity entity) {
+    private TableItem buildTableItem(SpecialtyTreatmentOvEntity entity) {
         if (entity == null) {
             return new TableItem();
         }

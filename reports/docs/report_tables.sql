@@ -51,7 +51,6 @@ DROP TABLE tr_svc_quality_ov CASCADE CONSTRAINTS;
 DROP TABLE tr_svc_quality_cmpl CASCADE CONSTRAINTS;
 DROP TABLE tr_svc_quality_prz CASCADE CONSTRAINTS;
 DROP TABLE tr_spec_treat_ov CASCADE CONSTRAINTS;
-DROP TABLE tr_spec_treat_dtl CASCADE CONSTRAINTS;
 DROP TABLE tr_win_stat_ov CASCADE CONSTRAINTS;
 DROP TABLE tr_win_stat_age CASCADE CONSTRAINTS;
 DROP TABLE tr_win_stat_tm CASCADE CONSTRAINTS;
@@ -745,24 +744,10 @@ CREATE TABLE tr_svc_quality_prz (
 -- 13. 专科治疗量统计
 -- ============================================================
 
--- 13.1 专科治疗量概览表
+-- 13.1 专科治疗量统计(按科室维度，无独立概览表)
 CREATE TABLE tr_spec_treat_ov (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
-    treatment_count NUMBER(10)      DEFAULT 0,          -- 治疗人次
-    treatment_amount NUMBER(18,2),                      -- 治疗金额
-    patient_count   NUMBER(10)      DEFAULT 0,          -- 患者人数
-    create_time     DATE            DEFAULT SYSDATE,       -- 创建时间
-    update_time     DATE            DEFAULT SYSDATE,       -- 更新时间
-    ext1            VARCHAR2(500),                        -- 扩展字段1
-    ext2            VARCHAR2(500),                        -- 扩展字段2
-    ext3            VARCHAR2(500)                         -- 扩展字段3
-);
-
--- 13.2 专科治疗量科室明细表
-CREATE TABLE tr_spec_treat_dtl (
-    id              NUMBER(19)      PRIMARY KEY,
-    stat_date       DATE            NOT NULL,           -- 统计日期
+    dept_code       VARCHAR2(10)    NOT NULL,           -- 科室代码
     dept_name       VARCHAR2(100)   NOT NULL,           -- 科室名称
     treatment_count NUMBER(10)      DEFAULT 0,          -- 治疗人次
     treatment_amount NUMBER(18,2),                      -- 治疗金额
@@ -771,7 +756,8 @@ CREATE TABLE tr_spec_treat_dtl (
     update_time     DATE            DEFAULT SYSDATE,       -- 更新时间
     ext1            VARCHAR2(500),                        -- 扩展字段1
     ext2            VARCHAR2(500),                        -- 扩展字段2
-    ext3            VARCHAR2(500)                         -- 扩展字段3
+    ext3            VARCHAR2(500),                        -- 扩展字段3
+    CONSTRAINT pk_tr_spec_treat_ov PRIMARY KEY (stat_date, dept_code)
 );
 
 -- ============================================================
@@ -998,7 +984,7 @@ CREATE INDEX idx_tr_qc_overview_date ON tr_qc_ov(stat_date);
 CREATE INDEX idx_tr_rev_ov_date ON tr_rev_ov(stat_date);
 CREATE INDEX idx_tr_room_overview_date ON tr_room_use_ov(stat_date);
 CREATE INDEX idx_tr_service_overview_date ON tr_svc_quality_ov(stat_date);
-CREATE INDEX idx_tr_specialty_overview_date ON tr_spec_treat_ov(stat_date);
+-- tr_spec_treat_ov 主键为(stat_date, dept_code)，日期查询走主键前缀，无需单独日期索引
 CREATE INDEX idx_tr_window_overview_date ON tr_win_stat_ov(stat_date);
 CREATE INDEX idx_tr_cashier_overview_date ON tr_cash_settle_ov(stat_date);
 CREATE INDEX idx_tr_discharge_overview_date ON tr_disch_settle_ov(stat_date);
@@ -1018,7 +1004,6 @@ CREATE INDEX idx_tr_noshow_dtl_dept ON tr_noshow_dtl(dept_name);
 CREATE INDEX idx_tr_rev_dept_name ON tr_rev_dept(dept_name);
 CREATE INDEX idx_tr_rev_doc_name ON tr_rev_doc(doctor_name);
 CREATE INDEX idx_tr_room_detail_dept ON tr_room_use_dtl(dept_name);
-CREATE INDEX idx_tr_specialty_detail_dept ON tr_spec_treat_dtl(dept_name);
 
 -- ============================================================
 -- 添加表注释
@@ -1063,8 +1048,7 @@ COMMENT ON TABLE tr_room_use_dtl IS '诊室使用率分析-科室明细';
 COMMENT ON TABLE tr_svc_quality_ov IS '门诊服务质量分析-概览';
 COMMENT ON TABLE tr_svc_quality_cmpl IS '门诊服务质量分析-投诉明细';
 COMMENT ON TABLE tr_svc_quality_prz IS '门诊服务质量分析-表扬明细';
-COMMENT ON TABLE tr_spec_treat_ov IS '专科治疗量统计-概览';
-COMMENT ON TABLE tr_spec_treat_dtl IS '专科治疗量统计-科室明细';
+COMMENT ON TABLE tr_spec_treat_ov IS '专科治疗量统计-科室明细(按科室维度统计专科治疗量)';
 COMMENT ON TABLE tr_win_stat_ov IS '人工窗口统计-概览';
 COMMENT ON TABLE tr_win_stat_age IS '人工窗口统计-年龄分析';
 COMMENT ON TABLE tr_win_stat_tm IS '人工窗口统计-时段分析';
@@ -1120,8 +1104,7 @@ COMMENT ON TABLE tr_room_use_dtl IS '诊室使用率分析-科室明细(按科�
 COMMENT ON TABLE tr_svc_quality_ov IS '门诊服务质量分析-概览(门诊服务质量总览:投诉数量和表扬数量)';
 COMMENT ON TABLE tr_svc_quality_cmpl IS '门诊服务质量分析-投诉明细(门诊投诉事件的详细记录)';
 COMMENT ON TABLE tr_svc_quality_prz IS '门诊服务质量分析-表扬明细(门诊表扬事件的详细记录)';
-COMMENT ON TABLE tr_spec_treat_ov IS '专科治疗量统计-概览(专科治疗量的总览数据:治疗人次、治疗金额、患者人数)';
-COMMENT ON TABLE tr_spec_treat_dtl IS '专科治疗量统计-科室明细(按科室维度统计专科治疗量)';
+COMMENT ON TABLE tr_spec_treat_ov IS '专科治疗量统计-科室明细(按科室维度统计专科治疗量)';
 COMMENT ON TABLE tr_win_stat_ov IS '人工窗口统计-概览(人工窗口业务量的总览指标:挂号/收费/退费人次)';
 COMMENT ON TABLE tr_win_stat_age IS '人工窗口统计-年龄分析(按年龄段分析窗口业务分布)';
 COMMENT ON TABLE tr_win_stat_tm IS '人工窗口统计-时段分析(按时段分析窗口业务量分布)';
@@ -1682,8 +1665,9 @@ COMMENT ON COLUMN tr_svc_quality_prz.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_svc_quality_prz.ext3 IS '扩展字段3';
 
 -- tr_spec_treat_ov
-COMMENT ON COLUMN tr_spec_treat_ov.id IS '主键ID';
 COMMENT ON COLUMN tr_spec_treat_ov.stat_date IS '统计日期';
+COMMENT ON COLUMN tr_spec_treat_ov.dept_code IS '科室代码';
+COMMENT ON COLUMN tr_spec_treat_ov.dept_name IS '科室名称';
 COMMENT ON COLUMN tr_spec_treat_ov.treatment_count IS '治疗人次';
 COMMENT ON COLUMN tr_spec_treat_ov.treatment_amount IS '治疗金额';
 COMMENT ON COLUMN tr_spec_treat_ov.patient_count IS '患者人数';
@@ -1692,19 +1676,6 @@ COMMENT ON COLUMN tr_spec_treat_ov.update_time IS '更新时间';
 COMMENT ON COLUMN tr_spec_treat_ov.ext1 IS '扩展字段1';
 COMMENT ON COLUMN tr_spec_treat_ov.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_spec_treat_ov.ext3 IS '扩展字段3';
-
--- tr_spec_treat_dtl
-COMMENT ON COLUMN tr_spec_treat_dtl.id IS '主键ID';
-COMMENT ON COLUMN tr_spec_treat_dtl.stat_date IS '统计日期';
-COMMENT ON COLUMN tr_spec_treat_dtl.dept_name IS '科室名称';
-COMMENT ON COLUMN tr_spec_treat_dtl.treatment_count IS '治疗人次';
-COMMENT ON COLUMN tr_spec_treat_dtl.treatment_amount IS '治疗金额';
-COMMENT ON COLUMN tr_spec_treat_dtl.patient_count IS '患者人数';
-COMMENT ON COLUMN tr_spec_treat_dtl.create_time IS '创建时间';
-COMMENT ON COLUMN tr_spec_treat_dtl.update_time IS '更新时间';
-COMMENT ON COLUMN tr_spec_treat_dtl.ext1 IS '扩展字段1';
-COMMENT ON COLUMN tr_spec_treat_dtl.ext2 IS '扩展字段2';
-COMMENT ON COLUMN tr_spec_treat_dtl.ext3 IS '扩展字段3';
 
 -- tr_win_stat_ov
 COMMENT ON COLUMN tr_win_stat_ov.id IS '主键ID';

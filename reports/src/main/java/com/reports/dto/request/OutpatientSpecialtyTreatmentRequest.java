@@ -3,8 +3,6 @@ package com.reports.dto.request;
 import com.reports.dto.common.BaseRequestBody;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import com.fasterxml.jackson.annotation.JsonFormat;
-import java.util.Date;
 
 /**
  * 专科治疗量统计 - 请求体
@@ -23,14 +21,12 @@ public class OutpatientSpecialtyTreatmentRequest extends BaseRequestBody {
     /**
      * 开始日期，格式 yyyy-MM-dd
      */
-    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
-    private Date startDate;
+    private String startDate;
 
     /**
      * 结束日期，格式 yyyy-MM-dd
      */
-    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
-    private Date endDate;
+    private String endDate;
 
     /**
      * 科室名称（可选）

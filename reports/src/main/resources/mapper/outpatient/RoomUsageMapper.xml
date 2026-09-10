@@ -20,7 +20,7 @@
     <!-- ============================================================ -->
     <select id="queryDeptDetail" resultType="com.reports.entity.RoomUsageDtlEntity">
         SELECT
-        dept_name AS deptName,
+        d.dept_name AS deptName,
         MAX(avg_usage) AS avgUsage,
         MAX(am_usage) AS amUsage,
         MAX(pm_usage) AS pmUsage,

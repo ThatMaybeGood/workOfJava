@@ -18,13 +18,17 @@ public class SpecialtyTreatmentOvEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    /** 主键ID */
-    @TableId("id")
-    private Long id;
-
     /** 统计日期 */
     @TableField("stat_date")
     private Date statDate;
+
+    /** 科室代码 */
+    @TableField("dept_code")
+    private String deptCode;
+
+    /** 科室名称 */
+    @TableField("dept_name")
+    private String deptName;
 
     /** 治疗人次 */
     @TableField("treatment_count")

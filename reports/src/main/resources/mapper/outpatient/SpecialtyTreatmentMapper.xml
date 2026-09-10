@@ -12,18 +12,24 @@
         NVL(SUM(patient_count), 0) AS patientCount
         FROM TR_SPEC_TREAT_OV
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="deptCode != null and deptCode != ''">
+            AND dept_code = #{deptCode}
+        </if>
+        <if test="deptName != null and deptName != ''">
+            AND dept_name LIKE '%' || #{deptName} || '%'
+        </if>
     </select>
 
     <!-- ============================================================ -->
     <!-- 查询专科治疗量科室明细 -->
     <!-- ============================================================ -->
-    <select id="queryDeptDetail" resultType="com.reports.entity.SpecialtyTreatmentDtlEntity">
+    <select id="queryDeptDetail" resultType="com.reports.entity.SpecialtyTreatmentOvEntity">
         SELECT
-        dept_name AS deptName,
+        d.dept_name AS deptName,
         NVL(SUM(treatment_count), 0) AS treatmentCount,
         NVL(SUM(treatment_amount), 0) AS treatmentAmount,
         NVL(SUM(patient_count), 0) AS patientCount
-        FROM TR_SPEC_TREAT_DTL t
+        FROM TR_SPEC_TREAT_OV t
         INNER JOIN TR_DEPT_DICT d ON t.dept_code = d.dept_code
         WHERE t.stat_date BETWEEN #{startDate} AND #{endDate}
          <if test="deptCode != null and deptCode != ''">
