@@ -4,8 +4,6 @@
 
 -- 清理已存在对象(如重建请先执行)
 
-DROP TABLE tr_svc_quality_ov CASCADE CONSTRAINTS;
-
 DROP TABLE tr_svc_quality_cmpl CASCADE CONSTRAINTS;
 
 DROP TABLE tr_svc_quality_prz CASCADE CONSTRAINTS;
@@ -13,19 +11,6 @@ DROP TABLE tr_svc_quality_prz CASCADE CONSTRAINTS;
 DROP TABLE TR_COMMON_DICT CASCADE CONSTRAINTS;
 
 DROP TABLE TR_STAFF_DICT CASCADE CONSTRAINTS;
-
--- 12.1 门诊服务质量概览表
-CREATE TABLE tr_svc_quality_ov (
-    id              NUMBER(19)      PRIMARY KEY,
-    stat_date       DATE            NOT NULL,           -- 统计日期
-    complaint_count NUMBER(10)      DEFAULT 0,          -- 投诉数量
-    praise_count    NUMBER(10)      DEFAULT 0,          -- 表扬数量
-    create_time     DATE            DEFAULT SYSDATE,       -- 创建时间
-    update_time     DATE            DEFAULT SYSDATE,       -- 更新时间
-    ext1            VARCHAR2(500),                        -- 扩展字段1
-    ext2            VARCHAR2(500),                        -- 扩展字段2
-    ext3            VARCHAR2(500)                         -- 扩展字段3
-);
 
 -- 12.2 门诊服务质量投诉明细表
 CREATE TABLE tr_svc_quality_cmpl (
@@ -98,21 +83,8 @@ CREATE TABLE tr_staff_dict (
 
 -- 创建索引
 
-CREATE INDEX idx_tr_service_overview_date ON tr_svc_quality_ov(stat_date);
-
 -- 添加注释
 
-COMMENT ON TABLE tr_svc_quality_ov IS '门诊服务质量分析-概览';
-COMMENT ON TABLE tr_svc_quality_ov IS '门诊服务质量分析-概览(门诊服务质量总览:投诉数量和表扬数量)';
-COMMENT ON COLUMN tr_svc_quality_ov.id IS '主键ID';
-COMMENT ON COLUMN tr_svc_quality_ov.stat_date IS '统计日期';
-COMMENT ON COLUMN tr_svc_quality_ov.complaint_count IS '投诉数量';
-COMMENT ON COLUMN tr_svc_quality_ov.praise_count IS '表扬数量';
-COMMENT ON COLUMN tr_svc_quality_ov.create_time IS '创建时间';
-COMMENT ON COLUMN tr_svc_quality_ov.update_time IS '更新时间';
-COMMENT ON COLUMN tr_svc_quality_ov.ext1 IS '扩展字段1';
-COMMENT ON COLUMN tr_svc_quality_ov.ext2 IS '扩展字段2';
-COMMENT ON COLUMN tr_svc_quality_ov.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_svc_quality_cmpl IS '门诊服务质量分析-投诉明细';
 COMMENT ON TABLE tr_svc_quality_cmpl IS '门诊服务质量分析-投诉明细(门诊投诉事件的详细记录)';
 COMMENT ON COLUMN tr_svc_quality_cmpl.id IS '主键ID';

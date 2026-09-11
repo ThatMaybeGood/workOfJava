@@ -12,8 +12,6 @@ DROP TABLE tr_win_stat_tm CASCADE CONSTRAINTS;
 
 DROP TABLE tr_win_stat_src CASCADE CONSTRAINTS;
 
-DROP TABLE tr_win_stat_load CASCADE CONSTRAINTS;
-
 -- 14.1 人工窗口概览表
 CREATE TABLE tr_win_stat_ov (
     id              NUMBER(19)      PRIMARY KEY,
@@ -60,21 +58,6 @@ CREATE TABLE tr_win_stat_src (
     stat_date       DATE            NOT NULL,           -- 统计日期
     source_name     VARCHAR2(100)   NOT NULL,           -- 来源名称
     source_count    NUMBER(10)      DEFAULT 0,          -- 数量
-    create_time     DATE            DEFAULT SYSDATE,       -- 创建时间
-    update_time     DATE            DEFAULT SYSDATE,       -- 更新时间
-    ext1            VARCHAR2(500),                        -- 扩展字段1
-    ext2            VARCHAR2(500),                        -- 扩展字段2
-    ext3            VARCHAR2(500)                         -- 扩展字段3
-);
-
--- 14.5 人工窗口工作量表
-CREATE TABLE tr_win_stat_load (
-    id              NUMBER(19)      PRIMARY KEY,
-    stat_date       DATE            NOT NULL,           -- 统计日期
-    business_type   VARCHAR2(100)   NOT NULL,           -- 业务类型
-    register_count  NUMBER(10)      DEFAULT 0,          -- 挂号数
-    payment_count   NUMBER(10)      DEFAULT 0,          -- 收费数
-    refund_count    NUMBER(10)      DEFAULT 0,          -- 退费数
     create_time     DATE            DEFAULT SYSDATE,       -- 创建时间
     update_time     DATE            DEFAULT SYSDATE,       -- 更新时间
     ext1            VARCHAR2(500),                        -- 扩展字段1
@@ -133,16 +116,3 @@ COMMENT ON COLUMN tr_win_stat_src.update_time IS '更新时间';
 COMMENT ON COLUMN tr_win_stat_src.ext1 IS '扩展字段1';
 COMMENT ON COLUMN tr_win_stat_src.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_win_stat_src.ext3 IS '扩展字段3';
-COMMENT ON TABLE tr_win_stat_load IS '人工窗口统计-工作量';
-COMMENT ON TABLE tr_win_stat_load IS '人工窗口统计-工作量(按业务类型统计窗口工作量:挂号/收费/退费)';
-COMMENT ON COLUMN tr_win_stat_load.id IS '主键ID';
-COMMENT ON COLUMN tr_win_stat_load.stat_date IS '统计日期';
-COMMENT ON COLUMN tr_win_stat_load.business_type IS '业务类型';
-COMMENT ON COLUMN tr_win_stat_load.register_count IS '挂号数';
-COMMENT ON COLUMN tr_win_stat_load.payment_count IS '收费数';
-COMMENT ON COLUMN tr_win_stat_load.refund_count IS '退费数';
-COMMENT ON COLUMN tr_win_stat_load.create_time IS '创建时间';
-COMMENT ON COLUMN tr_win_stat_load.update_time IS '更新时间';
-COMMENT ON COLUMN tr_win_stat_load.ext1 IS '扩展字段1';
-COMMENT ON COLUMN tr_win_stat_load.ext2 IS '扩展字段2';
-COMMENT ON COLUMN tr_win_stat_load.ext3 IS '扩展字段3';

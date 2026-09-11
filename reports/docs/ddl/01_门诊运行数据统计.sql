@@ -4,47 +4,7 @@
 
 -- 清理已存在对象(如重建请先执行)
 
-DROP TABLE tr_outp_op_ov CASCADE CONSTRAINTS;
-
 DROP TABLE tr_outp_op_dtl CASCADE CONSTRAINTS;
-
--- 1.1 门诊运行概览表
-CREATE TABLE tr_outp_op_ov (
-    id              NUMBER(19)      PRIMARY KEY,
-    stat_date       DATE            NOT NULL,           -- 统计日期
-    total_visits    NUMBER(10)      DEFAULT 0,          -- 总就诊人次
-    appointment_rate VARCHAR2(20),                      -- 预约率
-    visit_count     NUMBER(10)      DEFAULT 0,          -- 就诊人次
-    exam_rate       VARCHAR2(20),                      -- 检查率
-    efficiency      NUMBER(10,2),                       -- 效率
-    effective_units NUMBER(10)      DEFAULT 0,          -- 有效单元数
-    total_units     NUMBER(10)      DEFAULT 0,          -- 总单元数
-    -- 就诊人次明细
-    famous_expert   NUMBER(10)      DEFAULT 0,          -- 名医
-    special_expert  NUMBER(10)      DEFAULT 0,          -- 特需专家
-    known_expert    NUMBER(10)      DEFAULT 0,          -- 知名专家
-    expert_a        NUMBER(10)      DEFAULT 0,          -- 专家A
-    expert_b        NUMBER(10)      DEFAULT 0,          -- 专家B
-    ordinary        NUMBER(10)      DEFAULT 0,          -- 普通
-    -- 单元明细
-    unit_famous_effective NUMBER(10) DEFAULT 0,          -- 名医有效单元
-    unit_famous_total     NUMBER(10) DEFAULT 0,          -- 名医总单元
-    unit_special_effective NUMBER(10) DEFAULT 0,          -- 特需有效单元
-    unit_special_total     NUMBER(10) DEFAULT 0,          -- 特需总单元
-    unit_known_effective   NUMBER(10) DEFAULT 0,          -- 知名专家有效单元
-    unit_known_total       NUMBER(10) DEFAULT 0,          -- 知名专家总单元
-    unit_a_effective       NUMBER(10) DEFAULT 0,          -- 专家A有效单元
-    unit_a_total           NUMBER(10) DEFAULT 0,          -- 专家A总单元
-    unit_b_effective       NUMBER(10) DEFAULT 0,          -- 专家B有效单元
-    unit_b_total           NUMBER(10) DEFAULT 0,          -- 专家B总单元
-    unit_ordinary_effective  NUMBER(10) DEFAULT 0,          -- 普通有效单元
-    unit_ordinary_total      NUMBER(10) DEFAULT 0,          -- 普通总单元
-    create_time     DATE            DEFAULT SYSDATE,       -- 创建时间
-    update_time     DATE            DEFAULT SYSDATE,       -- 更新时间
-    ext1            VARCHAR2(500),                        -- 扩展字段1
-    ext2            VARCHAR2(500),                        -- 扩展字段2
-    ext3            VARCHAR2(500)                         -- 扩展字段3
-);
 
 -- 1.2 门诊运行科室明细表
 CREATE TABLE tr_outp_op_dtl (
@@ -110,46 +70,11 @@ COMMENT ON TABLE TR_OUTP_OP IS '门诊运行源表(HIS每日抽取,门诊运行�
 
 -- 创建索引
 
-CREATE INDEX idx_tr_op_overview_date ON tr_outp_op_ov(stat_date);
 CREATE INDEX idx_tr_op_detail_date ON tr_outp_op_dtl(stat_date);
 CREATE INDEX idx_tr_op_detail_dept ON tr_outp_op_dtl(dept_name);
 
 -- 添加注释
 
-COMMENT ON TABLE tr_outp_op_ov IS '门诊运行数据统计-概览';
-COMMENT ON TABLE tr_outp_op_ov IS '门诊运行数据统计-概览(存储每日门诊运行总览指标:就诊人次、预约率、检查率、效率、单元数等)';
-COMMENT ON COLUMN tr_outp_op_ov.id IS '主键ID';
-COMMENT ON COLUMN tr_outp_op_ov.stat_date IS '统计日期';
-COMMENT ON COLUMN tr_outp_op_ov.total_visits IS '总就诊人次';
-COMMENT ON COLUMN tr_outp_op_ov.appointment_rate IS '预约率';
-COMMENT ON COLUMN tr_outp_op_ov.visit_count IS '就诊人次';
-COMMENT ON COLUMN tr_outp_op_ov.exam_rate IS '检查率';
-COMMENT ON COLUMN tr_outp_op_ov.efficiency IS '效率';
-COMMENT ON COLUMN tr_outp_op_ov.effective_units IS '有效单元数';
-COMMENT ON COLUMN tr_outp_op_ov.total_units IS '总单元数';
-COMMENT ON COLUMN tr_outp_op_ov.famous_expert IS '名医就诊人次';
-COMMENT ON COLUMN tr_outp_op_ov.special_expert IS '特需专家就诊人次';
-COMMENT ON COLUMN tr_outp_op_ov.known_expert IS '知名专家就诊人次';
-COMMENT ON COLUMN tr_outp_op_ov.expert_a IS '专家A就诊人次';
-COMMENT ON COLUMN tr_outp_op_ov.expert_b IS '专家B就诊人次';
-COMMENT ON COLUMN tr_outp_op_ov.ordinary IS '普通就诊人次';
-COMMENT ON COLUMN tr_outp_op_ov.unit_famous_effective IS '名医有效单元';
-COMMENT ON COLUMN tr_outp_op_ov.unit_famous_total IS '名医总单元';
-COMMENT ON COLUMN tr_outp_op_ov.unit_special_effective IS '特需有效单元';
-COMMENT ON COLUMN tr_outp_op_ov.unit_special_total IS '特需总单元';
-COMMENT ON COLUMN tr_outp_op_ov.unit_known_effective IS '知名专家有效单元';
-COMMENT ON COLUMN tr_outp_op_ov.unit_known_total IS '知名专家总单元';
-COMMENT ON COLUMN tr_outp_op_ov.unit_a_effective IS '专家A有效单元';
-COMMENT ON COLUMN tr_outp_op_ov.unit_a_total IS '专家A总单元';
-COMMENT ON COLUMN tr_outp_op_ov.unit_b_effective IS '专家B有效单元';
-COMMENT ON COLUMN tr_outp_op_ov.unit_b_total IS '专家B总单元';
-COMMENT ON COLUMN tr_outp_op_ov.unit_ordinary_effective IS '普通有效单元';
-COMMENT ON COLUMN tr_outp_op_ov.unit_ordinary_total IS '普通总单元';
-COMMENT ON COLUMN tr_outp_op_ov.create_time IS '创建时间';
-COMMENT ON COLUMN tr_outp_op_ov.update_time IS '更新时间';
-COMMENT ON COLUMN tr_outp_op_ov.ext1 IS '扩展字段1';
-COMMENT ON COLUMN tr_outp_op_ov.ext2 IS '扩展字段2';
-COMMENT ON COLUMN tr_outp_op_ov.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_outp_op_dtl IS '门诊运行数据统计-科室明细';
 COMMENT ON TABLE tr_outp_op_dtl IS '门诊运行数据统计-科室明细(按科室维度存储就诊人次、预约率、检查率、效率及按职称分类的就诊人次明细)';
 COMMENT ON COLUMN tr_outp_op_dtl.id IS '主键ID';
