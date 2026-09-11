@@ -74,6 +74,11 @@ class ForecastController {
     renderMonthForecastChart(forecastData) {
         const dates = (forecastData && forecastData.dates) ? forecastData.dates : [];
         const data = (forecastData && forecastData.data) ? forecastData.data : [];
+        const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+        const labels = dates.map(iso => {
+            const d = new Date(iso + 'T00:00:00');
+            return String(d.getDate()).padStart(2, '0') + '\n' + weekdays[d.getDay()];
+        });
         const option = {
             title: {
                 text: '预测未来一个月门诊量',
@@ -94,7 +99,7 @@ class ForecastController {
             },
             xAxis: {
                 type: 'category',
-                data: dates,
+                data: labels,
                 axisLine: { lineStyle: { color: '#d9d9d9' } },
                 axisLabel: { color: '#8c8c8c', fontSize: 10, interval: 0 }
             },

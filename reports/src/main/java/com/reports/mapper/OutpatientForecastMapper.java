@@ -1,8 +1,5 @@
 package com.reports.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.reports.entity.OutpatientForecastOvEntity;
-import com.reports.entity.OutpatientForecastMonthEntity;
 import com.reports.entity.OutpatientForecastYearEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -11,32 +8,70 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * 预测门诊量 Mapper
+ * 预测门诊量 Mapper(查询时实时计算)
  */
 @Mapper
-public interface OutpatientForecastMapper extends BaseMapper<OutpatientForecastOvEntity> {
+public interface OutpatientForecastMapper {
 
     /**
-     * 查询预测门诊量概览
-     *
-     * @param statDate 统计日期
-     * @return 预测门诊量概览数据
+     * 近30天挂号量日均
      */
-    OutpatientForecastOvEntity queryOverview(@Param("statDate") Date statDate);
+    Double queryAvgReg(@Param("startDate") Date startDate, @Param("endDate") Date endDate,
+                       @Param("deptCode") String deptCode, @Param("deptName") String deptName);
 
     /**
-     * 查询30天预测门诊量明细
-     *
-     * @param statDate 统计日期
-     * @return 30天预测门诊量明细列表
+     * 近30天预约量日均
      */
-    List<OutpatientForecastMonthEntity> queryMonthForecast(@Param("statDate") Date statDate);
+    Double queryAvgAppoint(@Param("startDate") Date startDate, @Param("endDate") Date endDate,
+                           @Param("deptCode") String deptCode, @Param("deptName") String deptName);
 
     /**
-     * 查询12个月预测门诊量明细
-     *
-     * @param statDate 统计日期
-     * @return 12个月预测门诊量明细列表
+     * 某日实时预约量(无记录返回空)
      */
-    List<OutpatientForecastYearEntity> queryYearForecast(@Param("statDate") Date statDate);
+    Double queryAppoint(@Param("appointDate") Date appointDate,
+                        @Param("deptCode") String deptCode, @Param("deptName") String deptName);
+
+    /**
+     * 近30天就诊系数 = 1 - 爽约退号率
+     */
+    Double queryVisitCoef(@Param("startDate") Date startDate, @Param("endDate") Date endDate,
+                          @Param("deptCode") String deptCode, @Param("deptName") String deptName);
+
+    /**
+     * 某日天气出勤系数(无数据返回空)
+     */
+    Double queryWeatherCoef(@Param("weatherDate") Date weatherDate);
+
+    /**
+     * 某日节假日类型(无记录返回空)
+     */
+    String queryHolidayType(@Param("holDate") Date holDate);
+
+    /**
+     * 近一年法定节假日(倒序)
+     */
+    List<Date> queryRecentHolidays(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+
+    /**
+     * 某日之前的最近一个正常工作日(排除周末和节假日)
+     */
+    Date queryPrevWorkday(@Param("beforeDate") Date beforeDate);
+
+    /**
+     * 某日门诊量
+     */
+    Integer queryVolume(@Param("statDate") Date statDate,
+                        @Param("deptCode") String deptCode, @Param("deptName") String deptName);
+
+    /**
+     * 某年各月门诊量
+     */
+    List<OutpatientForecastYearEntity> queryMonthlyVolume(@Param("year") String year,
+                                                          @Param("deptCode") String deptCode, @Param("deptName") String deptName);
+
+    /**
+     * 时间段内门诊量合计
+     */
+    Integer queryYtdVolume(@Param("startDate") Date startDate, @Param("endDate") Date endDate,
+                           @Param("deptCode") String deptCode, @Param("deptName") String deptName);
 }

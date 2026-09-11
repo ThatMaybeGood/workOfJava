@@ -2,41 +2,120 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.reports.mapper.OutpatientForecastMapper">
 
-    <!-- ============================================================ -->
-    <!-- 查询预测门诊量概览 -->
-    <!-- ============================================================ -->
-    <select id="queryOverview" resultType="com.reports.entity.OutpatientForecastOvEntity">
-        SELECT
-        tomorrow,
-        next_week AS nextWeek,
-        next_month AS nextMonth,
-        next_year AS nextYear
-        FROM TR_OUTP_FC_OV
-        WHERE stat_date = #{statDate}
+    <!-- 科室过滤条件(关联字典表) -->
+    <sql id="deptFilter">
+        <if test="deptCode != null and deptCode != ''">
+            AND d.dept_code = #{deptCode}
+        </if>
+        <if test="deptName != null and deptName != ''">
+            AND d.dept_name LIKE '%' || #{deptName} || '%'
+        </if>
+    </sql>
+
+    <!-- 近30天挂号量日均 -->
+    <select id="queryAvgReg" resultType="java.lang.Double">
+        SELECT AVG(daily_reg)
+        FROM (
+            SELECT s.stats_date, SUM(s.total_guahao) AS daily_reg
+            FROM TR_OUTPATIENT_STATS_DAY_RESULT s
+            INNER JOIN TR_DEPT_DICT d ON s.dept_code = d.dept_code
+            WHERE s.stats_date BETWEEN #{startDate} AND #{endDate}
+            <include refid="deptFilter"/>
+            GROUP BY s.stats_date
+        )
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 查询30天预测门诊量明细 -->
-    <!-- ============================================================ -->
-    <select id="queryMonthForecast" resultType="com.reports.entity.OutpatientForecastMonthEntity">
-        SELECT
-        forecast_date AS forecastDate,
-        forecast_value AS forecastValue
-        FROM TR_OUTP_FC_MONTH
-        WHERE stat_date = #{statDate}
-        ORDER BY forecast_date
+    <!-- 近30天预约量日均(预约无数据时给基础量兜底) -->
+    <select id="queryAvgAppoint" resultType="java.lang.Double">
+        SELECT AVG(daily_appoint)
+        FROM (
+            SELECT a.appoint_date, SUM(a.appoint_count) AS daily_appoint
+            FROM tr_fc_appoint a
+            LEFT JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
+            WHERE a.appoint_date BETWEEN #{startDate} AND #{endDate}
+            <include refid="deptFilter"/>
+            GROUP BY a.appoint_date
+        )
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 查询12个月预测门诊量明细 -->
-    <!-- ============================================================ -->
-    <select id="queryYearForecast" resultType="com.reports.entity.OutpatientForecastYearEntity">
-        SELECT
-        forecast_month AS forecastMonth,
-        forecast_value AS forecastValue
-        FROM TR_OUTP_FC_YEAR
-        WHERE stat_date = #{statDate}
-        ORDER BY forecast_month
+    <!-- 某日实时预约量(无记录返回空,由调用方兜底) -->
+    <select id="queryAppoint" resultType="java.lang.Double">
+        SELECT SUM(a.appoint_count)
+        FROM tr_fc_appoint a
+        LEFT JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
+        WHERE a.appoint_date = #{appointDate}
+        <include refid="deptFilter"/>
+    </select>
+
+    <!-- 近30天就诊系数 = 1 - 爽约退号率 -->
+    <select id="queryVisitCoef" resultType="java.lang.Double">
+        SELECT 1 - SUM(s.tui_hao_shu + s.shuang_yue_shu) / NULLIF(SUM(s.total_guahao), 0)
+        FROM TR_OUTPATIENT_STATS_DAY_RESULT s
+        INNER JOIN TR_DEPT_DICT d ON s.dept_code = d.dept_code
+        WHERE s.stats_date BETWEEN #{startDate} AND #{endDate}
+        <include refid="deptFilter"/>
+    </select>
+
+    <!-- 某日天气出勤系数(无数据返回空,按1处理) -->
+    <select id="queryWeatherCoef" resultType="java.lang.Double">
+        SELECT weather_coef
+        FROM tr_fc_weather
+        WHERE weather_date = #{weatherDate}
+    </select>
+
+    <!-- 某日节假日类型(LEGAL_HOLIDAY/WORKDAY_ADJUST,无记录返回空) -->
+    <select id="queryHolidayType" resultType="java.lang.String">
+        SELECT hol_type
+        FROM tr_fc_holiday
+        WHERE hol_date = #{holDate}
+    </select>
+
+    <!-- 近一年法定节假日(倒序,取前30个算节假日系数) -->
+    <select id="queryRecentHolidays" resultType="java.util.Date">
+        SELECT hol_date
+        FROM tr_fc_holiday
+        WHERE hol_type = 'LEGAL_HOLIDAY'
+          AND hol_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY hol_date DESC
+    </select>
+
+    <!-- 某日之前的最近一个正常工作日(排除周末和节假日) -->
+    <select id="queryPrevWorkday" resultType="java.util.Date">
+        SELECT MAX(s.stats_date)
+        FROM TR_OUTPATIENT_STATS_DAY_RESULT s
+        WHERE s.stats_date &lt; #{beforeDate}
+          AND TO_CHAR(s.stats_date, 'DY', 'NLS_DATE_LANGUAGE=AMERICAN') NOT IN ('SAT', 'SUN')
+          AND NOT EXISTS (SELECT 1 FROM tr_fc_holiday h WHERE h.hol_date = s.stats_date)
+    </select>
+
+    <!-- 某日门诊量 -->
+    <select id="queryVolume" resultType="java.lang.Integer">
+        SELECT NVL(SUM(s.total_guahao), 0)
+        FROM TR_OUTPATIENT_STATS_DAY_RESULT s
+        INNER JOIN TR_DEPT_DICT d ON s.dept_code = d.dept_code
+        WHERE s.stats_date = #{statDate}
+        <include refid="deptFilter"/>
+    </select>
+
+    <!-- 某年各月门诊量(年度预测用) -->
+    <select id="queryMonthlyVolume" resultType="com.reports.entity.OutpatientForecastYearEntity">
+        SELECT TO_CHAR(s.stats_date, 'MM') AS forecastMonth,
+               SUM(s.total_guahao) AS forecastValue
+        FROM TR_OUTPATIENT_STATS_DAY_RESULT s
+        INNER JOIN TR_DEPT_DICT d ON s.dept_code = d.dept_code
+        WHERE TO_CHAR(s.stats_date, 'YYYY') = #{year}
+        <include refid="deptFilter"/>
+        GROUP BY TO_CHAR(s.stats_date, 'MM')
+        ORDER BY forecastMonth
+    </select>
+
+    <!-- 今年截至昨日门诊量(预测全年用) -->
+    <select id="queryYtdVolume" resultType="java.lang.Integer">
+        SELECT NVL(SUM(s.total_guahao), 0)
+        FROM TR_OUTPATIENT_STATS_DAY_RESULT s
+        INNER JOIN TR_DEPT_DICT d ON s.dept_code = d.dept_code
+        WHERE s.stats_date BETWEEN #{startDate} AND #{endDate}
+        <include refid="deptFilter"/>
     </select>
 
 </mapper>

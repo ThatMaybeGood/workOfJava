@@ -4,7 +4,6 @@
 -- 每个表预留3个扩展字段:ext1, ext2, ext3
 -- 生成日期:2026-06-16
 -- ============================================================
-
 -- ============================================================
 -- 清理已存在对象(如重建请先执行)
 -- ============================================================
@@ -187,17 +186,17 @@ CREATE TABLE tr_outp_alt_doc (
 );
 
 -- ============================================================
--- 3. 预测门诊量报表
+-- 3. 预测门诊量报表源表
 -- ============================================================
 
--- 3.1 预测门诊量概览表
-CREATE TABLE tr_outp_fc_ov (
+-- 3.1 预测门诊量源数据表(报表查询时实时计算,不落地结果表)
+
+-- 3.1.1 实时预约量表(每日抽取:各科室预约了某日就诊的号源数)
+CREATE TABLE tr_fc_appoint (
     id              NUMBER(19)      PRIMARY KEY,
-    stat_date       DATE            NOT NULL,           -- 统计日期
-    tomorrow        NUMBER(10)      DEFAULT 0,          -- 明日预测
-    next_week       NUMBER(10)      DEFAULT 0,          -- 下周预测
-    next_month      NUMBER(10)      DEFAULT 0,          -- 下月预测
-    next_year       NUMBER(10)      DEFAULT 0,          -- 明年预测
+    appoint_date    DATE            NOT NULL,           -- 预约就诊日期
+    dept_code       VARCHAR2(50),                       -- 科室编码(空表示全院汇总行)
+    appoint_count   NUMBER(10)      DEFAULT 0,          -- 预约量
     create_time     DATE            DEFAULT SYSDATE,       -- 创建时间
     update_time     DATE            DEFAULT SYSDATE,       -- 更新时间
     ext1            VARCHAR2(500),                        -- 扩展字段1
@@ -205,12 +204,12 @@ CREATE TABLE tr_outp_fc_ov (
     ext3            VARCHAR2(500)                         -- 扩展字段3
 );
 
--- 3.2 预测门诊量30天明细表
-CREATE TABLE tr_outp_fc_month (
+-- 3.1.2 每日天气表
+CREATE TABLE tr_fc_weather (
     id              NUMBER(19)      PRIMARY KEY,
-    stat_date       DATE            NOT NULL,           -- 统计日期
-    forecast_date   DATE            NOT NULL,           -- 预测日期
-    forecast_value  NUMBER(10)      DEFAULT 0,          -- 预测值
+    weather_date    DATE            NOT NULL,           -- 天气日期
+    weather_type    VARCHAR2(20),                       -- 天气类型(晴/阴/雨/雪等)
+    weather_coef    NUMBER(5,2),                        -- 天气出勤系数(空按1处理)
     create_time     DATE            DEFAULT SYSDATE,       -- 创建时间
     update_time     DATE            DEFAULT SYSDATE,       -- 更新时间
     ext1            VARCHAR2(500),                        -- 扩展字段1
@@ -218,12 +217,12 @@ CREATE TABLE tr_outp_fc_month (
     ext3            VARCHAR2(500)                         -- 扩展字段3
 );
 
--- 3.3 预测门诊量12个月明细表
-CREATE TABLE tr_outp_fc_year (
+-- 3.1.3 节假日表
+CREATE TABLE tr_fc_holiday (
     id              NUMBER(19)      PRIMARY KEY,
-    stat_date       DATE            NOT NULL,           -- 统计日期
-    forecast_month  VARCHAR2(20)    NOT NULL,           -- 预测月份(YYYY-MM)
-    forecast_value  NUMBER(10)      DEFAULT 0,          -- 预测值
+    hol_date        DATE            NOT NULL,           -- 节假日日期
+    hol_name        VARCHAR2(50),                       -- 节假日名称
+    hol_type        VARCHAR2(20)    NOT NULL,           -- 类型(LEGAL_HOLIDAY法定节假日/WORKDAY_ADJUST调休上班)
     create_time     DATE            DEFAULT SYSDATE,       -- 创建时间
     update_time     DATE            DEFAULT SYSDATE,       -- 更新时间
     ext1            VARCHAR2(500),                        -- 扩展字段1
@@ -314,12 +313,12 @@ CREATE TABLE tr_inet_hosp_doc_rnk (
     ext3            VARCHAR2(500)                         -- 扩展字段3
 );
 
--- 4.6 互医质控增长趋势表
+-- 4.6 互医质控平均候诊时长表（科室TOP20）
 CREATE TABLE tr_inet_hosp_grw (
     id              NUMBER(19)      PRIMARY KEY,
     stat_month      VARCHAR2(20)    NOT NULL,           -- 统计月份(YYYY-MM)
-    category        VARCHAR2(100)   NOT NULL,           -- 分类(月份)
-    data_value      NUMBER(10)      DEFAULT 0,          -- 数值
+    category        VARCHAR2(100)   NOT NULL,           -- 分类(科室名称)
+    data_value      NUMBER(10)      DEFAULT 0,          -- 数值(平均候诊时长,分钟)
     create_time     DATE            DEFAULT SYSDATE,       -- 创建时间
     update_time     DATE            DEFAULT SYSDATE,       -- 更新时间
     ext1            VARCHAR2(500),                        -- 扩展字段1
@@ -709,6 +708,7 @@ CREATE TABLE tr_svc_quality_cmpl (
     id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     complaint_time  DATE,                               -- 投诉时间
+    dept_code       VARCHAR2(10),                       -- 科室代码（关联 TR_DEPT_DICT）
     dept_name       VARCHAR2(100),                      -- 科室
     person_name     VARCHAR2(100),                      -- 人员
     position        VARCHAR2(50),                       -- 职位
@@ -727,6 +727,7 @@ CREATE TABLE tr_svc_quality_prz (
     id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     praise_time     DATE,                               -- 表扬时间
+    dept_code       VARCHAR2(10),                       -- 科室代码（关联 TR_DEPT_DICT）
     dept_name       VARCHAR2(100),                      -- 科室
     person_name     VARCHAR2(100),                      -- 人员
     position        VARCHAR2(50),                       -- 职位
@@ -738,6 +739,37 @@ CREATE TABLE tr_svc_quality_prz (
     ext1            VARCHAR2(500),                        -- 扩展字段1
     ext2            VARCHAR2(500),                        -- 扩展字段2
     ext3            VARCHAR2(500)                         -- 扩展字段3
+);
+
+-- 12.4 通用字典表（岗位类别/投诉分类/投诉处理结果/表扬方式/是否反馈科室等）
+CREATE TABLE tr_common_dict (
+    id          NUMBER(19)      PRIMARY KEY,
+    dict_type   VARCHAR2(50)    NOT NULL,           -- 字典类型：position/complaintCategory/complaintResult/praiseMethod/feedback
+    dict_code   VARCHAR2(50)    NOT NULL,           -- 字典编码
+    dict_name   VARCHAR2(200)   NOT NULL,           -- 字典名称
+    sort_no     NUMBER(6)       DEFAULT 0,          -- 排序号
+    status      NUMBER(1)       DEFAULT 1,          -- 状态：1启用 0停用
+    create_time DATE            DEFAULT SYSDATE,       -- 创建时间
+    update_time DATE            DEFAULT SYSDATE,       -- 更新时间
+    ext1        VARCHAR2(500),                        -- 扩展字段1
+    ext2        VARCHAR2(500),                        -- 扩展字段2
+    ext3        VARCHAR2(500)                         -- 扩展字段3
+);
+
+-- 12.5 人员字典表
+CREATE TABLE tr_staff_dict (
+    id          NUMBER(19)      PRIMARY KEY,
+    staff_code  VARCHAR2(50)    NOT NULL,           -- 人员工号
+    staff_name  VARCHAR2(100)   NOT NULL,           -- 人员姓名
+    dept_code   VARCHAR2(10),                       -- 所属科室代码（关联 TR_DEPT_DICT）
+    dept_name   VARCHAR2(100),                      -- 所属科室名称
+    position    VARCHAR2(50),                       -- 岗位类别
+    status      NUMBER(1)       DEFAULT 1,          -- 状态：1在职 0停用
+    create_time DATE            DEFAULT SYSDATE,       -- 创建时间
+    update_time DATE            DEFAULT SYSDATE,       -- 更新时间
+    ext1        VARCHAR2(500),                        -- 扩展字段1
+    ext2        VARCHAR2(500),                        -- 扩展字段2
+    ext3        VARCHAR2(500)                         -- 扩展字段3
 );
 
 -- ============================================================
@@ -974,7 +1006,9 @@ CREATE INDEX idx_tr_op_detail_date ON tr_outp_op_dtl(stat_date);
 CREATE INDEX idx_tr_alert_overview_date ON tr_outp_alt_ov(stat_date);
 CREATE INDEX idx_tr_alert_dept_date ON tr_outp_alt_dept(stat_date);
 CREATE INDEX idx_tr_alert_doctor_date ON tr_outp_alt_doc(stat_date);
-CREATE INDEX idx_tr_forecast_overview_date ON tr_outp_fc_ov(stat_date);
+CREATE INDEX idx_tr_fc_appoint_date ON tr_fc_appoint(appoint_date);
+CREATE UNIQUE INDEX uk_tr_fc_weather_date ON tr_fc_weather(weather_date);
+CREATE UNIQUE INDEX uk_tr_fc_holiday_date ON tr_fc_holiday(hol_date);
 CREATE INDEX idx_tr_internet_overview_month ON tr_inet_hosp_ov(stat_month);
 CREATE INDEX idx_tr_lab_overview_date ON tr_labstat_ov(stat_date);
 CREATE INDEX idx_tr_med_overview_date ON tr_medtech_ov(stat_date);
@@ -1014,9 +1048,6 @@ COMMENT ON TABLE tr_outp_op_dtl IS '门诊运行数据统计-科室明细';
 COMMENT ON TABLE tr_outp_alt_ov IS '门诊预警统计-概览';
 COMMENT ON TABLE tr_outp_alt_dept IS '门诊预警统计-科室明细';
 COMMENT ON TABLE tr_outp_alt_doc IS '门诊预警统计-医生明细';
-COMMENT ON TABLE tr_outp_fc_ov IS '预测门诊量报表-概览';
-COMMENT ON TABLE tr_outp_fc_month IS '预测门诊量报表-30天明细';
-COMMENT ON TABLE tr_outp_fc_year IS '预测门诊量报表-12个月明细';
 COMMENT ON TABLE tr_inet_hosp_ov IS '互医质控运营月报-概览';
 COMMENT ON TABLE tr_inet_hosp_op IS '互医质控运营月报-运行情况';
 COMMENT ON TABLE tr_inet_hosp_biz IS '互医质控运营月报-业务分析';
@@ -1070,9 +1101,9 @@ COMMENT ON TABLE tr_outp_op_dtl IS '门诊运行数据统计-科室明细(按科
 COMMENT ON TABLE tr_outp_alt_ov IS '门诊预警统计-概览(存储每日门诊预警总览:滞留预警、预约预警、早退人数)';
 COMMENT ON TABLE tr_outp_alt_dept IS '门诊预警统计-科室明细(按科室维度统计滞留预警、预约预警、早退人数)';
 COMMENT ON TABLE tr_outp_alt_doc IS '门诊预警统计-医生明细(按医生维度统计滞留预警、预约预警、早退人数)';
-COMMENT ON TABLE tr_outp_fc_ov IS '预测门诊量报表-概览(存储门诊量预测总览:明日、下周、下月、明年的预测值)';
-COMMENT ON TABLE tr_outp_fc_month IS '预测门诊量报表-30天明细(存储未来30天每日门诊量预测值)';
-COMMENT ON TABLE tr_outp_fc_year IS '预测门诊量报表-12个月明细(存储未来12个月每月门诊量预测值)';
+COMMENT ON TABLE tr_fc_appoint IS '预测门诊量-实时预约量源表(各科室每日预约了某日就诊的号源数)';
+COMMENT ON TABLE tr_fc_weather IS '预测门诊量-每日天气源表(天气类型及天气出勤系数)';
+COMMENT ON TABLE tr_fc_holiday IS '预测门诊量-节假日源表(法定节假日/调休上班,用于节假日系数)';
 COMMENT ON TABLE tr_inet_hosp_ov IS '互医质控运营月报-概览(存储互联网医院月度质控总览指标:门诊量、接诊率、处方率、审方率等)';
 COMMENT ON TABLE tr_inet_hosp_op IS '互医质控运营月报-运行情况(互联网医院各运营指标的运行情况对比:当月 vs 上月)';
 COMMENT ON TABLE tr_inet_hosp_biz IS '互医质控运营月报-业务分析(互联网医院业务分析图表数据,按分类存储当月/上月对比)';
@@ -1218,40 +1249,41 @@ COMMENT ON COLUMN tr_outp_alt_doc.ext1 IS '扩展字段1';
 COMMENT ON COLUMN tr_outp_alt_doc.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_outp_alt_doc.ext3 IS '扩展字段3';
 
--- tr_outp_fc_ov
-COMMENT ON COLUMN tr_outp_fc_ov.id IS '主键ID';
-COMMENT ON COLUMN tr_outp_fc_ov.stat_date IS '统计日期';
-COMMENT ON COLUMN tr_outp_fc_ov.tomorrow IS '明日预测';
-COMMENT ON COLUMN tr_outp_fc_ov.next_week IS '下周预测';
-COMMENT ON COLUMN tr_outp_fc_ov.next_month IS '下月预测';
-COMMENT ON COLUMN tr_outp_fc_ov.next_year IS '明年预测';
-COMMENT ON COLUMN tr_outp_fc_ov.create_time IS '创建时间';
-COMMENT ON COLUMN tr_outp_fc_ov.update_time IS '更新时间';
-COMMENT ON COLUMN tr_outp_fc_ov.ext1 IS '扩展字段1';
-COMMENT ON COLUMN tr_outp_fc_ov.ext2 IS '扩展字段2';
-COMMENT ON COLUMN tr_outp_fc_ov.ext3 IS '扩展字段3';
 
--- tr_outp_fc_month
-COMMENT ON COLUMN tr_outp_fc_month.id IS '主键ID';
-COMMENT ON COLUMN tr_outp_fc_month.stat_date IS '统计日期';
-COMMENT ON COLUMN tr_outp_fc_month.forecast_date IS '预测日期';
-COMMENT ON COLUMN tr_outp_fc_month.forecast_value IS '预测值';
-COMMENT ON COLUMN tr_outp_fc_month.create_time IS '创建时间';
-COMMENT ON COLUMN tr_outp_fc_month.update_time IS '更新时间';
-COMMENT ON COLUMN tr_outp_fc_month.ext1 IS '扩展字段1';
-COMMENT ON COLUMN tr_outp_fc_month.ext2 IS '扩展字段2';
-COMMENT ON COLUMN tr_outp_fc_month.ext3 IS '扩展字段3';
 
--- tr_outp_fc_year
-COMMENT ON COLUMN tr_outp_fc_year.id IS '主键ID';
-COMMENT ON COLUMN tr_outp_fc_year.stat_date IS '统计日期';
-COMMENT ON COLUMN tr_outp_fc_year.forecast_month IS '预测月份(YYYY-MM)';
-COMMENT ON COLUMN tr_outp_fc_year.forecast_value IS '预测值';
-COMMENT ON COLUMN tr_outp_fc_year.create_time IS '创建时间';
-COMMENT ON COLUMN tr_outp_fc_year.update_time IS '更新时间';
-COMMENT ON COLUMN tr_outp_fc_year.ext1 IS '扩展字段1';
-COMMENT ON COLUMN tr_outp_fc_year.ext2 IS '扩展字段2';
-COMMENT ON COLUMN tr_outp_fc_year.ext3 IS '扩展字段3';
+
+-- tr_fc_appoint
+COMMENT ON COLUMN tr_fc_appoint.id IS '主键ID';
+COMMENT ON COLUMN tr_fc_appoint.appoint_date IS '预约就诊日期';
+COMMENT ON COLUMN tr_fc_appoint.dept_code IS '科室编码(空表示全院汇总行)';
+COMMENT ON COLUMN tr_fc_appoint.appoint_count IS '预约量';
+COMMENT ON COLUMN tr_fc_appoint.create_time IS '创建时间';
+COMMENT ON COLUMN tr_fc_appoint.update_time IS '更新时间';
+COMMENT ON COLUMN tr_fc_appoint.ext1 IS '扩展字段1';
+COMMENT ON COLUMN tr_fc_appoint.ext2 IS '扩展字段2';
+COMMENT ON COLUMN tr_fc_appoint.ext3 IS '扩展字段3';
+
+-- tr_fc_weather
+COMMENT ON COLUMN tr_fc_weather.id IS '主键ID';
+COMMENT ON COLUMN tr_fc_weather.weather_date IS '天气日期';
+COMMENT ON COLUMN tr_fc_weather.weather_type IS '天气类型(晴/阴/雨/雪等)';
+COMMENT ON COLUMN tr_fc_weather.weather_coef IS '天气出勤系数(空按1处理)';
+COMMENT ON COLUMN tr_fc_weather.create_time IS '创建时间';
+COMMENT ON COLUMN tr_fc_weather.update_time IS '更新时间';
+COMMENT ON COLUMN tr_fc_weather.ext1 IS '扩展字段1';
+COMMENT ON COLUMN tr_fc_weather.ext2 IS '扩展字段2';
+COMMENT ON COLUMN tr_fc_weather.ext3 IS '扩展字段3';
+
+-- tr_fc_holiday
+COMMENT ON COLUMN tr_fc_holiday.id IS '主键ID';
+COMMENT ON COLUMN tr_fc_holiday.hol_date IS '节假日日期';
+COMMENT ON COLUMN tr_fc_holiday.hol_name IS '节假日名称';
+COMMENT ON COLUMN tr_fc_holiday.hol_type IS '类型(LEGAL_HOLIDAY法定节假日/WORKDAY_ADJUST调休上班)';
+COMMENT ON COLUMN tr_fc_holiday.create_time IS '创建时间';
+COMMENT ON COLUMN tr_fc_holiday.update_time IS '更新时间';
+COMMENT ON COLUMN tr_fc_holiday.ext1 IS '扩展字段1';
+COMMENT ON COLUMN tr_fc_holiday.ext2 IS '扩展字段2';
+COMMENT ON COLUMN tr_fc_holiday.ext3 IS '扩展字段3';
 
 -- tr_inet_hosp_ov
 COMMENT ON COLUMN tr_inet_hosp_ov.id IS '主键ID';
@@ -1636,6 +1668,7 @@ COMMENT ON COLUMN tr_svc_quality_ov.ext3 IS '扩展字段3';
 COMMENT ON COLUMN tr_svc_quality_cmpl.id IS '主键ID';
 COMMENT ON COLUMN tr_svc_quality_cmpl.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_svc_quality_cmpl.complaint_time IS '投诉时间';
+COMMENT ON COLUMN tr_svc_quality_cmpl.dept_code IS '科室代码';
 COMMENT ON COLUMN tr_svc_quality_cmpl.dept_name IS '科室';
 COMMENT ON COLUMN tr_svc_quality_cmpl.person_name IS '人员';
 COMMENT ON COLUMN tr_svc_quality_cmpl.position IS '职位';
@@ -1652,6 +1685,7 @@ COMMENT ON COLUMN tr_svc_quality_cmpl.ext3 IS '扩展字段3';
 COMMENT ON COLUMN tr_svc_quality_prz.id IS '主键ID';
 COMMENT ON COLUMN tr_svc_quality_prz.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_svc_quality_prz.praise_time IS '表扬时间';
+COMMENT ON COLUMN tr_svc_quality_prz.dept_code IS '科室代码';
 COMMENT ON COLUMN tr_svc_quality_prz.dept_name IS '科室';
 COMMENT ON COLUMN tr_svc_quality_prz.person_name IS '人员';
 COMMENT ON COLUMN tr_svc_quality_prz.position IS '职位';
@@ -1663,6 +1697,33 @@ COMMENT ON COLUMN tr_svc_quality_prz.update_time IS '更新时间';
 COMMENT ON COLUMN tr_svc_quality_prz.ext1 IS '扩展字段1';
 COMMENT ON COLUMN tr_svc_quality_prz.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_svc_quality_prz.ext3 IS '扩展字段3';
+
+-- tr_common_dict
+COMMENT ON COLUMN tr_common_dict.id IS '主键ID';
+COMMENT ON COLUMN tr_common_dict.dict_type IS '字典类型：position/complaintCategory/complaintResult/praiseMethod/feedback';
+COMMENT ON COLUMN tr_common_dict.dict_code IS '字典编码';
+COMMENT ON COLUMN tr_common_dict.dict_name IS '字典名称';
+COMMENT ON COLUMN tr_common_dict.sort_no IS '排序号';
+COMMENT ON COLUMN tr_common_dict.status IS '状态：1启用 0停用';
+COMMENT ON COLUMN tr_common_dict.create_time IS '创建时间';
+COMMENT ON COLUMN tr_common_dict.update_time IS '更新时间';
+COMMENT ON COLUMN tr_common_dict.ext1 IS '扩展字段1';
+COMMENT ON COLUMN tr_common_dict.ext2 IS '扩展字段2';
+COMMENT ON COLUMN tr_common_dict.ext3 IS '扩展字段3';
+
+-- tr_staff_dict
+COMMENT ON COLUMN tr_staff_dict.id IS '主键ID';
+COMMENT ON COLUMN tr_staff_dict.staff_code IS '人员工号';
+COMMENT ON COLUMN tr_staff_dict.staff_name IS '人员姓名';
+COMMENT ON COLUMN tr_staff_dict.dept_code IS '所属科室代码';
+COMMENT ON COLUMN tr_staff_dict.dept_name IS '所属科室名称';
+COMMENT ON COLUMN tr_staff_dict.position IS '岗位类别';
+COMMENT ON COLUMN tr_staff_dict.status IS '状态：1在职 0停用';
+COMMENT ON COLUMN tr_staff_dict.create_time IS '创建时间';
+COMMENT ON COLUMN tr_staff_dict.update_time IS '更新时间';
+COMMENT ON COLUMN tr_staff_dict.ext1 IS '扩展字段1';
+COMMENT ON COLUMN tr_staff_dict.ext2 IS '扩展字段2';
+COMMENT ON COLUMN tr_staff_dict.ext3 IS '扩展字段3';
 
 -- tr_spec_treat_ov
 COMMENT ON COLUMN tr_spec_treat_ov.stat_date IS '统计日期';

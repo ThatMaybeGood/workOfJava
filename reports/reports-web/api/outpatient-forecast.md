@@ -49,18 +49,18 @@
     },
     "body": {
         "overview": {
-            "tomorrow": 462,
-            "nextWeek": 462,
-            "nextMonth": 462,
-            "nextYear": 462
+            "tomorrow": 460,
+            "nextWeek": 3220,
+            "nextMonth": 12880,
+            "nextYear": 157200
         },
         "monthForecast": {
-            "dates": ["01\n日", "02\n一", "03\n二"],
-            "data": [30, 45, 60]
+            "dates": ["2026-09-12", "2026-09-13", "2026-09-14"],
+            "data": [460, 368, 460]
         },
         "yearForecast": {
-            "months": ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"],
-            "data": [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]
+            "months": ["2026-01", "2026-02", "2026-03"],
+            "data": [12000, 12400, 12600]
         }
     }
 }
@@ -72,12 +72,19 @@
 |--------|------|------|
 | body.overview | object | 门诊量预测概览 |
 | body.overview.tomorrow | number | 预测明日门诊量 |
-| body.overview.nextWeek | number | 预测未来一周门诊量 |
-| body.overview.nextMonth | number | 预测未来一个月门诊量 |
-| body.overview.nextYear | number | 预测未来一年门诊量 |
-| body.monthForecast | object | 未来30天门诊量预测 |
-| body.monthForecast.dates | array | 日期标签 |
+| body.overview.nextWeek | number | 预测未来一周门诊量(明日起7天合计) |
+| body.overview.nextMonth | number | 预测未来一个月门诊量(明日起30天合计) |
+| body.overview.nextYear | number | 预测未来一年门诊量(当年12个月合计) |
+| body.monthForecast | object | 未来30天门诊量预测(明日起) |
+| body.monthForecast.dates | array | 日期(yyyy-MM-dd) |
 | body.monthForecast.data | array | 预测数据 |
-| body.yearForecast | object | 未来12个月门诊量预测 |
-| body.yearForecast.months | array | 月份标签 |
+| body.yearForecast | object | 当年12个月门诊量预测 |
+| body.yearForecast.months | array | 月份标签(yyyy-MM) |
 | body.yearForecast.data | array | 预测数据 |
+
+### 计算口径
+
+- 每日预测 = CLAMP(基础量 × 就诊系数, 基础量×90%, 基础量×110%)
+- 基础量 = 实时预约量(tr_fc_appoint,无则近30天预约日均) + 近30天挂号量日均(TR_OUTPATIENT_STATS_DAY_RESULT)
+- 就诊系数 = (1 − 近30天爽约退号率) × 天气出勤系数(tr_fc_weather,空按1) × 节假日系数(tr_fc_holiday,非法定节假日按1)
+- 月度预测:1月 = 去年1月 × (1 + 去年比前年门诊量增率);2-12月 = 预测全年量 × 去年同月占比;历史不足按近90天日均兜底
