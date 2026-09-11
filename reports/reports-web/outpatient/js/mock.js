@@ -879,37 +879,37 @@ const MockService = {
 
     /**
      * 获取预测门诊量统计数据
+     * 模拟公式形态:基础量(预约300+挂号日均200) × 就诊系数0.92,周末8折
      */
     getForecastStatsData(params = {}) {
         return new Promise((resolve) => {
             setTimeout(() => {
-                const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
                 const monthDates = [];
                 const monthData = [];
-                for (let i = 0; i < 30; i++) {
+                for (let i = 1; i <= 30; i++) {
                     const d = new Date();
                     d.setDate(d.getDate() + i);
-                    const day = String(d.getDate()).padStart(2, '0');
-                    const weekday = weekdays[d.getDay()];
-                    monthDates.push(`${day}\n${weekday}`);
-                    monthData.push(Math.floor(Math.random() * 100) + 30);
+                    monthDates.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'));
+                    const weekend = d.getDay() === 0 || d.getDay() === 6;
+                    monthData.push(Math.round(500 * 0.92 * (weekend ? 0.8 : 1)));
                 }
 
                 const yearMonths = [];
                 const yearData = [];
+                const now = new Date();
                 for (let i = 1; i <= 12; i++) {
-                    yearMonths.push(String(i).padStart(2, '0'));
-                    yearData.push(1000);
+                    yearMonths.push(now.getFullYear() + '-' + String(i).padStart(2, '0'));
+                    yearData.push(12000 + i * 200);
                 }
 
                 resolve({
                     code: 200,
                     data: {
                         overview: {
-                            tomorrow: 462,
-                            nextWeek: 462,
-                            nextMonth: 462,
-                            nextYear: 462
+                            tomorrow: monthData[0],
+                            nextWeek: monthData.slice(0, 7).reduce((a, b) => a + b, 0),
+                            nextMonth: monthData.reduce((a, b) => a + b, 0),
+                            nextYear: yearData.reduce((a, b) => a + b, 0)
                         },
                         monthForecast: {
                             dates: monthDates,
@@ -993,7 +993,10 @@ const MockService = {
     getQualityControlStatsData(params = {}) {
         return new Promise((resolve) => {
             setTimeout(() => {
-                const months = ['2025-12', '2025-11', '2025-10', '2025-09', '2025-08', '2025-07', '2025-06', '2025-05', '2025-04', '2025-03'];
+                const allMonths = ['2025-12', '2025-11', '2025-10', '2025-09', '2025-08', '2025-07', '2025-06', '2025-05', '2025-04', '2025-03'];
+                const startMonth = params.startMonth || allMonths[allMonths.length - 1];
+                const endMonth = params.endMonth || allMonths[0];
+                const months = allMonths.filter(m => m >= startMonth && m <= endMonth);
                 const indicators = [
                     'emrUsageRate', 'standardDiagnosisRate', 'onTimeRate', 'stopRate',
                     'chemoRecordRate', 'chemoAdverseRate', 'chemoInfusionRate',
@@ -1046,18 +1049,18 @@ const MockService = {
         return new Promise((resolve) => {
             setTimeout(() => {
                 const operationItems = [
-                    { name: '诊察号量（含退号）', current: 120, last: 100 },
-                    { name: '便民咨询（不含号）', current: 120, last: 100 },
+                    { name: '总挂号量（含退号）', current: 120, last: 100 },
+                    { name: '净接诊量（不含退号）', current: 120, last: 100 },
                     { name: '病历书写量', current: 120, last: 100 },
                     { name: '药品处方开具量', current: 120, last: 100 },
                     { name: '药品处方执行量', current: 120, last: 100 },
                     { name: '挂号费（元）', current: '12,000.00', last: '10,000.00' },
                     { name: '检查检验费（元）', current: '12,000.00', last: '10,000.00' },
-                    { name: '药费处方费（元）', current: '12,000.00', last: '10,000.00' },
-                    { name: '互联网服务量', current: 100, last: 120 }
+                    { name: '药品处方费（元）', current: '12,000.00', last: '10,000.00' },
+                    { name: '住院证开具量', current: 100, last: 120 }
                 ];
 
-                const businessCategories = ['在线诊疗', '便民咨询', '护理咨询', '诊间咨询', '线上免费问诊', '网络诊方', '特殊制剂', '检查项目', '自助开单', '心理咨询'];
+                const businessCategories = ['在线诊疗', '用药咨询', '护理咨询', '便民咨询', '线上免费回诊', '复诊续方', '特色制剂', '快速问诊', '自助开单', '心理咨询'];
                 const businessData = businessCategories.map(() => ({
                     current: Math.floor(Math.random() * 5000) + 5000,
                     last: Math.floor(Math.random() * 5000) + 5000
@@ -1081,11 +1084,14 @@ const MockService = {
                     currentMonth: 100
                 }));
 
-                const growthCategories = ['皮肤_风湿免疫科门诊', '心血管内科门诊', '神经内科门诊', '消化科门诊', '肾病科门诊', '中医科门诊', '血液科门诊', '营养科门诊', '妇产科门诊', '全科医学科门诊'];
-                const growthData = growthCategories.map(() => Math.floor(Math.random() * 80) + 20);
+                // 平均候诊时长TOP20：科室名 + 分钟数
+                const growthCategories = ['皮肤_风湿免疫科门诊', '心血管内科门诊', '神经内科门诊', '消化科门诊', '呼吸科门诊', '肾病科门诊', '中医科门诊', '血液科门诊', '营养科门诊', '妇产科门诊', '全科医学科门诊', '内分泌科门诊', '眼科门诊', '耳鼻喉科门诊', '口腔科门诊', '皮肤科门诊', '骨科门诊', '泌尿外科门诊', '儿科门诊', '康复医学科门诊'];
+                const growthData = growthCategories.map(() => Math.floor(Math.random() * 70) + 20);
 
-                const page = params.page || 1;
-                const pageSize = params.pageSize || 10;
+                const deptPage = params.deptPage || 1;
+                const deptPageSize = params.deptPageSize || 10;
+                const doctorPage = params.doctorPage || 1;
+                const doctorPageSize = params.doctorPageSize || 10;
 
                 resolve({
                     code: 200,
@@ -1109,16 +1115,16 @@ const MockService = {
                             last: businessData.map(d => d.last)
                         },
                         deptRanking: {
-                            list: deptRanking.slice(0, pageSize),
+                            list: deptRanking.slice((deptPage - 1) * deptPageSize, deptPage * deptPageSize),
                             total: deptRanking.length,
-                            page,
-                            pageSize
+                            page: deptPage,
+                            pageSize: deptPageSize
                         },
                         doctorRanking: {
-                            list: doctorRanking.slice(0, pageSize),
+                            list: doctorRanking.slice((doctorPage - 1) * doctorPageSize, doctorPage * doctorPageSize),
                             total: doctorRanking.length,
-                            page,
-                            pageSize
+                            page: doctorPage,
+                            pageSize: doctorPageSize
                         },
                         growthChart: {
                             categories: growthCategories,
@@ -1194,6 +1200,165 @@ const MockService = {
                         list,
                         total: list.length
                     }
+                });
+            }, 200);
+        });
+    },
+
+    /**
+     * 通用字典（localStorage 持久化，支持 query/add/delete）
+     */
+    getDataDict(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const seed = {
+                    position: ['医师', '护士', '技师', '药师', '劳务派遣', '第三方购买服务'],
+                    complaintCategory: ['病历问题', '费用问题', '服务问题', '告知问题', '沟通问题', '医疗质量'],
+                    complaintResult: ['有效投诉', '无效投诉'],
+                    praiseMethod: ['锦旗', '感谢信', '口头传达'],
+                    feedback: ['已反馈', '未反馈']
+                };
+                const storeKey = 'mock_common_dict';
+                let store = JSON.parse(localStorage.getItem(storeKey) || 'null');
+                if (!store) {
+                    store = {};
+                    let id = 1;
+                    Object.keys(seed).forEach(type => {
+                        store[type] = seed[type].map((name, idx) => ({
+                            id: id++, dictType: type, dictCode: type + '_' + (idx + 1),
+                            dictName: name, sortNo: idx + 1, status: 1
+                        }));
+                    });
+                    localStorage.setItem(storeKey, JSON.stringify(store));
+                }
+
+                const action = params.action || 'query';
+                if (action === 'add') {
+                    const type = params.dictType;
+                    if (!store[type]) store[type] = [];
+                    const maxId = Math.max(0, ...Object.values(store).flat().map(i => i.id || 0));
+                    store[type].push({
+                        id: maxId + 1, dictType: type,
+                        dictCode: params.dictCode || (type + '_' + (store[type].length + 1)),
+                        dictName: params.dictName, sortNo: store[type].length + 1, status: 1
+                    });
+                    localStorage.setItem(storeKey, JSON.stringify(store));
+                    resolve({ code: 200, data: { affected: 1 } });
+                    return;
+                }
+                if (action === 'delete') {
+                    Object.keys(store).forEach(type => {
+                        store[type] = store[type].filter(i => i.id !== params.id);
+                    });
+                    localStorage.setItem(storeKey, JSON.stringify(store));
+                    resolve({ code: 200, data: { affected: 1 } });
+                    return;
+                }
+                const list = params.dictType ? (store[params.dictType] || []) : Object.values(store).flat();
+                resolve({ code: 200, data: { list, total: list.length } });
+            }, 200);
+        });
+    },
+
+    /**
+     * 人员字典
+     */
+    getStaffDict(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const depts = [
+                    { deptCode: '0101', deptName: '心血管内科门诊' },
+                    { deptCode: '0102', deptName: '呼吸科门诊' },
+                    { deptCode: '0103', deptName: '消化科门诊' },
+                    { deptCode: '0104', deptName: '神经内科门诊' },
+                    { deptCode: '0105', deptName: '肾内科门诊' }
+                ];
+                const names = ['张医生', '李医生', '王护士', '赵技师', '钱药师', '孙医生', '周护士', '吴医生'];
+                const positions = ['医师', '护士', '技师', '药师'];
+                let list = names.map((name, i) => ({
+                    id: i + 1,
+                    staffCode: 'S' + String(1001 + i),
+                    staffName: name,
+                    deptCode: depts[i % depts.length].deptCode,
+                    deptName: depts[i % depts.length].deptName,
+                    position: positions[i % positions.length],
+                    status: 1
+                }));
+                if (params.deptCode && params.deptCode !== '0000') {
+                    list = list.filter(s => s.deptCode === params.deptCode);
+                }
+                if (params.staffName) {
+                    list = list.filter(s => s.staffName.includes(params.staffName));
+                }
+                resolve({ code: 200, data: { list, total: list.length } });
+            }, 200);
+        });
+    },
+
+    /**
+     * 门诊服务质量数据维护（localStorage 持久化，支持 query/save/delete）
+     */
+    getServiceQualityMaintainData(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const storeKey = 'mock_svc_quality_maintain';
+                let store = JSON.parse(localStorage.getItem(storeKey) || 'null');
+                if (!store) {
+                    store = { complaint: [], praise: [] };
+                    for (let i = 1; i <= 23; i++) {
+                        store.complaint.push({
+                            id: i, time: '2025-09-' + String((i % 28) + 1).padStart(2, '0') + ' 10:30',
+                            deptCode: '010' + (i % 5 + 1), deptName: '心血管内科门诊',
+                            personName: '张医生', position: '医师',
+                            category: i % 2 ? '病历问题' : '费用问题',
+                            result: i % 2 ? '有效投诉' : '无效投诉', remark: ''
+                        });
+                        store.praise.push({
+                            id: i, time: '2025-09-' + String((i % 28) + 1).padStart(2, '0') + ' 11:00',
+                            deptCode: '010' + (i % 5 + 1), deptName: '心血管内科门诊',
+                            personName: '李医生', position: '医师',
+                            method: i % 2 ? '锦旗' : '感谢信',
+                            feedback: i % 2 ? '已反馈' : '未反馈', remark: ''
+                        });
+                    }
+                    localStorage.setItem(storeKey, JSON.stringify(store));
+                }
+
+                const type = params.type === 'praise' ? 'praise' : 'complaint';
+                const action = params.action || 'query';
+
+                if (action === 'save') {
+                    const maxId = Math.max(0, ...store.complaint.map(i => i.id || 0), ...store.praise.map(i => i.id || 0));
+                    let nextId = maxId + 1;
+                    (params.list || []).forEach(item => {
+                        if (item.id) {
+                            const idx = store[type].findIndex(i => i.id === item.id);
+                            if (idx >= 0) store[type][idx] = { ...store[type][idx], ...item };
+                        } else {
+                            store[type].push({ ...item, id: nextId++ });
+                        }
+                    });
+                    localStorage.setItem(storeKey, JSON.stringify(store));
+                    resolve({ code: 200, data: { affected: (params.list || []).length } });
+                    return;
+                }
+                if (action === 'delete') {
+                    store[type] = store[type].filter(i => i.id !== params.id);
+                    localStorage.setItem(storeKey, JSON.stringify(store));
+                    resolve({ code: 200, data: { affected: 1 } });
+                    return;
+                }
+                // query：按日期过滤（time 前10位为日期）
+                let list = store[type];
+                if (params.startDate) list = list.filter(i => (i.time || '').slice(0, 10) >= params.startDate);
+                if (params.endDate) list = list.filter(i => (i.time || '').slice(0, 10) <= params.endDate);
+                const page = params.page || 1;
+                const pageSize = params.pageSize || 10;
+                const total = list.length;
+                const start = (page - 1) * pageSize;
+                resolve({
+                    code: 200,
+                    data: { list: list.slice(start, start + pageSize), total, page, pageSize }
                 });
             }, 200);
         });

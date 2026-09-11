@@ -9,11 +9,11 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 门诊服务质量分析-投诉明细
+ * 人员字典
  */
 @Data
-@TableName("TR_SVC_QUALITY_CMPL")
-public class ServiceQualityCmplEntity implements Serializable {
+@TableName("TR_STAFF_DICT")
+public class StaffDictEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -21,41 +21,29 @@ public class ServiceQualityCmplEntity implements Serializable {
     @TableId("id")
     private Long id;
 
-    /** 统计日期 */
-    @TableField("stat_date")
-    private Date statDate;
+    /** 人员工号 */
+    @TableField("staff_code")
+    private String staffCode;
 
-    /** 投诉时间 */
-    @TableField("complaint_time")
-    private Date complaintTime;
+    /** 人员姓名 */
+    @TableField("staff_name")
+    private String staffName;
 
-    /** 科室代码 */
+    /** 所属科室代码 */
     @TableField("dept_code")
     private String deptCode;
 
-    /** 科室 */
+    /** 所属科室名称 */
     @TableField("dept_name")
     private String deptName;
 
-    /** 人员 */
-    @TableField("person_name")
-    private String personName;
-
-    /** 职位 */
+    /** 岗位类别 */
     @TableField("position")
     private String position;
 
-    /** 分类 */
-    @TableField("category")
-    private String category;
-
-    /** 处理结果 */
-    @TableField("result")
-    private String result;
-
-    /** 备注 */
-    @TableField("remark")
-    private String remark;
+    /** 状态：1在职 0停用 */
+    @TableField("status")
+    private Integer status;
 
     /** 创建时间 */
     @TableField("create_time")

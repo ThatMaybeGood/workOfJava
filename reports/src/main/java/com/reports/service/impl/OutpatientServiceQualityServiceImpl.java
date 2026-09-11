@@ -3,6 +3,7 @@ package com.reports.service.impl;
 import com.reports.config.ReportDataConfig;
 import com.reports.dto.common.PageResult;
 import com.reports.dto.request.OutpatientServiceQualityRequest;
+import com.reports.dto.request.ServiceQualityMaintainRequest;
 import com.reports.dto.response.outpatient.service.quality.*;
 import com.reports.entity.ServiceQualityCmplEntity;
 import com.reports.entity.ServiceQualityOvEntity;
@@ -137,7 +138,9 @@ public class OutpatientServiceQualityServiceImpl implements OutpatientServiceQua
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientServiceQualityRequest request) {
         try {
-            ServiceQualityOvEntity entity = serviceQualityMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            ServiceQualityOvEntity entity = serviceQualityMapper.queryOverview(
+                    request.getStartDate(), request.getEndDate(),
+                    request.getDeptCode(), request.getDeptName());
             return buildOverviewData(entity);
         } catch (Exception e) {
             log.warn("查询门诊服务质量概览失败", e);
@@ -179,6 +182,121 @@ public class OutpatientServiceQualityServiceImpl implements OutpatientServiceQua
             log.warn("查询表扬明细列表失败", e);
             return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
         }
+    }
+
+    // ==================== 数据维护 ====================
+
+    @Override
+    public PageResult<MaintainItem> queryMaintainList(ServiceQualityMaintainRequest request, Integer page, Integer pageSize) {
+        log.info("查询门诊服务质量维护明细，type={}，mode={}", request.getType(), dataConfig.getMode());
+        if (!dataConfig.isMybatisPlus()) {
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+        }
+        try {
+            List<MaintainItem> allItems;
+            if ("praise".equalsIgnoreCase(request.getType())) {
+                List<ServiceQualityPrzEntity> rows = serviceQualityMapper.queryPraiseByDate(request.getStartDate(), request.getEndDate());
+                allItems = new ArrayList<>();
+                for (ServiceQualityPrzEntity row : rows) {
+                    allItems.add(buildMaintainItem(row));
+                }
+            } else {
+                List<ServiceQualityCmplEntity> rows = serviceQualityMapper.queryComplaintByDate(request.getStartDate(), request.getEndDate());
+                allItems = new ArrayList<>();
+                for (ServiceQualityCmplEntity row : rows) {
+                    allItems.add(buildMaintainItem(row));
+                }
+            }
+            int total = allItems.size();
+            int start = (page - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+            List<MaintainItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
+            return PageResult.of(pageList, (long) total, page, pageSize);
+        } catch (Exception e) {
+            log.warn("查询门诊服务质量维护明细失败", e);
+            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+        }
+    }
+
+    @Override
+    public int saveMaintain(ServiceQualityMaintainRequest request) {
+        log.info("保存门诊服务质量维护明细，type={}，mode={}", request.getType(), dataConfig.getMode());
+        if (!dataConfig.isMybatisPlus() || request.getList() == null) {
+            return 0;
+        }
+        int affected = 0;
+        boolean praise = "praise".equalsIgnoreCase(request.getType());
+        for (MaintainItem item : request.getList()) {
+            if (praise) {
+                ServiceQualityPrzEntity entity = new ServiceQualityPrzEntity();
+                entity.setId(item.getId());
+                entity.setPraiseTime(item.getTime());
+                entity.setDeptCode(item.getDeptCode());
+                entity.setDeptName(item.getDeptName());
+                entity.setPersonName(item.getPersonName());
+                entity.setPosition(item.getPosition());
+                entity.setMethod(item.getMethod());
+                entity.setFeedback(item.getFeedback());
+                entity.setRemark(item.getRemark());
+                affected += (item.getId() != null)
+                        ? serviceQualityMapper.updatePraise(entity)
+                        : serviceQualityMapper.insertPraise(entity);
+            } else {
+                ServiceQualityCmplEntity entity = new ServiceQualityCmplEntity();
+                entity.setId(item.getId());
+                entity.setComplaintTime(item.getTime());
+                entity.setDeptCode(item.getDeptCode());
+                entity.setDeptName(item.getDeptName());
+                entity.setPersonName(item.getPersonName());
+                entity.setPosition(item.getPosition());
+                entity.setCategory(item.getCategory());
+                entity.setResult(item.getResult());
+                entity.setRemark(item.getRemark());
+                affected += (item.getId() != null)
+                        ? serviceQualityMapper.updateComplaint(entity)
+                        : serviceQualityMapper.insertComplaint(entity);
+            }
+        }
+        return affected;
+    }
+
+    @Override
+    public int deleteMaintain(ServiceQualityMaintainRequest request) {
+        log.info("删除门诊服务质量维护明细，type={}，id={}，mode={}", request.getType(), request.getId(), dataConfig.getMode());
+        if (!dataConfig.isMybatisPlus() || request.getId() == null) {
+            return 0;
+        }
+        return "praise".equalsIgnoreCase(request.getType())
+                ? serviceQualityMapper.deletePraiseById(request.getId())
+                : serviceQualityMapper.deleteComplaintById(request.getId());
+    }
+
+    private MaintainItem buildMaintainItem(ServiceQualityCmplEntity entity) {
+        MaintainItem item = new MaintainItem();
+        item.setId(entity.getId());
+        item.setTime(entity.getComplaintTime());
+        item.setDeptCode(entity.getDeptCode());
+        item.setDeptName(entity.getDeptName());
+        item.setPersonName(entity.getPersonName());
+        item.setPosition(entity.getPosition());
+        item.setCategory(entity.getCategory());
+        item.setResult(entity.getResult());
+        item.setRemark(entity.getRemark());
+        return item;
+    }
+
+    private MaintainItem buildMaintainItem(ServiceQualityPrzEntity entity) {
+        MaintainItem item = new MaintainItem();
+        item.setId(entity.getId());
+        item.setTime(entity.getPraiseTime());
+        item.setDeptCode(entity.getDeptCode());
+        item.setDeptName(entity.getDeptName());
+        item.setPersonName(entity.getPersonName());
+        item.setPosition(entity.getPosition());
+        item.setMethod(entity.getMethod());
+        item.setFeedback(entity.getFeedback());
+        item.setRemark(entity.getRemark());
+        return item;
     }
 
     // ==================== entity -> DTO 转换方法 ====================

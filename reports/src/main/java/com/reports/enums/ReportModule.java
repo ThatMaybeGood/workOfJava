@@ -150,6 +150,17 @@ public enum ReportModule {
             )),
 
     /**
+     * 门诊服务质量数据维护
+     */
+    OUTPATIENT_SERVICE_QUALITY_MAINTAIN("门诊服务质量数据维护",
+            "com.reports.service.OutpatientServiceQualityService",
+            Arrays.asList(
+                    new ReportMethod("queryMaintainList", "查询维护明细"),
+                    new ReportMethod("saveMaintain", "保存维护明细"),
+                    new ReportMethod("deleteMaintain", "删除维护明细")
+            )),
+
+    /**
      * 专科治疗量统计
      */
     OUTPATIENT_SPECIALTY_TREATMENT("专科治疗量统计",
@@ -170,6 +181,28 @@ public enum ReportModule {
                     new ReportMethod("queryTimeAnalysis", "查询时段分析"),
                     new ReportMethod("querySourceAnalysis", "查询来源分析"),
                     new ReportMethod("queryWorkloadTable", "查询工作量表格")
+            )),
+
+    // ==================== 通用类 ====================
+
+    /**
+     * 通用字典
+     */
+    COMMON_DATA_DICT("通用字典",
+            "com.reports.service.CommonDictService",
+            Arrays.asList(
+                    new ReportMethod("queryDictList", "查询字典列表"),
+                    new ReportMethod("addDict", "新增字典项"),
+                    new ReportMethod("deleteDict", "删除字典项")
+            )),
+
+    /**
+     * 人员字典
+     */
+    COMMON_STAFF_DICT("人员字典",
+            "com.reports.service.StaffDictService",
+            Arrays.asList(
+                    new ReportMethod("queryStaffList", "查询人员列表")
             )),
 
     // ==================== 收费类报表 ====================

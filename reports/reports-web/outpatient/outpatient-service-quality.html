@@ -156,24 +156,20 @@
                                 <thead class="table-light">
                                     <tr><th>字典值</th><th>操作</th></tr>
                                 </thead>
-                                <tbody id="dictValueBody">
-                                    <tr><td>医师</td><td><a href="#" class="text-primary">删除</a></td></tr>
-                                    <tr><td>护士</td><td><a href="#" class="text-primary">删除</a></td></tr>
-                                    <tr><td>技师</td><td><a href="#" class="text-primary">删除</a></td></tr>
-                                    <tr><td>药师</td><td><a href="#" class="text-primary">删除</a></td></tr>
-                                    <tr><td>劳务派遣</td><td><a href="#" class="text-primary">删除</a></td></tr>
-                                    <tr><td>第三方购买服务</td><td><a href="#" class="text-primary">删除</a></td></tr>
-                                </tbody>
+                                <tbody id="dictValueBody"></tbody>
                             </table>
+                            <div class="d-flex justify-content-center mt-2">
+                                <nav aria-label="Dict page navigation"><ul class="pagination pagination-sm mb-0" id="dictPagination"></ul></nav>
+                            </div>
                             <div class="mt-2">
-                                <input type="text" class="form-control form-control-sm d-inline-block w-auto" placeholder="新增字典值">
-                                <button class="btn btn-primary btn-sm ms-2">添加</button>
+                                <input type="text" id="dictNewValue" class="form-control form-control-sm d-inline-block w-auto" placeholder="新增字典值">
+                                <button class="btn btn-primary btn-sm ms-2" id="dictAddBtn">添加</button>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">保存</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
                 </div>
             </div>
         </div>
@@ -189,80 +185,30 @@
                 </div>
                 <div class="modal-body">
                     <div class="d-flex align-items-center gap-3 mb-3">
-                        <div class="filter-buttons">
-                            <button class="filter-btn active">投诉</button>
-                            <button class="filter-btn">表扬</button>
+                        <div class="filter-buttons" id="maintainTypeFilter">
+                            <button class="filter-btn active" data-value="complaint">投诉</button>
+                            <button class="filter-btn" data-value="praise">表扬</button>
                         </div>
                         <div class="date-input-wrapper">
-                            <input type="text" class="form-control form-control-sm date-input" value="2025-09-01" readonly>
+                            <input type="text" class="form-control form-control-sm date-input" id="maintainDate" readonly>
                             <i class="bi bi-calendar date-input-icon"></i>
                         </div>
+                        <button class="btn btn-outline-primary btn-sm" id="maintainQueryBtn"><i class="bi bi-search me-1"></i>查询</button>
+                        <button class="btn btn-primary btn-sm" id="maintainAddRowBtn"><i class="bi bi-plus-lg me-1"></i>新增一行</button>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-bordered">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>被投诉科室</th>
-                                    <th>被投诉人员</th>
-                                    <th>岗位类别</th>
-                                    <th>投诉分类</th>
-                                    <th>处理结果</th>
-                                    <th>备注</th>
-                                    <th>操作</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
-                                    <td>
-                                        <select class="form-select form-select-sm"><option></option><option>医师</option><option>护士</option></select>
-                                    </td>
-                                    <td>
-                                        <select class="form-select form-select-sm"><option></option><option>病历问题</option><option>费用问题</option></select>
-                                    </td>
-                                    <td>
-                                        <select class="form-select form-select-sm"><option></option><option>有效投诉</option><option>无效投诉</option></select>
-                                    </td>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
-                                    <td><a href="#" class="text-primary">添加</a> | <a href="#" class="text-danger">删除</a></td>
-                                </tr>
-                                <tr>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
-                                    <td>
-                                        <select class="form-select form-select-sm"><option></option><option>医师</option><option>护士</option></select>
-                                    </td>
-                                    <td>
-                                        <select class="form-select form-select-sm"><option></option><option>病历问题</option><option>费用问题</option></select>
-                                    </td>
-                                    <td>
-                                        <select class="form-select form-select-sm"><option></option><option>有效投诉</option><option>无效投诉</option></select>
-                                    </td>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
-                                    <td><a href="#" class="text-primary">添加</a> | <a href="#" class="text-danger">删除</a></td>
-                                </tr>
-                                <tr>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
-                                    <td>
-                                        <select class="form-select form-select-sm"><option></option><option>医师</option><option>护士</option></select>
-                                    </td>
-                                    <td>
-                                        <select class="form-select form-select-sm"><option></option><option>病历问题</option><option>费用问题</option></select>
-                                    </td>
-                                    <td>
-                                        <select class="form-select form-select-sm"><option></option><option>有效投诉</option><option>无效投诉</option></select>
-                                    </td>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
-                                    <td><a href="#" class="text-primary">添加</a> | <a href="#" class="text-danger">删除</a></td>
-                                </tr>
-                            </tbody>
+                            <thead class="table-light" id="maintainTableHead"></thead>
+                            <tbody id="maintainTableBody"></tbody>
                         </table>
+                    </div>
+                    <div class="pagination-wrapper d-flex justify-content-center align-items-center mt-3 gap-3">
+                        <div class="pagination-info"><span id="maintainPageInfo"></span></div>
+                        <nav aria-label="Maintain page navigation"><ul class="pagination pagination-sm mb-0" id="maintainPagination"></ul></nav>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">保存</button>
+                    <button type="button" class="btn btn-primary" id="maintainSaveBtn">保存</button>
                 </div>
             </div>
         </div>
@@ -274,6 +220,7 @@
     <script src="../api-config.js"></script>
     <script src="js/mock.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/dept-select.js"></script>
     <script>
         (function() {
             const toggle = document.getElementById('mockToggle');

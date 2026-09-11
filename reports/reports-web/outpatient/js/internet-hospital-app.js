@@ -26,6 +26,7 @@ class InternetHospitalController {
     init() {
         this.initCharts();
         this.bindEvents();
+        this.updateMonthHeaders();
         this.loadData();
     }
 
@@ -50,6 +51,7 @@ class InternetHospitalController {
             this.state.filter.month = e.target.value;
             this.state.deptPage.currentPage = 1;
             this.state.doctorPage.currentPage = 1;
+            this.updateMonthHeaders();
             this.loadData();
         });
 
@@ -64,6 +66,32 @@ class InternetHospitalController {
             this.state.doctorPage.currentPage = 1;
             this.loadDoctorRanking();
         });
+    }
+
+    /** 当月/上月标签，用于表头与图表图例 */
+    monthLabels() {
+        const [year, month] = this.state.filter.month.split('-').map(Number);
+        const pad = (n) => String(n).padStart(2, '0');
+        const last = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
+        return {
+            current: `${year}-${pad(month)}`,
+            last: `${last.year}-${pad(last.month)}`
+        };
+    }
+
+    updateMonthHeaders() {
+        const { current, last } = this.monthLabels();
+        const setText = (id, text) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = text;
+            }
+        };
+        setText('opMonthCurrent', current);
+        setText('opMonthLast', last);
+        setText('deptMonthCurrent', current);
+        setText('deptMonthLast', last);
+        setText('doctorMonthCurrent', current);
     }
 
     async loadData() {
@@ -166,13 +194,20 @@ class InternetHospitalController {
         const categories = (chartData && chartData.categories) ? chartData.categories : [];
         const lastData = (chartData && chartData.last) ? chartData.last : [];
         const currentData = (chartData && chartData.current) ? chartData.current : [];
+        const { current, last } = this.monthLabels();
         const option = {
+            title: {
+                text: '互联网医院各业务运行情况',
+                left: 'left',
+                top: 0,
+                textStyle: { fontSize: 14, fontWeight: 600, color: '#262626' }
+            },
             tooltip: {
                 trigger: 'axis',
                 axisPointer: { type: 'shadow' }
             },
             legend: {
-                data: ['2025-11', '2025-12'],
+                data: [last, current],
                 right: 10,
                 top: 0
             },
@@ -198,14 +233,14 @@ class InternetHospitalController {
             },
             series: [
                 {
-                    name: '2025-11',
+                    name: last,
                     type: 'bar',
                     barWidth: '30%',
                     itemStyle: { color: '#1890ff' },
                     data: lastData
                 },
                 {
-                    name: '2025-12',
+                    name: current,
                     type: 'bar',
                     barWidth: '30%',
                     itemStyle: { color: '#52c41a' },
@@ -265,20 +300,24 @@ class InternetHospitalController {
         const data = (chartData && chartData.data) ? chartData.data : [];
         const option = {
             title: {
-                text: '互联网医院患者增长科室TOP20',
+                text: '互联网医院平均候诊时长科室TOP20',
                 left: 'left',
                 top: 0,
                 textStyle: { fontSize: 14, fontWeight: 600, color: '#262626' }
             },
             tooltip: {
                 trigger: 'axis',
-                formatter: '{b}: {c}'
+                formatter: (params) => {
+                    const item = Array.isArray(params) ? params[0] : params;
+                    const month = parseInt(this.state.filter.month.split('-')[1], 10);
+                    return `${item.name}<br/>${month}月平均候诊时长: ${item.value}`;
+                }
             },
             grid: {
                 left: 50,
                 right: 30,
                 bottom: 60,
-                top: 40,
+                top: 60,
                 containLabel: true
             },
             xAxis: {
@@ -289,10 +328,13 @@ class InternetHospitalController {
             },
             yAxis: {
                 type: 'value',
+                name: '分钟',
+                nameGap: 10,
                 axisLine: { show: false },
                 axisTick: { show: false },
                 splitLine: { lineStyle: { color: '#f0f0f0' } },
-                axisLabel: { color: '#8c8c8c' }
+                axisLabel: { color: '#8c8c8c' },
+                nameTextStyle: { color: '#8c8c8c', align: 'left' }
             },
             series: [
                 {

@@ -53,14 +53,14 @@ public class OutpatientInternetHospitalServiceImpl implements OutpatientInternet
     }
 
     @Override
-    public PageResult<OperationTableItem> queryOperationTable(OutpatientInternetHospitalRequest request, Integer page, Integer pageSize) {
+    public List<OperationTableItem> queryOperationTable(OutpatientInternetHospitalRequest request) {
         log.info("查询互医质控运行情况表，mode={}", dataConfig.getMode());
         if (dataConfig.isMock()) {
-            return queryOperationTableMock(request, page, pageSize);
+            return queryOperationTableMock(request);
         } else if (dataConfig.isJdbc()) {
-            return queryOperationTableByJdbc(request, page, pageSize);
+            return queryOperationTableByJdbc(request);
         } else {
-            return queryOperationTableByMybatisPlus(request, page, pageSize);
+            return queryOperationTableByMybatisPlus(request);
         }
     }
 
@@ -127,18 +127,20 @@ public class OutpatientInternetHospitalServiceImpl implements OutpatientInternet
         return overview;
     }
 
-    private PageResult<OperationTableItem> queryOperationTableMock(OutpatientInternetHospitalRequest request, Integer page, Integer pageSize) {
+    private List<OperationTableItem> queryOperationTableMock(OutpatientInternetHospitalRequest request) {
         SeqUtil.next();
+        String[] names = {"总挂号量（含退号）", "净接诊量（不含退号）", "病历书写量", "药品处方开具量",
+                "药品处方执行量", "挂号费（元）", "检查检验费（元）", "药品处方费（元）", "住院证开具量"};
         List<OperationTableItem> list = new ArrayList<>();
-        for (int i = 0; i < pageSize; i++) {
+        for (int i = 0; i < names.length; i++) {
             OperationTableItem item = new OperationTableItem();
-            item.setName("心血管内科" + (i + 1));
-            item.setCurrent(500 + i * 10);
-            item.setLast(450 + i * 8);
-            item.setGrowth("5.00%");
+            item.setName(names[i]);
+            item.setCurrent(i == names.length - 1 ? 100 : 120);
+            item.setLast(i == names.length - 1 ? 120 : 100);
+            item.setGrowth(i == names.length - 1 ? "-17%" : "+20%");
             list.add(item);
         }
-        return PageResult.of(list, 55L, page, pageSize);
+        return list;
     }
 
     private BusinessChart queryBusinessChartMock(OutpatientInternetHospitalRequest request) {
@@ -215,8 +217,8 @@ public class OutpatientInternetHospitalServiceImpl implements OutpatientInternet
         return queryOverviewMock(request);
     }
 
-    private PageResult<OperationTableItem> queryOperationTableByJdbc(OutpatientInternetHospitalRequest request, Integer page, Integer pageSize) {
-        return queryOperationTableMock(request, page, pageSize);
+    private List<OperationTableItem> queryOperationTableByJdbc(OutpatientInternetHospitalRequest request) {
+        return queryOperationTableMock(request);
     }
 
     private BusinessChart queryBusinessChartByJdbc(OutpatientInternetHospitalRequest request) {
@@ -247,21 +249,17 @@ public class OutpatientInternetHospitalServiceImpl implements OutpatientInternet
         }
     }
 
-    private PageResult<OperationTableItem> queryOperationTableByMybatisPlus(OutpatientInternetHospitalRequest request, Integer page, Integer pageSize) {
+    private List<OperationTableItem> queryOperationTableByMybatisPlus(OutpatientInternetHospitalRequest request) {
         try {
             List<InternetHospitalOpEntity> rows = internetHospitalMapper.queryOperationTable(request.getMonth());
-            List<OperationTableItem> allItems = new ArrayList<>();
+            List<OperationTableItem> items = new ArrayList<>();
             for (InternetHospitalOpEntity row : rows) {
-                allItems.add(buildOperationTableItem(row));
+                items.add(buildOperationTableItem(row));
             }
-            int total = allItems.size();
-            int start = (page - 1) * pageSize;
-            int end = Math.min(start + pageSize, total);
-            List<OperationTableItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
-            return PageResult.of(pageList, (long) total, page, pageSize);
+            return items;
         } catch (Exception e) {
             log.warn("查询互医质控运行情况表失败", e);
-            return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
+            return new ArrayList<>();
         }
     }
 

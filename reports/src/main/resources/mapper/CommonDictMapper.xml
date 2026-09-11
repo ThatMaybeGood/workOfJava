@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.CommonDictMapper">
+
+    <!-- ============================================================ -->
+    <!-- 按类型查询启用的字典项                                           -->
+    <!-- ============================================================ -->
+    <select id="queryByType" resultType="com.reports.entity.CommonDictEntity">
+        SELECT
+            id,
+            dict_type AS dictType,
+            dict_code AS dictCode,
+            dict_name AS dictName,
+            sort_no   AS sortNo,
+            status,
+            create_time AS createTime,
+            update_time AS updateTime,
+            ext1, ext2, ext3
+        FROM TR_COMMON_DICT
+        WHERE status = 1
+        <if test="dictType != null and dictType != ''">
+            AND dict_type = #{dictType}
+        </if>
+        ORDER BY dict_type, sort_no, dict_code
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 新增字典项                                                       -->
+    <!-- ============================================================ -->
+    <insert id="insertDict" parameterType="com.reports.entity.CommonDictEntity">
+        INSERT INTO TR_COMMON_DICT
+            (id, dict_type, dict_code, dict_name, sort_no, status, create_time, update_time)
+        VALUES
+            (seq_tr_reports.NEXTVAL, #{dictType}, #{dictCode}, #{dictName},
+             NVL(#{sortNo}, 0), 1, SYSDATE, SYSDATE)
+    </insert>
+
+</mapper>

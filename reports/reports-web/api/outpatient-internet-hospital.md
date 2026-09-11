@@ -19,8 +19,10 @@
     },
     "body": {
         "month": "2025-12",
-        "page": 1,
-        "pageSize": 10,
+        "deptPage": 1,
+        "deptPageSize": 10,
+        "doctorPage": 1,
+        "doctorPageSize": 10,
         "extend_params1": null,
         "extend_params2": null,
         "extend_params3": null
@@ -33,8 +35,10 @@
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | month | string | 是 | 统计月份，格式 yyyy-MM |
-| page | number | 否 | 当前页码 |
-| pageSize | number | 否 | 每页条数 |
+| deptPage | number | 否 | 科室排行当前页码，默认 1 |
+| deptPageSize | number | 否 | 科室排行每页条数，默认 10 |
+| doctorPage | number | 否 | 医生排行当前页码，默认 1 |
+| doctorPageSize | number | 否 | 医生排行每页条数，默认 10 |
 | extend_params1 | any | 否 | 扩展参数1 |
 | extend_params2 | any | 否 | 扩展参数2 |
 | extend_params3 | any | 否 | 扩展参数3 |
@@ -61,18 +65,16 @@
             "reviewRate": "68.7%",
             "executionRate": "71.9%"
         },
-        "operationTable": {
-            "list": [
-                {
-                    "name": "诊察号量（含退号）",
-                    "current": 120,
-                    "last": 100,
-                    "growth": "+10%"
-                }
-            ]
-        },
+        "operationTable": [
+            {
+                "name": "总挂号量（含退号）",
+                "current": 120,
+                "last": 100,
+                "growth": "+20%"
+            }
+        ],
         "businessChart": {
-            "categories": ["在线诊疗", "便民咨询", "护理咨询"],
+            "categories": ["在线诊疗", "用药咨询", "护理咨询"],
             "current": [5000, 6000, 7000],
             "last": [5000, 6000, 7000]
         },
@@ -112,6 +114,8 @@
 }
 ```
 
+> `growthChart.categories` 为科室名称、`growthChart.data` 为对应平均候诊时长（单位：分钟），按候诊时长倒序取 TOP20。
+
 ### 响应参数说明
 
 | 参数名 | 类型 | 说明 |
@@ -124,11 +128,11 @@
 | body.overview.recordRate | string | 互联网医院病历书写率 |
 | body.overview.reviewRate | string | 互联网医院处方点评率 |
 | body.overview.executionRate | string | 互联网医院药品处方执行率 |
-| body.operationTable | object | 互联网医院运行情况表 |
+| body.operationTable | array | 互联网医院运行情况表（不分页，返回全部指标行）|
 | body.businessChart | object | 互联网医院业务分析图表 |
-| body.deptRanking | object | 互联网医院临床科室按接诊量排行 |
+| body.deptRanking | object | 互联网医院临床医技科室接诊量排行 |
 | body.doctorRanking | object | 互联网医院医生个人接诊量排行 |
-| body.growthChart | object | 互联网医院科室增长趋势图表 |
+| body.growthChart | object | 互联网医院平均候诊时长科室TOP20图表 |
 | body.*Ranking.total | number | 总记录数 |
 | body.*Ranking.page | number | 当前页码 |
 | body.*Ranking.pageSize | number | 每页条数 |

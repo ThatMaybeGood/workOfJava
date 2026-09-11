@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.StaffDictMapper">
+
+    <!-- ============================================================ -->
+    <!-- 查询在职人员                                                     -->
+    <!-- ============================================================ -->
+    <select id="queryStaffList" resultType="com.reports.entity.StaffDictEntity">
+        SELECT
+            id,
+            staff_code AS staffCode,
+            staff_name AS staffName,
+            dept_code  AS deptCode,
+            dept_name  AS deptName,
+            position,
+            status,
+            create_time AS createTime,
+            update_time AS updateTime,
+            ext1, ext2, ext3
+        FROM TR_STAFF_DICT
+        WHERE status = 1
+        <if test="deptCode != null and deptCode != ''">
+            AND dept_code = #{deptCode}
+        </if>
+        <if test="staffName != null and staffName != ''">
+            AND staff_name LIKE '%' || #{staffName} || '%'
+        </if>
+        ORDER BY dept_code, staff_code
+    </select>
+
+</mapper>

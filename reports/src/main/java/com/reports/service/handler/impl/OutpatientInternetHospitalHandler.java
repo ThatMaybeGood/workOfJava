@@ -16,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 /**
  * 互医质控运营月报处理器
  */
@@ -54,12 +56,17 @@ public class OutpatientInternetHospitalHandler implements ReportHandler<Outpatie
 
         OverviewData overview = outpatientInternetHospitalService.queryOverview(body);
 
-        Integer page = body.getPage() != null ? body.getPage() : pageConfig.getDefaultPage();
-        Integer pageSize = body.getPageSize() != null ? body.getPageSize() : pageConfig.getDefaultPageSize();
-        PageResult<OperationTableItem> operationTable = outpatientInternetHospitalService.queryOperationTable(body, page, pageSize);
+        List<OperationTableItem> operationTable = outpatientInternetHospitalService.queryOperationTable(body);
         BusinessChart businessChart = outpatientInternetHospitalService.queryBusinessChart(body);
-        PageResult<DeptRankingItem> deptRanking = outpatientInternetHospitalService.queryDeptRanking(body, page, pageSize);
-        PageResult<DoctorRankingItem> doctorRanking = outpatientInternetHospitalService.queryDoctorRanking(body, page, pageSize);
+
+        Integer deptPage = body.getDeptPage() != null ? body.getDeptPage() : pageConfig.getDefaultPage();
+        Integer deptPageSize = body.getDeptPageSize() != null ? body.getDeptPageSize() : pageConfig.getDefaultPageSize();
+        PageResult<DeptRankingItem> deptRanking = outpatientInternetHospitalService.queryDeptRanking(body, deptPage, deptPageSize);
+
+        Integer doctorPage = body.getDoctorPage() != null ? body.getDoctorPage() : pageConfig.getDefaultPage();
+        Integer doctorPageSize = body.getDoctorPageSize() != null ? body.getDoctorPageSize() : pageConfig.getDefaultPageSize();
+        PageResult<DoctorRankingItem> doctorRanking = outpatientInternetHospitalService.queryDoctorRanking(body, doctorPage, doctorPageSize);
+
         GrowthChart growthChart = outpatientInternetHospitalService.queryGrowthChart(body);
 
         OutpatientInternetHospitalResponse response = new OutpatientInternetHospitalResponse();

@@ -29,6 +29,10 @@ public class ServiceQualityPrzEntity implements Serializable {
     @TableField("praise_time")
     private Date praiseTime;
 
+    /** 科室代码 */
+    @TableField("dept_code")
+    private String deptCode;
+
     /** 科室 */
     @TableField("dept_name")
     private String deptName;

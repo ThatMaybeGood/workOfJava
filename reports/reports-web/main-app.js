@@ -16,11 +16,10 @@ const menuConfig = [
             { label: '医技统计',         file: 'outpatient/outpatient-med-tech.html',       icon: 'bi-mortarboard' },
             { label: '服务质量分析',     file: 'outpatient/outpatient-service-quality.html', icon: 'bi-award' },
             { label: '质量控制',         file: 'outpatient/outpatient-quality-control.html', icon: 'bi-clipboard-check' },
-            { label: '住院医生工作量',   file: 'outpatient/outpatient-internet-hospital.html', icon: 'bi-clipboard-data' },
+            { label: '互医质控运营月报', file: 'outpatient/outpatient-internet-hospital.html', icon: 'bi-clipboard-data' },
             { label: '门诊预警统计',     file: 'outpatient/outpatient-alert.html',          icon: 'bi-bell-fill' },
             { label: '诊室使用率',       file: 'outpatient/outpatient-room-usage.html',     icon: 'bi-door-open' },
             { label: '专科治疗量',       file: 'outpatient/outpatient-specialty-treatment.html', icon: 'bi-activity' },
-            { label: '治疗统计报表',     file: 'outpatient/outpatient-treatment-stats.html', icon: 'bi-calendar-check' },
             { label: '预测门诊量',       file: 'outpatient/outpatient-forecast.html',       icon: 'bi-graph-down' },
             { label: '爽约退号分析',     file: 'outpatient/outpatient-no-show.html',        icon: 'bi-x-circle-fill' },
         ]
@@ -83,17 +82,8 @@ document.getElementById('sidebarToggle').addEventListener('click', () => {
     document.getElementById('sidebar').classList.toggle('collapsed');
 });
 
-// ==================== Mock 开关 ====================
-document.getElementById('mockToggle').addEventListener('change', function () {
-    setMockMode(this.checked);
-    const status = document.getElementById('mockStatus');
-    status.textContent = this.checked ? 'Mock' : '接口';
-    status.classList.toggle('off', !this.checked);
-});
-
 // ==================== 初始化 ====================
 document.addEventListener('DOMContentLoaded', () => {
-    initMockMode();
     renderMenu();
 
     // 默认打开第一个页面

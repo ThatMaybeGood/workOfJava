@@ -4,6 +4,8 @@ import com.reports.dto.common.PageResult;
 import com.reports.dto.request.OutpatientInternetHospitalRequest;
 import com.reports.dto.response.outpatient.internet.hospital.*;
 
+import java.util.List;
+
 /**
  * 互医质控运营月报服务
  */
@@ -15,9 +17,9 @@ public interface OutpatientInternetHospitalService {
     OverviewData queryOverview(OutpatientInternetHospitalRequest request);
 
     /**
-     * 查询运行情况表（分页）
+     * 查询运行情况表
      */
-    PageResult<OperationTableItem> queryOperationTable(OutpatientInternetHospitalRequest request, Integer page, Integer pageSize);
+    List<OperationTableItem> queryOperationTable(OutpatientInternetHospitalRequest request);
 
     /**
      * 查询业务分析图表

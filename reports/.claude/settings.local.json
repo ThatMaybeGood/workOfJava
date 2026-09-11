@@ -49,7 +49,12 @@
       "Bash(mvn -q -o test -Dtest='EtlTriggerAspectTest,EtlClientTest' -DfailIfNoTests=false)",
       "Bash(mvn -q -o compile)",
       "Read(//d/JetBrains/IdeaProjects/workOfJava/**)",
-      "Read(//c/Users/86156/**)"
+      "Read(//c/Users/86156/**)",
+      "Bash(curl *)",
+      "Read(//c/Program Files/Google/Chrome/Application/**)",
+      "Read(//c/Program Files \\\\\\(x86\\\\\\)/Google/Chrome/Application/**)",
+      "Read(//c/Program Files \\\\\\(x86\\\\\\)/Microsoft/Edge/Application/**)",
+      "Bash(python -)"
     ]
   }
 }

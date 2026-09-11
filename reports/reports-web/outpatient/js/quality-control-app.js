@@ -32,8 +32,85 @@ class QualityControlController {
     }
 
     init() {
+        this.initMonthRangePicker();
         this.bindEvents();
         this.loadData();
+    }
+
+    /** 初始化月份范围选择面板 */
+    initMonthRangePicker() {
+        this.monthRange = {
+            start: this.state.filter.startDate,
+            end: this.state.filter.endDate
+        };
+        const input = document.getElementById('monthRange');
+        const panel = document.getElementById('monthRangePanel');
+
+        input.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const opening = panel.style.display === 'none';
+            panel.style.display = opening ? 'block' : 'none';
+            if (opening) {
+                this.renderMonthRangePanel();
+            }
+        });
+        panel.addEventListener('click', (e) => e.stopPropagation());
+        document.addEventListener('click', () => {
+            panel.style.display = 'none';
+        });
+
+        panel.querySelectorAll('.mrp-nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.dataset.target;
+                const dir = parseInt(btn.dataset.dir, 10);
+                const [y, m] = this.monthRange[target].split('-').map(Number);
+                this.monthRange[target] = `${y + dir}-${String(m).padStart(2, '0')}`;
+                this.renderMonthRangePanel();
+            });
+        });
+
+        document.getElementById('mrpCancel').addEventListener('click', () => {
+            panel.style.display = 'none';
+        });
+        document.getElementById('mrpConfirm').addEventListener('click', () => {
+            input.value = `${this.monthRange.start} ~ ${this.monthRange.end}`;
+            panel.style.display = 'none';
+            input.dispatchEvent(new Event('change'));
+        });
+    }
+
+    renderMonthRangePanel() {
+        const { start, end } = this.monthRange;
+        const [startYear, startMonth] = start.split('-').map(Number);
+        const [endYear, endMonth] = end.split('-').map(Number);
+        document.getElementById('mrpStartYear').textContent = startYear;
+        document.getElementById('mrpEndYear').textContent = endYear;
+        this.renderMonthGrid('mrpStartMonths', startYear, startMonth, 'start');
+        this.renderMonthGrid('mrpEndMonths', endYear, endMonth, 'end');
+    }
+
+    renderMonthGrid(containerId, year, selectedMonth, target) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        for (let m = 1; m <= 12; m++) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'mrp-month' + (m === selectedMonth ? ' active' : '');
+            btn.textContent = `${m}月`;
+            btn.addEventListener('click', () => {
+                const value = `${year}-${String(m).padStart(2, '0')}`;
+                // 保持 start <= end
+                if (target === 'start' && value > this.monthRange.end) {
+                    this.monthRange.end = value;
+                }
+                if (target === 'end' && value < this.monthRange.start) {
+                    this.monthRange.start = value;
+                }
+                this.monthRange[target] = value;
+                this.renderMonthRangePanel();
+            });
+            container.appendChild(btn);
+        }
     }
 
     bindEvents() {
@@ -53,6 +130,19 @@ class QualityControlController {
             this.state.currentPage = 1;
             this.loadData();
         });
+
+        // 导出Word弹窗：月份联动预览文案
+        const exportMonth = document.getElementById('exportMonth');
+        if (exportMonth) {
+            exportMonth.addEventListener('change', () => {
+                const [y, m] = exportMonth.value.split('-');
+                const label = `${y}年${parseInt(m, 10)}月`;
+                const preview = document.querySelector('#wordModal .word-preview');
+                if (preview) {
+                    preview.innerHTML = preview.innerHTML.replace(/\d{4}年\d{1,2}月/g, label);
+                }
+            });
+        }
     }
 
     async loadData() {
@@ -60,8 +150,8 @@ class QualityControlController {
             const body = await ReportAPI.getQualityControlStats({
                 page: this.state.currentPage,
                 pageSize: this.state.pageSize,
-                startDate: this.state.filter.startDate,
-                endDate: this.state.filter.endDate
+                startMonth: this.state.filter.startDate,
+                endMonth: this.state.filter.endDate
             });
             this.renderOverview(body ? body.overview : null);
             this.state.data = (body && body.table && body.table.list) ? body.table.list : [];

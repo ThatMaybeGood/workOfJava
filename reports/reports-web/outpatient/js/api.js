@@ -126,10 +126,42 @@ const ReportAPI = {
     },
 
     /**
+     * 获取互医质控运营月报数据
+     * method: reports.outp.outpatient-internet-hospital
+     */
+    getInternetHospitalStats(params) {
+        return apiRequest('reports.outp.outpatient-internet-hospital', 'endpoint', params);
+    },
+
+    /**
      * 获取科室字典
      * method: reports.common.dept-dict
      */
     getDeptDict(params) {
         return apiRequest('reports.common.dept-dict', 'endpoint', params);
+    },
+
+    /**
+     * 通用字典（query/add/delete）
+     * method: reports.common.data-dict
+     */
+    getDataDict(params) {
+        return apiRequest('reports.common.data-dict', 'endpoint', params);
+    },
+
+    /**
+     * 人员字典
+     * method: reports.common.staff-dict
+     */
+    getStaffDict(params) {
+        return apiRequest('reports.common.staff-dict', 'endpoint', params);
+    },
+
+    /**
+     * 门诊服务质量数据维护（query/save/delete）
+     * method: reports.outp.service-quality-maintain
+     */
+    maintainServiceQuality(params) {
+        return apiRequest('reports.outp.service-quality-maintain', 'endpoint', params);
     }
 };

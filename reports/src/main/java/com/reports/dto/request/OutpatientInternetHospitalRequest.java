@@ -19,13 +19,23 @@ public class OutpatientInternetHospitalRequest extends BaseRequestBody {
     private String month;
 
     /**
-     * 当前页码（可选，默认第1页）
+     * 科室排行当前页码（可选，默认第1页）
      */
-    private Integer page;
+    private Integer deptPage;
 
     /**
-     * 每页条数（可选，默认10条）
+     * 科室排行每页条数（可选，默认10条）
      */
-    private Integer pageSize;
+    private Integer deptPageSize;
+
+    /**
+     * 医生排行当前页码（可选，默认第1页）
+     */
+    private Integer doctorPage;
+
+    /**
+     * 医生排行每页条数（可选，默认10条）
+     */
+    private Integer doctorPageSize;
 
 }

@@ -82,6 +82,18 @@ const API_CONFIG = {
         'reports.common.dept-dict': {
             endpoint: '/api/common/dept-dict'
         },
+        // 通用字典
+        'reports.common.data-dict': {
+            endpoint: '/api/common/data-dict'
+        },
+        // 人员字典
+        'reports.common.staff-dict': {
+            endpoint: '/api/common/staff-dict'
+        },
+        // 门诊服务质量数据维护
+        'reports.outp.service-quality-maintain': {
+            endpoint: '/api/outpatient/service-quality-maintain'
+        },
         // 出院结算报表
         'reports.cash.cash-discharge-settlement': {
             overview: '/api/cash/discharge-settlement/overview',
@@ -254,6 +266,18 @@ function callMockService(methodKey, endpointKey, params) {
         'reports.common.dept-dict': {
             endpoint: (p) => MockService.getDeptDict(p)
         },
+        // 通用字典
+        'reports.common.data-dict': {
+            endpoint: (p) => MockService.getDataDict(p)
+        },
+        // 人员字典
+        'reports.common.staff-dict': {
+            endpoint: (p) => MockService.getStaffDict(p)
+        },
+        // 门诊服务质量数据维护
+        'reports.outp.service-quality-maintain': {
+            endpoint: (p) => MockService.getServiceQualityMaintainData(p)
+        },
         // 出院结算报表
         'reports.cash.cash-discharge-settlement': {
             overview: () => MockService.getDischargeSettlementOverview(),
@@ -299,21 +323,27 @@ function callMockService(methodKey, endpointKey, params) {
 }
 
 /**
+ * 按报表区分的 mock 存储 key，各报表独立记忆开关状态
+ */
+function mockStorageKey() {
+    return 'reports_use_mock_' + (location.pathname.split('/').pop() || 'index');
+}
+
+/**
  * 切换 Mock / 真实接口模式
  * @param {boolean} enabled - true 使用 Mock，false 使用真实接口
  */
 function setMockMode(enabled) {
     API_CONFIG.useMock = enabled;
     console.log(`[API] Mock mode ${enabled ? 'enabled' : 'disabled'}`);
-    // 保存到 localStorage 以便页面刷新后保持设置
-    localStorage.setItem('reports_use_mock', enabled ? '1' : '0');
+    localStorage.setItem(mockStorageKey(), enabled ? '1' : '0');
 }
 
 /**
- * 初始化 Mock 模式（从 localStorage 读取）
+ * 初始化 Mock 模式（读取本报表的记忆值，无记忆则默认 Mock）
  */
 function initMockMode() {
-    const saved = localStorage.getItem('reports_use_mock');
+    const saved = localStorage.getItem(mockStorageKey());
     if (saved !== null) {
         API_CONFIG.useMock = saved === '1';
     }
@@ -321,3 +351,10 @@ function initMockMode() {
 
 // 页面加载时初始化
 initMockMode();
+
+// 在报表壳（iframe）中打开时隐藏页内标题与 mock 开关，避免与壳顶栏重复
+if (window.top !== window.self) {
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.page-title').forEach(el => el.style.display = 'none');
+    });
+}

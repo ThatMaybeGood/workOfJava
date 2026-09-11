@@ -3,33 +3,55 @@
 <mapper namespace="com.reports.mapper.ServiceQualityMapper">
 
     <!-- ============================================================ -->
-    <!-- 查询门诊服务质量概览 -->
+    <!-- 查询门诊服务质量概览（按明细表统计，支持科室过滤）                    -->
     <!-- ============================================================ -->
     <select id="queryOverview" resultType="com.reports.entity.ServiceQualityOvEntity">
         SELECT
-        NVL(SUM(complaint_count), 0) AS complaintCount,
-        NVL(SUM(praise_count), 0) AS praiseCount
-        FROM TR_SVC_QUALITY_OV
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        NVL((SELECT COUNT(1)
+             FROM TR_SVC_QUALITY_CMPL c
+             LEFT JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
+             WHERE c.stat_date BETWEEN #{startDate} AND #{endDate}
+             <if test="deptCode != null and deptCode != ''">
+                 AND c.dept_code = #{deptCode}
+             </if>
+             <if test="deptName != null and deptName != ''">
+                 AND d.dept_name LIKE '%' || #{deptName} || '%'
+             </if>
+        ), 0) AS complaintCount,
+        NVL((SELECT COUNT(1)
+             FROM TR_SVC_QUALITY_PRZ p
+             LEFT JOIN TR_DEPT_DICT d ON p.dept_code = d.dept_code
+             WHERE p.stat_date BETWEEN #{startDate} AND #{endDate}
+             <if test="deptCode != null and deptCode != ''">
+                 AND p.dept_code = #{deptCode}
+             </if>
+             <if test="deptName != null and deptName != ''">
+                 AND d.dept_name LIKE '%' || #{deptName} || '%'
+             </if>
+        ), 0) AS praiseCount
+        FROM DUAL
     </select>
 
     <!-- ============================================================ -->
-    <!-- 查询门诊服务质量投诉列表 -->
+    <!-- 查询门诊服务质量投诉列表                                          -->
     <!-- ============================================================ -->
     <select id="queryComplaintList" resultType="com.reports.entity.ServiceQualityCmplEntity">
         SELECT
-        complaint_time AS complaintTime,
-        dept_name AS deptName,
-        person_name AS personName,
-        position,
-        category,
-        result,
-        remark
+        c.id,
+        c.stat_date AS statDate,
+        c.complaint_time AS complaintTime,
+        c.dept_code AS deptCode,
+        NVL(d.dept_name, c.dept_name) AS deptName,
+        c.person_name AS personName,
+        c.position,
+        c.category,
+        c.result,
+        c.remark
         FROM TR_SVC_QUALITY_CMPL c
-        INNER JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
+        LEFT JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
         WHERE c.stat_date BETWEEN #{startDate} AND #{endDate}
          <if test="deptCode != null and deptCode != ''">
-            AND d.dept_code = #{deptCode}
+            AND c.dept_code = #{deptCode}
         </if>
         <if test="deptName != null and deptName != ''">
             AND d.dept_name LIKE '%' || #{deptName} || '%'
@@ -38,27 +60,144 @@
     </select>
 
     <!-- ============================================================ -->
-    <!-- 查询门诊服务质量表扬列表 -->
+    <!-- 查询门诊服务质量表扬列表                                          -->
     <!-- ============================================================ -->
     <select id="queryPraiseList" resultType="com.reports.entity.ServiceQualityPrzEntity">
         SELECT
-        praise_time AS praiseTime,
-        dept_name AS deptName,
-        person_name AS personName,
-        position,
-        method,
-        feedback,
-        remark
+        p.id,
+        p.stat_date AS statDate,
+        p.praise_time AS praiseTime,
+        p.dept_code AS deptCode,
+        NVL(d.dept_name, p.dept_name) AS deptName,
+        p.person_name AS personName,
+        p.position,
+        p.method,
+        p.feedback,
+        p.remark
         FROM TR_SVC_QUALITY_PRZ p
-        INNER JOIN TR_DEPT_DICT d ON p.dept_code = d.dept_code
+        LEFT JOIN TR_DEPT_DICT d ON p.dept_code = d.dept_code
         WHERE p.stat_date BETWEEN #{startDate} AND #{endDate}
          <if test="deptCode != null and deptCode != ''">
-            AND d.dept_code = #{deptCode}
+            AND p.dept_code = #{deptCode}
         </if>
         <if test="deptName != null and deptName != ''">
             AND d.dept_name LIKE '%' || #{deptName} || '%'
         </if>
         ORDER BY p.praise_time DESC
     </select>
+
+    <!-- ============================================================ -->
+    <!-- 数据维护：按日期范围查询投诉明细                                    -->
+    <!-- ============================================================ -->
+    <select id="queryComplaintByDate" resultType="com.reports.entity.ServiceQualityCmplEntity">
+        SELECT
+        id,
+        stat_date AS statDate,
+        complaint_time AS complaintTime,
+        dept_code AS deptCode,
+        dept_name AS deptName,
+        person_name AS personName,
+        position,
+        category,
+        result,
+        remark
+        FROM TR_SVC_QUALITY_CMPL
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY complaint_time DESC
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 数据维护：按日期范围查询表扬明细                                    -->
+    <!-- ============================================================ -->
+    <select id="queryPraiseByDate" resultType="com.reports.entity.ServiceQualityPrzEntity">
+        SELECT
+        id,
+        stat_date AS statDate,
+        praise_time AS praiseTime,
+        dept_code AS deptCode,
+        dept_name AS deptName,
+        person_name AS personName,
+        position,
+        method,
+        feedback,
+        remark
+        FROM TR_SVC_QUALITY_PRZ
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY praise_time DESC
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 数据维护：新增投诉明细                                             -->
+    <!-- ============================================================ -->
+    <insert id="insertComplaint" parameterType="com.reports.entity.ServiceQualityCmplEntity">
+        INSERT INTO TR_SVC_QUALITY_CMPL
+            (id, stat_date, complaint_time, dept_code, dept_name,
+             person_name, position, category, result, remark, create_time, update_time)
+        VALUES
+            (seq_tr_reports.NEXTVAL, NVL(#{statDate}, SYSDATE), #{complaintTime}, #{deptCode}, #{deptName},
+             #{personName}, #{position}, #{category}, #{result}, #{remark}, SYSDATE, SYSDATE)
+    </insert>
+
+    <!-- ============================================================ -->
+    <!-- 数据维护：更新投诉明细                                             -->
+    <!-- ============================================================ -->
+    <update id="updateComplaint" parameterType="com.reports.entity.ServiceQualityCmplEntity">
+        UPDATE TR_SVC_QUALITY_CMPL
+        SET complaint_time = #{complaintTime},
+            stat_date = NVL(#{statDate}, TRUNC(#{complaintTime})),
+            dept_code = #{deptCode},
+            dept_name = #{deptName},
+            person_name = #{personName},
+            position = #{position},
+            category = #{category},
+            result = #{result},
+            remark = #{remark},
+            update_time = SYSDATE
+        WHERE id = #{id}
+    </update>
+
+    <!-- ============================================================ -->
+    <!-- 数据维护：删除投诉明细                                             -->
+    <!-- ============================================================ -->
+    <delete id="deleteComplaintById">
+        DELETE FROM TR_SVC_QUALITY_CMPL WHERE id = #{id}
+    </delete>
+
+    <!-- ============================================================ -->
+    <!-- 数据维护：新增表扬明细                                             -->
+    <!-- ============================================================ -->
+    <insert id="insertPraise" parameterType="com.reports.entity.ServiceQualityPrzEntity">
+        INSERT INTO TR_SVC_QUALITY_PRZ
+            (id, stat_date, praise_time, dept_code, dept_name,
+             person_name, position, method, feedback, remark, create_time, update_time)
+        VALUES
+            (seq_tr_reports.NEXTVAL, NVL(#{statDate}, SYSDATE), #{praiseTime}, #{deptCode}, #{deptName},
+             #{personName}, #{position}, #{method}, #{feedback}, #{remark}, SYSDATE, SYSDATE)
+    </insert>
+
+    <!-- ============================================================ -->
+    <!-- 数据维护：更新表扬明细                                             -->
+    <!-- ============================================================ -->
+    <update id="updatePraise" parameterType="com.reports.entity.ServiceQualityPrzEntity">
+        UPDATE TR_SVC_QUALITY_PRZ
+        SET praise_time = #{praiseTime},
+            stat_date = NVL(#{statDate}, TRUNC(#{praiseTime})),
+            dept_code = #{deptCode},
+            dept_name = #{deptName},
+            person_name = #{personName},
+            position = #{position},
+            method = #{method},
+            feedback = #{feedback},
+            remark = #{remark},
+            update_time = SYSDATE
+        WHERE id = #{id}
+    </update>
+
+    <!-- ============================================================ -->
+    <!-- 数据维护：删除表扬明细                                             -->
+    <!-- ============================================================ -->
+    <delete id="deletePraiseById">
+        DELETE FROM TR_SVC_QUALITY_PRZ WHERE id = #{id}
+    </delete>
 
 </mapper>
