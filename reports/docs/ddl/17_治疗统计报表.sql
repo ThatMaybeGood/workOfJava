@@ -25,10 +25,13 @@ CREATE TABLE tr_treat_stat_ov (
 );
 
 -- 17.2 治疗统计科室明细表
+-- 注意: 不设 dept_name 列。
+--   TreatmentStatsMapper.queryDeptDetail 在 JOIN TR_DEPT_DICT 时使用未限定的 dept_name,
+--   若本表也存在 dept_name 会触发 ORA-00918(列名不明确), 故科室名称一律取自 TR_DEPT_DICT。
 CREATE TABLE tr_treat_stat_dtl (
     id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
-    dept_name       VARCHAR2(100)   NOT NULL,           -- 科室名称
+    dept_code       VARCHAR2(50),                       -- 科室编码(与 TR_DEPT_DICT 关联)
     patient_count   NUMBER(10)      DEFAULT 0,          -- 患者人数
     treatment_count NUMBER(10)      DEFAULT 0,          -- 治疗人次
     treatment_amount NUMBER(18,2),                      -- 治疗金额
@@ -56,6 +59,7 @@ CREATE TABLE tr_treat_stat_trend (
 
 CREATE INDEX idx_tr_treat_overview_date ON tr_treat_stat_ov(stat_date);
 CREATE INDEX idx_tr_treat_detail_date ON tr_treat_stat_dtl(stat_date);
+CREATE UNIQUE INDEX uk_tr_treat_stat_dtl ON tr_treat_stat_dtl(stat_date, dept_code);
 CREATE INDEX idx_tr_treat_trend_date ON tr_treat_stat_trend(stat_date);
 
 -- 添加注释
@@ -74,7 +78,7 @@ COMMENT ON COLUMN tr_treat_stat_ov.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_treat_stat_dtl IS '治疗统计报表-科室明细(按科室维度统计治疗人次、金额、患者人数)';
 COMMENT ON COLUMN tr_treat_stat_dtl.id IS '主键ID';
 COMMENT ON COLUMN tr_treat_stat_dtl.stat_date IS '统计日期';
-COMMENT ON COLUMN tr_treat_stat_dtl.dept_name IS '科室名称';
+COMMENT ON COLUMN tr_treat_stat_dtl.dept_code IS '科室编码(关联TR_DEPT_DICT)';
 COMMENT ON COLUMN tr_treat_stat_dtl.patient_count IS '患者人数';
 COMMENT ON COLUMN tr_treat_stat_dtl.treatment_count IS '治疗人次';
 COMMENT ON COLUMN tr_treat_stat_dtl.treatment_amount IS '治疗金额';

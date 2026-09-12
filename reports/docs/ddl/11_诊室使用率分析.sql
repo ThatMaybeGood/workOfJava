@@ -27,6 +27,7 @@ CREATE TABLE tr_room_use_ov (
 CREATE TABLE tr_room_use_dtl (
     id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
+    dept_code       VARCHAR2(50),                       -- 科室编码(RoomUsageMapper 与 TR_DEPT_DICT 关联用)
     dept_name       VARCHAR2(100)   NOT NULL,           -- 科室名称
     avg_usage       VARCHAR2(20),                      -- 平均使用率
     am_usage        VARCHAR2(20),                      -- 上午使用率
@@ -42,7 +43,8 @@ CREATE TABLE tr_room_use_dtl (
 -- 创建索引
 
 CREATE INDEX idx_tr_room_overview_date ON tr_room_use_ov(stat_date);
-CREATE INDEX idx_tr_room_detail_dept ON tr_room_use_dtl(dept_name);
+CREATE INDEX idx_tr_room_detail_dept ON tr_room_use_dtl(dept_code);
+CREATE UNIQUE INDEX uk_tr_room_use_dtl ON tr_room_use_dtl(stat_date, dept_code);
 
 -- 添加注释
 
@@ -63,6 +65,7 @@ COMMENT ON TABLE tr_room_use_dtl IS '诊室使用率分析-科室明细';
 COMMENT ON TABLE tr_room_use_dtl IS '诊室使用率分析-科室明细(按科室维度统计诊室使用率)';
 COMMENT ON COLUMN tr_room_use_dtl.id IS '主键ID';
 COMMENT ON COLUMN tr_room_use_dtl.stat_date IS '统计日期';
+COMMENT ON COLUMN tr_room_use_dtl.dept_code IS '科室编码(关联TR_DEPT_DICT)';
 COMMENT ON COLUMN tr_room_use_dtl.dept_name IS '科室名称';
 COMMENT ON COLUMN tr_room_use_dtl.avg_usage IS '平均使用率';
 COMMENT ON COLUMN tr_room_use_dtl.am_usage IS '上午使用率';

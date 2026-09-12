@@ -20,6 +20,7 @@ const menuConfig = [
             { label: '门诊预警统计',     file: 'outpatient/outpatient-alert.html',          icon: 'bi-bell-fill' },
             { label: '诊室使用率',       file: 'outpatient/outpatient-room-usage.html',     icon: 'bi-door-open' },
             { label: '专科治疗量',       file: 'outpatient/outpatient-specialty-treatment.html', icon: 'bi-activity' },
+            { label: '治疗统计报表',     file: 'outpatient/outpatient-treatment-stats.html', icon: 'bi-clipboard2-pulse' },
             { label: '预测门诊量',       file: 'outpatient/outpatient-forecast.html',       icon: 'bi-graph-down' },
             { label: '爽约退号分析',     file: 'outpatient/outpatient-no-show.html',        icon: 'bi-x-circle-fill' },
         ]
@@ -67,15 +68,62 @@ function openPage(file, label) {
     document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
     document.querySelector(`.menu-item[data-file="${file}"]`)?.classList.add('active');
 
+    // 记住当前报表页，壳顶栏的 Mock 开关要按它同步
+    currentFile = file;
+
     // 切换 iframe
     const iframe = document.getElementById('contentFrame');
     iframe.src = file;
+
+    syncShellMock();
 
     // 移动端自动收起侧边栏
     if (window.innerWidth <= 768) {
         document.getElementById('sidebar').classList.add('collapsed');
     }
 }
+
+// ==================== Mock / 接口切换（壳顶栏） ====================
+// 报表页在 iframe 中打开时，api-config.js 会把它那条标题栏整个隐藏掉
+// （标题和页内 mock 开关在同一个 .page-title 容器里），所以壳顶栏必须提供同样的开关，
+// 否则从 index.html 进入的报表就没法在 Mock / 真实接口之间切换。
+//
+// 状态按「报表页文件名」存 localStorage，与页内开关共用同一套 key
+// （见 api-config.js 的 mockStorageKey），两边互相认。
+let currentFile = '';
+
+function mockKeyFor(file) {
+    return 'reports_use_mock_' + (file.split('/').pop() || 'index');
+}
+
+function syncShellMock() {
+    const toggle = document.getElementById('shellMockToggle');
+    const status = document.getElementById('shellMockStatus');
+    if (!toggle || !currentFile) {
+        return;
+    }
+    const saved = localStorage.getItem(mockKeyFor(currentFile));
+    // 该报表没记忆过就沿用全局默认值（api-config.js 里的 useMock）
+    const enabled = saved === null ? API_CONFIG.useMock : saved === '1';
+    toggle.checked = enabled;
+    status.textContent = enabled ? 'Mock' : '接口';
+    status.classList.toggle('off', !enabled);
+}
+
+document.getElementById('shellMockToggle').addEventListener('change', function () {
+    const enabled = this.checked;
+    localStorage.setItem(mockKeyFor(currentFile), enabled ? '1' : '0');
+    document.getElementById('shellMockStatus').textContent = enabled ? 'Mock' : '接口';
+    document.getElementById('shellMockStatus').classList.toggle('off', !enabled);
+    // 重载当前报表页，让它按新开关重新取数
+    // （不能改 src 加参数绕缓存：页内按 location.pathname 存 mock 记忆，加了 query 就换 key 了）
+    const iframe = document.getElementById('contentFrame');
+    try {
+        iframe.contentWindow.location.reload();
+    } catch (e) {
+        iframe.src = currentFile;
+    }
+});
 
 // ==================== 侧边栏折叠 ====================
 document.getElementById('sidebarToggle').addEventListener('click', () => {

@@ -166,26 +166,94 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
         }
     }
 
+    /**
+     * 「工作量报表」页签：行是「日期范围 + 收费员 + 5 个业务量」，
+     * 页面按 row.todayRegister / effectiveRegister / appointmentRegister /
+     * outpatientCharge / outpatientRefund 这几个固定字段取值（见 renderTable 的 else 分支）。
+     * 数据还是 TR_CASH_SETTLE_DTL，按 (日期, 收费员) 透视 item_type。
+     */
+    private PageResult<TableItem> buildWorkloadTable(List<CashSettleDtlEntity> rows, Integer page, Integer pageSize) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        // (日期, 收费员) -> {item_type: 金额}
+        Map<String, Map<String, Double>> cellMap = new LinkedHashMap<>();
+        for (CashSettleDtlEntity row : rows) {
+            if (row.getItemDate() == null || row.getCashierName() == null || row.getItemType() == null) {
+                continue;
+            }
+            String dateStr = sdf.format(row.getItemDate());
+            String key = dateStr + "|" + row.getCashierName();
+            Map<String, Double> cell = cellMap.get(key);
+            if (cell == null) {
+                cell = new LinkedHashMap<>();
+                cellMap.put(key, cell);
+            }
+            double value = row.getItemValue() != null ? row.getItemValue().doubleValue() : 0.0;
+            Double old = cell.get(row.getItemType());
+            cell.put(row.getItemType(), Double.valueOf(old == null ? value : old.doubleValue() + value));
+        }
+
+        List<TableItem> allItems = new ArrayList<>();
+        for (Map.Entry<String, Map<String, Double>> entry : cellMap.entrySet()) {
+            String[] keyParts = entry.getKey().split("\\|", 2);
+            Map<String, Double> cell = entry.getValue();
+            Map<String, Object> columns = new LinkedHashMap<String, Object>();
+            columns.put("dateRange", keyParts[0] + "~" + keyParts[0]);
+            columns.put("cashier", keyParts[1]);
+            columns.put("todayRegister", pick(cell, "当日挂号量"));
+            columns.put("effectiveRegister", pick(cell, "有效挂号量"));
+            columns.put("appointmentRegister", pick(cell, "预约挂号量"));
+            columns.put("outpatientCharge", pick(cell, "门诊收费量"));
+            columns.put("outpatientRefund", pick(cell, "门诊退费量"));
+
+            TableItem item = new TableItem();
+            item.setColumns(columns);
+            allItems.add(item);
+        }
+
+        int totalItems = allItems.size();
+        int start = (page - 1) * pageSize;
+        int end = Math.min(start + pageSize, totalItems);
+        List<TableItem> pageList = start < totalItems ? allItems.subList(start, end) : new ArrayList<>();
+        return PageResult.of(pageList, (long) totalItems, page, pageSize);
+    }
+
+    private static double pick(Map<String, Double> cell, String itemType) {
+        Double v = cell.get(itemType);
+        return v == null ? 0.0 : v.doubleValue();
+    }
+
     private PageResult<TableItem> queryTableByMybatisPlus(CashCashierSettlementRequest request, Integer page, Integer pageSize) {
         try {
             List<CashSettleDtlEntity> rows = cashSettleMapper.queryDetail(request.getStartDate(), request.getEndDate(), null);
-            // 按日期分组
-            Map<String, Map<String, Double>> dateCashierMap = new LinkedHashMap<>();
+            if ("workload".equalsIgnoreCase(request.getTab())) {
+                return buildWorkloadTable(rows, page, pageSize);
+            }
+            // 页面两张表都是「行 = 日期，动态列 = 维度名」，所以按日期分组，
+            // 列名看页签：
+            //   tab=cashier（按收费员统计）→ 取 cashier_name
+            //   tab=source （按来源方式统计）→ 取 item_type
+            // 列名必须和页面 JS 里写死的一致（收费员1..8 / 预约挂号量…），否则每列都显示 '-'
+            boolean byCashier = !"source".equalsIgnoreCase(request.getTab());
+            Map<String, Map<String, Double>> dateColMap = new LinkedHashMap<>();
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
             for (CashSettleDtlEntity row : rows) {
-                String dateStr = sdf.format(row.getItemDate());
-                String cashier = row.getCashierName();
+                String dateStr = row.getItemDate() == null ? "" : sdf.format(row.getItemDate());
+                String colName = byCashier ? row.getCashierName() : row.getItemType();
+                if (colName == null) {
+                    continue;
+                }
                 double value = row.getItemValue() != null ? row.getItemValue().doubleValue() : 0.0;
-                dateCashierMap.computeIfAbsent(dateStr, k -> new HashMap<>());
-                dateCashierMap.get(dateStr).merge(cashier, value, Double::sum);
+                dateColMap.computeIfAbsent(dateStr, k -> new LinkedHashMap<>());
+                dateColMap.get(dateStr).merge(colName, value, Double::sum);
             }
             List<TableItem> allItems = new ArrayList<>();
-            for (Map.Entry<String, Map<String, Double>> entry : dateCashierMap.entrySet()) {
+            for (Map.Entry<String, Map<String, Double>> entry : dateColMap.entrySet()) {
                 TableItem item = new TableItem();
                 item.setDate(entry.getKey());
-                Map<String, Object> columns = new HashMap<>(entry.getValue());
+                Map<String, Object> columns = new LinkedHashMap<>(entry.getValue());
                 double total = entry.getValue().values().stream().mapToDouble(Double::doubleValue).sum();
-                columns.put("total", total);
+                // 页面读的是中文键 '汇总'（见 cash-cashier-settlement-app.js 的 renderTable）
+                columns.put("汇总", total);
                 item.setColumns(columns);
                 allItems.add(item);
             }
@@ -202,7 +270,11 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
 
     private ChartData queryChartByMybatisPlus(CashCashierSettlementRequest request) {
         try {
-            List<CashSettleChtEntity> entities = cashSettleMapper.queryChart(request.getStartDate(), request.getEndDate());
+            // 两张图共用这张表，用 title 区分；按来源方式统计时标题是「来源方式工作量分析」
+            String chartTitle = "source".equalsIgnoreCase(request.getTab())
+                    ? "来源方式工作量分析" : "收费员业务工作量分析";
+            List<CashSettleChtEntity> entities = cashSettleMapper.queryChart(
+                    request.getStartDate(), request.getEndDate(), chartTitle);
             if (entities == null || entities.isEmpty()) {
                 return new ChartData();
             }

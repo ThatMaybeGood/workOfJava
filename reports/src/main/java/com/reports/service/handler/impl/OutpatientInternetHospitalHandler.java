@@ -16,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -52,6 +54,11 @@ public class OutpatientInternetHospitalHandler implements ReportHandler<Outpatie
         }
         if (body == null) {
             body = new OutpatientInternetHospitalRequest();
+        }
+        // 月份为空时兜底成当月：mapper 里是 stat_month = #{statMonth}，
+        // 传空会变成 stat_month = null 直接查不到任何数据（页面不传月份时就是这种情况）
+        if (body.getMonth() == null || body.getMonth().trim().isEmpty()) {
+            body.setMonth(new SimpleDateFormat("yyyy-MM").format(new Date()));
         }
 
         OverviewData overview = outpatientInternetHospitalService.queryOverview(body);

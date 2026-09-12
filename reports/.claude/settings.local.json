@@ -1,6 +1,17 @@
 {
   "permissions": {
+    "defaultMode": "acceptEdits",
     "allow": [
+      "Bash",
+      "Read",
+      "Edit",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch",
+      "TodoWrite",
+      "Skill",
+      "Agent",
       "Bash(xargs grep -n \"startDate\\\\|Date\")",
       "Bash(mvn -q compile)",
       "Bash(xargs grep -l \"BarItem\")",
@@ -31,7 +42,6 @@
       "Bash(git -C D:/JetBrains/IdeaProjects/workOfJava/reports status --short -- src/ reports-web/)",
       "Bash(python3 -c \"import xlrd; print\\('xlrd available'\\)\")",
       "Bash(pip3 install *)",
-      "Bash(git rm *)",
       "Bash(cd /d D:\\\\Users\\\\Downloads)",
       "Bash(python -c \"import xlrd; print\\('xlrd ok'\\)\")",
       "Bash(python -c \"import pandas; print\\('pandas', pandas.__version__\\)\")",
@@ -54,7 +64,55 @@
       "Read(//c/Program Files/Google/Chrome/Application/**)",
       "Read(//c/Program Files \\\\\\(x86\\\\\\)/Google/Chrome/Application/**)",
       "Read(//c/Program Files \\\\\\(x86\\\\\\)/Microsoft/Edge/Application/**)",
-      "Bash(python -)"
+      "Bash(python -)",
+      "Bash(sed -E 's/.*[[:space:]]+//')",
+      "Bash(sed -E 's/.*\\\\.//')"
+    ],
+    "ask": [
+      "Bash(rm)",
+      "Bash(rm *)",
+      "Bash(rm:*)",
+      "Bash(rmdir)",
+      "Bash(rmdir *)",
+      "Bash(rmdir:*)",
+      "Bash(del)",
+      "Bash(del *)",
+      "Bash(del:*)",
+      "Bash(erase)",
+      "Bash(erase *)",
+      "Bash(erase:*)",
+      "Bash(rd)",
+      "Bash(rd *)",
+      "Bash(rd:*)",
+      "Bash(unlink *)",
+      "Bash(unlink:*)",
+      "Bash(shred *)",
+      "Bash(shred:*)",
+      "Bash(sdelete *)",
+      "Bash(sdelete:*)",
+      "Bash(truncate *)",
+      "Bash(truncate:*)",
+      "Bash(git rm *)",
+      "Bash(git rm:*)",
+      "Bash(git clean *)",
+      "Bash(git clean:*)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10,
+            "statusMessage": "检查是否为删除类操作…",
+            "command": "c=$(cat); printf '%s' \"$c\" | grep -qiE '(^|[^[:alnum:]_./-])(rm|rmdir|unlink|shred|sdelete|truncate)([^[:alnum:]_./-]|$)|(^|[^[:alnum:]_./-])(del|erase|rd)([[:space:]]|$)|git[[:space:]]+(rm|clean)([[:space:]]|$)|git[[:space:]]+reset[[:space:]]+--hard|DROP[[:space:]]+(TABLE|DATABASE|INDEX|VIEW|SEQUENCE|USER)|TRUNCATE[[:space:]]+TABLE|DELETE[[:space:]]+FROM' && printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"ask\",\"permissionDecisionReason\":\"检测到删除类操作（rm/del/git rm/DROP/DELETE/TRUNCATE），需要你确认\"}}'; exit 0"
+          }
+        ]
+      }
     ]
   }
 }

@@ -1,6 +1,19 @@
 /**
  * 门诊质量控制报表页面主逻辑
  */
+
+/**
+ * 默认统计月份区间：往前 12 个月 ~ 当月。
+ * 原先写死成 2025-01 ~ 2025-12，是过期的固定区间，页面一打开就查不到数据。
+ * 返回 {startDate, endDate}，格式 yyyy-MM。
+ */
+function defaultMonthRange() {
+    const fmt = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const end = new Date();
+    const start = new Date(end.getFullYear(), end.getMonth() - 12, 1);
+    return { startDate: fmt(start), endDate: fmt(end) };
+}
+
 class QualityControlController {
     constructor() {
         this.state = {
@@ -8,10 +21,7 @@ class QualityControlController {
             pageSize: 10,
             total: 0,
             data: [],
-            filter: {
-                startDate: '2025-01',
-                endDate: '2025-12'
-            }
+            filter: defaultMonthRange()
         };
 
         this.indicatorConfig = [

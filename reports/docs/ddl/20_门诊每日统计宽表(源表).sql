@@ -2,6 +2,10 @@
 -- 门诊每日统计宽表(HIS每日抽取,爽约退号分析/预测门诊量共用)
 -- ============================================================
 
+-- 清理已存在对象(如重建请先执行)
+
+DROP TABLE TR_OUTPATIENT_STATS_DAY_RESULT CASCADE CONSTRAINTS;
+
 CREATE TABLE TR_OUTPATIENT_STATS_DAY_RESULT (
     id                    NUMBER(19)      PRIMARY KEY,
     stats_date            DATE            NOT NULL,   -- 统计日期
@@ -40,7 +44,7 @@ CREATE TABLE TR_OUTPATIENT_STATS_DAY_RESULT (
     shuang_yue_age_60_69     NUMBER(10)      DEFAULT 0,          -- 爽约年龄60-69岁
     shuang_yue_age_70_79     NUMBER(10)      DEFAULT 0,          -- 爽约年龄70-79岁
     shuang_yue_age_80_89     NUMBER(10)      DEFAULT 0,          -- 爽约年龄80-89岁
-    shuang_yue_age_90_up     NUMBER(10)      DEFAULT 0,          -- 爽约年龄90-up岁
+    shuang_yue_age_90_up     NUMBER(10)      DEFAULT 0           -- 爽约年龄90-up岁
 );
 CREATE INDEX idx_tr_stats_day_date ON TR_OUTPATIENT_STATS_DAY_RESULT(stats_date);
 CREATE INDEX idx_tr_stats_day_dept ON TR_OUTPATIENT_STATS_DAY_RESULT(dept_code);

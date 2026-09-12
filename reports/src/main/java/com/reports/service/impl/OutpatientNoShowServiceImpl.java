@@ -18,7 +18,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 爽约退号分析服务实现
@@ -288,7 +290,42 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
         item.setRefundRate(entity.getRefundRate());
         item.setNoShowCount(entity.getNoShowCount());
         item.setNoShowRate(entity.getNoShowRate());
+        // 页面的科室表读的是嵌套结构（row.refundOrigin.chongqing 等），
+        // 不填这三个 Map 的话前端会抛 TypeError 导致整张表渲染不出来
+        int refundTotal = entity.getRefundCount() == null ? 0 : entity.getRefundCount().intValue();
+        int noShowTotal = entity.getNoShowCount() == null ? 0 : entity.getNoShowCount().intValue();
+        item.setRefundOrigin(originMap(entity.getRefundChongqing(), entity.getRefundSichuan(),
+                entity.getRefundGuizhou(), entity.getRefundYunnan(), entity.getRefundOther(), refundTotal));
+        item.setNoShowOrigin(originMap(entity.getNoShowChongqing(), entity.getNoShowSichuan(),
+                entity.getNoShowGuizhou(), entity.getNoShowYunnan(), entity.getNoShowOther(), noShowTotal));
+
+        Map<String, Integer> channel = new LinkedHashMap<String, Integer>();
+        channel.put("window", nvlInt(entity.getRefundWindow()));
+        channel.put("miniprogram", nvlInt(entity.getRefundMiniprogram()));
+        item.setRefundChannel(channel);
         return item;
+    }
+
+    /** 归属地明细：值形如 "357 (30%)"，与页面其它地方的展示口径一致。 */
+    private Map<String, String> originMap(Integer chongqing, Integer sichuan, Integer guizhou,
+                                          Integer yunnan, Integer other, int total) {
+        Map<String, String> map = new LinkedHashMap<String, String>();
+        map.put("chongqing", withPercent(chongqing, total));
+        map.put("sichuan", withPercent(sichuan, total));
+        map.put("guizhou", withPercent(guizhou, total));
+        map.put("yunnan", withPercent(yunnan, total));
+        map.put("other", withPercent(other, total));
+        return map;
+    }
+
+    private static String withPercent(Integer value, int total) {
+        int v = nvlInt(value);
+        int pct = total <= 0 ? 0 : (int) Math.round(v * 100.0d / total);
+        return v + " (" + pct + "%)";
+    }
+
+    private static int nvlInt(Integer v) {
+        return v == null ? 0 : v.intValue();
     }
 
     // ==================== 工具方法 ====================

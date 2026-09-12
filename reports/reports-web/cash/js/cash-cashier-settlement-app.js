@@ -1,14 +1,32 @@
 /**
  * 收费员结账统计页面主逻辑
  */
+
+/**
+ * 默认统计区间：今天往前 30 天。
+ * 原先写死成 2025-09-22 ~ 2025-10-22，是过期的固定日期，
+ * 页面一打开就查不到数据（测试库和真实库都一样）。
+ *
+ * 必须用 yyyy-MM-dd 短横线：后端请求 DTO 上是
+ * @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")，
+ * 传斜杠会反序列化失败，接口直接返回"请求参数错误"。
+ * 日期选择框显示用的斜杠由 flatpickr 的 dateFormat 单独控制，两者互不影响。
+ */
+function defaultDateRange() {
+    const fmt = (d) => d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
+    const end = new Date();
+    const start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return { startDate: fmt(start), endDate: fmt(end) };
+}
+
 class CashierSettlementController {
     constructor() {
-        this.filter = {
+        this.filter = Object.assign({
             tab: 'cashier',
-            dimension: 'day',
-            startDate: '2025-09-22',
-            endDate: '2025-10-22'
-        };
+            dimension: 'day'
+        }, defaultDateRange());
         this.tableState = {
             currentPage: 1,
             pageSize: 10,
@@ -60,7 +78,7 @@ class CashierSettlementController {
         this.datePicker = flatpickr(dateRangeInput, {
             mode: 'range',
             dateFormat: 'Y/m/d',
-            defaultDate: ['2025/09/22', '2025/10/22'],
+            defaultDate: [this.filter.startDate.replace(/-/g, '/'), this.filter.endDate.replace(/-/g, '/')],
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {

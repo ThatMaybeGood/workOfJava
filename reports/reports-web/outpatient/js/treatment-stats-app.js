@@ -1,6 +1,21 @@
 /**
  * 治疗统计报表页面主逻辑
  */
+
+/**
+ * 默认统计区间：今天往前 30 天，格式 yyyy-MM-dd。
+ * 原先写死成 2025-09-22 ~ 2025-10-22，是过期的固定日期，页面一打开就查不到数据。
+ * 必须用短横线：后端请求 DTO 上是 @JsonFormat(pattern = "yyyy-MM-dd")。
+ */
+function defaultDateRange() {
+    const fmt = (d) => d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
+    const end = new Date();
+    const start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return { startDate: fmt(start), endDate: fmt(end) };
+}
+
 class TreatmentStatsController {
     constructor() {
         this.state = {
@@ -10,14 +25,12 @@ class TreatmentStatsController {
             data: [],
             sortColumn: null,
             sortDirection: 'asc',
-            filter: {
+            filter: Object.assign({
                 timeRange: 'today',
-                startDate: '2025-09-22',
-                endDate: '2025-10-22',
                 visitType: '',
                 patientSource: '',
                 ageRange: ''
-            }
+            }, defaultDateRange())
         };
         this.charts = {};
 
@@ -81,7 +94,8 @@ class TreatmentStatsController {
         this.datePicker = flatpickr(dateRangeInput, {
             mode: 'range',
             dateFormat: 'Y/m/d',
-            defaultDate: ['2025/09/22', '2025/10/22'],
+            defaultDate: [this.state.filter.startDate.replace(/-/g, '/'),
+                          this.state.filter.endDate.replace(/-/g, '/')],
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {

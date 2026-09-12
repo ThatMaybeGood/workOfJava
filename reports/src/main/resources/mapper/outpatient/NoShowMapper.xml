@@ -18,13 +18,27 @@
     <!-- ============================================================ -->
     <!-- 查询爽约退号科室明细 -->
     <!-- ============================================================ -->
+    <!-- 科室明细：页面这张表除了退号/爽约数量，还要按科室给出「患者归属地」和「退号渠道」的细分，
+         这些列宽表里本来就有，一起 SUM 出来供 service 拼成嵌套结构 -->
     <select id="queryDeptDetail" resultType="com.reports.entity.NoShowDtlEntity">
         SELECT
             dept_name AS deptName,
             NVL(SUM(tui_hao_shu), 0) AS refundCount,
             ROUND(NVL(SUM(tui_hao_shu), 0) / NULLIF(SUM(total_guahao), 0) * 100, 2) || '%' AS refundRate,
+            NVL(SUM(tui_hao_chong_qing), 0) AS refundChongqing,
+            NVL(SUM(tui_hao_si_chuan), 0) AS refundSichuan,
+            NVL(SUM(tui_hao_gui_zhou), 0) AS refundGuizhou,
+            NVL(SUM(tui_hao_yun_nan), 0) AS refundYunnan,
+            NVL(SUM(tui_hao_qi_ta), 0) AS refundOther,
+            NVL(SUM(tui_hao_chuang_kou), 0) AS refundWindow,
+            NVL(SUM(tui_hao_zi_zhu_ji), 0) AS refundMiniprogram,
             NVL(SUM(shuang_yue_shu), 0) AS noShowCount,
-            ROUND(NVL(SUM(shuang_yue_shu), 0) / NULLIF(SUM(total_guahao), 0) * 100, 2) || '%' AS noShowRate
+            ROUND(NVL(SUM(shuang_yue_shu), 0) / NULLIF(SUM(total_guahao), 0) * 100, 2) || '%' AS noShowRate,
+            NVL(SUM(shuang_yue_chong_qing), 0) AS noShowChongqing,
+            NVL(SUM(shuang_yue_si_chuan), 0) AS noShowSichuan,
+            NVL(SUM(shuang_yue_gui_zhou), 0) AS noShowGuizhou,
+            NVL(SUM(shuang_yue_yun_nan), 0) AS noShowYunnan,
+            NVL(SUM(shuang_yue_qi_ta), 0) AS noShowOther
         FROM TR_OUTPATIENT_STATS_DAY_RESULT s
         INNER JOIN TR_DEPT_DICT d ON s.dept_code = d.dept_code
         WHERE s.stats_date BETWEEN #{startDate} AND #{endDate}
@@ -66,7 +80,11 @@
                 SELECT '其他', NVL(SUM(tui_hao_qi_ta), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND tui_hao_qi_ta > 0
             </otherwise>
         </choose>
-        ORDER BY itemValue DESC
+        <!-- 注意: 不能写 ORDER BY itemValue。
+             各 UNION ALL 分支里只有第一个分支带 itemName/itemValue 别名, 而 Oracle 11g 对复合查询
+             的 ORDER BY 名称解析要求每个分支都有该别名, 否则报 ORA-00904。
+             这里按输出列序号排序 (第 2 列即 itemValue), 语义完全一致。 -->
+        ORDER BY 2 DESC
     </select>
 
     <!-- ============================================================ -->
@@ -102,7 +120,8 @@
         SELECT '80-89', NVL(SUM(tui_hao_age_80_89), 0), NVL(SUM(shuang_yue_age_80_89), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
         UNION ALL
         SELECT '90+', NVL(SUM(tui_hao_age_90_up), 0), NVL(SUM(shuang_yue_age_90_up), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
-        ORDER BY ageGroup
+        <!-- 同上: 只有第一个分支带 ageGroup 别名, 改按输出列序号 (第 1 列) 排序 -->
+        ORDER BY 1
     </select>
 
 </mapper>

@@ -40,9 +40,12 @@ CREATE TABLE tr_win_stat_age (
 );
 
 -- 14.3 人工窗口时段分析表
+-- 粒度: (stat_date, business_type, time_slot)
+--   business_type 是 WindowStatsMapper.queryWorkload 按业务类型(挂号/收费/退费)分组所必需, 原 DDL 缺失。
 CREATE TABLE tr_win_stat_tm (
     id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
+    business_type   VARCHAR2(50)    NOT NULL,           -- 业务类型(挂号/收费/退费)
     time_slot       VARCHAR2(50)    NOT NULL,           -- 时段
     business_count  NUMBER(10)      DEFAULT 0,          -- 业务量
     create_time     DATE            DEFAULT SYSDATE,       -- 创建时间
@@ -68,6 +71,7 @@ CREATE TABLE tr_win_stat_src (
 -- 创建索引
 
 CREATE INDEX idx_tr_window_overview_date ON tr_win_stat_ov(stat_date);
+CREATE UNIQUE INDEX uk_tr_win_stat_tm ON tr_win_stat_tm(stat_date, business_type, time_slot);
 
 -- 添加注释
 
@@ -98,6 +102,7 @@ COMMENT ON TABLE tr_win_stat_tm IS '人工窗口统计-时段分析';
 COMMENT ON TABLE tr_win_stat_tm IS '人工窗口统计-时段分析(按时段分析窗口业务量分布)';
 COMMENT ON COLUMN tr_win_stat_tm.id IS '主键ID';
 COMMENT ON COLUMN tr_win_stat_tm.stat_date IS '统计日期';
+COMMENT ON COLUMN tr_win_stat_tm.business_type IS '业务类型(挂号/收费/退费)';
 COMMENT ON COLUMN tr_win_stat_tm.time_slot IS '时段';
 COMMENT ON COLUMN tr_win_stat_tm.business_count IS '业务量';
 COMMENT ON COLUMN tr_win_stat_tm.create_time IS '创建时间';

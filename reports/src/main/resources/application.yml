@@ -7,7 +7,9 @@ spring:
   application:
     name: reports-gateway
   profiles:
-    active: dev
+    # dev  = 生产库（168.168.235.105/yuanqi），test = 测试库（192.168.31.35/orcl）
+    # 测试库的表结构与测试数据由 com.reports.tools.ReportDbInitializer 生成，可重复执行
+    active: test
 
 # 追踪号配置
 reports:
@@ -76,5 +78,8 @@ logging:
 mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+    # 传 null 参数时 MyBatis 默认用 jdbcType=OTHER，Oracle 驱动不认，
+    # 会抛 "无效的列类型: 1111" (ORA-17004)。显式指定成 NULL 才能正常绑定空值。
+    jdbc-type-for-null: 'null'
   global-config:
     banner: false

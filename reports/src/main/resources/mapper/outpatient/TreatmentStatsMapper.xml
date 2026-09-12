@@ -48,4 +48,17 @@
         ORDER BY trend_date
     </select>
 
+    <!-- ============================================================ -->
+    <!-- 查询 TOP 治疗项目（页面「TOP10 治疗项目」图用） -->
+    <!-- ============================================================ -->
+    <select id="queryTopItems" resultType="map">
+        SELECT
+        item_name AS "name",
+        NVL(SUM(treatment_count), 0) AS "value"
+        FROM TR_TREAT_STAT_ITEM
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY item_name
+        ORDER BY NVL(SUM(treatment_count), 0) DESC
+    </select>
+
 </mapper>

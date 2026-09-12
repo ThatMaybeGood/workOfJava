@@ -52,9 +52,13 @@ public class OutpatientLabStatsHandler implements ReportHandler<OutpatientLabSta
         }
 
         OverviewData overview = outpatientLabStatsService.queryOverview(body);
+        TimeAnalysis timeAnalysis = outpatientLabStatsService.queryTimeAnalysis(body);
+        ReportRank reportRank = outpatientLabStatsService.queryReportRank(body);
 
         OutpatientLabStatsResponse response = new OutpatientLabStatsResponse();
         response.setOverview(overview);
+        response.setTimeAnalysis(timeAnalysis);
+        response.setReportRank(reportRank);
 
         return ApiResponse.success(response, MODULE.getChineseName() + "查询成功！");
     }

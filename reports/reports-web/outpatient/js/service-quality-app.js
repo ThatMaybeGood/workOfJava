@@ -295,7 +295,7 @@ class ServiceQualityController {
 function exportData() {
     const data = serviceQualityController.state.data;
     if (data.length === 0) {
-        alert('暂无数据可导出');
+        showNotice('暂无数据可导出', 'error');
         return;
     }
 
@@ -462,7 +462,7 @@ class DictManager {
         const input = document.getElementById('dictNewValue');
         const value = input.value.trim();
         if (!value) {
-            alert('请输入字典值');
+            showNotice('请输入字典值', 'error');
             return;
         }
         try {
@@ -472,18 +472,19 @@ class DictManager {
             this.load();
         } catch (error) {
             console.error('Add dict failed:', error);
-            alert('新增失败');
+            showNotice('新增失败', 'error');
         }
     }
 
     async deleteValue(id) {
-        if (!confirm('确认删除该字典值？')) return;
+        if (!(await confirmDialog('确认删除该字典值？'))) return;
         try {
             await ReportAPI.getDataDict({ action: 'delete', dictType: this.state.category, id });
+            showNotice('删除成功');
             this.load();
         } catch (error) {
             console.error('Delete dict failed:', error);
-            alert('删除失败');
+            showNotice('删除失败', 'error');
         }
     }
 }
@@ -491,12 +492,87 @@ class DictManager {
 /**
  * 数据维护弹窗逻辑
  */
+/**
+ * 页内轻提示，替代原生 window.alert()。
+ *
+ * 报告页从 index.html 进来时跑在 sandbox iframe 里，若 sandbox 缺 allow-modals，
+ * alert() 会被静默屏蔽 —— 保存成功、删除失败这些提示用户全看不到，
+ * 看起来就像按钮没生效。所以关键操作的反馈走页内元素。
+ */
+function showNotice(message, type) {
+    let el = document.getElementById('appNotice');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'appNotice';
+        el.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:20000;' +
+            'padding:8px 18px;border-radius:4px;font-size:13px;color:#fff;white-space:nowrap;' +
+            'box-shadow:0 2px 8px rgba(0,0,0,.2);transition:opacity .3s;opacity:0;pointer-events:none';
+        document.body.appendChild(el);
+    }
+    el.textContent = message;
+    el.style.background = type === 'error' ? '#ff4d4f' : '#52c41a';
+    el.style.opacity = '1';
+    clearTimeout(el._noticeTimer);
+    el._noticeTimer = setTimeout(() => { el.style.opacity = '0'; }, 2200);
+}
+
+/**
+ * 页内确认框，替代原生 window.confirm()。
+ *
+ * 浏览器（Chrome/Edge）有「阻止此页面创建更多对话框」选项，一旦被勾选，
+ * 之后所有 confirm() 都会**不弹窗、直接返回 false** —— 删除按钮就变成点了毫无反应，
+ * 连失败提示也弹不出来。所以这里用 Bootstrap 弹窗自己实现，不受该选项影响。
+ */
+function confirmDialog(message) {
+    return new Promise((resolve) => {
+        const id = 'appConfirmModal';
+        let el = document.getElementById(id);
+        if (!el) {
+            el = document.createElement('div');
+            el.id = id;
+            el.className = 'modal fade';
+            el.innerHTML =
+                '<div class="modal-dialog modal-dialog-centered modal-sm">' +
+                '  <div class="modal-content">' +
+                '    <div class="modal-body">' +
+                '      <div class="d-flex align-items-start gap-2">' +
+                '        <i class="bi bi-exclamation-triangle-fill text-warning"></i>' +
+                '        <div class="confirm-message"></div>' +
+                '      </div>' +
+                '    </div>' +
+                '    <div class="modal-footer py-2">' +
+                '      <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">取消</button>' +
+                '      <button type="button" class="btn btn-sm btn-danger confirm-ok">确定</button>' +
+                '    </div>' +
+                '  </div>' +
+                '</div>';
+            document.body.appendChild(el);
+        }
+        el.querySelector('.confirm-message').textContent = message;
+        const modal = bootstrap.Modal.getOrCreateInstance(el);
+        const okBtn = el.querySelector('.confirm-ok');
+        const cleanup = () => {
+            okBtn.removeEventListener('click', onOk);
+            el.removeEventListener('hidden.bs.modal', onHide);
+        };
+        const onOk = () => { cleanup(); modal.hide(); resolve(true); };
+        const onHide = () => { cleanup(); resolve(false); };
+        okBtn.addEventListener('click', onOk);
+        el.addEventListener('hidden.bs.modal', onHide);
+        modal.show();
+    });
+}
+
 class MaintainManager {
     constructor() {
         const today = serviceQualityController.formatDate(new Date());
+        const monthAgo = serviceQualityController.formatDate(
+            new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
         this.state = {
             type: 'complaint',
-            date: today,
+            // 默认时间范围：近 30 天（原来是单日 today）
+            startDate: monthAgo,
+            endDate: today,
             page: 1,
             pageSize: 10,
             total: 0,
@@ -526,7 +602,7 @@ class MaintainManager {
         });
 
         document.getElementById('maintainAddRowBtn').addEventListener('click', () => {
-            this.state.rows.push({ id: null, time: this.state.date + ' 08:00' });
+            this.state.rows.push({ id: null, time: this.state.endDate + ' 08:00' });
             this.render();
         });
 
@@ -558,15 +634,19 @@ class MaintainManager {
             this.load();
             return;
         }
-        // 日期控件
+        // 日期控件：时间范围。原来是单日（startDate=endDate=今天），
+        // 但保存时 stat_date 跟着行里的时间走，把某行改到别的日期后它就从"当天"列表消失了，
+        // 看起来像保存没生效。改成区间后编辑过的行仍留在列表里。
         this.datePicker = flatpickr(document.getElementById('maintainDate'), {
+            mode: 'range',
             dateFormat: 'Y-m-d',
-            defaultDate: this.state.date,
+            defaultDate: [this.state.startDate, this.state.endDate],
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {
-                if (selectedDates.length === 1) {
-                    this.state.date = serviceQualityController.formatDate(selectedDates[0]);
+                if (selectedDates.length === 2) {
+                    this.state.startDate = serviceQualityController.formatDate(selectedDates[0]);
+                    this.state.endDate = serviceQualityController.formatDate(selectedDates[1]);
                     this.state.page = 1;
                     if (this.inited) this.load();
                 }
@@ -602,8 +682,8 @@ class MaintainManager {
             const body = await ReportAPI.maintainServiceQuality({
                 action: 'query',
                 type: this.state.type,
-                startDate: this.state.date,
-                endDate: this.state.date,
+                startDate: this.state.startDate,
+                endDate: this.state.endDate,
                 page: this.state.page,
                 pageSize: this.state.pageSize
             });
@@ -773,7 +853,7 @@ class MaintainManager {
     async save() {
         const items = this.collectRows();
         if (items.length === 0) {
-            alert('暂无可保存的数据');
+            showNotice('暂无可保存的数据', 'error');
             return;
         }
         try {
@@ -782,11 +862,11 @@ class MaintainManager {
                 type: this.state.type,
                 list: items
             });
-            alert('保存成功');
+            showNotice('保存成功');
             this.load();
         } catch (error) {
             console.error('Save maintain failed:', error);
-            alert('保存失败');
+            showNotice('保存失败', 'error');
         }
     }
 
@@ -797,17 +877,18 @@ class MaintainManager {
             tr.remove();
             return;
         }
-        if (!confirm('确认删除该条数据？')) return;
+        if (!(await confirmDialog('确认删除该条数据？'))) return;
         try {
             await ReportAPI.maintainServiceQuality({
                 action: 'delete',
                 type: this.state.type,
                 id: parseInt(id, 10)
             });
+            showNotice('删除成功');
             this.load();
         } catch (error) {
             console.error('Delete maintain failed:', error);
-            alert('删除失败');
+            showNotice('删除失败', 'error');
         }
     }
 }

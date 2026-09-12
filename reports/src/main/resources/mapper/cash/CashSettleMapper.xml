@@ -49,6 +49,8 @@
     <!-- ============================================================ -->
     <!-- 查询收费员结账图表数据 -->
     <!-- ============================================================ -->
+    <!-- 图表数据：这张表同时装了「收费员业务工作量分析」和「来源方式工作量分析」两张图，
+         表里没有 chart_type 列，用 chart_title 区分 -->
     <select id="queryChart" resultType="com.reports.entity.CashSettleChtEntity">
         SELECT
         chart_title AS chartTitle,
@@ -58,6 +60,9 @@
         NVL(data_value, 0) AS dataValue
         FROM TR_CASH_SETTLE_CHT
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        <if test="chartTitle != null and chartTitle != ''">
+            AND chart_title = #{chartTitle}
+        </if>
         ORDER BY category
     </select>
 

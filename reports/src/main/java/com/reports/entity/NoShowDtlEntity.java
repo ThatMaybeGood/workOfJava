@@ -45,6 +45,47 @@ public class NoShowDtlEntity implements Serializable {
     @TableField("no_show_rate")
     private String noShowRate;
 
+    // ==================== 科室表的细分列 ====================
+    // 这几个不是表字段，是 queryDeptDetail 里 SUM 出来的结果列，
+    // service 用它们拼 TableItem 的 refundOrigin / refundChannel / noShowOrigin 嵌套结构。
+    // （前端 renderTable 直接读 row.refundOrigin.chongqing，不给就抛 TypeError，整张表都渲染不出来）
+
+    /** 退号-重庆 */
+    private Integer refundChongqing;
+
+    /** 退号-四川 */
+    private Integer refundSichuan;
+
+    /** 退号-贵州 */
+    private Integer refundGuizhou;
+
+    /** 退号-云南 */
+    private Integer refundYunnan;
+
+    /** 退号-其他 */
+    private Integer refundOther;
+
+    /** 退号渠道-窗口 */
+    private Integer refundWindow;
+
+    /** 退号渠道-小程序（宽表里存的是自助机列 tui_hao_zi_zhu_ji） */
+    private Integer refundMiniprogram;
+
+    /** 爽约-重庆 */
+    private Integer noShowChongqing;
+
+    /** 爽约-四川 */
+    private Integer noShowSichuan;
+
+    /** 爽约-贵州 */
+    private Integer noShowGuizhou;
+
+    /** 爽约-云南 */
+    private Integer noShowYunnan;
+
+    /** 爽约-其他 */
+    private Integer noShowOther;
+
     /** 创建时间 */
     @TableField("create_time")
     private Date createTime;

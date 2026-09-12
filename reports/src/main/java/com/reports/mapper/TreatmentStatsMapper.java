@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 治疗统计 Mapper
@@ -45,4 +46,14 @@ public interface TreatmentStatsMapper extends BaseMapper<TreatmentStatsOvEntity>
      * @return 趋势数据
      */
     List<TreatmentStatsTrendEntity> queryTrend(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+
+    /**
+     * 查询 TOP 治疗项目（按治疗人次降序，页面取前 10 个）
+     *
+     * @param startDate 开始日期
+     * @param endDate   结束日期
+     * @return 每项 {name, value}
+     */
+    List<Map<String, Object>> queryTopItems(@Param("startDate") Date startDate,
+                                             @Param("endDate") Date endDate);
 }

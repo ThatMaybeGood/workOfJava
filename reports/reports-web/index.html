@@ -26,11 +26,22 @@
                     <i class="bi bi-list"></i>
                 </button>
                 <div class="top-bar-title" id="pageTitle">门诊收入分析</div>
+                <!-- Mock/接口切换：报表页在 iframe 里会隐藏自己那一条标题栏(含页内开关)，
+                     这里补上对应的开关，否则从 index.html 进去就没法切了 -->
+                <label class="mock-toggle mb-0">
+                    <span class="mock-label">Mock数据</span>
+                    <input type="checkbox" id="shellMockToggle">
+                    <span class="mock-status" id="shellMockStatus">Mock</span>
+                </label>
             </header>
             <div class="content-area">
+                <!-- sandbox 必须带 allow-modals：报告页里大量用 alert()/confirm() 做提示与二次确认，
+                     缺这一项时 iframe 内所有原生弹窗会被静默屏蔽——
+                     confirm() 直接返回 false（删除按钮点了没反应），alert() 不显示（保存成功看不到）。
+                     这些页面都是同源的自有页面，放开弹窗是安全的。 -->
                 <iframe id="contentFrame" name="contentFrame"
                     src="outpatient/outpatient-revenue.html"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-modals"
                     allow="autoplay">
                 </iframe>
             </div>

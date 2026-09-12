@@ -1,11 +1,21 @@
 /**
  * 互医质控运营月报页面主逻辑
  */
+
+/**
+ * 默认统计月份：当月（格式 yyyy-MM）。
+ * 原先写死成 2025-12，是过期的固定月份，页面一打开就查不到数据。
+ */
+function currentMonth() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
 class InternetHospitalController {
     constructor() {
         this.state = {
             filter: {
-                month: '2025-12'
+                month: currentMonth()
             },
             deptPage: {
                 currentPage: 1,
@@ -81,6 +91,12 @@ class InternetHospitalController {
 
     updateMonthHeaders() {
         const { current, last } = this.monthLabels();
+        // 同步月份输入框的显示值：原先只在 change 时更新，
+        // 初次加载会一直显示 HTML 里写死的 2025-12，与实际查询的月份对不上
+        const sel = document.getElementById('monthSelect');
+        if (sel) {
+            sel.value = this.state.filter.month;
+        }
         const setText = (id, text) => {
             const el = document.getElementById(id);
             if (el) {

@@ -6,7 +6,9 @@
 const API_CONFIG = {
     // ==================== 全局开关 ====================
     // 是否使用 Mock 数据（true = 走 MockService，false = 请求真实接口）
-    useMock: true,
+    // 已切到测试库：后端用 spring.profiles.active=test（见 application-test.yml），
+    // 前端关掉 mock 才能真正走通 reports/gateway。要回退 mock 改回 true 即可。
+    useMock: false,
 
     // 真实接口基础地址
     baseUrl: 'http://localhost:18089/reports/gateway',
@@ -148,7 +150,10 @@ async function apiRequest(methodKey, endpointKey, requestBody = null) {
             charset: 'utf-8',
             encrypt_type: 'AES',
             language: 'zh_CN',
-            method: methodKey
+            method: methodKey,
+            // 同一个 method 下有多个子接口的页面（如住院预交金的 overview / summaryTable /
+            // trendChart …）需要靠它让后端区分返回哪种结构；单接口的页面后端忽略即可
+            endpoint: endpointKey
         },
         body: requestBody || {}
     };

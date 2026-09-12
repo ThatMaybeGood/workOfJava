@@ -131,7 +131,9 @@ public class OutpatientQualityControlServiceImpl implements OutpatientQualityCon
 
     private PageResult<TableItem> queryTableByMybatisPlus(OutpatientQualityControlRequest request, Integer page, Integer pageSize) {
         try {
-            List<QualityControlDtlEntity> rows = qualityControlMapper.queryMonthlyDetail(request.getStartMonth(), request.getEndMonth());
+            List<QualityControlDtlEntity> rows = qualityControlMapper
+                    .queryMonthlyDetail(orCurrentMonth(request.getStartMonth()),
+                            orCurrentMonth(request.getEndMonth()));
             List<TableItem> allItems = new ArrayList<>();
             for (QualityControlDtlEntity row : rows) {
                 allItems.add(buildTableItem(row));
@@ -191,17 +193,30 @@ public class OutpatientQualityControlServiceImpl implements OutpatientQualityCon
     // ==================== 日期转换方法 ====================
 
     private Date parseMonthStart(String month) {
+        String m = orCurrentMonth(month);
         try {
-            return new SimpleDateFormat("yyyy-MM-dd").parse(month + "-01");
+            return new SimpleDateFormat("yyyy-MM-dd").parse(m + "-01");
         } catch (Exception e) {
             log.warn("解析月份起始日期失败: {}", month, e);
             return null;
         }
     }
 
+    /**
+     * 前端没传月份时兜底成当月。
+     * 原来直接用 null 拼字符串会变成 "null-01"，SimpleDateFormat 抛
+     * Unparseable date，概览和明细表就全空了。
+     */
+    private static String orCurrentMonth(String month) {
+        if (month == null || month.trim().isEmpty()) {
+            return new SimpleDateFormat("yyyy-MM").format(new Date());
+        }
+        return month.trim();
+    }
+
     private Date parseMonthEnd(String month) {
         try {
-            Date firstDay = new SimpleDateFormat("yyyy-MM-dd").parse(month + "-01");
+            Date firstDay = new SimpleDateFormat("yyyy-MM-dd").parse(orCurrentMonth(month) + "-01");
             Calendar cal = Calendar.getInstance();
             cal.setTime(firstDay);
             cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH));

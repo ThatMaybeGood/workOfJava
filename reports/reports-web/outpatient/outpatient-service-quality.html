@@ -189,8 +189,10 @@
                             <button class="filter-btn active" data-value="complaint">投诉</button>
                             <button class="filter-btn" data-value="praise">表扬</button>
                         </div>
-                        <div class="date-input-wrapper">
-                            <input type="text" class="form-control form-control-sm date-input" id="maintainDate" readonly>
+                        <span class="filter-label mb-0">统计时间：</span>
+                        <div class="date-input-wrapper" style="min-width:230px">
+                            <!-- 时间范围：单日筛选时把某行时间改到别的日期，保存后它就从列表里消失了 -->
+                            <input type="text" class="form-control form-control-sm date-input" id="maintainDate" placeholder="选择时间范围" readonly>
                             <i class="bi bi-calendar date-input-icon"></i>
                         </div>
                         <button class="btn btn-outline-primary btn-sm" id="maintainQueryBtn"><i class="bi bi-search me-1"></i>查询</button>

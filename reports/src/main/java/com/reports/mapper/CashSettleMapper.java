@@ -44,5 +44,7 @@ public interface CashSettleMapper extends BaseMapper<CashSettleOvEntity> {
      * @param endDate   结束日期
      * @return 图表数据
      */
-    List<CashSettleChtEntity> queryChart(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    List<CashSettleChtEntity> queryChart(@Param("startDate") Date startDate,
+                                         @Param("endDate") Date endDate,
+                                         @Param("chartTitle") String chartTitle);
 }

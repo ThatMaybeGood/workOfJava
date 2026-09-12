@@ -65,16 +65,11 @@ CREATE TABLE tr_inpat_prepay_cht (
 
 -- 创建索引
 
+-- 注: TR_OUTP_FIN_* 的索引与表注释已移至 19_门诊财务.sql (那些表在 19 才创建)
+
 CREATE INDEX idx_tr_prepay_overview_date ON tr_inpat_prepay_ov(stat_date);
 CREATE INDEX idx_tr_prepay_detail_date ON tr_inpat_prepay_dtl(stat_date);
 CREATE INDEX idx_tr_prepay_chart_date ON tr_inpat_prepay_cht(stat_date);
-CREATE INDEX IDX_FIN_CLINIC_VISIT ON TR_OUTP_FIN_CLINIC_MASTER(VISIT_DATE);
-CREATE INDEX IDX_FIN_RCPT_VISIT ON TR_OUTP_FIN_RCPT_ACCT(VISIT_DATE);
-CREATE INDEX IDX_FIN_RCPT_PID_RCPT ON TR_OUTP_FIN_RCPT_ACCT(PATIENT_ID, RCPT_NO);
-CREATE INDEX IDX_FIN_ACCT_DATE ON TR_OUTP_FIN_ACCT_MASTER(ACCT_DATE);
-CREATE INDEX IDX_FIN_PAY_VISIT ON TR_OUTP_FIN_PAYMENTS_MONEY(RCPT_NO);
-CREATE INDEX IDX_FIN_QUEUE_SCHEDULE ON TR_OUTP_FIN_MOP_QUEUE(SCHEDULE_ID);
-CREATE INDEX IDX_FIN_QUEUE_VISIT ON TR_OUTP_FIN_MOP_QUEUE(VISIT_DATE);
 
 -- 添加注释
 
@@ -122,8 +117,3 @@ COMMENT ON COLUMN tr_inpat_prepay_cht.update_time IS '更新时间';
 COMMENT ON COLUMN tr_inpat_prepay_cht.ext1 IS '扩展字段1';
 COMMENT ON COLUMN tr_inpat_prepay_cht.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_inpat_prepay_cht.ext3 IS '扩展字段3';
-COMMENT ON TABLE TR_OUTP_FIN_CLINIC_MASTER IS '门诊财务报表-就诊主表日快照';
-COMMENT ON TABLE TR_OUTP_FIN_RCPT_ACCT IS '门诊财务报表-收据明细（人次去重、bt1/3/4/6/8）';
-COMMENT ON TABLE TR_OUTP_FIN_ACCT_MASTER IS '门诊财务报表-结账汇总（收据张数/金额唯一口径）';
-COMMENT ON TABLE TR_OUTP_FIN_PAYMENTS_MONEY IS '门诊财务报表-支付方式明细（bt5/7/9）';
-COMMENT ON TABLE TR_OUTP_FIN_MOP_QUEUE IS '门诊财务报表-排班队列（bt2取号渠道分析）';
