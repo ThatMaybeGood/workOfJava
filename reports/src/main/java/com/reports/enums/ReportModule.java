@@ -205,6 +205,17 @@ public enum ReportModule {
                     new ReportMethod("queryStaffList", "查询人员列表")
             )),
 
+    /**
+     * 天气数据维护
+     */
+    WEATHER_MAINTAIN("天气数据维护",
+            "com.reports.service.WeatherMaintainService",
+            Arrays.asList(
+                    new ReportMethod("queryMaintainList", "查询天气明细"),
+                    new ReportMethod("saveMaintain", "保存天气明细"),
+                    new ReportMethod("deleteMaintain", "删除天气明细")
+            )),
+
     // ==================== 收费类报表 ====================
 
     /**
@@ -239,6 +250,17 @@ public enum ReportModule {
                     new ReportMethod("queryDetailList", "查询明细列表数据"),
                     new ReportMethod("queryBarList", "查询柱状图数据"),
                     new ReportMethod("queryPieList", "查询饼状图数据")
+            )),
+
+    /**
+     * 出院结算人次统计
+     */
+    CASH_DISCH_SETTLE_CNT("出院结算人次统计",
+            "com.reports.service.DischSettleCntService",
+            Arrays.asList(
+                    new ReportMethod("queryByFeeChannel", "按费别汇总查询"),
+                    new ReportMethod("queryByOperator", "按操作员查询"),
+                    new ReportMethod("queryByPayType", "按支付类别查询")
             ));
 
     /**

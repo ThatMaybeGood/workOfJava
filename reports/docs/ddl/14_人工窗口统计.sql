@@ -14,7 +14,6 @@ DROP TABLE tr_win_stat_src CASCADE CONSTRAINTS;
 
 -- 14.1 人工窗口概览表
 CREATE TABLE tr_win_stat_ov (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     register_count  NUMBER(10)      DEFAULT 0,          -- 挂号人次
     payment_count   NUMBER(10)      DEFAULT 0,          -- 收费人次
@@ -28,7 +27,6 @@ CREATE TABLE tr_win_stat_ov (
 
 -- 14.2 人工窗口年龄分析表
 CREATE TABLE tr_win_stat_age (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     age_group       VARCHAR2(50)    NOT NULL,           -- 年龄段
     patient_count   NUMBER(10)      DEFAULT 0,          -- 人数
@@ -43,7 +41,6 @@ CREATE TABLE tr_win_stat_age (
 -- 粒度: (stat_date, business_type, time_slot)
 --   business_type 是 WindowStatsMapper.queryWorkload 按业务类型(挂号/收费/退费)分组所必需, 原 DDL 缺失。
 CREATE TABLE tr_win_stat_tm (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     business_type   VARCHAR2(50)    NOT NULL,           -- 业务类型(挂号/收费/退费)
     time_slot       VARCHAR2(50)    NOT NULL,           -- 时段
@@ -57,7 +54,6 @@ CREATE TABLE tr_win_stat_tm (
 
 -- 14.4 人工窗口来源分析表
 CREATE TABLE tr_win_stat_src (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     source_name     VARCHAR2(100)   NOT NULL,           -- 来源名称
     source_count    NUMBER(10)      DEFAULT 0,          -- 数量
@@ -77,7 +73,6 @@ CREATE UNIQUE INDEX uk_tr_win_stat_tm ON tr_win_stat_tm(stat_date, business_type
 
 COMMENT ON TABLE tr_win_stat_ov IS '人工窗口统计-概览';
 COMMENT ON TABLE tr_win_stat_ov IS '人工窗口统计-概览(人工窗口业务量的总览指标:挂号/收费/退费人次)';
-COMMENT ON COLUMN tr_win_stat_ov.id IS '主键ID';
 COMMENT ON COLUMN tr_win_stat_ov.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_win_stat_ov.register_count IS '挂号人次';
 COMMENT ON COLUMN tr_win_stat_ov.payment_count IS '收费人次';
@@ -89,7 +84,6 @@ COMMENT ON COLUMN tr_win_stat_ov.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_win_stat_ov.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_win_stat_age IS '人工窗口统计-年龄分析';
 COMMENT ON TABLE tr_win_stat_age IS '人工窗口统计-年龄分析(按年龄段分析窗口业务分布)';
-COMMENT ON COLUMN tr_win_stat_age.id IS '主键ID';
 COMMENT ON COLUMN tr_win_stat_age.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_win_stat_age.age_group IS '年龄段';
 COMMENT ON COLUMN tr_win_stat_age.patient_count IS '人数';
@@ -100,7 +94,6 @@ COMMENT ON COLUMN tr_win_stat_age.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_win_stat_age.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_win_stat_tm IS '人工窗口统计-时段分析';
 COMMENT ON TABLE tr_win_stat_tm IS '人工窗口统计-时段分析(按时段分析窗口业务量分布)';
-COMMENT ON COLUMN tr_win_stat_tm.id IS '主键ID';
 COMMENT ON COLUMN tr_win_stat_tm.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_win_stat_tm.business_type IS '业务类型(挂号/收费/退费)';
 COMMENT ON COLUMN tr_win_stat_tm.time_slot IS '时段';
@@ -112,7 +105,6 @@ COMMENT ON COLUMN tr_win_stat_tm.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_win_stat_tm.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_win_stat_src IS '人工窗口统计-来源分析';
 COMMENT ON TABLE tr_win_stat_src IS '人工窗口统计-来源分析(按患者来源分析窗口业务分布)';
-COMMENT ON COLUMN tr_win_stat_src.id IS '主键ID';
 COMMENT ON COLUMN tr_win_stat_src.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_win_stat_src.source_name IS '来源名称';
 COMMENT ON COLUMN tr_win_stat_src.source_count IS '数量';

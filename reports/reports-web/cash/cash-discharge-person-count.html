@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>出院结算人次统计</title>
+    <link href="../vendor/bootstrap@5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../vendor/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../vendor/flatpickr@4.6.13/css/flatpickr.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid py-2">
+        <div class="page-title d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <span class="title-bar"></span>
+                出院结算人次统计
+            </div>
+            <label class="mock-toggle mb-0">
+                <span class="mock-label">Mock数据</span>
+                <input type="checkbox" id="mockToggle" checked>
+                <span class="mock-status" id="mockStatus">Mock</span>
+            </label>
+        </div>
+
+        <div class="filter-section">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="filter-label">统计维度：</span>
+                    <div class="filter-buttons" id="dimensionFilter">
+                        <button class="filter-btn active" data-value="summary">按费别</button>
+                        <button class="filter-btn" data-value="operator">按操作员</button>
+                        <button class="filter-btn" data-value="payType">按支付类别</button>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="filter-label">统计时间：</span>
+                    <div class="filter-buttons" id="timeDimensionFilter">
+                        <button class="filter-btn" data-value="month">按月统计</button>
+                        <button class="filter-btn active" data-value="day">按天统计</button>
+                    </div>
+                    <div class="date-range-picker">
+                        <div class="date-input-wrapper range-wrapper">
+                            <input type="text" class="form-control form-control-sm date-input" id="dateRange" readonly>
+                            <i class="bi bi-calendar date-input-icon"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="filter-label">费别：</span>
+                    <select class="form-select form-select-sm" id="feeTypeFilter" style="width:130px">
+                        <option value="">全部</option>
+                        <option value="军队医改">军队医改</option>
+                        <option value="普通患者">普通患者</option>
+                    </select>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="filter-label">结算类别：</span>
+                    <select class="form-select form-select-sm" id="channelFilter" style="width:130px">
+                        <option value="">全部</option>
+                        <option value="自助结算">自助结算</option>
+                        <option value="窗口结算">窗口结算</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-section">
+            <div class="table-header d-flex justify-content-between align-items-center">
+                <div class="table-title"><i class="bi bi-person-lines-fill"></i><span id="tableTitle">出院结算人次（按费别）</span></div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered mb-0" id="personCountTable">
+                    <thead class="table-light" id="tableHead"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+            <div id="tableEmpty" class="text-center text-muted py-4 d-none">暂无数据</div>
+            <div class="pagination-wrapper d-flex justify-content-center align-items-center mt-3 gap-3">
+                <div class="pagination-info"><span id="pageInfo">10条/页 共0条</span></div>
+                <nav aria-label="Page navigation"><ul class="pagination mb-0" id="pagination"></ul></nav>
+                <div class="pagination-controls d-flex align-items-center gap-1">
+                    <select class="form-select form-select-sm" id="pageSizeSelect">
+                        <option value="10" selected>10条/页</option>
+                        <option value="20">20条/页</option>
+                        <option value="50">50条/页</option>
+                    </select>
+                    <span>跳至</span>
+                    <input type="number" class="form-control form-control-sm page-jump-input" id="jumpPage" min="1">
+                    <span>页</span>
+                    <button class="btn btn-sm btn-outline-secondary" id="jumpBtn">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../vendor/bootstrap@5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script src="../vendor/flatpickr@4.6.13/js/flatpickr.min.js"></script>
+    <script src="../vendor/flatpickr@4.6.13/l10n/zh.js"></script>
+    <script src="../api-config.js"></script>
+    <script src="js/mock.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        (function() {
+            const toggle = document.getElementById('mockToggle');
+            const status = document.getElementById('mockStatus');
+            if (toggle && status) {
+                toggle.checked = API_CONFIG.useMock;
+                status.textContent = API_CONFIG.useMock ? 'Mock' : '接口';
+                status.classList.toggle('off', !API_CONFIG.useMock);
+                toggle.addEventListener('change', function() {
+                    setMockMode(this.checked);
+                    status.textContent = this.checked ? 'Mock' : '接口';
+                    status.classList.toggle('off', !this.checked);
+                    location.reload();
+                });
+            }
+        })();
+    </script>
+    <script src="js/cash-discharge-person-count-app.js"></script>
+</body>
+</html>

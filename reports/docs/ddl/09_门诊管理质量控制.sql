@@ -10,7 +10,6 @@ DROP TABLE tr_qc_dtl CASCADE CONSTRAINTS;
 
 -- 9.1 门诊质量控制概览表
 CREATE TABLE tr_qc_ov (
-    id                  NUMBER(19)      PRIMARY KEY,
     stat_date           DATE            NOT NULL,       -- 统计日期
     emr_usage_rate      VARCHAR2(20),                  -- 病历使用率
     standard_diagnosis_rate VARCHAR2(20),              -- 规范诊断率
@@ -32,7 +31,6 @@ CREATE TABLE tr_qc_ov (
 
 -- 9.2 门诊质量控制月度明细表
 CREATE TABLE tr_qc_dtl (
-    id                  NUMBER(19)      PRIMARY KEY,
     stat_month          VARCHAR2(20)    NOT NULL,       -- 统计月份(YYYY-MM)
     emr_usage_rate      VARCHAR2(20),                  -- 病历使用率
     standard_diagnosis_rate VARCHAR2(20),              -- 规范诊断率
@@ -60,7 +58,6 @@ CREATE INDEX idx_tr_qc_overview_date ON tr_qc_ov(stat_date);
 
 COMMENT ON TABLE tr_qc_ov IS '门诊管理质量控制-概览';
 COMMENT ON TABLE tr_qc_ov IS '门诊管理质量控制-概览(门诊质量管理各项质控指标的总览数据)';
-COMMENT ON COLUMN tr_qc_ov.id IS '主键ID';
 COMMENT ON COLUMN tr_qc_ov.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_qc_ov.emr_usage_rate IS '病历使用率';
 COMMENT ON COLUMN tr_qc_ov.standard_diagnosis_rate IS '规范诊断率';
@@ -80,7 +77,6 @@ COMMENT ON COLUMN tr_qc_ov.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_qc_ov.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_qc_dtl IS '门诊管理质量控制-月度明细';
 COMMENT ON TABLE tr_qc_dtl IS '门诊管理质量控制-月度明细(门诊质控指标按月度的详细记录,用于趋势分析)';
-COMMENT ON COLUMN tr_qc_dtl.id IS '主键ID';
 COMMENT ON COLUMN tr_qc_dtl.stat_month IS '统计月份(YYYY-MM)';
 COMMENT ON COLUMN tr_qc_dtl.emr_usage_rate IS '病历使用率';
 COMMENT ON COLUMN tr_qc_dtl.standard_diagnosis_rate IS '规范诊断率';

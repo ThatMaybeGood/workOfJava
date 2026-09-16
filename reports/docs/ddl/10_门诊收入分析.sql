@@ -10,7 +10,6 @@ DROP TABLE tr_rev_ov CASCADE CONSTRAINTS;
 -- 粒度: (stat_date, dept_code, doctor_name) —— 概览/科室明细/医生明细 三个模块共用这一张表,
 --       前两个模块按各自维度聚合即可 (RevenueMapper.queryOverview / queryDeptDetail / queryDoctorDetail)
 CREATE TABLE tr_rev_ov (
-    id                  NUMBER(19)      PRIMARY KEY,
     stat_date           DATE            NOT NULL,       -- 统计日期
     dept_code           VARCHAR2(50),                   -- 科室编码
     doctor_name         VARCHAR2(100),                  -- 医生姓名(queryDoctorDetail 按医生聚合)
@@ -35,7 +34,6 @@ CREATE UNIQUE INDEX uk_tr_rev_ov ON tr_rev_ov(stat_date, dept_code, doctor_name)
 
 COMMENT ON TABLE tr_rev_ov IS '门诊收入分析-概览';
 COMMENT ON TABLE tr_rev_ov IS '门诊收入分析-概览(门诊收入的总览数据:门诊总收入和服务收入)';
-COMMENT ON COLUMN tr_rev_ov.id IS '主键ID';
 COMMENT ON COLUMN tr_rev_ov.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_rev_ov.dept_code IS '科室编码';
 COMMENT ON COLUMN tr_rev_ov.doctor_name IS '医生姓名';

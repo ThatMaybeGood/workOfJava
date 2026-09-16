@@ -1,7 +1,6 @@
 package com.reports.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
@@ -17,9 +16,6 @@ public class ServiceQualityOvEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    /** 主键ID */
-    @TableId("id")
-    private Long id;
 
     /** 统计日期 */
     @TableField("stat_date")

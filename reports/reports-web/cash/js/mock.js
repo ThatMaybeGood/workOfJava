@@ -711,8 +711,81 @@ const MockService = {
                 resolve({ code: 200, data: { indicator, detailList, barList, pieList } });
             }, 200);
         });
+    },
+
+    /**
+     * 出院结算人次统计（按维度生成：summary 按费别 / operator 按操作员 / payType 按支付类别）
+     */
+    getDischSettlePersonCountData(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const dimension = params.dimension || 'summary';
+                const timeDimension = params.timeDimension || 'day';
+                const dates = genDischCntDates(params.startDate, params.endDate, timeDimension);
+                const feeTypes = ['军队医改', '普通患者'];
+                const channels = ['自助结算', '窗口结算'];
+                const operators = [
+                    { operatorNo: 'E700', operatorName: '自助机' },
+                    { operatorNo: '9111', operatorName: '自助机' },
+                    { operatorNo: 'S011', operatorName: '张收费' },
+                    { operatorNo: 'S012', operatorName: '李收费' },
+                    { operatorNo: 'S013', operatorName: '王收费' }
+                ];
+                const payTypes = ['微信', '支付宝', '银行卡', '现金', '医保个人账户'];
+                const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+                const list = [];
+                dates.forEach(itemDate => {
+                    if (dimension === 'payType') {
+                        channels.forEach(channel => {
+                            payTypes.forEach(payType => {
+                                list.push({ itemDate, feeType: '普通患者', settleChannel: channel, payType, cnt: rand(3, 60) });
+                            });
+                        });
+                        return;
+                    }
+                    feeTypes.forEach(feeType => {
+                        channels.forEach(channel => {
+                            if (dimension === 'operator') {
+                                const ops = channel === '自助结算' ? operators.slice(0, 2) : operators.slice(2);
+                                ops.forEach(op => {
+                                    list.push({
+                                        itemDate, feeType, settleChannel: channel,
+                                        operatorNo: op.operatorNo, operatorName: op.operatorName,
+                                        cnt: rand(3, 40)
+                                    });
+                                });
+                            } else {
+                                list.push({ itemDate, feeType, settleChannel: channel, cnt: rand(10, 120) });
+                            }
+                        });
+                    });
+                });
+                resolve({ code: 200, data: { list, total: list.length } });
+            }, 200);
+        });
     }
 };
+
+// ===== 出院结算人次统计 Mock 辅助函数 =====
+
+// 按时间粒度生成日期序列（按天 yyyy-MM-dd / 按月 yyyy-MM）
+function genDischCntDates(start, end, timeDimension) {
+    const list = [];
+    const today = new Date();
+    const fmtDay = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const fmtMonth = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const startDate = start ? new Date(start + 'T00:00:00') : new Date(today.getTime() - 29 * 86400000);
+    const endDate = end ? new Date(end + 'T00:00:00') : today;
+    const step = timeDimension === 'month'
+        ? (d => new Date(d.getFullYear(), d.getMonth() + 1, 1))
+        : (d => new Date(d.getTime() + 86400000));
+    for (let d = new Date(startDate); d <= endDate; d = step(d)) {
+        list.push(timeDimension === 'month' ? fmtMonth(d) : fmtDay(d));
+        if (list.length >= 370) break;
+    }
+    return list;
+}
 
 // ===== 门诊财务报表 Mock 辅助函数 =====
 

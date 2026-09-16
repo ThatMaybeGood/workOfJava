@@ -9,37 +9,29 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 人工窗口统计-工作量
+ * 每日天气源表
  */
 @Data
-@TableName("TR_WIN_STAT_LOAD")
-public class WindowStatsLoadEntity implements Serializable {
+@TableName("TR_FC_WEATHER")
+public class WeatherEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    /** 主键ID */
-    @TableId("id")
-    private Long id;
+    /** 天气日期 */
+    @TableId("weather_date")
+    private Date weatherDate;
 
-    /** 统计日期 */
-    @TableField("stat_date")
-    private Date statDate;
+    /** 天气类型(晴/阴/雨/雪等) */
+    @TableField("weather_type")
+    private String weatherType;
 
-    /** 业务类型 */
-    @TableField("business_type")
-    private String businessType;
+    /** 天气出勤系数(空按1处理) */
+    @TableField("weather_coef")
+    private Double weatherCoef;
 
-    /** 挂号数 */
-    @TableField("register_count")
-    private Integer registerCount;
-
-    /** 收费数 */
-    @TableField("payment_count")
-    private Integer paymentCount;
-
-    /** 退费数 */
-    @TableField("refund_count")
-    private Integer refundCount;
+    /** 来源(人工登记/接口同步) */
+    @TableField("weather_source")
+    private String weatherSource;
 
     /** 创建时间 */
     @TableField("create_time")

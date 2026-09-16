@@ -131,5 +131,13 @@ const ReportAPI = {
      */
     exportInpatientPrepayment(params) {
         return apiRequest('reports.cash.cash-inpatient-prepayment', 'export', params);
+    },
+
+    /**
+     * 获取出院结算人次统计数据
+     * method: reports.cash.disch-settle-cnt
+     */
+    getDischSettlePersonCount(params) {
+        return apiRequest('reports.cash.disch-settle-cnt', 'endpoint', params);
     }
 };

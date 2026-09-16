@@ -5,7 +5,6 @@ import com.reports.entity.WindowStatsOvEntity;
 import com.reports.entity.WindowStatsAgeEntity;
 import com.reports.entity.WindowStatsTmEntity;
 import com.reports.entity.WindowStatsSrcEntity;
-import com.reports.entity.WindowStatsLoadEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

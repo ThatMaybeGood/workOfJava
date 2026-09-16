@@ -8,7 +8,6 @@ DROP TABLE tr_outp_alt_ov CASCADE CONSTRAINTS;
 
 -- 2.1 门诊预警概览表
 CREATE TABLE tr_outp_alt_ov (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     dept_code       VARCHAR2(50),                       -- 科室编码
     dept_name       VARCHAR2(100),                      -- 科室名称
@@ -33,7 +32,6 @@ CREATE INDEX idx_tr_alert_overview_date ON tr_outp_alt_ov(stat_date);
 
 COMMENT ON TABLE tr_outp_alt_ov IS '门诊预警统计-概览';
 COMMENT ON TABLE tr_outp_alt_ov IS '门诊预警统计-概览(存储每日门诊预警总览:滞留预警、预约预警、早退人数)';
-COMMENT ON COLUMN tr_outp_alt_ov.id IS '主键ID';
 COMMENT ON COLUMN tr_outp_alt_ov.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_outp_alt_ov.dept_code IS '科室编码';
 COMMENT ON COLUMN tr_outp_alt_ov.dept_name IS '科室名称';

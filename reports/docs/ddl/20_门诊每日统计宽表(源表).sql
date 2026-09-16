@@ -7,7 +7,6 @@
 DROP TABLE TR_OUTPATIENT_STATS_DAY_RESULT CASCADE CONSTRAINTS;
 
 CREATE TABLE TR_OUTPATIENT_STATS_DAY_RESULT (
-    id                    NUMBER(19)      PRIMARY KEY,
     stats_date            DATE            NOT NULL,   -- 统计日期
     dept_code             VARCHAR2(50),               -- 科室编码
     total_guahao          NUMBER(10)      DEFAULT 0,  -- 总挂号数

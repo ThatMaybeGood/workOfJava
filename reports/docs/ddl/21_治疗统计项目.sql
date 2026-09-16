@@ -9,7 +9,6 @@
 DROP TABLE tr_treat_stat_item CASCADE CONSTRAINTS;
 
 CREATE TABLE tr_treat_stat_item (
-    id               NUMBER(19)      PRIMARY KEY,
     stat_date        DATE            NOT NULL,           -- 统计日期
     item_name        VARCHAR2(100)   NOT NULL,           -- 治疗项目名称
     treatment_count  NUMBER(10)      DEFAULT 0,          -- 治疗人次

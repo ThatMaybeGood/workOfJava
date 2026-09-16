@@ -6,6 +6,7 @@
     <title>预测门诊量报表</title>
     <link href="../vendor/bootstrap@5.3.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="../vendor/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../vendor/flatpickr@4.6.13/css/flatpickr.min.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
 </head>
 <body>
@@ -28,6 +29,12 @@
                         <option value="">全部</option>
                     </select>
                 </div>
+                <button class="btn btn-outline-primary btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#dictModal">
+                    <i class="bi bi-book me-1"></i>字典管理
+                </button>
+                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#weatherModal">
+                    <i class="bi bi-cloud-sun me-1"></i>天气维护
+                </button>
             </div>
         </div>
 
@@ -95,8 +102,88 @@
         </div>
     </div>
 
+    <!-- 天气类型字典管理弹窗 -->
+    <div class="modal fade" id="dictModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-book me-1"></i>字典管理 - 天气类型</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr><th style="width:60px">序号</th><th>字典值</th><th style="width:80px">操作</th></tr>
+                        </thead>
+                        <tbody id="dictValueBody"></tbody>
+                    </table>
+                    <div class="d-flex align-items-center gap-2 mt-2">
+                        <input type="text" id="dictNewValue" class="form-control form-control-sm" style="max-width:260px" placeholder="新增字典值">
+                        <button class="btn btn-primary btn-sm" id="dictAddBtn"><i class="bi bi-plus-lg"></i>添加</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 天气维护弹窗 -->
+    <div class="modal fade" id="weatherModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-cloud-sun me-1"></i>天气维护</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="filter-section mb-3">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="filter-label">日期：</span>
+                                <div class="date-input-wrapper range-wrapper">
+                                    <input type="text" class="form-control form-control-sm date-input" id="weatherDateRange" placeholder="选择时间范围" readonly>
+                                    <i class="bi bi-calendar date-input-icon"></i>
+                                </div>
+                            </div>
+                            <button class="btn btn-outline-primary btn-sm" id="weatherQueryBtn"><i class="bi bi-search me-1"></i>查询</button>
+                            <button class="btn btn-primary btn-sm" id="weatherAddRowBtn"><i class="bi bi-plus-lg me-1"></i>新增一行</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover table-bordered mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:60px">序号</th>
+                                    <th style="width:170px">日期</th>
+                                    <th style="width:150px">天气类型</th>
+                                    <th style="width:130px">出勤系数</th>
+                                    <th style="width:120px">来源</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="weatherTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="weatherEmpty" class="text-center text-muted py-4 d-none">暂无数据</div>
+                    <div class="pagination-wrapper d-flex justify-content-center align-items-center mt-3 gap-3">
+                        <div class="pagination-info"><span id="weatherPageInfo">10条/页 共0条</span></div>
+                        <nav aria-label="Weather page navigation"><ul class="pagination pagination-sm mb-0" id="weatherPagination"></ul></nav>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary" id="weatherSaveBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="../vendor/bootstrap@5.3.2/js/bootstrap.bundle.min.js"></script>
     <script src="../vendor/echarts@5.4.3/echarts.min.js"></script>
+    <script src="../vendor/flatpickr@4.6.13/js/flatpickr.min.js"></script>
+    <script src="../vendor/flatpickr@4.6.13/l10n/zh.js"></script>
     <script src="../api-config.js"></script>
     <script src="js/mock.js"></script>
     <script src="js/api.js"></script>
@@ -119,5 +206,6 @@
         })();
     </script>
     <script src="js/forecast-app.js"></script>
+    <script src="js/weather-maintain.js"></script>
 </body>
 </html>

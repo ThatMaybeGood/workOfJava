@@ -305,6 +305,7 @@ public final class ReportTestDataSeeder {
         String[] complaintResults = {"已处理", "处理中", "待处理", "已回访"};
         String[] praiseMethods = {"锦旗", "感谢信", "口头表扬", "电话表扬", "留言表扬"};
         String[] yesNo = {"是", "否"};
+        String[] weatherTypes = {"晴", "多云", "阴", "小雨", "中雨", "大雨", "雪"};
 
         List<Object[]> dictRows = new ArrayList<Object[]>();
         addDict(dictRows, "position", positions);
@@ -312,6 +313,7 @@ public final class ReportTestDataSeeder {
         addDict(dictRows, "complaintResult", complaintResults);
         addDict(dictRows, "praiseMethod", praiseMethods);
         addDict(dictRows, "feedback", yesNo);
+        addDict(dictRows, "weather_type", weatherTypes);
         batch(conn, "INSERT INTO TR_COMMON_DICT (id, dict_type, dict_code, dict_name, sort_no, status)"
                 + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,1)", dictRows);
 
@@ -402,18 +404,18 @@ public final class ReportTestDataSeeder {
                 });
             }
         }
-        batch(conn, "INSERT INTO TR_OUTP_OP (id, stat_date, dept_code, total_visits, famous_expert,"
+        batch(conn, "INSERT INTO TR_OUTP_OP (stat_date, dept_code, total_visits, famous_expert,"
                 + " special_expert, known_expert, expert_a, expert_b, ordinary, unit_famous_effective,"
                 + " unit_famous_total, unit_special_effective, unit_special_total, unit_known_effective,"
                 + " unit_known_total, unit_a_effective, unit_a_total, unit_b_effective, unit_b_total,"
                 + " unit_ordinary_effective, unit_ordinary_total, appointment_total, appointment_count,"
                 + " return_visits, treat_count, unit)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", op);
+                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", op);
 
-        batch(conn, "INSERT INTO TR_OUTP_OP_DTL (id, stat_date, dept_code, dept_name, visits,"
+        batch(conn, "INSERT INTO TR_OUTP_OP_DTL (stat_date, dept_code, dept_name, visits,"
                 + " appointment_rate, exam_rate, efficiency, visit_count, famous_expert, special_expert,"
                 + " known_expert, expert_a, expert_b, ordinary, effective_total, effective_detail, total_detail)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", dtl);
+                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", dtl);
 
         out.println("  [门诊运行] TR_OUTP_OP=" + op.size() + ", TR_OUTP_OP_DTL=" + dtl.size());
     }
@@ -434,9 +436,9 @@ public final class ReportTestDataSeeder {
                 }
             }
         }
-        batch(conn, "INSERT INTO TR_OUTP_ALT_OV (id, stat_date, dept_code, dept_name, doctor_name,"
+        batch(conn, "INSERT INTO TR_OUTP_ALT_OV (stat_date, dept_code, dept_name, doctor_name,"
                 + " clinic_period, his_logout_time, remain_alert, appointment_alert, early_leave)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?,?,?)", rows);
+                + " VALUES (?,?,?,?,?,?,?,?,?)", rows);
         out.println("  [门诊预警] TR_OUTP_ALT_OV=" + rows.size());
     }
 
@@ -449,18 +451,19 @@ public final class ReportTestDataSeeder {
                 app.add(new Object[]{day, dept[0], Integer.valueOf(rnd(5, 80))});
             }
         }
-        batch(conn, "INSERT INTO tr_fc_appoint (id, appoint_date, dept_code, appoint_count)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?)", app);
+        batch(conn, "INSERT INTO tr_fc_appoint (appoint_date, dept_code, appoint_count)"
+                + " VALUES (?,?,?)", app);
 
         // 天气要一直造到未来 120 天：预测门诊量模块会按「明天 / 下周」查天气系数，
         // 只造到今天的话未来日期查出来是 0 行
+        // 灌数模拟 ETL 抽数，来源记为接口同步；界面人工登记的走天气维护入口
         String[] weathers = {"晴", "多云", "阴", "小雨", "中雨", "大雨", "雪"};
         List<Object[]> wea = new ArrayList<Object[]>();
         for (int d = 0; d < DAYS + 120; d++) {
-            wea.add(new Object[]{dayAt(d), weathers[rnd(0, weathers.length - 1)], Double.valueOf(1.0d)});
+            wea.add(new Object[]{dayAt(d), weathers[rnd(0, weathers.length - 1)], Double.valueOf(1.0d), "接口同步"});
         }
-        batch(conn, "INSERT INTO tr_fc_weather (id, weather_date, weather_type, weather_coef)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?)", wea);
+        batch(conn, "INSERT INTO tr_fc_weather (weather_date, weather_type, weather_coef, weather_source)"
+                + " VALUES (?,?,?,?)", wea);
 
         // 节假日：前一年/当年/次年各来一套，这样「近一年法定节假日」这类查询在任意今天都能查到数据。
         // hol_date 上有唯一索引，用 Set 去重，避免与下面的调休日撞车。
@@ -479,8 +482,8 @@ public final class ReportTestDataSeeder {
         }
         addHoliday(hol, used, endDate.plusDays(7), "周末调休上班", "WORKDAY_ADJUST");
         addHoliday(hol, used, endDate.plusDays(8), "周末调休上班", "WORKDAY_ADJUST");
-        batch(conn, "INSERT INTO tr_fc_holiday (id, hol_date, hol_name, hol_type)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?)", hol);
+        batch(conn, "INSERT INTO tr_fc_holiday (hol_date, hol_name, hol_type)"
+                + " VALUES (?,?,?)", hol);
 
         out.println("  [预测门诊量] tr_fc_appoint=" + app.size() + ", tr_fc_weather=" + wea.size()
                 + ", tr_fc_holiday=" + hol.size());
@@ -539,19 +542,19 @@ public final class ReportTestDataSeeder {
                 grw.add(new Object[]{mo, DEPTS[i][1], Integer.valueOf(rnd(8, 45))});
             }
         }
-        batch(conn, "INSERT INTO TR_INET_HOSP_OV (id, stat_month, outpatient_volume, doctor_ratio,"
+        batch(conn, "INSERT INTO TR_INET_HOSP_OV (stat_month, outpatient_volume, doctor_ratio,"
                 + " reception_rate, prescription_rate, record_rate, review_rate, execution_rate)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?,?)", ov);
-        batch(conn, "INSERT INTO TR_INET_HOSP_OP (id, stat_month, item_name, current_value, last_value, growth_rate)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?)", op);
-        batch(conn, "INSERT INTO TR_INET_HOSP_BIZ (id, stat_month, category, current_value, last_value)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?)", biz);
-        batch(conn, "INSERT INTO TR_INET_HOSP_DEPT_RNK (id, stat_month, rank_num, dept_name, current_month,"
-                + " last_month, growth_rate) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?)", deptRnk);
-        batch(conn, "INSERT INTO TR_INET_HOSP_DOC_RNK (id, stat_month, rank_num, doctor_name, dept_name,"
-                + " title, current_month) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?)", docRnk);
-        batch(conn, "INSERT INTO TR_INET_HOSP_GRW (id, stat_month, category, data_value)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?)", grw);
+                + " VALUES (?,?,?,?,?,?,?,?)", ov);
+        batch(conn, "INSERT INTO TR_INET_HOSP_OP (stat_month, item_name, current_value, last_value, growth_rate)"
+                + " VALUES (?,?,?,?,?)", op);
+        batch(conn, "INSERT INTO TR_INET_HOSP_BIZ (stat_month, category, current_value, last_value)"
+                + " VALUES (?,?,?,?)", biz);
+        batch(conn, "INSERT INTO TR_INET_HOSP_DEPT_RNK (stat_month, rank_num, dept_name, current_month,"
+                + " last_month, growth_rate) VALUES (?,?,?,?,?,?)", deptRnk);
+        batch(conn, "INSERT INTO TR_INET_HOSP_DOC_RNK (stat_month, rank_num, doctor_name, dept_name,"
+                + " title, current_month) VALUES (?,?,?,?,?,?)", docRnk);
+        batch(conn, "INSERT INTO TR_INET_HOSP_GRW (stat_month, category, data_value)"
+                + " VALUES (?,?,?)", grw);
 
         out.println("  [互医质控] OV=" + ov.size() + " OP=" + op.size() + " BIZ=" + biz.size()
                 + " DEPT_RNK=" + deptRnk.size() + " DOC_RNK=" + docRnk.size() + " GRW=" + grw.size());
@@ -573,12 +576,12 @@ public final class ReportTestDataSeeder {
                         Integer.valueOf(rnd(20, 200))});
             }
         }
-        batch(conn, "INSERT INTO TR_LABSTAT_OV (id, stat_date, blood_collection, blood_efficiency,"
-                + " lab_efficiency) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?)", ov);
-        batch(conn, "INSERT INTO TR_LABSTAT_RNK (id, stat_date, rank_type, rank_num, item_name, item_value)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?)", rnk);
-        batch(conn, "INSERT INTO TR_LABSTAT_TM (id, stat_date, time_slot, blood_count, lab_count)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?)", tm);
+        batch(conn, "INSERT INTO TR_LABSTAT_OV (stat_date, blood_collection, blood_efficiency,"
+                + " lab_efficiency) VALUES (?,?,?,?)", ov);
+        batch(conn, "INSERT INTO TR_LABSTAT_RNK (stat_date, rank_type, rank_num, item_name, item_value)"
+                + " VALUES (?,?,?,?,?)", rnk);
+        batch(conn, "INSERT INTO TR_LABSTAT_TM (stat_date, time_slot, blood_count, lab_count)"
+                + " VALUES (?,?,?,?)", tm);
         out.println("  [检验统计] OV=" + ov.size() + " RNK=" + rnk.size() + " TM=" + tm.size());
     }
 
@@ -595,11 +598,11 @@ public final class ReportTestDataSeeder {
                         Double.valueOf(round2(rnd(20, 90)))});
             }
         }
-        batch(conn, "INSERT INTO TR_MEDTECH_OV (id, stat_date, check_count, on_time_rate, wait_time,"
-                + " avg_wait_late, avg_report_time) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?)", ov);
-        batch(conn, "INSERT INTO TR_MEDTECH_DTL (id, stat_date, dept_name, check_count, on_time_rate,"
+        batch(conn, "INSERT INTO TR_MEDTECH_OV (stat_date, check_count, on_time_rate, wait_time,"
+                + " avg_wait_late, avg_report_time) VALUES (?,?,?,?,?,?)", ov);
+        batch(conn, "INSERT INTO TR_MEDTECH_DTL (stat_date, dept_name, check_count, on_time_rate,"
                 + " wait_time, avg_wait_late, avg_report_time)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?)", dtl);
+                + " VALUES (?,?,?,?,?,?,?)", dtl);
         out.println("  [医技统计] OV=" + ov.size() + " DTL=" + dtl.size());
     }
 
@@ -635,16 +638,16 @@ public final class ReportTestDataSeeder {
                 }
             }
         }
-        batch(conn, "INSERT INTO TR_PAT_PORTRAIT_AGE (id, stat_date, dept_code, patient_type, age_group,"
-                + " archive_count, outpatient_count) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?)", age);
-        batch(conn, "INSERT INTO TR_PAT_PORTRAIT_INSUR (id, stat_date, dept_code, patient_type,"
-                + " insurance_name, patient_count) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?)", insur);
-        batch(conn, "INSERT INTO TR_PAT_PORTRAIT_IDTY (id, stat_date, dept_code, patient_type,"
-                + " identity_name, patient_count) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?)", idty);
-        batch(conn, "INSERT INTO TR_PAT_PORTRAIT_REG (id, stat_date, dept_code, patient_type,"
-                + " source_name, patient_count) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?)", reg);
-        batch(conn, "INSERT INTO TR_PAT_PORTRAIT_ARC (id, stat_date, dept_code, patient_type,"
-                + " source_name, patient_count) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?)", arc);
+        batch(conn, "INSERT INTO TR_PAT_PORTRAIT_AGE (stat_date, dept_code, patient_type, age_group,"
+                + " archive_count, outpatient_count) VALUES (?,?,?,?,?,?)", age);
+        batch(conn, "INSERT INTO TR_PAT_PORTRAIT_INSUR (stat_date, dept_code, patient_type,"
+                + " insurance_name, patient_count) VALUES (?,?,?,?,?)", insur);
+        batch(conn, "INSERT INTO TR_PAT_PORTRAIT_IDTY (stat_date, dept_code, patient_type,"
+                + " identity_name, patient_count) VALUES (?,?,?,?,?)", idty);
+        batch(conn, "INSERT INTO TR_PAT_PORTRAIT_REG (stat_date, dept_code, patient_type,"
+                + " source_name, patient_count) VALUES (?,?,?,?,?)", reg);
+        batch(conn, "INSERT INTO TR_PAT_PORTRAIT_ARC (stat_date, dept_code, patient_type,"
+                + " source_name, patient_count) VALUES (?,?,?,?,?)", arc);
 
         out.println("  [患者画像] AGE=" + age.size() + " INSUR=" + insur.size() + " IDTY=" + idty.size()
                 + " REG=" + reg.size() + " ARC=" + arc.size());
@@ -657,10 +660,10 @@ public final class ReportTestDataSeeder {
                     rate(0, 8), rate(60, 99), rate(0, 5), rate(70, 99), rate(90, 100),
                     rate(0, 3), rate(0, 2), rate(0, 2)});
         }
-        batch(conn, "INSERT INTO TR_QC_OV (id, stat_date, emr_usage_rate, standard_diagnosis_rate,"
+        batch(conn, "INSERT INTO TR_QC_OV (stat_date, emr_usage_rate, standard_diagnosis_rate,"
                 + " on_time_rate, stop_rate, chemo_record_rate, chemo_adverse_rate, chemo_infusion_rate,"
                 + " critical_value_rate, blood_draw_error_rate, surgery_complication_rate, adverse_event_rate)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?,?,?,?,?,?)", ov);
+                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", ov);
 
         List<Object[]> dtl = new ArrayList<Object[]>();
         LocalDate m = endDate.withDayOfMonth(1);
@@ -670,10 +673,10 @@ public final class ReportTestDataSeeder {
                     rate(0, 8), rate(60, 99), rate(0, 5), rate(70, 99), rate(90, 100),
                     rate(0, 3), rate(0, 2), rate(0, 2)});
         }
-        batch(conn, "INSERT INTO TR_QC_DTL (id, stat_month, emr_usage_rate, standard_diagnosis_rate,"
+        batch(conn, "INSERT INTO TR_QC_DTL (stat_month, emr_usage_rate, standard_diagnosis_rate,"
                 + " on_time_rate, stop_rate, chemo_record_rate, chemo_adverse_rate, chemo_infusion_rate,"
                 + " critical_value_rate, blood_draw_error_rate, surgery_complication_rate, adverse_event_rate)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?,?,?,?,?,?)", dtl);
+                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", dtl);
 
         out.println("  [门诊质控] OV=" + ov.size() + " DTL=" + dtl.size());
     }
@@ -694,9 +697,9 @@ public final class ReportTestDataSeeder {
                 }
             }
         }
-        batch(conn, "INSERT INTO TR_REV_OV (id, stat_date, dept_code, doctor_name, register_revenue,"
+        batch(conn, "INSERT INTO TR_REV_OV (stat_date, dept_code, doctor_name, register_revenue,"
                 + " medical_revenue, outpatient_revenue, service_revenue)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?)", rows);
+                + " VALUES (?,?,?,?,?,?,?)", rows);
         out.println("  [门诊收入] TR_REV_OV=" + rows.size());
     }
 
@@ -711,11 +714,11 @@ public final class ReportTestDataSeeder {
                         rate(40, 90), rate(50, 95), rate(30, 85), rate(10, 60)});
             }
         }
-        batch(conn, "INSERT INTO TR_ROOM_USE_OV (id, stat_date, avg_usage, am_usage, pm_usage, holiday_usage)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?)", ov);
-        batch(conn, "INSERT INTO TR_ROOM_USE_DTL (id, stat_date, dept_code, dept_name, avg_usage,"
+        batch(conn, "INSERT INTO TR_ROOM_USE_OV (stat_date, avg_usage, am_usage, pm_usage, holiday_usage)"
+                + " VALUES (?,?,?,?,?)", ov);
+        batch(conn, "INSERT INTO TR_ROOM_USE_DTL (stat_date, dept_code, dept_name, avg_usage,"
                 + " am_usage, pm_usage, holiday_usage)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?)", dtl);
+                + " VALUES (?,?,?,?,?,?,?)", dtl);
         out.println("  [诊室使用率] OV=" + ov.size() + " DTL=" + dtl.size());
     }
 
@@ -804,14 +807,14 @@ public final class ReportTestDataSeeder {
                 src.add(new Object[]{day, s, Integer.valueOf(rnd(20, 300))});
             }
         }
-        batch(conn, "INSERT INTO TR_WIN_STAT_OV (id, stat_date, register_count, payment_count, refund_count)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?)", ov);
-        batch(conn, "INSERT INTO TR_WIN_STAT_AGE (id, stat_date, age_group, patient_count)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?)", age);
-        batch(conn, "INSERT INTO TR_WIN_STAT_TM (id, stat_date, business_type, time_slot, business_count)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?)", tm);
-        batch(conn, "INSERT INTO TR_WIN_STAT_SRC (id, stat_date, source_name, source_count)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?)", src);
+        batch(conn, "INSERT INTO TR_WIN_STAT_OV (stat_date, register_count, payment_count, refund_count)"
+                + " VALUES (?,?,?,?)", ov);
+        batch(conn, "INSERT INTO TR_WIN_STAT_AGE (stat_date, age_group, patient_count)"
+                + " VALUES (?,?,?)", age);
+        batch(conn, "INSERT INTO TR_WIN_STAT_TM (stat_date, business_type, time_slot, business_count)"
+                + " VALUES (?,?,?,?)", tm);
+        batch(conn, "INSERT INTO TR_WIN_STAT_SRC (stat_date, source_name, source_count)"
+                + " VALUES (?,?,?)", src);
         out.println("  [人工窗口] OV=" + ov.size() + " AGE=" + age.size() + " TM=" + tm.size()
                 + " SRC=" + src.size());
     }
@@ -864,17 +867,17 @@ public final class ReportTestDataSeeder {
                         Integer.valueOf(rnd(500, 3000))});
             }
         }
-        batch(conn, "INSERT INTO TR_CASH_SETTLE_OV (id, stat_date, appointment_register,"
+        batch(conn, "INSERT INTO TR_CASH_SETTLE_OV (stat_date, appointment_register,"
                 + " appointment_register_compare, appointment_fetch, appointment_fetch_compare,"
                 + " today_register, today_register_compare, refund, refund_compare, outpatient_charge,"
                 + " outpatient_charge_compare, outpatient_refund, outpatient_refund_compare, prepayment,"
                 + " prepayment_compare, hospital_refund, hospital_refund_compare, discharge_settlement,"
                 + " discharge_settlement_compare)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", ov);
-        batch(conn, "INSERT INTO TR_CASH_SETTLE_DTL (id, stat_date, item_date, cashier_name, item_type,"
-                + " item_value) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?)", dtl);
-        batch(conn, "INSERT INTO TR_CASH_SETTLE_CHT (id, stat_date, chart_title, chart_subtitle,"
-                + " date_range, category, data_value) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?)", cht);
+                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", ov);
+        batch(conn, "INSERT INTO TR_CASH_SETTLE_DTL (stat_date, item_date, cashier_name, item_type,"
+                + " item_value) VALUES (?,?,?,?,?)", dtl);
+        batch(conn, "INSERT INTO TR_CASH_SETTLE_CHT (stat_date, chart_title, chart_subtitle,"
+                + " date_range, category, data_value) VALUES (?,?,?,?,?,?)", cht);
         out.println("  [收费员结账] OV=" + ov.size() + " DTL=" + dtl.size() + " CHT=" + cht.size());
     }
 
@@ -917,17 +920,17 @@ public final class ReportTestDataSeeder {
                         Integer.valueOf(rnd(10, 500)), Integer.valueOf(rnd(-50, 50))});
             }
         }
-        batch(conn, "INSERT INTO TR_DISCH_SETTLE_OV (id, stat_date, total_discharge_count,"
+        batch(conn, "INSERT INTO TR_DISCH_SETTLE_OV (stat_date, total_discharge_count,"
                 + " total_discharge_compare, discharged_count, discharged_compare, not_discharged_count,"
                 + " not_discharged_compare, settlement_amount, settlement_amount_compare)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?,?,?)", ov);
-        batch(conn, "INSERT INTO TR_DISCH_SETTLE_DTL (id, stat_date, item_date, total_last, total_current,"
+                + " VALUES (?,?,?,?,?,?,?,?,?)", ov);
+        batch(conn, "INSERT INTO TR_DISCH_SETTLE_DTL (stat_date, item_date, total_last, total_current,"
                 + " total_compare, discharged_last, discharged_current, discharged_compare,"
                 + " not_discharged_last, not_discharged_current, not_discharged_compare, amount_last,"
                 + " amount_current, amount_compare)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", dtl);
-        batch(conn, "INSERT INTO TR_DISCH_SETTLE_CHT (id, stat_date, chart_type, item_name, item_value,"
-                + " item_compare) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?)", cht);
+                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", dtl);
+        batch(conn, "INSERT INTO TR_DISCH_SETTLE_CHT (stat_date, chart_type, item_name, item_value,"
+                + " item_compare) VALUES (?,?,?,?,?)", cht);
         out.println("  [出院结算] OV=" + ov.size() + " DTL=" + dtl.size() + " CHT=" + cht.size());
     }
 
@@ -951,12 +954,12 @@ public final class ReportTestDataSeeder {
                 trend.add(new Object[]{day, dayAt(d - k >= 0 ? d - k : 0), Integer.valueOf(rnd(10, 200))});
             }
         }
-        batch(conn, "INSERT INTO TR_TREAT_STAT_OV (id, stat_date, patient_count, treatment_count,"
-                + " treatment_amount) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?)", ov);
-        batch(conn, "INSERT INTO TR_TREAT_STAT_DTL (id, stat_date, dept_code, patient_count,"
-                + " treatment_count, treatment_amount) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?)", dtl);
-        batch(conn, "INSERT INTO TR_TREAT_STAT_TREND (id, stat_date, trend_date, trend_value)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?)", trend);
+        batch(conn, "INSERT INTO TR_TREAT_STAT_OV (stat_date, patient_count, treatment_count,"
+                + " treatment_amount) VALUES (?,?,?,?)", ov);
+        batch(conn, "INSERT INTO TR_TREAT_STAT_DTL (stat_date, dept_code, patient_count,"
+                + " treatment_count, treatment_amount) VALUES (?,?,?,?,?)", dtl);
+        batch(conn, "INSERT INTO TR_TREAT_STAT_TREND (stat_date, trend_date, trend_value)"
+                + " VALUES (?,?,?)", trend);
 
         // 治疗项目明细：页面「TOP10 治疗项目」图用，按天造，后端按项目汇总取前 10
         List<Object[]> item = new ArrayList<Object[]>();
@@ -968,8 +971,8 @@ public final class ReportTestDataSeeder {
                         Double.valueOf(round2(cnt * (50 + rnd(0, 300))))});
             }
         }
-        batch(conn, "INSERT INTO TR_TREAT_STAT_ITEM (id, stat_date, item_name, treatment_count,"
-                + " treatment_amount) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?)", item);
+        batch(conn, "INSERT INTO TR_TREAT_STAT_ITEM (stat_date, item_name, treatment_count,"
+                + " treatment_amount) VALUES (?,?,?,?)", item);
 
         out.println("  [治疗统计] OV=" + ov.size() + " DTL=" + dtl.size() + " TREND=" + trend.size()
                 + " ITEM=" + item.size());
@@ -1019,15 +1022,15 @@ public final class ReportTestDataSeeder {
             cht.add(new Object[]{dayAt(DAYS - 1), "PAY_TYPE", "退项支付方式分析", "近 30 天", "30天",
                     pt, "退项", Integer.valueOf(rnd(10, 200)), Integer.valueOf(rnd(10, 200))});
         }
-        batch(conn, "INSERT INTO TR_INPAT_PREPAY_OV (id, stat_date, prepayment_count,"
+        batch(conn, "INSERT INTO TR_INPAT_PREPAY_OV (stat_date, prepayment_count,"
                 + " prepayment_count_compare, prepayment_amount, prepayment_amount_compare)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?)", ov);
-        batch(conn, "INSERT INTO TR_INPAT_PREPAY_DTL (id, stat_date, item_date, data_type, count_last,"
+                + " VALUES (?,?,?,?,?)", ov);
+        batch(conn, "INSERT INTO TR_INPAT_PREPAY_DTL (stat_date, item_date, data_type, count_last,"
                 + " count_current, count_compare, amount_last, amount_current, amount_compare)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?,?,?)", dtl);
-        batch(conn, "INSERT INTO TR_INPAT_PREPAY_CHT (id, stat_date, chart_type, chart_title,"
+                + " VALUES (?,?,?,?,?,?,?,?,?)", dtl);
+        batch(conn, "INSERT INTO TR_INPAT_PREPAY_CHT (stat_date, chart_type, chart_title,"
                 + " chart_subtitle, date_range, category, series_name, data_value, compare_value)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?,?,?)", cht);
+                + " VALUES (?,?,?,?,?,?,?,?,?)", cht);
         out.println("  [住院预交金] OV=" + ov.size() + " DTL=" + dtl.size() + " CHT=" + cht.size());
     }
 
@@ -1126,22 +1129,22 @@ public final class ReportTestDataSeeder {
             }
         }
 
-        batch(conn, "INSERT INTO TR_OUTP_FIN_CLINIC_MASTER (id, PATIENT_ID, STAT_DATE, VISIT_DATE, VISIT_NO,"
+        batch(conn, "INSERT INTO TR_OUTP_FIN_CLINIC_MASTER (PATIENT_ID, STAT_DATE, VISIT_DATE, VISIT_NO,"
                 + " RETURNED_DATE, IS_RETURN_TYPE, REGIST_FEE, CLINIC_FEE, CLINIC_LABEL, VISIT_TIME_DESC,"
-                + " OPERATOR_NO) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?,?,?,?,?)", clinic);
-        batch(conn, "INSERT INTO TR_OUTP_FIN_RCPT_ACCT (id, RCPT_NO, PATIENT_ID, STAT_DATE, VISIT_DATE,"
+                + " OPERATOR_NO) VALUES (?,?,?,?,?,?,?,?,?,?,?)", clinic);
+        batch(conn, "INSERT INTO TR_OUTP_FIN_RCPT_ACCT (RCPT_NO, PATIENT_ID, STAT_DATE, VISIT_DATE,"
                 + " TOTAL_CHARGES, TOTAL_COSTS, REFUNDED_RCPT_NO, OPERATOR_NO, BILL_CLASS)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?,?,?)", rcpt);
-        batch(conn, "INSERT INTO TR_OUTP_FIN_ACCT_MASTER (id, ACCT_NO, ACCT_DATE, STAT_DATE, OPERATOR_NO,"
+                + " VALUES (?,?,?,?,?,?,?,?,?)", rcpt);
+        batch(conn, "INSERT INTO TR_OUTP_FIN_ACCT_MASTER (ACCT_NO, ACCT_DATE, STAT_DATE, OPERATOR_NO,"
                 + " TOTAL_COSTS, REFUND_AMOUNT, RCPTS_NUM, REFUND_NUM)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?,?)", acct);
-        batch(conn, "INSERT INTO TR_OUTP_FIN_PAYMENTS_MONEY (id, RCPT_NO, MONEY_TYPE, PAYMENT_AMOUNT,"
-                + " REFUNDED_AMOUNT) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?)", pay);
-        batch(conn, "INSERT INTO TR_OUTP_FIN_MOP_QUEUE (id, SCHEDULE_ID, PATIENT_ID, STAT_DATE, VISIT_NO,"
+                + " VALUES (?,?,?,?,?,?,?,?)", acct);
+        batch(conn, "INSERT INTO TR_OUTP_FIN_PAYMENTS_MONEY (RCPT_NO, MONEY_TYPE, PAYMENT_AMOUNT,"
+                + " REFUNDED_AMOUNT) VALUES (?,?,?,?)", pay);
+        batch(conn, "INSERT INTO TR_OUTP_FIN_MOP_QUEUE (SCHEDULE_ID, PATIENT_ID, STAT_DATE, VISIT_NO,"
                 + " SOURCE_NAME, QUEUE_TYPE, IS_USED, VISIT_DATE)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?,?)", queue);
-        batch(conn, "INSERT INTO TR_OUTP_FIN_ACCT_MONEY (id, ACCT_NO, MONEY_TYPE, INCOME_AMOUNT,"
-                + " REFUNDED_AMOUNT) VALUES (seq_tr_reports.NEXTVAL,?,?,?,?)", acctMoney);
+                + " VALUES (?,?,?,?,?,?,?,?)", queue);
+        batch(conn, "INSERT INTO TR_OUTP_FIN_ACCT_MONEY (ACCT_NO, MONEY_TYPE, INCOME_AMOUNT,"
+                + " REFUNDED_AMOUNT) VALUES (?,?,?,?)", acctMoney);
 
         out.println("  [门诊财务] CLINIC=" + clinic.size() + " RCPT=" + rcpt.size() + " ACCT=" + acct.size()
                 + " PAY=" + pay.size() + " QUEUE=" + queue.size() + " ACCT_MONEY=" + acctMoney.size());
@@ -1197,12 +1200,12 @@ public final class ReportTestDataSeeder {
             cols.append(", shuang_yue_age_").append(ageSuffix(i));
         }
 
-        StringBuilder marks = new StringBuilder("seq_tr_reports.NEXTVAL");
+        StringBuilder marks = new StringBuilder("?");
         for (int i = 0; i < 2 + 3 + 5 + 5 + 2 + AGE_GROUPS.length + AGE_GROUPS.length; i++) {
             marks.append(",?");
         }
 
-        batch(conn, "INSERT INTO TR_OUTPATIENT_STATS_DAY_RESULT (id, " + cols + ") VALUES (" + marks + ")",
+        batch(conn, "INSERT INTO TR_OUTPATIENT_STATS_DAY_RESULT (" + cols + ") VALUES (" + marks + ")",
                 rows);
         out.println("  [门诊每日宽表] TR_OUTPATIENT_STATS_DAY_RESULT=" + rows.size());
     }

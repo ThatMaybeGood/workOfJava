@@ -1,7 +1,6 @@
 package com.reports.entity;
 
 
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Data;
@@ -21,9 +20,7 @@ public class OutpatientPatientPortraitInsurEntity implements Serializable {
     /**
      * 主键ID
      */
-    @TableId(value = "id")
-    private Long id;
-
+    
     /**
      * 统计日期
      */

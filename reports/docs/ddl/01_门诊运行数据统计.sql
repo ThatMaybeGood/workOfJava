@@ -8,7 +8,6 @@ DROP TABLE tr_outp_op_dtl CASCADE CONSTRAINTS;
 
 -- 1.2 门诊运行科室明细表
 CREATE TABLE tr_outp_op_dtl (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     dept_code       VARCHAR2(50),                       -- 科室编码(关联TR_DEPT_DICT)
     dept_name       VARCHAR2(100)   NOT NULL,           -- 科室名称
@@ -35,7 +34,6 @@ CREATE TABLE tr_outp_op_dtl (
 
 -- 1.3 门诊运行源表(HIS每日抽取,报表直接查询)
 CREATE TABLE TR_OUTP_OP (
-    id                      NUMBER(19)      PRIMARY KEY,
     stat_date               DATE            NOT NULL,   -- 统计日期
     dept_code               VARCHAR2(50),               -- 科室编码
     total_visits            NUMBER(10)      DEFAULT 0,  -- 总就诊人次
@@ -77,7 +75,6 @@ CREATE INDEX idx_tr_op_detail_dept ON tr_outp_op_dtl(dept_name);
 
 COMMENT ON TABLE tr_outp_op_dtl IS '门诊运行数据统计-科室明细';
 COMMENT ON TABLE tr_outp_op_dtl IS '门诊运行数据统计-科室明细(按科室维度存储就诊人次、预约率、检查率、效率及按职称分类的就诊人次明细)';
-COMMENT ON COLUMN tr_outp_op_dtl.id IS '主键ID';
 COMMENT ON COLUMN tr_outp_op_dtl.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_outp_op_dtl.dept_name IS '科室名称';
 COMMENT ON COLUMN tr_outp_op_dtl.visits IS '就诊人次';

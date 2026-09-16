@@ -9,7 +9,6 @@ import com.reports.entity.WindowStatsOvEntity;
 import com.reports.entity.WindowStatsAgeEntity;
 import com.reports.entity.WindowStatsTmEntity;
 import com.reports.entity.WindowStatsSrcEntity;
-import com.reports.entity.WindowStatsLoadEntity;
 import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -256,7 +255,6 @@ public class OutpatientWindowStatsServiceImpl implements OutpatientWindowStatsSe
 
     private WorkloadTable queryWorkloadTableByMybatisPlus(OutpatientWindowStatsRequest request) {
         try {
-//            List<WindowStatsLoadEntity> list = windowStatsMapper.queryWorkload(request.getStartDate(), request.getEndDate());
             List<WindowStatsTmEntity> list = windowStatsMapper.queryWorkload(request.getStartDate(), request.getEndDate());
             return buildWorkloadTable(list);
         } catch (Exception e) {
@@ -301,30 +299,6 @@ public class OutpatientWindowStatsServiceImpl implements OutpatientWindowStatsSe
         analysis.setData(data);
         return analysis;
     }
-//
-//    private WorkloadTable buildWorkloadTable(List<WindowStatsLoadEntity> list) {
-//        WorkloadTable table = new WorkloadTable();
-//        List<String> headers = new ArrayList<>();
-//        headers.add("窗口");
-//        headers.add("挂号");
-//        headers.add("收费");
-//        headers.add("退费");
-//        table.setHeaders(headers);
-//        List<WorkloadRow> rows = new ArrayList<>();
-//        for (WindowStatsLoadEntity entity : list) {
-//            WorkloadRow row = new WorkloadRow();
-//            row.setBusiness(entity.getBusinessType());
-//            List<Integer> data = new ArrayList<>();
-//            data.add(entity.getRegisterCount());
-//            data.add(entity.getPaymentCount());
-//            data.add(entity.getRefundCount());
-//            row.setData(data);
-//            rows.add(row);
-//        }
-//        table.setRows(rows);
-//        return table;
-//    }
-
     private WorkloadTable buildWorkloadTable(List<WindowStatsTmEntity> list) {
         if (list == null || list.isEmpty()) {
             WorkloadTable emptyTable = new WorkloadTable();

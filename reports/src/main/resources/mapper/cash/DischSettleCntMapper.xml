@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.DischSettleCntMapper">
+
+    <!-- 时间粒度表达式(按天/按月) -->
+    <sql id="dateExpr">
+        <choose>
+            <when test="timeDimension == 'month'">TO_CHAR(a.SETTLING_DATE, 'YYYY-MM')</when>
+            <otherwise>TO_CHAR(TRUNC(a.SETTLING_DATE), 'YYYY-MM-DD')</otherwise>
+        </choose>
+    </sql>
+
+    <!-- 费别口径: HIS库US7ASCII驱动会丢弃高字节，RAWTOHEX把原始字节转ASCII hex由Java解GBK -->
+    <sql id="feeTypeExpr">
+        RAWTOHEX(TRIM(a.CHARGE_TYPE))
+    </sql>
+
+    <!-- 结算类别口径: 自助结算(E700/9111 自助机)/窗口结算，出ASCII码由Java翻译 -->
+    <sql id="channelExpr">
+        CASE WHEN a.OPERATOR_NO IN ('E700', '9111') THEN 'SELF' ELSE 'WINDOW' END
+    </sql>
+
+    <!-- ============================================================ -->
+    <!-- 按费别汇总: 日期、费别、结算类别、人次                              -->
+    <!-- ============================================================ -->
+    <select id="queryByFeeChannel" resultType="com.reports.dto.response.cash.discharge.settlement.PersonCountItem">
+        SELECT
+            <include refid="dateExpr"/> AS itemDate,
+            <include refid="feeTypeExpr"/> AS feeType,
+            <include refid="channelExpr"/> AS settleChannel,
+            COUNT(1) AS cnt
+        FROM inp_settle_master a
+        WHERE a.SETTLING_DATE &gt;= #{startDate}
+          AND a.SETTLING_DATE &lt; #{endDate} + 1
+        GROUP BY
+            <include refid="dateExpr"/>,
+            <include refid="feeTypeExpr"/>,
+            <include refid="channelExpr"/>
+        ORDER BY itemDate, feeType, settleChannel
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 按操作员: 日期、费别、结算类别、操作员工号/姓名、人次                 -->
+    <!-- ============================================================ -->
+    <select id="queryByOperator" resultType="com.reports.dto.response.cash.discharge.settlement.PersonCountItem">
+        SELECT
+            <include refid="dateExpr"/> AS itemDate,
+            <include refid="feeTypeExpr"/> AS feeType,
+            <include refid="channelExpr"/> AS settleChannel,
+            a.OPERATOR_NO AS operatorNo,
+            RAWTOHEX(NVL(u.USER_NAME, a.OPERATOR_NO)) AS operatorName,
+            COUNT(1) AS cnt
+        FROM inp_settle_master a
+        LEFT JOIN users u ON u.USER_ID = a.OPERATOR_NO
+        WHERE a.SETTLING_DATE &gt;= #{startDate}
+          AND a.SETTLING_DATE &lt; #{endDate} + 1
+        GROUP BY
+            <include refid="dateExpr"/>,
+            <include refid="feeTypeExpr"/>,
+            <include refid="channelExpr"/>,
+            a.OPERATOR_NO,
+            u.USER_NAME
+        ORDER BY itemDate, feeType, settleChannel, operatorNo
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 按支付类别: 日期、原始费别、结算类别、支付类别、人次；军队医改过滤由Java做 -->
+    <!-- ============================================================ -->
+    <select id="queryByPayType" resultType="com.reports.dto.response.cash.discharge.settlement.PersonCountItem">
+        SELECT
+            <include refid="dateExpr"/> AS itemDate,
+            <include refid="feeTypeExpr"/> AS feeType,
+            <include refid="channelExpr"/> AS settleChannel,
+            RAWTOHEX(TRIM(a.CHARGE_TYPE)) AS payType,
+            COUNT(1) AS cnt
+        FROM inp_settle_master a
+        WHERE a.SETTLING_DATE &gt;= #{startDate}
+          AND a.SETTLING_DATE &lt; #{endDate} + 1
+        GROUP BY
+            <include refid="dateExpr"/>,
+            <include refid="channelExpr"/>,
+            a.CHARGE_TYPE
+        ORDER BY itemDate, settleChannel, payType
+    </select>
+
+</mapper>

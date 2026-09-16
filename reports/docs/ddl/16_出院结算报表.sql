@@ -12,7 +12,6 @@ DROP TABLE tr_disch_settle_cht CASCADE CONSTRAINTS;
 
 -- 16.1 出院结算概览表
 CREATE TABLE tr_disch_settle_ov (
-    id                      NUMBER(19)      PRIMARY KEY,
     stat_date               DATE            NOT NULL,   -- 统计日期
     total_discharge_count   NUMBER(10)      DEFAULT 0,  -- 总出院人次
     total_discharge_compare NUMBER(10)      DEFAULT 0,  -- 总出院对比
@@ -31,7 +30,6 @@ CREATE TABLE tr_disch_settle_ov (
 
 -- 16.2 出院结算日明细表
 CREATE TABLE tr_disch_settle_dtl (
-    id                      NUMBER(19)      PRIMARY KEY,
     stat_date               DATE            NOT NULL,   -- 统计日期
     item_date               DATE            NOT NULL,   -- 日期
     total_last              NUMBER(10)      DEFAULT 0,  -- 总出院上期
@@ -55,7 +53,6 @@ CREATE TABLE tr_disch_settle_dtl (
 
 -- 16.3 出院结算图表分析表
 CREATE TABLE tr_disch_settle_cht (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     chart_type      VARCHAR2(50)    NOT NULL,           -- 图表类型(CHANNEL/PATIENT_TYPE/AMOUNT_TYPE)
     item_name       VARCHAR2(100)   NOT NULL,           -- 项目名称
@@ -76,7 +73,6 @@ CREATE INDEX idx_tr_discharge_overview_date ON tr_disch_settle_ov(stat_date);
 
 COMMENT ON TABLE tr_disch_settle_ov IS '出院结算报表-概览';
 COMMENT ON TABLE tr_disch_settle_ov IS '出院结算报表-概览(出院结算业务的总览指标:出院人次、结算金额)';
-COMMENT ON COLUMN tr_disch_settle_ov.id IS '主键ID';
 COMMENT ON COLUMN tr_disch_settle_ov.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_disch_settle_ov.total_discharge_count IS '总出院人次';
 COMMENT ON COLUMN tr_disch_settle_ov.total_discharge_compare IS '总出院对比';
@@ -93,7 +89,6 @@ COMMENT ON COLUMN tr_disch_settle_ov.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_disch_settle_ov.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_disch_settle_dtl IS '出院结算报表-日明细';
 COMMENT ON TABLE tr_disch_settle_dtl IS '出院结算报表-日明细(出院结算按日期的详细对比数据:本期 vs 上期)';
-COMMENT ON COLUMN tr_disch_settle_dtl.id IS '主键ID';
 COMMENT ON COLUMN tr_disch_settle_dtl.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_disch_settle_dtl.item_date IS '日期';
 COMMENT ON COLUMN tr_disch_settle_dtl.total_last IS '总出院上期';
@@ -115,7 +110,6 @@ COMMENT ON COLUMN tr_disch_settle_dtl.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_disch_settle_dtl.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_disch_settle_cht IS '出院结算报表-图表';
 COMMENT ON TABLE tr_disch_settle_cht IS '出院结算报表-图表(出院结算图表数据:按图表类型和项目分类存储)';
-COMMENT ON COLUMN tr_disch_settle_cht.id IS '主键ID';
 COMMENT ON COLUMN tr_disch_settle_cht.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_disch_settle_cht.chart_type IS '图表类型(CHANNEL/PATIENT_TYPE/AMOUNT_TYPE)';
 COMMENT ON COLUMN tr_disch_settle_cht.item_name IS '项目名称';

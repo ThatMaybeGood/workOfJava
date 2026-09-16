@@ -9,7 +9,7 @@ spring:
   profiles:
     # dev  = 生产库（168.168.235.105/yuanqi），test = 测试库（192.168.31.35/orcl）
     # 测试库的表结构与测试数据由 com.reports.tools.ReportDbInitializer 生成，可重复执行
-    active: test
+    active: dev
 
 # 追踪号配置
 reports:

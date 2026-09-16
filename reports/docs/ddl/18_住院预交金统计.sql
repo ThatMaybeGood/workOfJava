@@ -12,7 +12,6 @@ DROP TABLE tr_inpat_prepay_cht CASCADE CONSTRAINTS;
 
 -- 18.1 住院预交金概览表
 CREATE TABLE tr_inpat_prepay_ov (
-    id                      NUMBER(19)      PRIMARY KEY,
     stat_date               DATE            NOT NULL,   -- 统计日期
     prepayment_count        NUMBER(10)      DEFAULT 0,  -- 预交金笔数
     prepayment_count_compare NUMBER(10)     DEFAULT 0,  -- 预交金笔数对比
@@ -27,7 +26,6 @@ CREATE TABLE tr_inpat_prepay_ov (
 
 -- 18.2 住院预交金日明细表
 CREATE TABLE tr_inpat_prepay_dtl (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     item_date       DATE            NOT NULL,           -- 日期
     data_type       VARCHAR2(20)    NOT NULL,           -- 数据类型(SUMMARY/INCOME/REFUND)
@@ -46,7 +44,6 @@ CREATE TABLE tr_inpat_prepay_dtl (
 
 -- 18.3 住院预交金图表数据表
 CREATE TABLE tr_inpat_prepay_cht (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     chart_type      VARCHAR2(50)    NOT NULL,           -- 图表类型(TREND/CHANNEL/PAY_TYPE)
     chart_title     VARCHAR2(200),                      -- 图表标题
@@ -74,7 +71,6 @@ CREATE INDEX idx_tr_prepay_chart_date ON tr_inpat_prepay_cht(stat_date);
 -- 添加注释
 
 COMMENT ON TABLE tr_inpat_prepay_ov IS '住院预交金统计-概览(存储住院预交金总览:预交金笔数、金额及对比值)';
-COMMENT ON COLUMN tr_inpat_prepay_ov.id IS '主键ID';
 COMMENT ON COLUMN tr_inpat_prepay_ov.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_inpat_prepay_ov.prepayment_count IS '预交金笔数';
 COMMENT ON COLUMN tr_inpat_prepay_ov.prepayment_count_compare IS '预交金笔数对比值';
@@ -86,7 +82,6 @@ COMMENT ON COLUMN tr_inpat_prepay_ov.ext1 IS '扩展字段1';
 COMMENT ON COLUMN tr_inpat_prepay_ov.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_inpat_prepay_ov.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_inpat_prepay_dtl IS '住院预交金统计-日明细(按日期和数据类型存储预交金笔数和金额的明细对比)';
-COMMENT ON COLUMN tr_inpat_prepay_dtl.id IS '主键ID';
 COMMENT ON COLUMN tr_inpat_prepay_dtl.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_inpat_prepay_dtl.item_date IS '日期';
 COMMENT ON COLUMN tr_inpat_prepay_dtl.data_type IS '数据类型(SUMMARY/INCOME/REFUND)';
@@ -102,7 +97,6 @@ COMMENT ON COLUMN tr_inpat_prepay_dtl.ext1 IS '扩展字段1';
 COMMENT ON COLUMN tr_inpat_prepay_dtl.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_inpat_prepay_dtl.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_inpat_prepay_cht IS '住院预交金统计-图表(存储预交金趋势、渠道、支付方式等图表数据)';
-COMMENT ON COLUMN tr_inpat_prepay_cht.id IS '主键ID';
 COMMENT ON COLUMN tr_inpat_prepay_cht.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_inpat_prepay_cht.chart_type IS '图表类型(TREND/CHANNEL/PAY_TYPE)';
 COMMENT ON COLUMN tr_inpat_prepay_cht.chart_title IS '图表标题';

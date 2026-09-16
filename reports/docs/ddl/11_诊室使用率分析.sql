@@ -10,7 +10,6 @@ DROP TABLE tr_room_use_dtl CASCADE CONSTRAINTS;
 
 -- 11.1 诊室使用率概览表
 CREATE TABLE tr_room_use_ov (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     avg_usage       VARCHAR2(20),                      -- 平均使用率
     am_usage        VARCHAR2(20),                      -- 上午使用率
@@ -25,7 +24,6 @@ CREATE TABLE tr_room_use_ov (
 
 -- 11.2 诊室使用率科室明细表
 CREATE TABLE tr_room_use_dtl (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     dept_code       VARCHAR2(50),                       -- 科室编码(RoomUsageMapper 与 TR_DEPT_DICT 关联用)
     dept_name       VARCHAR2(100)   NOT NULL,           -- 科室名称
@@ -50,7 +48,6 @@ CREATE UNIQUE INDEX uk_tr_room_use_dtl ON tr_room_use_dtl(stat_date, dept_code);
 
 COMMENT ON TABLE tr_room_use_ov IS '诊室使用率分析-概览';
 COMMENT ON TABLE tr_room_use_ov IS '诊室使用率分析-概览(诊室使用率的总览指标:平均使用率、上午/下午/节假日使用率)';
-COMMENT ON COLUMN tr_room_use_ov.id IS '主键ID';
 COMMENT ON COLUMN tr_room_use_ov.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_room_use_ov.avg_usage IS '平均使用率';
 COMMENT ON COLUMN tr_room_use_ov.am_usage IS '上午使用率';
@@ -63,7 +60,6 @@ COMMENT ON COLUMN tr_room_use_ov.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_room_use_ov.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_room_use_dtl IS '诊室使用率分析-科室明细';
 COMMENT ON TABLE tr_room_use_dtl IS '诊室使用率分析-科室明细(按科室维度统计诊室使用率)';
-COMMENT ON COLUMN tr_room_use_dtl.id IS '主键ID';
 COMMENT ON COLUMN tr_room_use_dtl.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_room_use_dtl.dept_code IS '科室编码(关联TR_DEPT_DICT)';
 COMMENT ON COLUMN tr_room_use_dtl.dept_name IS '科室名称';

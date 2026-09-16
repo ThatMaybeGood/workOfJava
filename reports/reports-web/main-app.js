@@ -30,6 +30,7 @@ const menuConfig = [
         icon: 'bi-hospital',
         items: [
             { label: '出院结算报表',     file: 'cash/cash-discharge-settlement.html',     icon: 'bi-file-medical' },
+            { label: '出院结算人次统计', file: 'cash/cash-discharge-person-count.html',   icon: 'bi-person-lines-fill' },
             { label: '收费员结账统计',   file: 'cash/cash-cashier-settlement.html',       icon: 'bi-cash-stack' },
             { label: '住院预交金统计',   file: 'cash/cash-inpatient-prepayment.html',     icon: 'bi-wallet2' },
             { label: '门诊财务报表',     file: 'cash/cash-outpatient-finance.html',       icon: 'bi-file-earmark-bar-graph' },

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.WeatherMaintainMapper">
+
+    <!-- ============================================================ -->
+    <!-- 天气数据维护：按日期范围查询                                       -->
+    <!-- ============================================================ -->
+    <select id="queryWeatherByDate" resultType="com.reports.entity.WeatherEntity">
+        SELECT
+        weather_date AS weatherDate,
+        weather_type AS weatherType,
+        weather_coef AS weatherCoef,
+        weather_source AS weatherSource
+        FROM TR_FC_WEATHER
+        WHERE weather_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY weather_date DESC
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 天气数据维护：近30天同天气日期的爽约退号率                          -->
+    <!-- ============================================================ -->
+    <select id="queryNoShowRateByWeather" resultType="java.lang.Double">
+        SELECT SUM(s.tui_hao_shu + s.shuang_yue_shu) / NULLIF(SUM(s.total_guahao), 0)
+        FROM TR_OUTPATIENT_STATS_DAY_RESULT s
+        INNER JOIN tr_fc_weather w ON s.stats_date = w.weather_date
+        WHERE w.weather_type = #{weatherType}
+          AND s.stats_date BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 天气数据维护：覆盖保存(按日期存在即更新、不存在即插入)                -->
+    <!-- ============================================================ -->
+    <insert id="mergeWeather" parameterType="com.reports.entity.WeatherEntity">
+        MERGE INTO TR_FC_WEATHER w
+        USING (SELECT #{weatherDate} AS weather_date FROM DUAL) s
+        ON (w.weather_date = s.weather_date)
+        WHEN MATCHED THEN
+            UPDATE SET
+                weather_type = #{weatherType},
+                weather_coef = #{weatherCoef},
+                weather_source = #{weatherSource},
+                update_time = SYSDATE
+        WHEN NOT MATCHED THEN
+            INSERT (weather_date, weather_type, weather_coef, weather_source, create_time, update_time)
+            VALUES (#{weatherDate}, #{weatherType}, #{weatherCoef}, #{weatherSource}, SYSDATE, SYSDATE)
+    </insert>
+
+    <!-- ============================================================ -->
+    <!-- 天气数据维护：按日期删除                                           -->
+    <!-- ============================================================ -->
+    <delete id="deleteWeatherByDate">
+        DELETE FROM TR_FC_WEATHER WHERE weather_date = #{weatherDate}
+    </delete>
+
+</mapper>

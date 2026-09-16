@@ -96,6 +96,10 @@ const API_CONFIG = {
         'reports.outp.service-quality-maintain': {
             endpoint: '/api/outpatient/service-quality-maintain'
         },
+        // 天气数据维护
+        'reports.common.weather-maintain': {
+            endpoint: '/api/common/weather-maintain'
+        },
         // 出院结算报表
         'reports.cash.cash-discharge-settlement': {
             overview: '/api/cash/discharge-settlement/overview',
@@ -124,6 +128,10 @@ const API_CONFIG = {
         // 门诊财务报表
         'reports.cash.outpatient-finance': {
             endpoint: '/api/cash/outpatient-finance'
+        },
+        // 出院结算人次统计
+        'reports.cash.disch-settle-cnt': {
+            endpoint: '/api/cash/disch-settle-cnt'
         }
     }
 };
@@ -283,6 +291,10 @@ function callMockService(methodKey, endpointKey, params) {
         'reports.outp.service-quality-maintain': {
             endpoint: (p) => MockService.getServiceQualityMaintainData(p)
         },
+        // 天气数据维护
+        'reports.common.weather-maintain': {
+            endpoint: (p) => MockService.getWeatherMaintainData(p)
+        },
         // 出院结算报表
         'reports.cash.cash-discharge-settlement': {
             overview: () => MockService.getDischargeSettlementOverview(),
@@ -311,6 +323,10 @@ function callMockService(methodKey, endpointKey, params) {
         // 门诊财务报表
         'reports.cash.outpatient-finance': {
             endpoint: (p) => MockService.getOutpatientFinance(p)
+        },
+        // 出院结算人次统计
+        'reports.cash.disch-settle-cnt': {
+            endpoint: (p) => MockService.getDischSettlePersonCountData(p)
         }
     };
 

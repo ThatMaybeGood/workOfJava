@@ -10,7 +10,6 @@ DROP TABLE tr_medtech_dtl CASCADE CONSTRAINTS;
 
 -- 6.1 医技统计概览表
 CREATE TABLE tr_medtech_ov (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     check_count     NUMBER(10)      DEFAULT 0,          -- 检查人次
     on_time_rate    VARCHAR2(20),                      -- 准时率
@@ -26,7 +25,6 @@ CREATE TABLE tr_medtech_ov (
 
 -- 6.2 医技统计科室明细表
 CREATE TABLE tr_medtech_dtl (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     dept_name       VARCHAR2(100)   NOT NULL,           -- 科室名称
     check_count     NUMBER(10)      DEFAULT 0,          -- 检查人次
@@ -50,7 +48,6 @@ CREATE INDEX idx_tr_med_detail_dept ON tr_medtech_dtl(dept_name);
 
 COMMENT ON TABLE tr_medtech_ov IS '医技统计-概览';
 COMMENT ON TABLE tr_medtech_ov IS '医技统计-概览(医技科室运营总览指标:检查人次、准时率、等候时长、报告时长)';
-COMMENT ON COLUMN tr_medtech_ov.id IS '主键ID';
 COMMENT ON COLUMN tr_medtech_ov.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_medtech_ov.check_count IS '检查人次';
 COMMENT ON COLUMN tr_medtech_ov.on_time_rate IS '准时率';
@@ -64,7 +61,6 @@ COMMENT ON COLUMN tr_medtech_ov.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_medtech_ov.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_medtech_dtl IS '医技统计-科室明细';
 COMMENT ON TABLE tr_medtech_dtl IS '医技统计-科室明细(按医技科室维度统计检查人次、准时率、等候时长等)';
-COMMENT ON COLUMN tr_medtech_dtl.id IS '主键ID';
 COMMENT ON COLUMN tr_medtech_dtl.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_medtech_dtl.dept_name IS '科室名称';
 COMMENT ON COLUMN tr_medtech_dtl.check_count IS '检查人次';

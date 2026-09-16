@@ -12,7 +12,6 @@ DROP TABLE tr_cash_settle_cht CASCADE CONSTRAINTS;
 
 -- 15.1 收费员结账概览表
 CREATE TABLE tr_cash_settle_ov (
-    id                      NUMBER(19)      PRIMARY KEY,
     stat_date               DATE            NOT NULL,   -- 统计日期
     appointment_register    NUMBER(10)      DEFAULT 0,  -- 预约挂号
     appointment_register_compare NUMBER(10) DEFAULT 0, -- 对比值
@@ -41,7 +40,6 @@ CREATE TABLE tr_cash_settle_ov (
 
 -- 15.2 收费员结账日明细表
 CREATE TABLE tr_cash_settle_dtl (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     item_date       DATE            NOT NULL,           -- 日期
     cashier_name    VARCHAR2(100),                      -- 收费员
@@ -56,7 +54,6 @@ CREATE TABLE tr_cash_settle_dtl (
 
 -- 15.3 收费员结账图表数据表
 CREATE TABLE tr_cash_settle_cht (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     chart_title     VARCHAR2(200),                      -- 图表标题
     chart_subtitle  VARCHAR2(200),                      -- 副标题
@@ -78,7 +75,6 @@ CREATE INDEX idx_tr_cashier_overview_date ON tr_cash_settle_ov(stat_date);
 
 COMMENT ON TABLE tr_cash_settle_ov IS '收费员结账统计-概览';
 COMMENT ON TABLE tr_cash_settle_ov IS '收费员结账统计-概览(收费员结账业务的总览指标:各类业务笔数及对比值)';
-COMMENT ON COLUMN tr_cash_settle_ov.id IS '主键ID';
 COMMENT ON COLUMN tr_cash_settle_ov.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_cash_settle_ov.appointment_register IS '预约挂号';
 COMMENT ON COLUMN tr_cash_settle_ov.appointment_register_compare IS '预约挂号对比';
@@ -105,7 +101,6 @@ COMMENT ON COLUMN tr_cash_settle_ov.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_cash_settle_ov.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_cash_settle_dtl IS '收费员结账统计-日明细';
 COMMENT ON TABLE tr_cash_settle_dtl IS '收费员结账统计-日明细(收费员每日结账的明细记录)';
-COMMENT ON COLUMN tr_cash_settle_dtl.id IS '主键ID';
 COMMENT ON COLUMN tr_cash_settle_dtl.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_cash_settle_dtl.item_date IS '日期';
 COMMENT ON COLUMN tr_cash_settle_dtl.cashier_name IS '收费员';
@@ -118,7 +113,6 @@ COMMENT ON COLUMN tr_cash_settle_dtl.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_cash_settle_dtl.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_cash_settle_cht IS '收费员结账统计-图表';
 COMMENT ON TABLE tr_cash_settle_cht IS '收费员结账统计-图表(收费员结账图表所需的结构化数据)';
-COMMENT ON COLUMN tr_cash_settle_cht.id IS '主键ID';
 COMMENT ON COLUMN tr_cash_settle_cht.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_cash_settle_cht.chart_title IS '图表标题';
 COMMENT ON COLUMN tr_cash_settle_cht.chart_subtitle IS '副标题';

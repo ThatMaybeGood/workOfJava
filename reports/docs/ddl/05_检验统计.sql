@@ -12,7 +12,6 @@ DROP TABLE tr_labstat_tm CASCADE CONSTRAINTS;
 
 -- 5.1 检验统计概览表
 CREATE TABLE tr_labstat_ov (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     blood_collection NUMBER(10)     DEFAULT 0,          -- 采血人次
     blood_efficiency VARCHAR2(20),                     -- 采血效率
@@ -26,7 +25,6 @@ CREATE TABLE tr_labstat_ov (
 
 -- 5.2 检验统计排行表
 CREATE TABLE tr_labstat_rnk (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     rank_type       VARCHAR2(50)    NOT NULL,           -- 排行类型(BLOOD/LAB)
     rank_num        NUMBER(5)       DEFAULT 0,          -- 排名
@@ -41,7 +39,6 @@ CREATE TABLE tr_labstat_rnk (
 
 -- 5.3 检验统计时段分析表
 CREATE TABLE tr_labstat_tm (
-    id              NUMBER(19)      PRIMARY KEY,
     stat_date       DATE            NOT NULL,           -- 统计日期
     time_slot       VARCHAR2(50)    NOT NULL,           -- 时段
     blood_count     NUMBER(10)      DEFAULT 0,          -- 采血人次
@@ -61,7 +58,6 @@ CREATE INDEX idx_tr_lab_overview_date ON tr_labstat_ov(stat_date);
 
 COMMENT ON TABLE tr_labstat_ov IS '检验统计-概览';
 COMMENT ON TABLE tr_labstat_ov IS '检验统计-概览(检验科运营总览指标:采血人次、采血效率、检验效率)';
-COMMENT ON COLUMN tr_labstat_ov.id IS '主键ID';
 COMMENT ON COLUMN tr_labstat_ov.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_labstat_ov.blood_collection IS '采血人次';
 COMMENT ON COLUMN tr_labstat_ov.blood_efficiency IS '采血效率';
@@ -73,7 +69,6 @@ COMMENT ON COLUMN tr_labstat_ov.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_labstat_ov.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_labstat_rnk IS '检验统计-排行';
 COMMENT ON TABLE tr_labstat_rnk IS '检验统计-排行(检验项目或科室的排行数据:采血排行/检验排行)';
-COMMENT ON COLUMN tr_labstat_rnk.id IS '主键ID';
 COMMENT ON COLUMN tr_labstat_rnk.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_labstat_rnk.rank_type IS '排行类型(BLOOD/LAB)';
 COMMENT ON COLUMN tr_labstat_rnk.rank_num IS '排名';
@@ -86,7 +81,6 @@ COMMENT ON COLUMN tr_labstat_rnk.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_labstat_rnk.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_labstat_tm IS '检验统计-时段分析';
 COMMENT ON TABLE tr_labstat_tm IS '检验统计-时段分析(检验科各时段的业务量分布)';
-COMMENT ON COLUMN tr_labstat_tm.id IS '主键ID';
 COMMENT ON COLUMN tr_labstat_tm.stat_date IS '统计日期';
 COMMENT ON COLUMN tr_labstat_tm.time_slot IS '时段';
 COMMENT ON COLUMN tr_labstat_tm.blood_count IS '采血人次';

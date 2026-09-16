@@ -721,8 +721,8 @@ class MaintainManager {
         tbody.innerHTML = this.state.rows.map(row => `
             <tr data-id="${row.id != null ? row.id : ''}">
                 <td><input type="text" class="form-control form-control-sm maintain-time" value="${row.time || ''}"></td>
-                <td><select class="form-select form-select-sm maintain-dept">${this.deptOptions(row.deptCode)}</select></td>
-                <td><select class="form-select form-select-sm maintain-person">${this.personOptions(row.deptCode, row.personName)}</select></td>
+                <td><div class="fz-dept"></div></td>
+                <td><div class="fz-person"></div></td>
                 <td><select class="form-select form-select-sm maintain-position">${this.dictOptions('position', row.position)}</select></td>
                 <td><select class="form-select form-select-sm maintain-attr1">${this.dictOptions(isComplaint ? 'complaintCategory' : 'praiseMethod', isComplaint ? row.category : row.method)}</select></td>
                 <td><select class="form-select form-select-sm maintain-attr2">${this.dictOptions(isComplaint ? 'complaintResult' : 'feedback', isComplaint ? row.result : row.feedback)}</select></td>
@@ -739,27 +739,35 @@ class MaintainManager {
                 allowInput: false
             });
         });
-    }
 
-    deptOptions(selectedCode) {
-        const options = ['<option value="">请选择</option>'];
-        this.deptList.forEach(d => {
-            const sel = d.deptCode === selectedCode ? ' selected' : '';
-            options.push(`<option value="${d.deptCode}" data-dept-name="${d.deptName}"${sel}>${d.deptName}</option>`);
+        // 科室/人员换成可搜索下拉,hidden 域沿用 maintain-dept/maintain-person 契约
+        tbody.querySelectorAll('tr[data-id]').forEach((tr, i) => {
+            const row = this.state.rows[i];
+            tr._fzDept = new FuzzySelect(tr.querySelector('.fz-dept'), {
+                hiddenClass: 'maintain-dept',
+                options: this.deptOptionList(),
+                value: row.deptCode || '',
+                placeholder: '搜索科室'
+            });
+            tr._fzPerson = new FuzzySelect(tr.querySelector('.fz-person'), {
+                hiddenClass: 'maintain-person',
+                options: this.personOptionList(row.deptCode),
+                value: row.personName || '',
+                allowFree: true,
+                placeholder: '搜索人员'
+            });
         });
-        return options.join('');
     }
 
-    personOptions(deptCode, selectedName) {
-        const list = (deptCode && this.staffList.some(s => s.deptCode === deptCode))
+    deptOptionList() {
+        return this.deptList.map(d => ({ value: d.deptCode, label: d.deptName }));
+    }
+
+    personOptionList(deptCode) {
+        const list = deptCode
             ? this.staffList.filter(s => s.deptCode === deptCode)
             : this.staffList;
-        const options = ['<option value="">请选择</option>'];
-        list.forEach(s => {
-            const sel = s.staffName === selectedName ? ' selected' : '';
-            options.push(`<option value="${s.staffName}" data-position="${s.position || ''}"${sel}>${s.staffName}</option>`);
-        });
-        return options.join('');
+        return list.map(s => ({ value: s.staffName, label: s.staffName }));
     }
 
     dictOptions(dictType, selectedValue) {
@@ -772,19 +780,21 @@ class MaintainManager {
         return options.join('');
     }
 
-    /** 科室变化后刷新该行人员下拉 */
+    /** 科室变化后刷新该行人员下拉，原人员不在新科室时清空 */
     refreshPersonOptions(tr) {
         const deptCode = tr.querySelector('.maintain-dept').value;
-        const personSelect = tr.querySelector('.maintain-person');
-        const currentName = personSelect.value;
-        personSelect.innerHTML = this.personOptions(deptCode, currentName);
+        const currentName = tr.querySelector('.maintain-person').value;
+        const stillValid = !currentName || this.staffList.some(s => s.staffName === currentName && (!deptCode || s.deptCode === deptCode));
+        tr._fzPerson.setOptions(this.personOptionList(deptCode), stillValid ? currentName : '');
     }
 
     /** 人员选中后自动带出岗位类别 */
     fillPositionByPerson(tr) {
-        const option = tr.querySelector('.maintain-person').selectedOptions[0];
-        if (option && option.dataset.position) {
-            tr.querySelector('.maintain-position').value = option.dataset.position;
+        const deptCode = tr.querySelector('.maintain-dept').value;
+        const name = tr.querySelector('.maintain-person').value;
+        const staff = this.staffList.find(s => s.staffName === name && (!deptCode || s.deptCode === deptCode));
+        if (staff && staff.position) {
+            tr.querySelector('.maintain-position').value = staff.position;
         }
     }
 
@@ -828,12 +838,13 @@ class MaintainManager {
         const isComplaint = this.state.type === 'complaint';
         const items = [];
         document.querySelectorAll('#maintainTableBody tr[data-id]').forEach(tr => {
-            const deptOption = tr.querySelector('.maintain-dept').selectedOptions[0];
+            const deptCode = tr.querySelector('.maintain-dept').value || null;
+            const dept = this.deptList.find(d => d.deptCode === deptCode);
             const item = {
                 id: tr.dataset.id ? parseInt(tr.dataset.id, 10) : null,
                 time: tr.querySelector('.maintain-time').value || null,
-                deptCode: tr.querySelector('.maintain-dept').value || null,
-                deptName: deptOption ? (deptOption.dataset.deptName || '') : '',
+                deptCode: deptCode,
+                deptName: dept ? dept.deptName : '',
                 personName: tr.querySelector('.maintain-person').value || null,
                 position: tr.querySelector('.maintain-position').value || null,
                 remark: tr.querySelector('.maintain-remark').value || null

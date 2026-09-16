@@ -1216,7 +1216,8 @@ const MockService = {
                     complaintCategory: ['病历问题', '费用问题', '服务问题', '告知问题', '沟通问题', '医疗质量'],
                     complaintResult: ['有效投诉', '无效投诉'],
                     praiseMethod: ['锦旗', '感谢信', '口头传达'],
-                    feedback: ['已反馈', '未反馈']
+                    feedback: ['已反馈', '未反馈'],
+                    weather_type: ['晴', '多云', '阴', '小雨', '中雨', '大雨', '雪']
                 };
                 const storeKey = 'mock_common_dict';
                 let store = JSON.parse(localStorage.getItem(storeKey) || 'null');
@@ -1359,6 +1360,68 @@ const MockService = {
                 resolve({
                     code: 200,
                     data: { list: list.slice(start, start + pageSize), total, page, pageSize }
+                });
+            }, 200);
+        });
+    },
+
+    /**
+     * 天气数据维护（localStorage 持久化，支持 query/save/delete，来源记为人工登记）
+     */
+    getWeatherMaintainData(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const storeKey = 'mock_weather_maintain';
+                let list = JSON.parse(localStorage.getItem(storeKey) || 'null');
+                if (!list) {
+                    const types = ['晴', '多云', '阴', '小雨', '中雨', '大雨', '雪'];
+                    list = [];
+                    for (let i = 0; i < 30; i++) {
+                        const d = new Date();
+                        d.setDate(d.getDate() - i);
+                        list.push({
+                            weatherDate: d.toISOString().slice(0, 10),
+                            weatherType: types[i % types.length],
+                            weatherCoef: 1,
+                            weatherSource: '接口同步'
+                        });
+                    }
+                    localStorage.setItem(storeKey, JSON.stringify(list));
+                }
+
+                const action = params.action || 'query';
+
+                if (action === 'save') {
+                    (params.list || []).forEach(item => {
+                        const idx = list.findIndex(i => i.weatherDate === item.weatherDate);
+                        // mock 无爽约数据可算，系数兜底为 1
+                        const row = { ...item, weatherCoef: item.weatherCoef == null ? 1 : item.weatherCoef, weatherSource: '人工登记' };
+                        if (idx >= 0) list[idx] = row;
+                        else list.push(row);
+                    });
+                    localStorage.setItem(storeKey, JSON.stringify(list));
+                    resolve({ code: 200, data: { affected: (params.list || []).length } });
+                    return;
+                }
+                if (action === 'delete') {
+                    const before = list.length;
+                    list = list.filter(i => i.weatherDate !== params.weatherDate);
+                    localStorage.setItem(storeKey, JSON.stringify(list));
+                    resolve({ code: 200, data: { affected: before - list.length } });
+                    return;
+                }
+                // query：按日期范围过滤
+                let rows = list;
+                if (params.startDate) rows = rows.filter(i => i.weatherDate >= params.startDate);
+                if (params.endDate) rows = rows.filter(i => i.weatherDate <= params.endDate);
+                rows = rows.slice().sort((a, b) => (a.weatherDate < b.weatherDate ? 1 : -1));
+                const page = params.page || 1;
+                const pageSize = params.pageSize || 10;
+                const total = rows.length;
+                const start = (page - 1) * pageSize;
+                resolve({
+                    code: 200,
+                    data: { list: rows.slice(start, start + pageSize), total, page, pageSize }
                 });
             }, 200);
         });
