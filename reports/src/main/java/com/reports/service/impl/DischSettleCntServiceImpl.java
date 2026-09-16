@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,21 +51,39 @@ public class DischSettleCntServiceImpl implements DischSettleCntService {
             return new ArrayList<>();
         }
         try {
+            List<PersonCountItem> result;
             switch (dimension) {
                 case "operator":
-                    return mergeByOperator(dischSettleCntMapper.queryByOperator(
+                    result = mergeByOperator(dischSettleCntMapper.queryByOperator(
                             request.getStartDate(), request.getEndDate(), timeDimension));
+                    break;
                 case "payType":
-                    return filterPayType(dischSettleCntMapper.queryByPayType(
+                    result = filterPayType(dischSettleCntMapper.queryByPayType(
                             request.getStartDate(), request.getEndDate(), timeDimension));
+                    break;
                 default:
-                    return mergeByFeeChannel(dischSettleCntMapper.queryByFeeChannel(
+                    result = mergeByFeeChannel(dischSettleCntMapper.queryByFeeChannel(
                             request.getStartDate(), request.getEndDate(), timeDimension));
+                    break;
             }
+            return sortByDisplayKeys(result);
         } catch (Exception e) {
             log.warn("查询出院结算人次失败", e);
             return new ArrayList<>();
         }
+    }
+
+    /**
+     * 归并后按展示值重排：SQL按RAWTOHEX(CHARGE_TYPE)排序，同费别的多原始值归并后不相邻，
+     * 前端合并单元格依赖相邻行，故按解码后的日期/费别/结算类别/(操作员/支付类别)稳定排序
+     */
+    private static List<PersonCountItem> sortByDisplayKeys(List<PersonCountItem> list) {
+        list.sort(Comparator.comparing(PersonCountItem::getItemDate, Comparator.nullsLast(String::compareTo))
+                .thenComparing(PersonCountItem::getFeeType, Comparator.nullsLast(String::compareTo))
+                .thenComparing(PersonCountItem::getSettleChannel, Comparator.nullsLast(String::compareTo))
+                .thenComparing(PersonCountItem::getOperatorNo, Comparator.nullsLast(String::compareTo))
+                .thenComparing(PersonCountItem::getPayType, Comparator.nullsLast(String::compareTo)));
+        return list;
     }
 
     /** RAWTOHEX读回的hex还原为字节按GBK解码 */

@@ -10,23 +10,21 @@
         </choose>
     </sql>
 
-    <!-- 门诊量·明细/柱图：挂号表按 STAT_DATE 分组净量（T1净=T2未退−T3退号） -->
+    <!-- 门诊量·明细/柱图：T1汇总=收(IS_RETURN_TYPE=1) T2进项=当日全部 T3退=退号(-1)，条件放WHERE -->
     <select id="queryClinicCounts" resultType="map">
         SELECT
             <include refid="periodExpr"><property name="col" value="c.STAT_DATE"/></include> AS "period",
-            <choose>
-                <when test="statisticType == 1">
-                    SUM(CASE WHEN c.IS_RETURN_TYPE = 1 THEN 1 ELSE -1 END) AS "cnt"
-                </when>
-                <when test="statisticType == 2">
-                    SUM(CASE WHEN c.IS_RETURN_TYPE = 1 THEN 1 ELSE 0 END) AS "cnt"
-                </when>
-                <otherwise>
-                    SUM(CASE WHEN c.IS_RETURN_TYPE = -1 THEN 1 ELSE 0 END) AS "cnt"
-                </otherwise>
-            </choose>
+            COUNT(1) AS "cnt"
         FROM TR_OUTP_FIN_CLINIC_MASTER c
         WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+        <choose>
+            <when test="statisticType == 1">
+                AND c.IS_RETURN_TYPE = 1
+            </when>
+            <when test="statisticType == 3">
+                AND c.IS_RETURN_TYPE = -1
+            </when>
+        </choose>
         GROUP BY <include refid="periodExpr"><property name="col" value="c.STAT_DATE"/></include>
         ORDER BY "period"
     </select>
@@ -41,9 +39,9 @@
             <otherwise>SUM(NVL(a.REFUND_AMOUNT, 0))</otherwise>
         </choose> AS "amount",
         <choose>
-            <when test="statisticType == 1">SUM(NVL(a.RCPTS_NUM, 0) - NVL(a.REFUND_NUM, 0))</when>
+            <when test="statisticType == 1">SUM(NVL(a.RCPTS_NUM, 0)) - (SUM(NVL(a.REFUND_NUM, 0)) + SUM(NVL(a.FREE_OF_CHARGE_NUM, 0)))</when>
             <when test="statisticType == 2">SUM(NVL(a.RCPTS_NUM, 0))</when>
-            <otherwise>SUM(NVL(a.REFUND_NUM, 0))</otherwise>
+            <otherwise>SUM(NVL(a.REFUND_NUM, 0)) + SUM(NVL(a.FREE_OF_CHARGE_NUM, 0))</otherwise>
         </choose> AS "receipt"
         FROM TR_OUTP_FIN_ACCT_MASTER a
         WHERE a.STAT_DATE BETWEEN #{startDate} AND #{endDate}
@@ -88,35 +86,35 @@
         ORDER BY period
     </select>
 
-    <!-- bt1 门诊量分析： 订单来源分析 -->
+    <!-- bt1 门诊量分析： 订单来源分析（口径同 queryClinicCounts：T1汇总=收 T2进项=全部 T3退） -->
     <select id="queryClinicCountBySource" resultType="map">
          SELECT nvl(q.SOURCE_NAME,decode(c.operator_no,'9101','自助机','窗口')) AS "name",
-               SUM(CASE WHEN c.RETURNED_DATE IS NULL THEN 1 ELSE -1 END) AS "cnt"
+               COUNT(1) AS "cnt"
         FROM TR_OUTP_FIN_CLINIC_MASTER c
         LEFT JOIN TR_OUTP_FIN_MOP_QUEUE q
         ON q.STAT_DATE = c.STAT_DATE
         AND q.visit_no  = c.visit_no
         WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
         <choose>
-            <when test="statisticType == 2">
-                AND c.RETURNED_DATE IS NULL
+            <when test="statisticType == 1">
+                AND c.IS_RETURN_TYPE = 1
             </when>
             <when test="statisticType == 3">
-                AND c.RETURNED_DATE IS NOT NULL
+                AND c.IS_RETURN_TYPE = -1
             </when>
         </choose>
         GROUP BY nvl(q.SOURCE_NAME,decode(c.operator_no,'9101','自助机','窗口'))
         ORDER BY "cnt" DESC
     </select>
 
-    <!-- bt2 门诊量分析： 取号渠道分析 -->
+    <!-- bt2 门诊量分析： 取号渠道分析（口径同 queryClinicCounts：T1汇总=收 T2进项=全部 T3退） -->
     <select id="queryQueueCountByOperator" resultType="map">
          SELECT DECODE(c.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
-        SUM(CASE WHEN c.IS_RETURN_TYPE = 1 THEN 1 ELSE -1 END) AS "cnt"
+               COUNT(1) AS "cnt"
         FROM TR_OUTP_FIN_CLINIC_MASTER c
         WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
         <choose>
-            <when test="statisticType == 2">
+            <when test="statisticType == 1">
                 AND c.IS_RETURN_TYPE = 1
             </when>
             <when test="statisticType == 3">
@@ -130,18 +128,15 @@
     <!-- bt3 门诊量分析： 订单渠道分析 -->
     <select id="queryClinicCountByOperator" resultType="map">
          SELECT DECODE(r.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
-               SUM(CASE
-                   WHEN is_return_type = 1 THEN 1
-                   ELSE -1
-               END) AS "cnt"
+               COUNT(1) AS "cnt"
         FROM TR_OUTP_FIN_CLINIC_MASTER r
         WHERE r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
         <choose>
-            <when test="statisticType == 2">
-                AND is_return_type = 1
+            <when test="statisticType == 1">
+                AND r.IS_RETURN_TYPE = 1
             </when>
             <when test="statisticType == 3">
-                AND is_return_type = -1
+                AND r.IS_RETURN_TYPE = -1
             </when>
         </choose>
         GROUP BY DECODE(r.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口')
@@ -209,13 +204,13 @@
         ORDER BY "amount" DESC
     </select>
 
-    <!-- bt6 收据张数分析： 渠道分析 -->
+    <!-- bt6 收据张数分析： 渠道分析（张数口径同 queryAcctAmounts：退项=REFUND_NUM+FREE_OF_CHARGE_NUM） -->
     <select id="queryRcptSumByOperator" resultType="map">
         SELECT DECODE(a.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
                <choose>
-                   <when test="statisticType == 1">SUM(NVL(a.RCPTS_NUM, 0) - NVL(a.REFUND_NUM, 0))</when>
+                   <when test="statisticType == 1">SUM(NVL(a.RCPTS_NUM, 0)) - (SUM(NVL(a.REFUND_NUM, 0)) + SUM(NVL(a.FREE_OF_CHARGE_NUM, 0)))</when>
                    <when test="statisticType == 2">SUM(NVL(a.RCPTS_NUM, 0))</when>
-                   <otherwise>SUM(NVL(a.REFUND_NUM, 0))</otherwise>
+                   <otherwise>SUM(NVL(a.REFUND_NUM, 0)) + SUM(NVL(a.FREE_OF_CHARGE_NUM, 0))</otherwise>
                </choose> AS "cnt"
         FROM TR_OUTP_FIN_ACCT_MASTER a
         WHERE a.STAT_DATE BETWEEN #{startDate} AND #{endDate}

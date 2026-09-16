@@ -29,7 +29,6 @@
                     <span class="filter-label">统计维度：</span>
                     <div class="filter-buttons" id="dimensionFilter">
                         <button class="filter-btn active" data-value="summary">按费别</button>
-                        <button class="filter-btn" data-value="operator">按操作员</button>
                         <button class="filter-btn" data-value="payType">按支付类别</button>
                     </div>
                 </div>
@@ -68,6 +67,7 @@
         <div class="table-section">
             <div class="table-header d-flex justify-content-between align-items-center">
                 <div class="table-title"><i class="bi bi-person-lines-fill"></i><span id="tableTitle">出院结算人次（按费别）</span></div>
+                <button class="btn btn-primary btn-sm" id="exportBtn"><i class="bi bi-download me-1"></i>导出Excel</button>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover table-bordered mb-0" id="personCountTable">
@@ -94,9 +94,48 @@
         </div>
     </div>
 
+    <!-- 人次明细弹窗：按费别视图点人次钻取，按操作员维度 -->
+    <div class="modal fade" id="drillModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="drillModalTitle">人次明细（按操作员）</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive" style="max-height:60vh">
+                        <table class="table table-hover table-bordered mb-0">
+                            <thead class="table-light">
+                                <tr><th>日期</th><th>费别</th><th>结算类别</th><th>操作员工号</th><th>操作员姓名</th><th>人次</th></tr>
+                            </thead>
+                            <tbody id="drillTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="drillEmpty" class="text-center text-muted py-4 d-none">暂无数据</div>
+                    <div class="pagination-wrapper d-flex justify-content-center align-items-center mt-3 gap-3">
+                        <div class="pagination-info"><span id="drillPageInfo"></span></div>
+                        <nav aria-label="Drill page navigation"><ul class="pagination pagination-sm mb-0" id="drillPagination"></ul></nav>
+                        <div class="pagination-controls d-flex align-items-center gap-1">
+                            <select class="form-select form-select-sm" id="drillPageSizeSelect">
+                                <option value="10">10条/页</option>
+                                <option value="20" selected>20条/页</option>
+                                <option value="50">50条/页</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary btn-sm" id="drillExportBtn"><i class="bi bi-download me-1"></i>导出Excel</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="../vendor/bootstrap@5.3.2/js/bootstrap.bundle.min.js"></script>
     <script src="../vendor/flatpickr@4.6.13/js/flatpickr.min.js"></script>
     <script src="../vendor/flatpickr@4.6.13/l10n/zh.js"></script>
+    <script src="../vendor/xlsx@0.18.5/xlsx.full.min.js"></script>
     <script src="../api-config.js"></script>
     <script src="js/mock.js"></script>
     <script src="js/api.js"></script>

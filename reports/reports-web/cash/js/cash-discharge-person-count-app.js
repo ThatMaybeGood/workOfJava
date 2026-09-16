@@ -33,6 +33,15 @@ const TABLE_COLUMNS = {
     ]
 };
 
+// 各维度需要纵向合并的列（按费别：日期+费别；其余：日期+费别+结算类别）
+const MERGE_KEYS = {
+    summary: ['itemDate', 'feeType'],
+    operator: ['itemDate', 'feeType', 'settleChannel'],
+    payType: ['itemDate', 'feeType', 'settleChannel']
+};
+
+const DIMENSION_NAMES = { summary: '按费别', operator: '按操作员', payType: '按支付类别' };
+
 class PersonCountApp {
     constructor() {
         this.state = {
@@ -47,6 +56,8 @@ class PersonCountApp {
             channelFilter: ''
         };
         this.datePicker = null;
+        this.drillPage = 1;
+        this.drillPageSize = 20;
         this.bindEvents();
         this.initDatePicker();
         this.load();
@@ -91,6 +102,24 @@ class PersonCountApp {
             this.state.channelFilter = e.target.value;
             this.state.page = 1;
             this.renderBody();
+        });
+        // 按费别视图点人次钻取按操作员明细
+        document.getElementById('tableBody').addEventListener('click', (e) => {
+            if (this.state.dimension !== 'summary') return;
+            const td = e.target.closest('td.drill-cnt');
+            if (!td) return;
+            const tr = td.closest('tr');
+            const idx = Array.from(tr.parentNode.children).indexOf(tr);
+            const all = this.filteredList();
+            const list = all.slice((this.state.page - 1) * this.state.pageSize, (this.state.page - 1) * this.state.pageSize + this.state.pageSize);
+            if (idx < list.length) this.drill(list[idx]);
+        });
+        document.getElementById('exportBtn').addEventListener('click', () => this.exportMain());
+        document.getElementById('drillExportBtn').addEventListener('click', () => this.exportDrill());
+        document.getElementById('drillPageSizeSelect').addEventListener('change', (e) => {
+            this.drillPageSize = parseInt(e.target.value, 10);
+            this.drillPage = 1;
+            this.renderDrill();
         });
     }
 
@@ -195,14 +224,14 @@ class PersonCountApp {
 
     renderBody() {
         const columns = TABLE_COLUMNS[this.state.dimension];
+        const mergeKeys = MERGE_KEYS[this.state.dimension];
         const tbody = document.getElementById('tableBody');
         const all = this.filteredList();
         const start = (this.state.page - 1) * this.state.pageSize;
         const list = all.slice(start, start + this.state.pageSize);
         document.getElementById('tableEmpty').classList.toggle('d-none', all.length > 0);
-        let html = list.map(row =>
-            '<tr>' + columns.map(c => `<td>${row[c.key] != null ? row[c.key] : ''}</td>`).join('') + '</tr>'
-        ).join('');
+        const clickable = this.state.dimension === 'summary' ? 'cnt' : null;
+        let html = this.buildRowsHtml(list, columns, mergeKeys, clickable);
         // 合计行：本页合计(当前页行求和) + 总计(筛选结果集求和)
         const pageCnt = list.reduce((sum, row) => sum + (Number(row.cnt) || 0), 0);
         const totalCnt = all.reduce((sum, row) => sum + (Number(row.cnt) || 0), 0);
@@ -216,6 +245,194 @@ class PersonCountApp {
         html += totalRow('总计', totalCnt, 'table-secondary');
         tbody.innerHTML = html;
         this.renderPagination();
+    }
+
+    /** 纵向合并：相邻行 mergeKeys 的值全相同则合并，返回每列的 rowspan（被合并行记 0） */
+    calcSpans(list, mergeKeys) {
+        const spans = list.map(() => ({}));
+        let i = 0;
+        while (i < list.length) {
+            let j = i;
+            while (j + 1 < list.length && mergeKeys.every(k => list[j + 1][k] === list[i][k])) j++;
+            mergeKeys.forEach(k => spans[i][k] = j - i + 1);
+            for (let r = i + 1; r <= j; r++) mergeKeys.forEach(k => spans[r][k] = 0);
+            i = j + 1;
+        }
+        return spans;
+    }
+
+    /** 构建 tbody 行；clickableKey 列渲染为可点击（人次钻取） */
+    buildRowsHtml(list, columns, mergeKeys, clickableKey) {
+        const spans = this.calcSpans(list, mergeKeys);
+        return list.map((row, i) => {
+            const tds = columns.map(c => {
+                if (spans[i][c.key] === 0) return '';
+                const rs = spans[i][c.key] > 1 ? ` rowspan="${spans[i][c.key]}"` : '';
+                if (c.key === clickableKey) {
+                    return `<td${rs} class="text-primary drill-cnt" style="cursor:pointer">${row.cnt != null ? row.cnt : ''}</td>`;
+                }
+                return `<td${rs}>${row[c.key] != null ? row[c.key] : ''}</td>`;
+            }).join('');
+            return `<tr>${tds}</tr>`;
+        }).join('');
+    }
+
+    /** 人次钻取：按操作员维度查该日期+费别+结算类别，弹窗展示（带分页） */
+    async drill(row) {
+        this.drillContext = { itemDate: row.itemDate, feeType: row.feeType, settleChannel: row.settleChannel };
+        this.drillList = [];
+        this.drillPage = 1;
+        document.getElementById('drillModalTitle').textContent =
+            `人次明细（按操作员）：${row.itemDate} ${row.feeType} ${row.settleChannel}`;
+        document.getElementById('drillTableBody').innerHTML = '';
+        document.getElementById('drillEmpty').classList.remove('d-none');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('drillModal')).show();
+        try {
+            // 按月时取整月范围
+            let start = row.itemDate, end = row.itemDate;
+            if (this.state.timeDimension === 'month') {
+                start = row.itemDate + '-01';
+                const [y, m] = row.itemDate.split('-').map(Number);
+                end = this.formatDate(new Date(y, m, 0));
+            }
+            const body = await ReportAPI.getDischSettlePersonCount({
+                dimension: 'operator',
+                timeDimension: this.state.timeDimension,
+                startDate: start,
+                endDate: end
+            });
+            this.drillList = (body.list || []).filter(r => r.feeType === row.feeType && r.settleChannel === row.settleChannel);
+            this.renderDrill();
+        } catch (error) {
+            console.error('Drill failed:', error);
+        }
+    }
+
+    renderDrill() {
+        const all = this.drillList;
+        document.getElementById('drillEmpty').classList.toggle('d-none', all.length > 0);
+        const columns = TABLE_COLUMNS.operator;
+        const pages = Math.max(1, Math.ceil(all.length / this.drillPageSize));
+        if (this.drillPage > pages) this.drillPage = pages;
+        const list = all.slice((this.drillPage - 1) * this.drillPageSize, this.drillPage * this.drillPageSize);
+        let html = this.buildRowsHtml(list, columns, MERGE_KEYS.operator, null);
+        const total = all.reduce((sum, row) => sum + (Number(row.cnt) || 0), 0);
+        html += `<tr class="table-secondary fw-bold">` + columns.map(c =>
+            c.key === 'cnt' ? `<td>${total}</td>` : c.key === 'itemDate' ? '<td>总计</td>' : '<td></td>'
+        ).join('') + '</tr>';
+        document.getElementById('drillTableBody').innerHTML = html;
+        this.renderDrillPagination(pages, all.length);
+    }
+
+    renderDrillPagination(pages, total) {
+        document.getElementById('drillPageInfo').textContent = `${this.drillPageSize}条/页 共${total}条`;
+        const pager = document.getElementById('drillPagination');
+        pager.innerHTML = '';
+        const mk = (label, page, disabled, active) => {
+            const li = document.createElement('li');
+            li.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="#">${label}</a>`;
+            if (!disabled && !active) {
+                li.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.drillPage = page;
+                    this.renderDrill();
+                });
+            }
+            return li;
+        };
+        pager.appendChild(mk('上一页', this.drillPage - 1, this.drillPage <= 1, false));
+        for (let p = 1; p <= pages; p++) {
+            pager.appendChild(mk(p, p, false, p === this.drillPage));
+        }
+        pager.appendChild(mk('下一页', this.drillPage + 1, this.drillPage >= pages, false));
+    }
+
+    /** 计算合并区间（SheetJS !merges 格式，行号含表头偏移 1） */
+    calcMerges(list, mergeKeys, columns) {
+        const merges = [];
+        let i = 0;
+        while (i < list.length) {
+            let j = i;
+            while (j + 1 < list.length && mergeKeys.every(k => list[j + 1][k] === list[i][k])) j++;
+            if (j > i) {
+                mergeKeys.forEach(k => {
+                    const c = columns.findIndex(col => col.key === k);
+                    merges.push({ s: { r: i + 1, c }, e: { r: j + 1, c } });
+                });
+            }
+            i = j + 1;
+        }
+        return merges;
+    }
+
+    /** 导出 Excel：表头加粗+底色，全表细边框；mergeKeys 传值时按界面样式合并单元格 */
+    exportData(list, columns, fileName, mergeKeys) {
+        const headers = columns.map(c => c.label);
+        const rows = list.map(row => columns.map(c => row[c.key] != null ? row[c.key] : ''));
+        let merges = [];
+        if (mergeKeys) {
+            merges = this.calcMerges(list, mergeKeys, columns);
+            // 被合并的单元格置空，只保留左上角值
+            merges.forEach(m => {
+                for (let r = m.s.r; r <= m.e.r; r++) {
+                    for (let c = m.s.c; c <= m.e.c; c++) {
+                        if (r !== m.s.r || c !== m.s.c) rows[r - 1][c] = '';
+                    }
+                }
+            });
+        }
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        ws['!cols'] = headers.map(() => ({ wch: 14 }));
+        if (merges.length) ws['!merges'] = merges;
+        const border = {
+            top: { style: 'thin', color: { rgb: 'D9D9D9' } },
+            bottom: { style: 'thin', color: { rgb: 'D9D9D9' } },
+            left: { style: 'thin', color: { rgb: 'D9D9D9' } },
+            right: { style: 'thin', color: { rgb: 'D9D9D9' } }
+        };
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+            const addr = XLSX.utils.encode_cell({ r: 0, c: C });
+            if (!ws[addr]) ws[addr] = {};
+            ws[addr].s = {
+                font: { bold: true, sz: 11 },
+                fill: { fgColor: { rgb: 'E6F7FF' } },
+                alignment: { horizontal: 'center', vertical: 'center' },
+                border
+            };
+        }
+        for (let R = 1; R <= range.e.r; ++R) {
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const addr = XLSX.utils.encode_cell({ r: R, c: C });
+                if (!ws[addr]) ws[addr] = {};
+                if (!ws[addr].s) ws[addr].s = {};
+                ws[addr].s.border = border;
+                ws[addr].s.alignment = { horizontal: 'center', vertical: 'center' };
+            }
+        }
+        XLSX.utils.book_append_sheet(wb, ws, '出院结算人次');
+        XLSX.writeFile(wb, fileName);
+    }
+
+    /** 导出全部筛选结果（不只当前页），文件名：日期范围_维度_筛选类型 */
+    exportMain() {
+        const parts = [
+            `${this.state.startDate}~${this.state.endDate}`,
+            DIMENSION_NAMES[this.state.dimension]
+        ];
+        if (this.state.feeTypeFilter) parts.push(`费别-${this.state.feeTypeFilter}`);
+        if (this.state.channelFilter) parts.push(`结算类别-${this.state.channelFilter}`);
+        this.exportData(this.filteredList(), TABLE_COLUMNS[this.state.dimension],
+            parts.join('_') + '.xlsx', MERGE_KEYS[this.state.dimension]);
+    }
+
+    exportDrill() {
+        if (!this.drillContext) return;
+        const { itemDate, feeType, settleChannel } = this.drillContext;
+        this.exportData(this.drillList || [], TABLE_COLUMNS.operator,
+            `${itemDate}_按操作员_费别-${feeType}_结算类别-${settleChannel}.xlsx`, MERGE_KEYS.operator);
     }
 
     renderPagination() {

@@ -373,9 +373,14 @@ function initMockMode() {
 // 页面加载时初始化
 initMockMode();
 
-// 在报表壳（iframe）中打开时隐藏页内标题与 mock 开关，避免与壳顶栏重复
+// 在报表壳（iframe）中打开时隐藏页内标题与 mock 开关，避免与壳顶栏重复；
+// 单独打开时同样隐藏页内 mock 开关（壳在 index.html 顶栏提供统一开关）
 if (window.top !== window.self) {
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.page-title').forEach(el => el.style.display = 'none');
+    });
+} else {
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.mock-toggle').forEach(el => el.style.display = 'none');
     });
 }

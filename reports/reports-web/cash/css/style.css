@@ -923,3 +923,15 @@ body {
         height: 300px;
     }
 }
+
+/* 表格区纵向滚动 + 表头吸顶（主表与弹窗通用；弹窗高度在页面内联覆盖） */
+.table-responsive {
+    max-height: calc(100vh - 300px);
+    overflow-y: auto;
+}
+.table-responsive thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: #f8f9fa;
+}
