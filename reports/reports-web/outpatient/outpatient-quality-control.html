@@ -364,54 +364,54 @@
                                 <tr>
                                     <td rowspan="2">门诊电子病历使用率</td>
                                     <td>门诊电子病历份数</td>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="emr_usage_rate" data-part="numerator"></td>
                                 </tr>
                                 <tr>
                                     <td>门诊总人次数</td>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="emr_usage_rate" data-part="denominator"></td>
                                 </tr>
                                 <tr>
                                     <td rowspan="2">门诊标准诊断使用率</td>
                                     <td>使用标准诊断的病历数</td>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="standard_diagnosis_rate" data-part="numerator"></td>
                                 </tr>
                                 <tr>
                                     <td>门诊病历总数</td>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="standard_diagnosis_rate" data-part="denominator"></td>
                                 </tr>
                                 <tr>
                                     <td rowspan="2">门诊准时出诊率</td>
                                     <td>准时出诊单元数</td>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="on_time_rate" data-part="numerator"></td>
                                 </tr>
                                 <tr>
                                     <td>出诊单元总数</td>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="on_time_rate" data-part="denominator"></td>
                                 </tr>
                                 <tr>
                                     <td rowspan="2">门诊停诊率</td>
                                     <td>停诊且无替代的单元数</td>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="stop_rate" data-part="numerator"></td>
                                 </tr>
                                 <tr>
                                     <td>计划门诊单元数</td>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="stop_rate" data-part="denominator"></td>
                                 </tr>
                                 <tr>
                                     <td rowspan="2">门诊化疗病历记录完整率</td>
                                     <td>完整化疗病例数</td>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="chemo_record_rate" data-part="numerator"></td>
                                 </tr>
                                 <tr>
                                     <td>化疗病历总数</td>
-                                    <td><input type="text" class="form-control form-control-sm"></td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="chemo_record_rate" data-part="denominator"></td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">保存</button>
+                    <button type="button" class="btn btn-primary" id="maintainSaveBtn">保存</button>
                 </div>
             </div>
         </div>

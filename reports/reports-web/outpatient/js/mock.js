@@ -1366,6 +1366,33 @@ const MockService = {
     },
 
     /**
+     * 门诊管理质量控制数据维护（localStorage 持久化，query/save，按 月份+指标 覆盖）
+     */
+    getQcMaintainData(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const storeKey = 'mock_qc_maintain';
+                let store = JSON.parse(localStorage.getItem(storeKey) || 'null');
+                if (!store) {
+                    store = {};
+                    localStorage.setItem(storeKey, JSON.stringify(store));
+                }
+                const month = params.statMonth || new Date().toISOString().slice(0, 7);
+                if (params.action === 'save') {
+                    if (!store[month]) store[month] = {};
+                    (params.list || []).forEach(item => {
+                        store[month][item.indicatorCode] = item;
+                    });
+                    localStorage.setItem(storeKey, JSON.stringify(store));
+                    resolve({ code: 200, data: { affected: (params.list || []).length } });
+                    return;
+                }
+                resolve({ code: 200, data: { list: Object.values(store[month] || {}) } });
+            }, 200);
+        });
+    },
+
+    /**
      * 天气数据维护（localStorage 持久化，支持 query/save/delete，来源记为人工登记）
      */
     getWeatherMaintainData(params = {}) {

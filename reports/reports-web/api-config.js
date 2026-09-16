@@ -96,6 +96,10 @@ const API_CONFIG = {
         'reports.outp.service-quality-maintain': {
             endpoint: '/api/outpatient/service-quality-maintain'
         },
+        // 门诊管理质量控制数据维护
+        'reports.outp.quality-control-maintain': {
+            endpoint: '/api/outpatient/quality-control-maintain'
+        },
         // 天气数据维护
         'reports.common.weather-maintain': {
             endpoint: '/api/common/weather-maintain'
@@ -290,6 +294,10 @@ function callMockService(methodKey, endpointKey, params) {
         // 门诊服务质量数据维护
         'reports.outp.service-quality-maintain': {
             endpoint: (p) => MockService.getServiceQualityMaintainData(p)
+        },
+        // 门诊管理质量控制数据维护
+        'reports.outp.quality-control-maintain': {
+            endpoint: (p) => MockService.getQcMaintainData(p)
         },
         // 天气数据维护
         'reports.common.weather-maintain': {

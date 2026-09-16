@@ -118,6 +118,16 @@ public enum ReportModule {
             )),
 
     /**
+     * 门诊管理质量控制数据维护
+     */
+    OUTPATIENT_QUALITY_CONTROL_MAINTAIN("门诊管理质量控制数据维护",
+            "com.reports.service.OutpatientQualityControlService",
+            Arrays.asList(
+                    new ReportMethod("queryMaintainList", "查询维护明细"),
+                    new ReportMethod("saveMaintain", "保存维护明细")
+            )),
+
+    /**
      * 门诊收入分析
      */
     OUTPATIENT_REVENUE("门诊收入分析",

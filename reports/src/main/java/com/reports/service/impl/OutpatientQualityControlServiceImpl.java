@@ -3,9 +3,12 @@ package com.reports.service.impl;
 import com.reports.config.ReportDataConfig;
 import com.reports.dto.common.PageResult;
 import com.reports.dto.request.OutpatientQualityControlRequest;
+import com.reports.dto.request.QualityControlMaintainRequest;
 import com.reports.dto.response.outpatient.quality.control.*;
+import com.reports.entity.QcMaintainEntity;
 import com.reports.entity.QualityControlDtlEntity;
 import com.reports.entity.QualityControlOvEntity;
+import com.reports.mapper.QcMaintainMapper;
 import com.reports.mapper.QualityControlMapper;
 import com.reports.service.OutpatientQualityControlService;
 import com.reports.util.SeqUtil;
@@ -14,11 +17,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 门诊管理质量控制服务实现
@@ -32,6 +39,9 @@ public class OutpatientQualityControlServiceImpl implements OutpatientQualityCon
 
     @Autowired
     private QualityControlMapper qualityControlMapper;
+
+    @Autowired
+    private QcMaintainMapper qcMaintainMapper;
 
     @Autowired
     public OutpatientQualityControlServiceImpl(ReportDataConfig dataConfig, JdbcTemplate jdbcTemplate) {
@@ -122,7 +132,15 @@ public class OutpatientQualityControlServiceImpl implements OutpatientQualityCon
             Date startDate = parseMonthStart(request.getStartMonth());
             Date endDate = parseMonthEnd(request.getEndMonth());
             QualityControlOvEntity entity = qualityControlMapper.queryOverview(startDate, endDate);
-            return buildOverviewData(entity);
+            OverviewData data = buildOverviewData(entity);
+            // 人工登记值覆盖ETL值
+            Map<String, QcMaintainEntity> maintainMap = maintainMap(orCurrentMonth(request.getStartMonth()),
+                    orCurrentMonth(request.getEndMonth()));
+            for (String month : monthsBetween(orCurrentMonth(request.getStartMonth()),
+                    orCurrentMonth(request.getEndMonth()))) {
+                applyMaintain(data, month, maintainMap);
+            }
+            return data;
         } catch (Exception e) {
             log.warn("查询门诊质量控制概览失败", e);
             return new OverviewData();
@@ -135,8 +153,13 @@ public class OutpatientQualityControlServiceImpl implements OutpatientQualityCon
                     .queryMonthlyDetail(orCurrentMonth(request.getStartMonth()),
                             orCurrentMonth(request.getEndMonth()));
             List<TableItem> allItems = new ArrayList<>();
+            // 人工登记值覆盖ETL值
+            Map<String, QcMaintainEntity> maintainMap = maintainMap(orCurrentMonth(request.getStartMonth()),
+                    orCurrentMonth(request.getEndMonth()));
             for (QualityControlDtlEntity row : rows) {
-                allItems.add(buildTableItem(row));
+                TableItem item = buildTableItem(row);
+                applyMaintain(item, row.getStatMonth(), maintainMap);
+                allItems.add(item);
             }
             int total = allItems.size();
             int start = (page - 1) * pageSize;
@@ -147,6 +170,127 @@ public class OutpatientQualityControlServiceImpl implements OutpatientQualityCon
             log.warn("查询门诊质量控制表格失败", e);
             return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
         }
+    }
+
+    // ==================== 数据维护 ====================
+
+    @Override
+    public List<QcMaintainItem> queryMaintainList(QualityControlMaintainRequest request) {
+        log.info("查询门诊质控维护明细，statMonth={}，mode={}", request.getStatMonth(), dataConfig.getMode());
+        List<QcMaintainItem> result = new ArrayList<>();
+        if (!dataConfig.isMybatisPlus()) {
+            return result;
+        }
+        try {
+            // 同月同指标多来源并存，SQL已按人工登记优先+最新排序，取首条
+            List<String> seen = new ArrayList<>();
+            for (QcMaintainEntity row : qcMaintainMapper.queryByMonth(request.getStatMonth())) {
+                if (seen.contains(row.getIndicatorCode())) {
+                    continue;
+                }
+                seen.add(row.getIndicatorCode());
+                QcMaintainItem item = new QcMaintainItem();
+                item.setIndicatorCode(row.getIndicatorCode());
+                item.setIndicatorName(row.getIndicatorName());
+                item.setNumerator(row.getNumerator());
+                item.setDenominator(row.getDenominator());
+                result.add(item);
+            }
+        } catch (Exception e) {
+            log.warn("查询门诊质控维护明细失败", e);
+        }
+        return result;
+    }
+
+    @Override
+    public int saveMaintain(QualityControlMaintainRequest request) {
+        log.info("保存门诊质控维护明细，statMonth={}，mode={}", request.getStatMonth(), dataConfig.getMode());
+        if (!dataConfig.isMybatisPlus() || request.getList() == null) {
+            return 0;
+        }
+        // 追加式保存：同月同指标每次维护新增一行(人工登记)，保留历史，查询时人工登记优先
+        int affected = 0;
+        for (QcMaintainItem item : request.getList()) {
+            QcMaintainEntity entity = new QcMaintainEntity();
+            entity.setStatMonth(request.getStatMonth());
+            entity.setIndicatorCode(item.getIndicatorCode());
+            entity.setIndicatorName(item.getIndicatorName());
+            entity.setNumerator(item.getNumerator());
+            entity.setDenominator(item.getDenominator());
+            entity.setRate(calcRate(item.getNumerator(), item.getDenominator()));
+            entity.setSourceType("人工登记");
+            affected += qcMaintainMapper.insert(entity);
+        }
+        return affected;
+    }
+
+    // ==================== 维护值覆盖 ====================
+
+    /** 维护值映射：key = 月份|指标编码；SQL已按人工登记优先+最新排序，取首条即可 */
+    private Map<String, QcMaintainEntity> maintainMap(String startMonth, String endMonth) {
+        Map<String, QcMaintainEntity> map = new LinkedHashMap<>();
+        try {
+            for (QcMaintainEntity r : qcMaintainMapper.queryByRange(startMonth, endMonth)) {
+                map.putIfAbsent(r.getStatMonth() + "|" + r.getIndicatorCode(), r);
+            }
+        } catch (Exception e) {
+            log.warn("查询门诊质控维护值失败", e);
+        }
+        return map;
+    }
+
+    private static void applyMaintain(TableItem item, String month, Map<String, QcMaintainEntity> maintainMap) {
+        setRate(rateOf(maintainMap, month, "emr_usage_rate"), item::setEmrUsageRate);
+        setRate(rateOf(maintainMap, month, "standard_diagnosis_rate"), item::setStandardDiagnosisRate);
+        setRate(rateOf(maintainMap, month, "on_time_rate"), item::setOnTimeRate);
+        setRate(rateOf(maintainMap, month, "stop_rate"), item::setStopRate);
+        setRate(rateOf(maintainMap, month, "chemo_record_rate"), item::setChemoRecordRate);
+    }
+
+    private static void applyMaintain(OverviewData data, String month, Map<String, QcMaintainEntity> maintainMap) {
+        setRate(rateOf(maintainMap, month, "emr_usage_rate"), data::setEmrUsageRate);
+        setRate(rateOf(maintainMap, month, "standard_diagnosis_rate"), data::setStandardDiagnosisRate);
+        setRate(rateOf(maintainMap, month, "on_time_rate"), data::setOnTimeRate);
+        setRate(rateOf(maintainMap, month, "stop_rate"), data::setStopRate);
+        setRate(rateOf(maintainMap, month, "chemo_record_rate"), data::setChemoRecordRate);
+    }
+
+    private static String rateOf(Map<String, QcMaintainEntity> maintainMap, String month, String indicatorCode) {
+        QcMaintainEntity r = maintainMap.get(month + "|" + indicatorCode);
+        return r == null || r.getRate() == null ? null : r.getRate().setScale(2, RoundingMode.HALF_UP).toPlainString() + "%";
+    }
+
+    private static void setRate(String rate, java.util.function.Consumer<String> setter) {
+        if (rate != null) {
+            setter.accept(rate);
+        }
+    }
+
+    /** 比率=分子/分母*100，分母为空或0时返回null */
+    private static BigDecimal calcRate(BigDecimal numerator, BigDecimal denominator) {
+        if (numerator == null || denominator == null
+                || denominator.compareTo(BigDecimal.ZERO) == 0) {
+            return null;
+        }
+        return numerator.multiply(new BigDecimal("100")).divide(denominator, 4, RoundingMode.HALF_UP);
+    }
+
+    /** 起止月份之间的月份列表（含端点） */
+    private static List<String> monthsBetween(String startMonth, String endMonth) {
+        List<String> months = new ArrayList<>();
+        try {
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(new SimpleDateFormat("yyyy-MM").parse(startMonth));
+            Calendar end = Calendar.getInstance();
+            end.setTime(new SimpleDateFormat("yyyy-MM").parse(endMonth));
+            while (!cal.after(end)) {
+                months.add(new SimpleDateFormat("yyyy-MM").format(cal.getTime()));
+                cal.add(Calendar.MONTH, 1);
+            }
+        } catch (Exception e) {
+            log.warn("生成月份区间失败", e);
+        }
+        return months;
     }
 
     // ==================== entity -> DTO 转换方法 ====================

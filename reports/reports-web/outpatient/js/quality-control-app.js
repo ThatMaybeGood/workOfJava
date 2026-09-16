@@ -153,6 +153,65 @@ class QualityControlController {
                 }
             });
         }
+
+        // 数据维护弹窗：打开/切月份时加载已维护值，保存提交
+        const maintainModal = document.getElementById('maintainModal');
+        if (maintainModal) {
+            maintainModal.addEventListener('shown.bs.modal', () => this.loadMaintain());
+            document.getElementById('maintainMonth').addEventListener('change', () => this.loadMaintain());
+            document.getElementById('maintainSaveBtn').addEventListener('click', () => this.saveMaintain());
+        }
+    }
+
+    /** 维护弹窗指标编码 -> 名称（与表 maintainTableBody 的 data-indicator 对应） */
+    maintainIndicatorName(code) {
+        const found = this.indicatorConfig.find(i => {
+            const snake = i.key.replace(/([A-Z])/g, '_$1').toLowerCase();
+            return snake === code;
+        });
+        return found ? found.label : code;
+    }
+
+    async loadMaintain() {
+        const month = document.getElementById('maintainMonth').value;
+        if (!month) return;
+        try {
+            const body = await ReportAPI.maintainQualityControl({ action: 'query', statMonth: month });
+            const values = {};
+            (body.list || []).forEach(item => {
+                values[item.indicatorCode + ':' + 'numerator'] = item.numerator;
+                values[item.indicatorCode + ':' + 'denominator'] = item.denominator;
+            });
+            document.querySelectorAll('#maintainTableBody input[data-indicator]').forEach(input => {
+                const key = input.dataset.indicator + ':' + input.dataset.part;
+                input.value = values[key] != null ? values[key] : '';
+            });
+        } catch (error) {
+            console.error('Load maintain failed:', error);
+        }
+    }
+
+    async saveMaintain() {
+        const month = document.getElementById('maintainMonth').value;
+        if (!month) return;
+        const items = {};
+        document.querySelectorAll('#maintainTableBody input[data-indicator]').forEach(input => {
+            const code = input.dataset.indicator;
+            if (!items[code]) {
+                items[code] = { indicatorCode: code, indicatorName: this.maintainIndicatorName(code) };
+            }
+            const val = parseFloat(input.value);
+            items[code][input.dataset.part] = isNaN(val) ? null : val;
+        });
+        try {
+            await ReportAPI.maintainQualityControl({ action: 'save', statMonth: month, list: Object.values(items) });
+            alert('保存成功！');
+            bootstrap.Modal.getInstance(document.getElementById('maintainModal')).hide();
+            this.loadData();
+        } catch (error) {
+            console.error('Save maintain failed:', error);
+            alert('保存失败，请重试');
+        }
     }
 
     async loadData() {

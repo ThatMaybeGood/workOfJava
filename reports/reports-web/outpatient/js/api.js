@@ -166,6 +166,14 @@ const ReportAPI = {
     },
 
     /**
+     * 门诊管理质量控制数据维护（query/save）
+     * method: reports.outp.quality-control-maintain
+     */
+    maintainQualityControl(params) {
+        return apiRequest('reports.outp.quality-control-maintain', 'endpoint', params);
+    },
+
+    /**
      * 天气数据维护（query/save/delete）
      * method: reports.common.weather-maintain
      */
