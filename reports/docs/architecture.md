@@ -24,7 +24,8 @@ Reports 报表网关是一个基于 Spring Boot 的统一报表查询服务平�
 reports/
 ├── pom.xml                                    # Maven 构建配置
 ├── docs/
-│   └── architecture.md                        # 架构设计文档（本文档）
+│   ├── architecture.md                        # 架构设计文档（本文档）
+│   └── his-charset.md                         # HIS 库中文乱码处理（US7ASCII）
 └── src/main/java/com/reports/
     ├── ReportsApplication.java                # 启动类
     ├── config/                               # 配置层

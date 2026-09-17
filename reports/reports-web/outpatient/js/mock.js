@@ -938,25 +938,51 @@ const MockService = {
                 const praiseMethods = ['锦旗', '感谢信', '口头传达'];
                 const feedbacks = ['已反馈', '未反馈'];
 
-                const generateComplaints = () => deptNames.map((dept, i) => ({
-                    time: '2025-11-25 13:50',
-                    dept,
-                    person: '张三',
-                    position: positions[i % positions.length],
-                    category: complaintCategories[i % complaintCategories.length],
-                    result: complaintResults[i % complaintResults.length],
-                    remark: ''
-                }));
+                const complaintContents = [
+                    '本人为患者家属，于近期在贵院专家门诊代诊咨询，现如实投诉该医生接诊态度傲慢、缺乏医德、拒不履行诊疗告知义务，仅生硬回复一句"等结果出来再来"，对家属所有关于空窗期护理、注意事项的合理疑问一概拒绝解答。',
+                    '线上问诊收了诊金不做回复，多次催促无人应答。',
+                    '预约挂号后到院被告知医生停诊，未提前通知，白跑一趟。'
+                ];
 
-                const generatePraise = () => deptNames.map((dept, i) => ({
-                    time: '2025-11-25 13:50',
-                    dept,
-                    person: '张三',
-                    position: positions[i % positions.length],
-                    method: praiseMethods[i % praiseMethods.length],
-                    feedback: feedbacks[i % feedbacks.length],
-                    remark: ''
-                }));
+                // 两个来源都展示：院领导信箱(源库)只给源里有的列，人工登记给人工补的列，靠"来源"列区分
+                const generateComplaints = () => deptNames.map((dept, i) => i % 2 === 0
+                    ? {
+                        source: '院领导信箱',
+                        time: '2025-11-25 13:50',
+                        dept,
+                        person: '张三',
+                        result: complaintResults[i % complaintResults.length],
+                        content: complaintContents[i % complaintContents.length],
+                        appeal: '要求批评教育并整改，加强门诊行风管理'
+                    }
+                    : {
+                        source: '人工登记',
+                        time: '2025-11-25 13:50',
+                        dept,
+                        person: '张三',
+                        position: positions[i % positions.length],
+                        category: complaintCategories[i % complaintCategories.length],
+                        result: complaintResults[i % complaintResults.length],
+                        remark: '行风办已回访'
+                    });
+
+                // 源库表扬分支的表单里没有科室和被表扬人这两题，留空
+                const generatePraise = () => deptNames.map((dept, i) => i % 2 === 0
+                    ? {
+                        source: '院领导信箱',
+                        time: '2025-11-25 13:50',
+                        content: '我要表扬心内科刘曦医生，接诊耐心细致，把病情和后续注意事项讲得很清楚，麻烦帮我表扬转发一下。'
+                    }
+                    : {
+                        source: '人工登记',
+                        time: '2025-11-25 13:50',
+                        dept,
+                        person: '张三',
+                        position: positions[i % positions.length],
+                        method: praiseMethods[i % praiseMethods.length],
+                        feedback: feedbacks[i % feedbacks.length],
+                        remark: ''
+                    });
 
                 const page = params.page || 1;
                 const pageSize = params.pageSize || 10;

@@ -38,6 +38,14 @@ function hideLoading() {
     }
 }
 
+/** 页面级失败提示：接口挂了要让用户看见，否则页面只是变空白，会被当成"没数据" */
+function setPageError(msg) {
+    var el = document.getElementById('pageErrorBanner');
+    if (!el) return;
+    el.classList.toggle('d-none', !msg);
+    el.textContent = msg || '';
+}
+
 function getDateRange() {
     var startText = document.getElementById('rangeStartDisplay').textContent;
     var endText = document.getElementById('rangeEndDisplay').textContent;
@@ -81,6 +89,7 @@ async function fetchAll(outerType) {
     showLoading();
     try {
         var data = await apiRequest('reports.cash.outpatient-finance', 'endpoint', params);
+        setPageError('');
         cachedData = data;
         cachedOuter = outerType;
         cachedDateRange = dateRangeKey;
@@ -96,6 +105,7 @@ async function fetchAll(outerType) {
         ensurePies(outerType, suffix);
     } catch (err) {
         console.error('[门诊财务] 接口调用失败:', err);
+        setPageError('查询数据失败，请联系系统管理员');
         cachedData = null;
         cachedOuter = null;
         cachedDateRange = null;
@@ -103,7 +113,10 @@ async function fetchAll(outerType) {
         listState[outerType].data = [];
         renderTable(outerType);
         updateBarFromCache(getActiveInnerSuffix(outerType));
-        ensurePies(outerType, getActiveInnerSuffix(outerType));
+        // 主请求都失败了说明后端不可用，这里不能再发饼图请求：
+        // 那会让遮罩在"已经提示失败"之后继续多转十几秒（要等它再失败一遍）。
+        // 直接按空数据清掉饼图，遮罩随下面的 finally 立刻收起。
+        updatePiesFromList(getActiveInnerSuffix(outerType), {});
     } finally {
         hideLoading();
     }
@@ -402,19 +415,19 @@ var pieChartMap = {
         'pie-summary-visit-1': '1', 'pie-summary-visit-2': '2', 'pie-summary-visit-3': '3',
         'pie-summary-pay-1': '4', 'pie-summary-pay-2': '5',
         'pie-summary-receipt-1': '6', 'pie-summary-receipt-2': '7',
-        'pie-summary-net-1': '11', 'pie-summary-net-2': '12', 'pie-summary-net-3': '8', 'pie-summary-net-4': '9', 'pie-summary-net-5': '10'
+        'pie-summary-net-1': '11', 'pie-summary-net-2': '12', 'pie-summary-net-3': '8', 'pie-summary-net-4': '9'
     },
     income: {
         'pie-income-visit-1': '1', 'pie-income-visit-2': '2', 'pie-income-visit-3': '3',
         'pie-income-pay-1': '4', 'pie-income-pay-2': '5',
         'pie-income-receipt-1': '6', 'pie-income-receipt-2': '7',
-        'pie-income-amount-1': '11', 'pie-income-amount-2': '12', 'pie-income-amount-3': '8', 'pie-income-amount-4': '9', 'pie-income-amount-5': '10'
+        'pie-income-amount-1': '11', 'pie-income-amount-2': '12', 'pie-income-amount-3': '8', 'pie-income-amount-4': '9'
     },
     refund: {
         'pie-refund-visit-1': '1', 'pie-refund-visit-2': '2', 'pie-refund-visit-3': '3',
         'pie-refund-pay-1': '4', 'pie-refund-pay-2': '5',
         'pie-refund-receipt-1': '6', 'pie-refund-receipt-2': '7',
-        'pie-refund-amount-1': '11', 'pie-refund-amount-2': '12', 'pie-refund-amount-3': '8', 'pie-refund-amount-4': '9', 'pie-refund-amount-5': '10'
+        'pie-refund-amount-1': '11', 'pie-refund-amount-2': '12', 'pie-refund-amount-3': '8', 'pie-refund-amount-4': '9'
     }
 };
 
@@ -423,8 +436,8 @@ var innerTabPieMap = {
     'visit': ['1', '2', '3'],
     'pay': ['1', '2'],
     'receipt': ['1', '2'],
-    'net': ['1', '2', '3', '4', '5'],
-    'amount': ['1', '2', '3', '4', '5']
+    'net': ['1', '2', '3', '4'],
+    'amount': ['1', '2', '3', '4']
 };
 
 function calcPer(curr, prev) {
@@ -474,7 +487,9 @@ function renderPieLegend(domId, pieData) {
         var color = PIE_COLORS[globalIdx % PIE_COLORS.length];
         var val = parseFloat(item.value) || 0;
         var pct = total > 0 ? (val / total * 100).toFixed(1) + '%' : '';
-        html += '<div class="pie-legend-item">';
+        var drillMatched = isDrillableLegend(domId, item.name);
+        html += '<div class="pie-legend-item' + (drillMatched ? ' pie-legend-drillable' : '') + '"'
+             + (drillMatched ? ' data-drill="' + (item.name || '') + '" title="点击查看支付方式明细"' : '') + '>';
         html += '<span class="pie-legend-dot" style="background:' + color + '"></span>';
         html += '<span class="pie-legend-name">' + (item.name || '未知') + '</span>';
         html += '<span class="pie-legend-val">' + (item.disp != null ? item.disp : item.value) + '</span>';
@@ -493,6 +508,9 @@ function renderPieLegend(domId, pieData) {
         html += '</div>';
     }
     listEl.innerHTML = html;
+    listEl.querySelectorAll('.pie-legend-drillable').forEach(function (el) {
+        el.addEventListener('click', function () { openAmountDrill(el.dataset.drill); });
+    });
 }
 
 function pieLegendPage(domId, page) {
@@ -519,6 +537,16 @@ function updatePieChart(domId, pieData) {
             per: perText
         });
     });
+    chart.off('click');
+    chart.off('mouseover');
+    // bt9「金额应收/实收分析」的切片可以点进去看支付方式明细（应收/实收），其余饼图不响应
+    if (String((pieChartMap[currentOuter] || {})[domId]) === '9') {
+        chart.on('click', function (params) { openAmountDrill(params.name); });
+        chart.on('mouseover', function (params) {
+            // 只有能点的切片鼠标才变手，医改统筹/医院垫支不行
+            chart.getZr().setCursorStyle(AMOUNT_DRILL_BT[params.name] ? 'pointer' : 'default');
+        });
+    }
     chart.setOption({
         tooltip: {
             trigger: 'item',
@@ -571,19 +599,20 @@ function updatePiesFromList(innerSuffix, pieList) {
 
 // ===== 饼图按需加载（内层 tab 点击时才请求对应类型的饼图） =====
 // 内层tab后缀 -> 需要的饼图业务类型（与后端 business_type 对应）
+// bt10/bt13 不在这里：它们是「金额应收/实收分析」切片点进去的钻取目标，不是页面上常驻的饼图
 var innerTabPieTypesMap = {
     'visit': '1,2,3',
     'pay': '4,5',
     'receipt': '6,7',
-    'net': '8,9,10,11,12',
-    'amount': '8,9,10,11,12'
+    'net': '8,9,11,12',
+    'amount': '8,9,11,12'
 };
 
 // 饼图缓存：outerType|日期范围|innerSuffix -> pieList
 var pieCache = {};
 
 // tab 名称映射（与 cash-outpatient-finance.html 的 data-inner / pie-title 对应，用于后端日志标识）
-var outerTypeNameMap = { summary: '汇总', income: '进项', refund: '退项' };
+var outerTypeNameMap = { summary: '小计', income: '进项', refund: '退项' };
 var innerTabNameMap = {
     'summary-visit': '门诊量分析', 'summary-pay': '缴费人次分析', 'summary-receipt': '收据张数分析', 'summary-net': '净收入金额分析',
     'income-visit': '门诊量分析', 'income-pay': '缴费人次分析', 'income-receipt': '收据张数分析', 'income-amount': '收入金额分析',
@@ -622,14 +651,101 @@ async function ensurePies(outerType, innerSuffix) {
     showLoading();
     try {
         var data = await apiRequest('reports.cash.outpatient-finance', 'endpoint', params);
+        setPageError('');
         pieCache[key] = data.pieList || {};
         updatePiesFromList(innerSuffix, pieCache[key]);
     } catch (err) {
         console.error('[门诊财务] 饼图查询失败:', err);
+        setPageError('查询数据失败，请联系系统管理员');
         updatePiesFromList(innerSuffix, {});
     } finally {
         hideLoading();
     }
+}
+
+// ===== 金额钻取：点"金额应收/实收分析"里的切片看支付方式明细 =====
+// 应收账款 -> bt10 应收金额分析；实收金额 -> bt13 实收金额分析（两者只差支付方式 IN / NOT IN）
+var AMOUNT_DRILL_BT = { '应收账款': '10', '实收金额': '13' };
+
+/** 只有 bt9「金额应收/实收分析」那张图上的这两个切片可点 */
+function isDrillableLegend(domId, name) {
+    var map = pieChartMap[currentOuter] || {};
+    return String(map[domId]) === '9' && !!AMOUNT_DRILL_BT[name];
+}
+
+async function openAmountDrill(name) {
+    var bt = AMOUNT_DRILL_BT[name];
+    if (!bt) return;
+    document.getElementById('amountDrillTitle').textContent =
+        (name === '实收金额' ? '实收金额分析' : '应收金额分析') + '（按支付方式）';
+    setDrillStatus('loading', '加载中…');
+    document.getElementById('amountDrillModal').classList.add('show');
+
+    var queryRange = toQueryDateRange();
+    var params = {
+        statisticType: parseInt(statisticTypeMap[currentOuter]),
+        timeType: pickerMode === 'day' ? 2 : 1,
+        startDate: queryRange.startDate,
+        endDate: queryRange.endDate,
+        pieTypes: bt,
+        pieTab: pieTabName(currentOuter, 'amount')
+    };
+    console.log('[门诊财务] 金额钻取:', name, 'bt=' + bt);
+    try {
+        var data = await apiRequest('reports.cash.outpatient-finance', 'endpoint', params);
+        renderAmountDrill((data.pieList || {})[bt] || []);
+    } catch (err) {
+        console.error('[门诊财务] 金额钻取查询失败:', err);
+        renderAmountDrill([]);
+        setDrillStatus('error', '查询数据失败，请联系系统管理员');
+    }
+}
+
+/** 钻取弹层状态：loading 加载中 / empty 暂无数据 / error 查询失败 / data 有数据（隐藏提示） */
+function setDrillStatus(state, text) {
+    var el = document.getElementById('amountDrillStatus');
+    if (!el) return;
+    el.classList.toggle('d-none', state === 'data');
+    el.classList.toggle('error', state === 'error');
+    el.textContent = state === 'data' ? '' : (text || '');
+}
+
+/** 关掉弹层（点右上角 ×、点遮罩、按 Esc 都能关） */
+function closeAmountDrill() {
+    document.getElementById('amountDrillModal').classList.remove('show');
+}
+
+document.getElementById('amountDrillModal').addEventListener('click', function (e) {
+    if (e.target === this) closeAmountDrill();
+});
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeAmountDrill();
+});
+
+function renderAmountDrill(list) {
+    var pieData = [];
+    (list || []).forEach(function (item) {
+        if (!item.name || item.name.trim() === '') return;
+        var v = Math.abs(parseFloat(item.currValue)) || 0;
+        pieData.push({ name: item.name, value: v, disp: v.toFixed(2), per: calcPer(item.currValue, item.prevValue) });
+    });
+    var wrapper = document.getElementById('amountDrillPie').parentNode;
+    var legend = wrapper.querySelector('.pie-legend-list');
+    if (legend) legend.innerHTML = '';
+    if (pieData.length > 0) {
+        setDrillStatus('data');
+        updatePieChart('amountDrillPie', pieData);
+    } else {
+        // 上一次钻取的饼图不能留在弹层里，否则会跟"暂无数据"同时出现
+        var old = pieChartInstances['amountDrillPie'];
+        if (old) old.clear();
+        setDrillStatus('empty', '暂无数据');
+    }
+    // 弹窗里的图要等显示出来才有尺寸，show 之后重新量一次
+    setTimeout(function () {
+        var chart = pieChartInstances['amountDrillPie'];
+        if (chart) chart.resize();
+    }, 200);
 }
 
 // 初始化空柱状图（页面加载后由接口填充数据）

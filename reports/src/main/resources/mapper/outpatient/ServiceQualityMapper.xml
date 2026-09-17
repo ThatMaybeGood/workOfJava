@@ -2,95 +2,9 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.reports.mapper.ServiceQualityMapper">
 
-    <!-- ============================================================ -->
-    <!-- 查询门诊服务质量概览（按明细表统计，支持科室过滤）                    -->
-    <!-- ============================================================ -->
-    <select id="queryOverview" resultType="com.reports.entity.ServiceQualityOvEntity">
-        SELECT
-        NVL((SELECT COUNT(1)
-             FROM TR_SVC_QUALITY_CMPL c
-             LEFT JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
-             WHERE c.stat_date BETWEEN #{startDate} AND #{endDate}
-             <if test="deptCode != null and deptCode != ''">
-                 AND c.dept_code = #{deptCode}
-             </if>
-             <if test="deptName != null and deptName != ''">
-                 AND d.dept_name LIKE '%' || #{deptName} || '%'
-             </if>
-        ), 0) AS complaintCount,
-        NVL((SELECT COUNT(1)
-             FROM TR_SVC_QUALITY_PRZ p
-             LEFT JOIN TR_DEPT_DICT d ON p.dept_code = d.dept_code
-             WHERE p.stat_date BETWEEN #{startDate} AND #{endDate}
-             <if test="deptCode != null and deptCode != ''">
-                 AND p.dept_code = #{deptCode}
-             </if>
-             <if test="deptName != null and deptName != ''">
-                 AND d.dept_name LIKE '%' || #{deptName} || '%'
-             </if>
-        ), 0) AS praiseCount
-        FROM DUAL
-    </select>
+    <!-- 源库(yq_powersfp/院领导信箱)只读，这里只管人工登记表的增删改查 -->
 
-    <!-- ============================================================ -->
-    <!-- 查询门诊服务质量投诉列表                                          -->
-    <!-- ============================================================ -->
-    <select id="queryComplaintList" resultType="com.reports.entity.ServiceQualityCmplEntity">
-        SELECT
-        c.id,
-        c.stat_date AS statDate,
-        c.complaint_time AS complaintTime,
-        c.dept_code AS deptCode,
-        NVL(d.dept_name, c.dept_name) AS deptName,
-        c.person_name AS personName,
-        c.position,
-        c.category,
-        c.result,
-        c.remark
-        FROM TR_SVC_QUALITY_CMPL c
-        LEFT JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
-        WHERE c.stat_date BETWEEN #{startDate} AND #{endDate}
-         <if test="deptCode != null and deptCode != ''">
-            AND c.dept_code = #{deptCode}
-        </if>
-        <if test="deptName != null and deptName != ''">
-            AND d.dept_name LIKE '%' || #{deptName} || '%'
-        </if>
-        ORDER BY c.complaint_time DESC
-    </select>
-
-    <!-- ============================================================ -->
-    <!-- 查询门诊服务质量表扬列表                                          -->
-    <!-- ============================================================ -->
-    <select id="queryPraiseList" resultType="com.reports.entity.ServiceQualityPrzEntity">
-        SELECT
-        p.id,
-        p.stat_date AS statDate,
-        p.praise_time AS praiseTime,
-        p.dept_code AS deptCode,
-        NVL(d.dept_name, p.dept_name) AS deptName,
-        p.person_name AS personName,
-        p.position,
-        p.method,
-        p.feedback,
-        p.remark
-        FROM TR_SVC_QUALITY_PRZ p
-        LEFT JOIN TR_DEPT_DICT d ON p.dept_code = d.dept_code
-        WHERE p.stat_date BETWEEN #{startDate} AND #{endDate}
-         <if test="deptCode != null and deptCode != ''">
-            AND p.dept_code = #{deptCode}
-        </if>
-        <if test="deptName != null and deptName != ''">
-            AND d.dept_name LIKE '%' || #{deptName} || '%'
-        </if>
-        ORDER BY p.praise_time DESC
-    </select>
-
-    <!-- ============================================================ -->
-    <!-- 数据维护：按日期范围查询投诉明细                                    -->
-    <!-- ============================================================ -->
-    <select id="queryComplaintByDate" resultType="com.reports.entity.ServiceQualityCmplEntity">
-        SELECT
+    <sql id="cmplColumns">
         id,
         stat_date AS statDate,
         complaint_time AS complaintTime,
@@ -101,16 +15,9 @@
         category,
         result,
         remark
-        FROM TR_SVC_QUALITY_CMPL
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        ORDER BY complaint_time DESC
-    </select>
+    </sql>
 
-    <!-- ============================================================ -->
-    <!-- 数据维护：按日期范围查询表扬明细                                    -->
-    <!-- ============================================================ -->
-    <select id="queryPraiseByDate" resultType="com.reports.entity.ServiceQualityPrzEntity">
-        SELECT
+    <sql id="przColumns">
         id,
         stat_date AS statDate,
         praise_time AS praiseTime,
@@ -121,14 +28,44 @@
         method,
         feedback,
         remark
+    </sql>
+
+    <!-- 数据维护弹窗：按日期范围查人工登记的投诉 -->
+    <select id="queryComplaintByDate" resultType="com.reports.entity.ServiceQualityCmplEntity">
+        SELECT
+        <include refid="cmplColumns"/>
+        FROM TR_SVC_QUALITY_CMPL
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY complaint_time DESC
+    </select>
+
+    <!-- 数据维护弹窗：按日期范围查人工登记的表扬 -->
+    <select id="queryPraiseByDate" resultType="com.reports.entity.ServiceQualityPrzEntity">
+        SELECT
+        <include refid="przColumns"/>
         FROM TR_SVC_QUALITY_PRZ
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         ORDER BY praise_time DESC
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 数据维护：新增投诉明细                                             -->
-    <!-- ============================================================ -->
+    <!-- 报表列表：人工登记的投诉 -->
+    <select id="listComplaint" resultType="com.reports.entity.ServiceQualityCmplEntity">
+        SELECT
+        <include refid="cmplColumns"/>
+        FROM TR_SVC_QUALITY_CMPL
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY complaint_time DESC
+    </select>
+
+    <!-- 报表列表：人工登记的表扬 -->
+    <select id="listPraise" resultType="com.reports.entity.ServiceQualityPrzEntity">
+        SELECT
+        <include refid="przColumns"/>
+        FROM TR_SVC_QUALITY_PRZ
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY praise_time DESC
+    </select>
+
     <insert id="insertComplaint" parameterType="com.reports.entity.ServiceQualityCmplEntity">
         INSERT INTO TR_SVC_QUALITY_CMPL
             (id, stat_date, complaint_time, dept_code, dept_name,
@@ -138,9 +75,6 @@
              #{personName}, #{position}, #{category}, #{result}, #{remark}, SYSDATE, SYSDATE)
     </insert>
 
-    <!-- ============================================================ -->
-    <!-- 数据维护：更新投诉明细                                             -->
-    <!-- ============================================================ -->
     <update id="updateComplaint" parameterType="com.reports.entity.ServiceQualityCmplEntity">
         UPDATE TR_SVC_QUALITY_CMPL
         SET complaint_time = #{complaintTime},
@@ -156,16 +90,10 @@
         WHERE id = #{id}
     </update>
 
-    <!-- ============================================================ -->
-    <!-- 数据维护：删除投诉明细                                             -->
-    <!-- ============================================================ -->
     <delete id="deleteComplaintById">
         DELETE FROM TR_SVC_QUALITY_CMPL WHERE id = #{id}
     </delete>
 
-    <!-- ============================================================ -->
-    <!-- 数据维护：新增表扬明细                                             -->
-    <!-- ============================================================ -->
     <insert id="insertPraise" parameterType="com.reports.entity.ServiceQualityPrzEntity">
         INSERT INTO TR_SVC_QUALITY_PRZ
             (id, stat_date, praise_time, dept_code, dept_name,
@@ -175,9 +103,6 @@
              #{personName}, #{position}, #{method}, #{feedback}, #{remark}, SYSDATE, SYSDATE)
     </insert>
 
-    <!-- ============================================================ -->
-    <!-- 数据维护：更新表扬明细                                             -->
-    <!-- ============================================================ -->
     <update id="updatePraise" parameterType="com.reports.entity.ServiceQualityPrzEntity">
         UPDATE TR_SVC_QUALITY_PRZ
         SET praise_time = #{praiseTime},
@@ -193,9 +118,6 @@
         WHERE id = #{id}
     </update>
 
-    <!-- ============================================================ -->
-    <!-- 数据维护：删除表扬明细                                             -->
-    <!-- ============================================================ -->
     <delete id="deletePraiseById">
         DELETE FROM TR_SVC_QUALITY_PRZ WHERE id = #{id}
     </delete>

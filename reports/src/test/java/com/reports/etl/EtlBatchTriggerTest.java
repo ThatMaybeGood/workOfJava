@@ -46,7 +46,7 @@ class EtlBatchTriggerTest {
     private static final String RUN_URL = "http://localhost:18090/api/etl/run";
 
     /** 渠道令牌，请求头 X-API-Token；内网按环境替换 */
-    private static final String API_TOKEN = "0cb06f7a29064e62a5de34d484296456";
+    private static final String API_TOKEN = "c041b9be97aa44e58e51dfae927527e5";
 
     /** 轮询间隔与超时（秒）：触发后按 pollUrl 查询，直到 SUCCESS / FAILED / CANCELLED */
     private static final int POLL_INTERVAL_SECONDS = 3;
@@ -56,7 +56,7 @@ class EtlBatchTriggerTest {
 
     /** 每个区间 {起始日, 结束日}，都是 yyyy-MM-dd；要补多段（如当期 + 同比）就往下加一行 */
     private static final String[][] RANGES = {
-            {"2026-07-01", "2026-07-31"},
+            {"2025-07-01", "2025-07-31"},
     };
 
     /**
@@ -76,7 +76,13 @@ class EtlBatchTriggerTest {
      * </pre>
      */
     private static final Case[] CASES = {
-            new Case("填任务调用ID", vars("statDate", DATE)),
+            new Case("0615a352532f463daf069ef8c994eee8", vars("a_extract_date", DATE)),
+            new Case("921f1194b8c34531a7da579888f369c5", vars("a_extract_date", DATE)),
+            new Case("94d2705495204e34ab717d8551411112", vars("a_extract_date", DATE)),
+            new Case("c161c5b037cb4d21bb2e15c4d69e7fea", vars("a_extract_date", DATE)),
+            new Case("77ac0ac9e3b94ed087bf81910028012b", vars("a_extract_date", DATE)),
+            new Case("cd08d035d3914b2e90743f950d666a02", vars("a_extract_date", DATE)),
+            new Case("e0e0c678f29a4c7096cd936d7db7df72", vars("a_extract_date", DATE)),
     };
 
     // ==================== 4. 主流程 ====================

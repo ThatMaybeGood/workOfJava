@@ -6,6 +6,7 @@ import com.reports.dto.response.cash.outpatient.finance.BarItem;
 import com.reports.dto.response.cash.outpatient.finance.DetailListItem;
 import com.reports.dto.response.cash.outpatient.finance.IndicatorData;
 import com.reports.dto.response.cash.outpatient.finance.PieItem;
+import com.reports.exception.DataSourceException;
 import com.reports.mapper.OutpatientFinanceMapper;
 import com.reports.service.OutpatientFinanceService;
 import lombok.extern.slf4j.Slf4j;
@@ -168,8 +169,10 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             }
             return curr;
         } catch (Exception e) {
-            log.warn("查询门诊财务明细失败", e);
-            return new ArrayList<>();
+            // 同饼图：吞掉异常会让整个请求以 success=true + 全 0 数据返回，
+            // 前端只看到一张空表，分不清"没数据"和"查不动"。抛出去让网关报错。
+            log.error("查询门诊财务明细失败", e);
+            throw new DataSourceException("门诊财务明细查询失败", e);
         }
     }
 
@@ -298,6 +301,11 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                 map.put("10", buildPie(financeMapper.queryPaymentSumReceivable(type, start, end, tt),
                         financeMapper.queryPaymentSumReceivable(type, pStart, pEnd, tt), null));
             }
+            if (types.contains("13")) {
+                log.info("[门诊财务饼图] bt13: 实收金额(实收类支付方式明细) → queryPaymentSumReceived");
+                map.put("13", buildPie(financeMapper.queryPaymentSumReceived(type, start, end, tt),
+                        financeMapper.queryPaymentSumReceived(type, pStart, pEnd, tt), null));
+            }
             if (types.contains("11")) {
                 log.info("[门诊财务饼图] bt11: 收入金额分析(渠道分析) → queryIncomeSumByOperator");
                 map.put("11", buildPie(financeMapper.queryIncomeSumByOperator(type, start, end, tt),
@@ -309,10 +317,11 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                         financeMapper.queryIncomeSumByMoneyType(type, pStart, pEnd, tt), null));
             }
         } catch (Exception e) {
-            log.warn("查询门诊财务饼图失败", e);
-            for (String bt : types) {
-                map.putIfAbsent(bt, new ArrayList<>());
-            }
+            // 不能在这里补空列表了事：库连不上时会伪装成"暂无数据"，
+            // 前端弹层显示"暂无数据"、用户以为真没数据，实际是故障。
+            // 抛出去交给全局异常处理器，前端才能给出"查询数据失败"的提示。
+            log.error("查询门诊财务饼图失败, types={}", types, e);
+            throw new DataSourceException("饼图数据查询失败", e);
         }
         return map;
     }

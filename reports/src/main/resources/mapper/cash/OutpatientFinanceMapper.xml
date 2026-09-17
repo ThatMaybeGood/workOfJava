@@ -29,19 +29,19 @@
         ORDER BY "period"
     </select>
 
-    <!-- 收据张数/金额·明细：结账主表按 STAT_DATE 分组（T1净/T2含退/T3退费） -->
+    <!-- 收据张数/金额·明细：结账主表按 STAT_DATE 分组（T1小计=TOTAL_INCOMES/T2进项=TOTAL_COSTS/T3退费） -->
     <select id="queryAcctAmounts" resultType="map">
         SELECT
         <include refid="periodExpr"><property name="col" value="a.STAT_DATE"/></include> AS "period",
         <choose>
-            <when test="statisticType == 1">SUM(NVL(a.TOTAL_COSTS, 0) )</when>
-            <when test="statisticType == 2">SUM(NVL(a.TOTAL_COSTS, 0)+NVL(a.REFUND_AMOUNT, 0))</when>
+            <when test="statisticType == 1">SUM(NVL(a.TOTAL_INCOMES, 0) )</when>
+            <when test="statisticType == 2">SUM(NVL(a.TOTAL_COSTS, 0))</when>
             <otherwise>SUM(NVL(a.REFUND_AMOUNT, 0))</otherwise>
         </choose> AS "amount",
         <choose>
-            <when test="statisticType == 1">SUM(NVL(a.RCPTS_NUM, 0)) - (SUM(NVL(a.REFUND_NUM, 0)) + SUM(NVL(a.FREE_OF_CHARGE_NUM, 0)))</when>
+            <when test="statisticType == 1">SUM(NVL(a.RCPTS_NUM, 0)) - SUM(NVL(a.REFUND_NUM, 0))</when>
             <when test="statisticType == 2">SUM(NVL(a.RCPTS_NUM, 0))</when>
-            <otherwise>SUM(NVL(a.REFUND_NUM, 0)) + SUM(NVL(a.FREE_OF_CHARGE_NUM, 0))</otherwise>
+            <otherwise>SUM(NVL(a.REFUND_NUM, 0))</otherwise>
         </choose> AS "receipt"
         FROM TR_OUTP_FIN_ACCT_MASTER a
         WHERE a.STAT_DATE BETWEEN #{startDate} AND #{endDate}
@@ -204,13 +204,13 @@
         ORDER BY "amount" DESC
     </select>
 
-    <!-- bt6 收据张数分析： 渠道分析（张数口径同 queryAcctAmounts：退项=REFUND_NUM+FREE_OF_CHARGE_NUM） -->
+    <!-- bt6 收据张数分析： 渠道分析（张数口径同 queryAcctAmounts：T1=RCPTS_NUM-REFUND_NUM，T3=REFUND_NUM） -->
     <select id="queryRcptSumByOperator" resultType="map">
         SELECT DECODE(a.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
                <choose>
-                   <when test="statisticType == 1">SUM(NVL(a.RCPTS_NUM, 0)) - (SUM(NVL(a.REFUND_NUM, 0)) + SUM(NVL(a.FREE_OF_CHARGE_NUM, 0)))</when>
+                   <when test="statisticType == 1">SUM(NVL(a.RCPTS_NUM, 0)) - SUM(NVL(a.REFUND_NUM, 0))</when>
                    <when test="statisticType == 2">SUM(NVL(a.RCPTS_NUM, 0))</when>
-                   <otherwise>SUM(NVL(a.REFUND_NUM, 0)) + SUM(NVL(a.FREE_OF_CHARGE_NUM, 0))</otherwise>
+                   <otherwise>SUM(NVL(a.REFUND_NUM, 0))</otherwise>
                </choose> AS "cnt"
         FROM TR_OUTP_FIN_ACCT_MASTER a
         WHERE a.STAT_DATE BETWEEN #{startDate} AND #{endDate}
@@ -287,7 +287,7 @@
         ORDER BY "amount" DESC
     </select>
 
-    <!-- bt10 收入金额分析： 应收金额分析 -->
+    <!-- bt10 收入金额分析： 应收金额分析（bt9「金额应收/实收分析」里点"应收账款"弹窗看的就是它） -->
     <select id="queryPaymentSumReceivable" resultType="map">
         SELECT p.MONEY_TYPE AS "name",
                <choose>
@@ -303,12 +303,28 @@
         ORDER BY "amount" DESC
     </select>
 
-    <!-- bt11 收入金额分析： 渠道分析 -->
+    <!-- bt13 收入金额分析： 实收金额分析（bt9「金额应收/实收分析」里点"实收金额"弹窗看的就是它，与 bt10 只差支付方式取反） -->
+    <select id="queryPaymentSumReceived" resultType="map">
+        SELECT p.MONEY_TYPE AS "name",
+               <choose>
+                   <when test="statisticType == 1">NVL(SUM(NVL(p.PAYMENT_AMOUNT,0)-NVL(p.REFUNDED_AMOUNT,0)),0)</when>
+                   <when test="statisticType == 2">NVL(SUM(NVL(p.PAYMENT_AMOUNT,0)),0)</when>
+                   <otherwise>NVL(SUM(NVL(p.REFUNDED_AMOUNT,0)),0)</otherwise>
+               </choose> AS "amount"
+        FROM TR_OUTP_FIN_PAYMENTS_MONEY p
+        JOIN TR_OUTP_FIN_RCPT_ACCT rc ON rc.RCPT_NO = p.RCPT_NO
+        WHERE rc.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+          AND p.MONEY_TYPE IN ('支付宝','现金','信用卡','银行卡','微信','自助POS','支票')
+        GROUP BY p.MONEY_TYPE
+        ORDER BY "amount" DESC
+    </select>
+
+    <!-- bt11 收入金额分析： 渠道分析（金额口径同 queryAcctAmounts：T1=TOTAL_INCOMES，T2=TOTAL_COSTS） -->
     <select id="queryIncomeSumByOperator" resultType="map">
         SELECT DECODE(a.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
                <choose>
-                   <when test="statisticType == 1">NVL(SUM(NVL(a.TOTAL_COSTS, 0) ), 0)</when>
-                   <when test="statisticType == 2">NVL(SUM(NVL(a.TOTAL_COSTS, 0) +  NVL(a.REFUND_AMOUNT, 0)), 0)</when>
+                   <when test="statisticType == 1">NVL(SUM(NVL(a.TOTAL_INCOMES, 0) ), 0)</when>
+                   <when test="statisticType == 2">NVL(SUM(NVL(a.TOTAL_COSTS, 0)), 0)</when>
                    <otherwise>NVL(SUM(NVL(a.REFUND_AMOUNT, 0)), 0)</otherwise>
                </choose> AS "amount"
         FROM TR_OUTP_FIN_ACCT_MASTER a

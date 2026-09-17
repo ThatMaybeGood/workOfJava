@@ -1,14 +1,16 @@
 package com.reports.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Date;
 
 /**
- * 门诊管理质量控制-月度明细
+ * 门诊管理质量控制-月度明细（一月一行，比率不落库）
  */
 @Data
 @TableName("TR_QC_DTL")
@@ -16,54 +18,79 @@ public class QualityControlDtlEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-
     /** 统计月份(YYYY-MM) */
-    @TableField("stat_month")
+    @TableId("stat_month")
     private String statMonth;
 
-    /** 病历使用率 */
-    @TableField("emr_usage_rate")
-    private String emrUsageRate;
+    @TableField("emr_usage_rate_num")
+    private BigDecimal emrUsageRateNum;
 
-    /** 规范诊断率 */
-    @TableField("standard_diagnosis_rate")
-    private String standardDiagnosisRate;
+    @TableField("emr_usage_rate_den")
+    private BigDecimal emrUsageRateDen;
 
-    /** 准时率 */
-    @TableField("on_time_rate")
-    private String onTimeRate;
+    @TableField("standard_diagnosis_rate_num")
+    private BigDecimal standardDiagnosisRateNum;
 
-    /** 停诊率 */
-    @TableField("stop_rate")
-    private String stopRate;
+    @TableField("standard_diagnosis_rate_den")
+    private BigDecimal standardDiagnosisRateDen;
 
-    /** 化疗记录率 */
-    @TableField("chemo_record_rate")
-    private String chemoRecordRate;
+    @TableField("on_time_rate_num")
+    private BigDecimal onTimeRateNum;
 
-    /** 化疗不良反应率 */
-    @TableField("chemo_adverse_rate")
-    private String chemoAdverseRate;
+    @TableField("on_time_rate_den")
+    private BigDecimal onTimeRateDen;
 
-    /** 化疗输液率 */
-    @TableField("chemo_infusion_rate")
-    private String chemoInfusionRate;
+    @TableField("stop_rate_num")
+    private BigDecimal stopRateNum;
 
-    /** 危急值处理率 */
-    @TableField("critical_value_rate")
-    private String criticalValueRate;
+    @TableField("stop_rate_den")
+    private BigDecimal stopRateDen;
 
-    /** 抽血差错率 */
-    @TableField("blood_draw_error_rate")
-    private String bloodDrawErrorRate;
+    @TableField("chemo_record_rate_num")
+    private BigDecimal chemoRecordRateNum;
 
-    /** 手术并发症率 */
-    @TableField("surgery_complication_rate")
-    private String surgeryComplicationRate;
+    @TableField("chemo_record_rate_den")
+    private BigDecimal chemoRecordRateDen;
 
-    /** 不良事件率 */
-    @TableField("adverse_event_rate")
-    private String adverseEventRate;
+    @TableField("chemo_adverse_rate_num")
+    private BigDecimal chemoAdverseRateNum;
+
+    @TableField("chemo_adverse_rate_den")
+    private BigDecimal chemoAdverseRateDen;
+
+    @TableField("chemo_infusion_rate_num")
+    private BigDecimal chemoInfusionRateNum;
+
+    @TableField("chemo_infusion_rate_den")
+    private BigDecimal chemoInfusionRateDen;
+
+    @TableField("critical_value_rate_num")
+    private BigDecimal criticalValueRateNum;
+
+    @TableField("critical_value_rate_den")
+    private BigDecimal criticalValueRateDen;
+
+    @TableField("blood_draw_error_rate_num")
+    private BigDecimal bloodDrawErrorRateNum;
+
+    @TableField("blood_draw_error_rate_den")
+    private BigDecimal bloodDrawErrorRateDen;
+
+    @TableField("surgery_complication_rate_num")
+    private BigDecimal surgeryComplicationRateNum;
+
+    @TableField("surgery_complication_rate_den")
+    private BigDecimal surgeryComplicationRateDen;
+
+    @TableField("adverse_event_rate_num")
+    private BigDecimal adverseEventRateNum;
+
+    @TableField("adverse_event_rate_den")
+    private BigDecimal adverseEventRateDen;
+
+    /** 数据来源(人工登记/ETL抽取) */
+    @TableField("source_type")
+    private String sourceType;
 
     /** 创建时间 */
     @TableField("create_time")

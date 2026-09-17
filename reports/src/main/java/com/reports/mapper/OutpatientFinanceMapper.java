@@ -120,6 +120,14 @@ public interface OutpatientFinanceMapper {
                                                         @Param("timeType") Integer timeType);
 
     /**
+     * bt13 实收金额：实收类支付方式（现金/微信/支付宝等）明细，与 bt10 只差 IN / NOT IN
+     */
+    List<Map<String, Object>> queryPaymentSumReceived(@Param("statisticType") Integer statisticType,
+                                                      @Param("startDate") Date startDate,
+                                                      @Param("endDate") Date endDate,
+                                                      @Param("timeType") Integer timeType);
+
+    /**
      * bt11 收入金额渠道：结账主表按操作员分类（总收入口径）
      */
     List<Map<String, Object>> queryIncomeSumByOperator(@Param("statisticType") Integer statisticType,

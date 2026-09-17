@@ -294,7 +294,7 @@
                 <div class="table-title"><i class="bi bi-clipboard-data"></i>门诊管理治疗质量控制指标（2024年版）</div>
                 <div class="d-flex gap-2">
                     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#maintainModal"><i class="bi bi-pencil-square me-1"></i>数据维护</button>
-                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#wordModal"><i class="bi bi-file-earword me-1"></i>导出Word</button>
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#wordModal"><i class="bi bi-file-earmark-word me-1"></i>导出Word</button>
                     <button class="btn btn-primary btn-sm" onclick="exportExcel()"><i class="bi bi-download me-1"></i>导出Excel</button>
                 </div>
             </div>
@@ -440,19 +440,13 @@
                                         <label class="form-check-label" for="periodQuarter">按季度</label>
                                     </div>
                                 </div>
-                                <input type="month" id="exportMonth" class="form-control form-control-sm" style="width: 160px;" value="2025-09">
+                                <input type="month" id="exportMonth" class="form-control form-control-sm" style="width: 160px;">
+                                <div class="form-text" id="exportPeriodHint"></div>
                             </div>
-                            <button class="btn btn-primary btn-sm w-100" onclick="alert('导出Word功能开发中')">确认</button>
+                            <button class="btn btn-primary btn-sm w-100" id="exportWordBtn" onclick="exportWord()">确认</button>
                         </div>
                         <div class="col-md-8">
-                            <div class="word-preview">
-                                <h4>门诊质控指标情况</h4>
-                                <p><strong>一、国家《门诊管理治疗质量控制指标》2025年9月数据情况</strong></p>
-                                <p>（一）门诊电子病历使用率</p>
-                                <p>2025年9月我院门诊电子病历使用率为100%。</p>
-                                <p>（二）门诊标准诊断使用率</p>
-                                <p>2025年9月我院门诊标准诊断使用率为100%。</p>
-                            </div>
+                            <div class="word-preview" id="wordPreview"></div>
                         </div>
                     </div>
                 </div>
@@ -484,6 +478,7 @@
         })();
     </script>
     <script src="../vendor/xlsx@0.18.5/xlsx.full.min.js"></script>
+    <script src="../vendor/docx@8.5.0/docx.umd.js"></script>
     <script src="js/quality-control-app.js"></script>
 </body>
 </html>

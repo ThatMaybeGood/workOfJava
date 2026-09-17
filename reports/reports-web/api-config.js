@@ -190,16 +190,27 @@ async function apiRequest(methodKey, endpointKey, requestBody = null) {
     throw new Error(errorMsg);
 }
 
+// 接口超时（毫秒）。后端连不上库时请求会长时间挂起（Oracle 建连重试），
+// 没有这个超时前端会一直转圈、弹层一片空白，看不出是"加载中"还是"没数据"。
+// 设为 0 表示不超时。
+const API_TIMEOUT_MS = 30000;
+
 /**
  * 通用 fetch 封装
  */
 async function fetchData(url, options = {}) {
+    const controller = new AbortController();
+    const timer = API_TIMEOUT_MS > 0
+        ? setTimeout(() => controller.abort(), API_TIMEOUT_MS)
+        : null;
+
     try {
         const response = await fetch(url, {
             headers: {
                 'Content-Type': 'application/json',
             },
-            ...options
+            ...options,
+            signal: controller.signal
         });
 
         if (!response.ok) {
@@ -208,8 +219,14 @@ async function fetchData(url, options = {}) {
 
         return await response.json();
     } catch (error) {
+        if (error.name === 'AbortError') {
+            console.error(`Fetch timeout(${API_TIMEOUT_MS}ms):`, url);
+            throw new Error('请求超时，请稍后重试或联系系统管理员');
+        }
         console.error('Fetch error:', error);
         throw error;
+    } finally {
+        if (timer) clearTimeout(timer);
     }
 }
 
@@ -388,7 +405,13 @@ if (window.top !== window.self) {
         document.querySelectorAll('.page-title').forEach(el => el.style.display = 'none');
     });
 } else {
+    // 只藏报表页自己那条，别把壳(index.html)顶栏里的开关一起藏了——
+    // 壳也引了这个文件，而壳自己就是顶层页面，不加这个判断会把唯一的开关也藏掉
     document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('.mock-toggle').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.mock-toggle').forEach(el => {
+            if (!el.closest('.top-bar')) {
+                el.style.display = 'none';
+            }
+        });
     });
 }

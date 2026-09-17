@@ -175,24 +175,30 @@ class ServiceQualityController {
         if (this.state.activeTab === 'complaint') {
             thead.innerHTML = `
                 <tr>
+                    <th>来源</th>
                     <th>投诉时间</th>
                     <th>被投诉科室</th>
                     <th>被投诉人员</th>
                     <th>岗位类别</th>
                     <th>投诉分类</th>
                     <th>处理结果</th>
+                    <th>投诉内容</th>
+                    <th>诉求</th>
                     <th>备注</th>
                 </tr>
             `;
             this.state.data.forEach(row => {
                 html += `
                     <tr>
-                        <td>${row.time}</td>
-                        <td>${row.dept}</td>
-                        <td>${row.person}</td>
-                        <td>${row.position}</td>
-                        <td>${row.category}</td>
-                        <td>${row.result}</td>
+                        <td>${row.source || ''}</td>
+                        <td>${row.time || ''}</td>
+                        <td>${row.dept || ''}</td>
+                        <td>${row.person || ''}</td>
+                        <td>${row.position || ''}</td>
+                        <td>${row.category || ''}</td>
+                        <td>${row.result || ''}</td>
+                        <td class="cell-ellipsis" title="${escapeHtml(row.content)}">${escapeHtml(row.content)}</td>
+                        <td class="cell-ellipsis" title="${escapeHtml(row.appeal)}">${escapeHtml(row.appeal)}</td>
                         <td>${row.remark || ''}</td>
                     </tr>
                 `;
@@ -200,20 +206,28 @@ class ServiceQualityController {
         } else {
             thead.innerHTML = `
                 <tr>
+                    <th>来源</th>
                     <th>表扬时间</th>
+                    <th>被表扬科室</th>
+                    <th>被表扬人员</th>
                     <th>岗位类别</th>
                     <th>表扬方式</th>
                     <th>是否反馈科室</th>
+                    <th>反馈内容</th>
                     <th>备注</th>
                 </tr>
             `;
             this.state.data.forEach(row => {
                 html += `
                     <tr>
-                        <td>${row.time}</td>
-                        <td>${row.position}</td>
-                        <td>${row.method}</td>
-                        <td>${row.feedback}</td>
+                        <td>${row.source || ''}</td>
+                        <td>${row.time || ''}</td>
+                        <td>${row.dept || ''}</td>
+                        <td>${row.person || ''}</td>
+                        <td>${row.position || ''}</td>
+                        <td>${row.method || ''}</td>
+                        <td>${row.feedback || ''}</td>
+                        <td class="cell-ellipsis" title="${escapeHtml(row.content)}">${escapeHtml(row.content)}</td>
                         <td>${row.remark || ''}</td>
                     </tr>
                 `;
@@ -221,7 +235,7 @@ class ServiceQualityController {
         }
 
         if (this.state.data.length === 0) {
-            const colSpan = this.state.activeTab === 'complaint' ? 7 : 5;
+            const colSpan = this.state.activeTab === 'complaint' ? 10 : 9;
             html += `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">暂无数据</td></tr>`;
         }
 
@@ -292,6 +306,17 @@ class ServiceQualityController {
     }
 }
 
+/** 源库正文是患者手填的自由文本，渲染进 innerHTML 前先转义 */
+function escapeHtml(value) {
+    if (value == null) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function exportData() {
     const data = serviceQualityController.state.data;
     if (data.length === 0) {
@@ -303,18 +328,20 @@ function exportData() {
     let headers, rows;
 
     if (tab === 'complaint') {
-        headers = ['投诉时间', '被投诉科室', '被投诉人员', '岗位类别', '投诉分类', '处理结果', '备注'];
-        rows = data.map(row => [row.time, row.dept, row.person, row.position, row.category, row.result, row.remark || '']);
+        headers = ['来源', '投诉时间', '被投诉科室', '被投诉人员', '岗位类别', '投诉分类', '处理结果', '投诉内容', '诉求', '备注'];
+        rows = data.map(row => [row.source || '', row.time, row.dept, row.person, row.position, row.category,
+            row.result, row.content || '', row.appeal || '', row.remark || '']);
     } else {
-        headers = ['表扬时间', '岗位类别', '表扬方式', '是否反馈科室', '备注'];
-        rows = data.map(row => [row.time, row.position, row.method, row.feedback, row.remark || '']);
+        headers = ['来源', '表扬时间', '被表扬科室', '被表扬人员', '岗位类别', '表扬方式', '是否反馈科室', '反馈内容', '备注'];
+        rows = data.map(row => [row.source || '', row.time, row.dept, row.person, row.position, row.method,
+            row.feedback, row.content || '', row.remark || '']);
     }
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     ws['!cols'] = tab === 'complaint'
-        ? [{ wch: 16 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 20 }]
-        : [{ wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 20 }];
+        ? [{ wch: 12 }, { wch: 16 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 40 }, { wch: 30 }, { wch: 20 }]
+        : [{ wch: 12 }, { wch: 16 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 40 }, { wch: 20 }];
 
     const range = XLSX.utils.decode_range(ws['!ref']);
     for (let C = range.s.c; C <= range.e.c; ++C) {

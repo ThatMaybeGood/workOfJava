@@ -132,6 +132,42 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
 .loading-spinner .spinner { width: 36px; height: 36px; border: 3px solid #e0e0e0; border-top-color: #1890ff; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 8px; }
 .loading-spinner .spinner-text { font-size: 13px; color: #666; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* 饼图里可以点进去看明细的切片 */
+.pie-legend-drillable { cursor: pointer; border-radius: 4px; transition: background .15s; }
+.pie-legend-drillable:hover { background: #e6f4ff; }
+.pie-legend-drillable .pie-legend-name { color: #1890ff; font-weight: 600; }
+.pie-legend-drillable .pie-legend-name::after {
+  content: '查看明细'; margin-left: 6px; padding: 0 5px; font-size: 10px; font-weight: 400;
+  color: #1890ff; border: 1px solid #91caff; border-radius: 3px; background: #f0f8ff;
+}
+
+/* 金额钻取弹层（本页无 bootstrap） */
+.fin-drill-mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 2000; }
+.fin-drill-mask.show { display: flex; align-items: center; justify-content: center; }
+.fin-drill-dialog { width: 720px; max-width: 92vw; max-height: 88vh; overflow: auto; background: #fff;
+  border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
+.fin-drill-header { display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid #e8e8e8; font-size: 16px; font-weight: 600; }
+.fin-drill-close { border: 0; background: none; font-size: 22px; line-height: 1; color: #999; cursor: pointer; }
+.fin-drill-close:hover { color: #333; }
+.fin-drill-body { padding: 16px 18px 20px; }
+.fin-drill-status { text-align: center; color: #999; padding: 24px 0; font-size: 13px; }
+.fin-drill-status.error { color: #d4380d; }
+
+/* 页面级接口失败提示条 */
+.fin-page-error { margin: 0 0 12px; padding: 10px 14px; border: 1px solid #ffccc7; background: #fff2f0;
+  color: #d4380d; border-radius: 6px; font-size: 13px; }
+.d-none { display: none !important; }
+
+/* 饼图里可以点进去看明细的切片 */
+.pie-legend-drillable { cursor: pointer; border-radius: 4px; transition: background .15s; }
+.pie-legend-drillable:hover { background: #e6f4ff; }
+.pie-legend-drillable .pie-legend-name { color: #1890ff; font-weight: 600; }
+.pie-legend-drillable .pie-legend-name::after {
+  content: '查看明细'; margin-left: 6px; padding: 0 5px; font-size: 10px; font-weight: 400;
+  color: #1890ff; border: 1px solid #91caff; border-radius: 3px; background: #f0f8ff;
+}
 </style>
 </head>
 <body>
@@ -145,9 +181,12 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
 <div class="container">
   <div class="title-bar">门诊财务报表</div>
 
+  <!-- 主请求失败提示：不提示的话接口挂了页面只是变空白，看着像"没数据" -->
+  <div class="fin-page-error d-none" id="pageErrorBanner"></div>
+
   <!-- 外层标签 + 时间控件 -->
   <div class="outer-tabs">
-    <div class="outer-tab active" data-outer="summary">汇总统计</div>
+    <div class="outer-tab active" data-outer="summary">小计统计</div>
     <div class="outer-tab" data-outer="income">进项统计</div>
     <div class="outer-tab" data-outer="refund">退项统计</div>
     <span class="time-label">统计时间:</span>
@@ -168,7 +207,7 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
     </div>
   </div>
 
-  <!-- ==================== 汇总统计 ==================== -->
+  <!-- ==================== 小计统计 ==================== -->
   <div class="tab-content active" id="outer-summary">
     <div class="card-row" id="cards-summary">
       <div class="stat-card" title="门诊量：总订单数 - 总退号数"><div class="card-icon">📊</div><div><div class="card-value" data-field="outpatient_volume">000</div><div class="card-label"><a href="#">门诊量</a>◎</div></div><div class="card-yoy" data-field="outpatient_volume_yoy">同比</div></div>
@@ -194,7 +233,7 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
       <div class="inner-tab" data-inner="summary-net">净收入金额分析</div>
     </div>
 
-    <!-- 1. 汇总-门诊量分析 -->
+    <!-- 1. 小计-门诊量分析 -->
     <div class="tab-content active" id="inner-summary-visit">
       <div class="chart-title">门诊量分析</div>
       <div id="chart-summary-visit" class="chart-box"></div>
@@ -205,7 +244,7 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
       </div>
     </div>
 
-    <!-- 2. 汇总-缴费人次分析 -->
+    <!-- 2. 小计-缴费人次分析 -->
     <div class="tab-content" id="inner-summary-pay">
       <div class="chart-title">缴费人次分析</div>
       <div id="chart-summary-pay" class="chart-box"></div>
@@ -215,7 +254,7 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
       </div>
     </div>
 
-    <!-- 3. 汇总-收据张数分析 -->
+    <!-- 3. 小计-收据张数分析 -->
     <div class="tab-content" id="inner-summary-receipt">
       <div class="chart-title">收据张数分析</div>
       <div id="chart-summary-receipt" class="chart-box"></div>
@@ -225,7 +264,7 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
       </div>
     </div>
 
-    <!-- 4. 汇总-净收入金额分析 -->
+    <!-- 4. 小计-净收入金额分析 -->
     <div class="tab-content" id="inner-summary-net">
       <div class="chart-title">净收入金额分析</div>
       <div id="chart-summary-net" class="chart-box"></div>
@@ -234,7 +273,6 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
         <div class="pie-item"><div class="pie-title">净收入支付方式分析</div><div id="pie-summary-net-2" class="pie-chart"></div></div>
         <div class="pie-item"><div class="pie-title">净收入业务类型金额分析</div><div id="pie-summary-net-3" class="pie-chart"></div></div>
         <div class="pie-item"><div class="pie-title">金额应收/实收分析</div><div id="pie-summary-net-4" class="pie-chart"></div></div>
-        <div class="pie-item"><div class="pie-title">应收金额分析</div><div id="pie-summary-net-5" class="pie-chart"></div></div>
       </div>
     </div>
   </div>
@@ -304,7 +342,6 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
         <div class="pie-item"><div class="pie-title">收入金额支付方式分析</div><div id="pie-income-amount-2" class="pie-chart"></div></div>
         <div class="pie-item"><div class="pie-title">收入金额业务类型分析</div><div id="pie-income-amount-3" class="pie-chart"></div></div>
         <div class="pie-item"><div class="pie-title">金额应收/实收分析</div><div id="pie-income-amount-4" class="pie-chart"></div></div>
-        <div class="pie-item"><div class="pie-title">应收金额分析</div><div id="pie-income-amount-5" class="pie-chart"></div></div>
       </div>
     </div>
   </div>
@@ -374,11 +411,28 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
         <div class="pie-item"><div class="pie-title">退费金额支付方式分析</div><div id="pie-refund-amount-2" class="pie-chart"></div></div>
         <div class="pie-item"><div class="pie-title">退费金额业务类型分析</div><div id="pie-refund-amount-3" class="pie-chart"></div></div>
         <div class="pie-item"><div class="pie-title">金额应收/实收分析</div><div id="pie-refund-amount-4" class="pie-chart"></div></div>
-        <div class="pie-item"><div class="pie-title">应收金额分析</div><div id="pie-refund-amount-5" class="pie-chart"></div></div>
       </div>
     </div>
   </div>
 </div>
+
+
+  <!-- 金额钻取弹层：点"金额应收/实收分析"里的「应收账款」「实收金额」看支付方式明细 -->
+  <!-- 这页没引 bootstrap，用自己的遮罩层，不引入 bootstrap.css 免得冲掉现有布局 -->
+  <div class="fin-drill-mask" id="amountDrillModal">
+    <div class="fin-drill-dialog">
+      <div class="fin-drill-header">
+        <span id="amountDrillTitle">金额明细</span>
+        <button type="button" class="fin-drill-close" onclick="closeAmountDrill()">&times;</button>
+      </div>
+      <div class="fin-drill-body">
+        <div class="pie-item" style="position:relative">
+          <div id="amountDrillPie" style="height:340px"></div>
+        </div>
+        <div id="amountDrillStatus" class="fin-drill-status d-none"></div>
+      </div>
+    </div>
+  </div>
 
     <script src="../api-config.js"></script>
     <script src="js/mock.js"></script>

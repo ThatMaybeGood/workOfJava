@@ -85,6 +85,12 @@ class FuzzySelect {
     open() {
         this.renderList(this.input.value);
         this.panel.style.display = '';
+        // 下面放不下就往上弹：弹窗底部那几行往下拉会被 modal 的 overflow 裁掉
+        const rect = this.input.getBoundingClientRect();
+        const roomBelow = window.innerHeight - rect.bottom;
+        const roomAbove = rect.top;
+        const need = this.panel.scrollHeight || 220;
+        this.panel.classList.toggle('fz-panel-up', roomBelow < need && roomAbove > roomBelow);
     }
 
     close() {

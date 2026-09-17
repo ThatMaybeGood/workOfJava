@@ -3,7 +3,9 @@ spring:
     # 主数据源（默认）
     master:
       driver-class-name: oracle.jdbc.OracleDriver
-      url: jdbc:oracle:thin:@//168.168.235.105:1521/yuanqi
+      # CONNECT_TIMEOUT：建连超时(毫秒)。不设的话库不可达时 Oracle 会长时间重试，
+      # 请求一直不返回，前端只能干等（页面/弹层一直转圈）
+      url: jdbc:oracle:thin:@//168.168.235.105:1521/yuanqi?oracle.net.CONNECT_TIMEOUT=5000
       username: powerihsp
       password: yuanqi
       # Druid连接池配置
@@ -11,7 +13,7 @@ spring:
       initial-size: 5
       min-idle: 5
       max-active: 20
-      max-wait: 60000
+      max-wait: 5000
       time-between-eviction-runs-millis: 60000
       min-evictable-idle-time-millis: 300000
       validation-query: SELECT 1 FROM DUAL
@@ -23,7 +25,7 @@ spring:
     # 地址为占位假值，部署时自行替换
     his:
       driver-class-name: oracle.jdbc.OracleDriver
-      url: jdbc:oracle:thin:@//168.168.232.100:1521/orcl
+      url: jdbc:oracle:thin:@//168.168.232.100:1521/orcl?oracle.net.CONNECT_TIMEOUT=5000
       username: netcen_yb
       password: xqyyyqyb
       # Druid连接池配置
@@ -31,7 +33,7 @@ spring:
       initial-size: 5
       min-idle: 5
       max-active: 20
-      max-wait: 60000
+      max-wait: 5000
       time-between-eviction-runs-millis: 60000
       min-evictable-idle-time-millis: 300000
       validation-query: SELECT 1 FROM DUAL
@@ -39,18 +41,18 @@ spring:
       test-on-borrow: false
       test-on-return: false
 
-    # 投诉表扬库（门诊服务质量分析的投诉/表扬数据取值来源，mapper 上加 @DataSource("complaint") 切换）
-    complaint:
+    # 投诉表扬库（门诊服务质量分析的投诉/表扬数据取值来源，mapper 上加 @DataSource("yq_powersfp") 切换）
+    yq_powersfp:
       driver-class-name: oracle.jdbc.OracleDriver
-      url: jdbc:oracle:thin:@//168.168.235.68:1521/yuanqi
-      username: powersfb
+      url: jdbc:oracle:thin:@//168.168.235.68:1521/yuanqi?oracle.net.CONNECT_TIMEOUT=5000
+      username: powersfp
       password: orgine123
       # Druid连接池配置
       type: com.alibaba.druid.pool.DruidDataSource
       initial-size: 5
       min-idle: 5
       max-active: 20
-      max-wait: 60000
+      max-wait: 5000
       time-between-eviction-runs-millis: 60000
       min-evictable-idle-time-millis: 300000
       validation-query: SELECT 1 FROM DUAL

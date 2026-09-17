@@ -3,6 +3,8 @@ package com.reports.tools;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -212,7 +214,7 @@ public final class ReportTestDataSeeder {
                 "TR_MEDTECH_OV", "TR_MEDTECH_DTL",
                 "TR_PAT_PORTRAIT_AGE", "TR_PAT_PORTRAIT_INSUR", "TR_PAT_PORTRAIT_IDTY",
                 "TR_PAT_PORTRAIT_REG", "TR_PAT_PORTRAIT_ARC",
-                "TR_QC_OV", "TR_QC_DTL", "TR_REV_OV",
+                "TR_QC_DTL", "TR_REV_OV",
                 "TR_ROOM_USE_OV", "TR_ROOM_USE_DTL",
                 "TR_SVC_QUALITY_CMPL", "TR_SVC_QUALITY_PRZ",
                 "TR_COMMON_DICT", "TR_STAFF_DICT", "TR_SPEC_TREAT_OV",
@@ -653,32 +655,46 @@ public final class ReportTestDataSeeder {
                 + " REG=" + reg.size() + " ARC=" + arc.size());
     }
 
-    private static void seedQualityControl(Connection conn) throws SQLException {
-        List<Object[]> ov = new ArrayList<Object[]>();
-        for (int d = 0; d < DAYS; d++) {
-            ov.add(new Object[]{dayAt(d), rate(70, 99), rate(80, 99), rate(85, 99),
-                    rate(0, 8), rate(60, 99), rate(0, 5), rate(70, 99), rate(90, 100),
-                    rate(0, 3), rate(0, 2), rate(0, 2)});
-        }
-        batch(conn, "INSERT INTO TR_QC_OV (stat_date, emr_usage_rate, standard_diagnosis_rate,"
-                + " on_time_rate, stop_rate, chemo_record_rate, chemo_adverse_rate, chemo_infusion_rate,"
-                + " critical_value_rate, blood_draw_error_rate, surgery_complication_rate, adverse_event_rate)"
-                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", ov);
+    /** 门诊质控 11 个指标：列前缀、名称（仅便于阅读）、分母、比率区间 */
+    private static final String[][] QC_INDICATORS = {
+            {"emr_usage_rate", "门诊电子病历使用率", "12000", "70", "99"},
+            {"standard_diagnosis_rate", "门诊标准诊断使用率", "11000", "80", "99"},
+            {"on_time_rate", "门诊准时出诊率", "3000", "85", "99"},
+            {"stop_rate", "门诊停诊率", "3000", "0", "8"},
+            {"chemo_record_rate", "门诊化疗病历记录完整率", "800", "60", "99"},
+            {"chemo_adverse_rate", "门诊化疗严重不良反应发生率", "800", "0", "5"},
+            {"chemo_infusion_rate", "门诊化疗患者静脉治疗相关不良事件发生率", "700", "0", "5"},
+            {"critical_value_rate", "门诊危急值30分钟内通报完成率", "200", "90", "100"},
+            {"blood_draw_error_rate", "门诊静脉采血相关差错发生率", "5000", "0", "3"},
+            {"surgery_complication_rate", "门诊手术并发症发生率", "900", "0", "2"},
+            {"adverse_event_rate", "每千门诊诊疗人次不良事件发生率", "12000", "0", "2"},
+    };
 
-        List<Object[]> dtl = new ArrayList<Object[]>();
+    private static void seedQualityControl(Connection conn) throws SQLException {
+        List<Object[]> rows = new ArrayList<Object[]>();
         LocalDate m = endDate.withDayOfMonth(1);
         for (int i = 12; i >= 0; i--) {
-            String mo = m.minusMonths(i).toString().substring(0, 7);
-            dtl.add(new Object[]{mo, rate(70, 99), rate(80, 99), rate(85, 99),
-                    rate(0, 8), rate(60, 99), rate(0, 5), rate(70, 99), rate(90, 100),
-                    rate(0, 3), rate(0, 2), rate(0, 2)});
+            List<Object> row = new ArrayList<Object>();
+            row.add(m.minusMonths(i).toString().substring(0, 7));
+            for (String[] ind : QC_INDICATORS) {
+                BigDecimal denominator = new BigDecimal(ind[2]);
+                BigDecimal pct = new BigDecimal(rate(Integer.parseInt(ind[3]), Integer.parseInt(ind[4])));
+                row.add(denominator.multiply(pct).divide(new BigDecimal("100"), 0, RoundingMode.HALF_UP));
+                row.add(denominator);
+            }
+            row.add("ETL抽取");
+            rows.add(row.toArray());
         }
-        batch(conn, "INSERT INTO TR_QC_DTL (stat_month, emr_usage_rate, standard_diagnosis_rate,"
-                + " on_time_rate, stop_rate, chemo_record_rate, chemo_adverse_rate, chemo_infusion_rate,"
-                + " critical_value_rate, blood_draw_error_rate, surgery_complication_rate, adverse_event_rate)"
-                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", dtl);
 
-        out.println("  [门诊质控] OV=" + ov.size() + " DTL=" + dtl.size());
+        StringBuilder cols = new StringBuilder("stat_month");
+        StringBuilder marks = new StringBuilder("?");
+        for (String[] ind : QC_INDICATORS) {
+            cols.append(", ").append(ind[0]).append("_num, ").append(ind[0]).append("_den");
+            marks.append(", ?, ?");
+        }
+        batch(conn, "INSERT INTO TR_QC_DTL (" + cols + ", source_type) VALUES (" + marks + ", ?)", rows);
+
+        out.println("  [门诊质控] DTL=" + rows.size());
     }
 
     private static void seedRevenue(Connection conn) throws SQLException {
@@ -722,53 +738,12 @@ public final class ReportTestDataSeeder {
         out.println("  [诊室使用率] OV=" + ov.size() + " DTL=" + dtl.size());
     }
 
+    /**
+     * 投诉/表扬明细本身来自源库（直连 yq_powersfp），本地测试库只放人工补充字段，
+     * 没有对应的源答卷就显示不出来，所以这里不再造数。
+     */
     private static void seedServiceQuality(Connection conn) throws SQLException {
-        String[] categories = {"服务态度", "候诊时间", "医疗质量", "收费问题", "环境设施", "沟通问题"};
-        String[] results = {"已处理", "处理中", "待处理", "已回访"};
-        String[] methods = {"锦旗", "感谢信", "口头表扬", "电话表扬", "留言表扬"};
-        String[] positions = {"医生", "护士", "收费员", "药师", "技师", "导医"};
-        String[] remarks = {"患者反馈属实，已整改", "已电话回访，患者表示理解", "转交科室处理", "无"};
-
-        // 每天都放几条：页面默认区间是「今日」，只在随机日期撒 180 条的话
-        // 大部分日子（包括今天）会查不到数据，看起来像"没有测试数据"
-        List<Object[]> cmpl = new ArrayList<Object[]>();
-        List<Object[]> prz = new ArrayList<Object[]>();
-        for (int d = 0; d < DAYS; d++) {
-            Date day = dayAt(d);
-            int complaintCount = rnd(1, 3);
-            for (int i = 0; i < complaintCount; i++) {
-                int di = rnd(0, DEPTS.length - 1);
-                cmpl.add(new Object[]{
-                        day, new Timestamp(day.getTime() + rnd(8, 18) * 3600L * 1000),
-                        DEPTS[di][0], DEPTS[di][1],
-                        DOCTORS[rnd(0, DOCTORS.length - 1)],
-                        positions[rnd(0, positions.length - 1)],
-                        categories[rnd(0, categories.length - 1)],
-                        results[rnd(0, results.length - 1)],
-                        remarks[rnd(0, remarks.length - 1)]
-                });
-            }
-            int praiseCount = rnd(1, 3);
-            for (int i = 0; i < praiseCount; i++) {
-                int di = rnd(0, DEPTS.length - 1);
-                prz.add(new Object[]{
-                        day, new Timestamp(day.getTime() + rnd(8, 18) * 3600L * 1000),
-                        DEPTS[di][0], DEPTS[di][1],
-                        DOCTORS[rnd(0, DOCTORS.length - 1)],
-                        positions[rnd(0, positions.length - 1)],
-                        methods[rnd(0, methods.length - 1)],
-                        "感谢医护人员的耐心诊治，服务态度好。",
-                        remarks[rnd(0, remarks.length - 1)]
-                });
-            }
-        }
-        batch(conn, "INSERT INTO TR_SVC_QUALITY_CMPL (id, stat_date, complaint_time, dept_code, dept_name,"
-                + " person_name, position, category, result, remark)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?,?,?)", cmpl);
-        batch(conn, "INSERT INTO TR_SVC_QUALITY_PRZ (id, stat_date, praise_time, dept_code, dept_name,"
-                + " person_name, position, method, feedback, remark)"
-                + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,?,?,?,?,?)", prz);
-        out.println("  [服务质量] CMPL=" + cmpl.size() + " PRZ=" + prz.size());
+        out.println("  [服务质量] 明细来自源库，测试库不造数");
     }
 
     private static void seedSpecialtyTreatment(Connection conn) throws SQLException {
@@ -1121,7 +1096,8 @@ public final class ReportTestDataSeeder {
                 i += groupSize;
             }
             acct.add(new Object[]{acctNo, day, day, operators[rnd(0, operators.length - 1)],
-                    Double.valueOf(round2(totalCosts)), Double.valueOf(round2(refundAmount)),
+                    Double.valueOf(round2(totalCosts)), Double.valueOf(round2(totalCosts + refundAmount)),
+                    Double.valueOf(round2(refundAmount)),
                     Integer.valueOf(rcptsNum), Integer.valueOf(refundNum)});
             for (String mt : MONEY_TYPES) {
                 acctMoney.add(new Object[]{acctNo, mt, Double.valueOf(round2(rnd(1000, 50000))),
@@ -1136,8 +1112,8 @@ public final class ReportTestDataSeeder {
                 + " TOTAL_CHARGES, TOTAL_COSTS, REFUNDED_RCPT_NO, OPERATOR_NO, BILL_CLASS)"
                 + " VALUES (?,?,?,?,?,?,?,?,?)", rcpt);
         batch(conn, "INSERT INTO TR_OUTP_FIN_ACCT_MASTER (ACCT_NO, ACCT_DATE, STAT_DATE, OPERATOR_NO,"
-                + " TOTAL_COSTS, REFUND_AMOUNT, RCPTS_NUM, REFUND_NUM)"
-                + " VALUES (?,?,?,?,?,?,?,?)", acct);
+                + " TOTAL_COSTS, TOTAL_INCOMES, REFUND_AMOUNT, RCPTS_NUM, REFUND_NUM)"
+                + " VALUES (?,?,?,?,?,?,?,?,?)", acct);
         batch(conn, "INSERT INTO TR_OUTP_FIN_PAYMENTS_MONEY (RCPT_NO, MONEY_TYPE, PAYMENT_AMOUNT,"
                 + " REFUNDED_AMOUNT) VALUES (?,?,?,?)", pay);
         batch(conn, "INSERT INTO TR_OUTP_FIN_MOP_QUEUE (SCHEDULE_ID, PATIENT_ID, STAT_DATE, VISIT_NO,"

@@ -903,3 +903,39 @@ body {
 .fz-list li.opt { padding: 4px 10px; cursor: pointer; font-size: .875rem; white-space: nowrap; }
 .fz-list li.opt:hover, .fz-list li.opt.active { background: #0d6efd; color: #fff; }
 .fz-list li.empty { padding: 6px 10px; color: #adb5bd; font-size: .8125rem; }
+
+/* 数据维护：源库已经给了值的字段只读展示 */
+.maintain-readonly {
+    display: inline-block;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+    color: #6c757d;
+}
+
+/* 源库正文一类的长文本：单元格截断，鼠标悬停看全文 */
+.cell-ellipsis {
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 下拉浮层向上弹（下方空间不够时用） */
+.fz-panel-up {
+    top: auto;
+    bottom: 100%;
+    margin-top: 0;
+    margin-bottom: 2px;
+}
+
+/* 数据维护弹窗：表体外层是 .table-responsive(overflow:auto)，会把科室/人员的下拉浮层裁掉 */
+#maintainModal .table-responsive {
+    overflow: visible;
+}
+/* 没数据时弹窗会缩成一条，下拉更没地方展开，给个下限 */
+#maintainModal .modal-body {
+    min-height: 360px;
+}

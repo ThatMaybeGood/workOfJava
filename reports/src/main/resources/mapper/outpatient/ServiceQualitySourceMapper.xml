@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.ServiceQualitySourceMapper">
+
+    <!--
+      院领导信箱答卷。意见箱字段用标量子查询取，避免一对多把答卷行撑重复。
+      INSTR 只是先粗筛掉没有"反馈类型"这道题的答卷，精确分类在 Java 里做（解析 answer_info）。
+    -->
+    <select id="queryAnswers" resultType="com.reports.dto.source.QuestionAnswerRow">
+        SELECT
+            a.RECORD_ID   AS recordId,
+            a.CREATE_TIME AS createTime,
+            a.ANSWER_INFO AS answerInfo,
+            a.QUESTION_ID AS questionId,
+            (SELECT MAX(v.DISPOSE_RESULT) FROM POWERSFP_ADVICE_INFO v
+              WHERE v.EVALUATION_ID = a.RECORD_ID) AS disposeResult,
+            (SELECT MAX(v.DIVISION_NAME) FROM POWERSFP_ADVICE_INFO v
+              WHERE v.EVALUATION_ID = a.RECORD_ID) AS divisionName,
+            (SELECT MAX(v.STATUS) FROM POWERSFP_ADVICE_INFO v
+              WHERE v.EVALUATION_ID = a.RECORD_ID) AS adviceStatus
+        FROM SFP_QUESTION_ANSWER a
+        WHERE a.CREATE_TIME &gt;= #{startDate}
+          AND a.CREATE_TIME &lt; #{endDate} + 1
+          AND INSTR(a.ANSWER_INFO, '173823541780282343918') &gt; 0
+        ORDER BY a.CREATE_TIME DESC
+    </select>
+
+</mapper>

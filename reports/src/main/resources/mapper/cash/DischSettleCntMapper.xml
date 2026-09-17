@@ -11,6 +11,7 @@
     </sql>
 
     <!-- 费别口径: HIS库US7ASCII驱动会丢弃高字节，RAWTOHEX把原始字节转ASCII hex由Java解GBK -->
+    <!-- 勿改成直接查字段。原委与无效方案见 docs/his-charset.md -->
     <sql id="feeTypeExpr">
         RAWTOHEX(TRIM(a.CHARGE_TYPE))
     </sql>

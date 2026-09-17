@@ -702,11 +702,11 @@ const MockService = {
                     }));
                 });
 
-                // 饼状图 1~12
+                // 饼状图：按请求的 pieTypes 返回，没传就全给
+                const requested = (params.pieTypes || '').split(',').map(s => s.trim()).filter(Boolean);
                 const pieList = {};
-                for (let bt = 1; bt <= 12; bt++) {
-                    pieList[String(bt)] = generateFinancePie(bt);
-                }
+                (requested.length ? requested : Array.from({ length: 13 }, (_, i) => String(i + 1)))
+                    .forEach(bt => { pieList[bt] = generateFinancePie(bt); });
 
                 resolve({ code: 200, data: { indicator, detailList, barList, pieList } });
             }, 200);
@@ -799,10 +799,11 @@ const FINANCE_PIE_CATEGORIES = {
     '6': ['窗口', '自助机', '移动支付', '医保'],
     '7': ['现金', '微信', '支付宝', '银行卡', '医保'],
     '8': ['挂号', '检查', '检验', '药品', '治疗'],
-    '9': ['应收', '实收'],
+    '9': ['医改统筹/医院垫支', '实收金额', '应收账款'],
     '10': ['挂号', '检查', '检验', '药品', '治疗'],
     '11': ['窗口', '自助机', '移动支付', '医保'],
-    '12': ['现金', '微信', '支付宝', '银行卡', '医保']
+    '12': ['现金', '微信', '支付宝', '银行卡', '医保'],
+    '13': ['现金', '微信', '支付宝', '银行卡', '信用卡', '自助POS', '支票']
 };
 
 function generateFinancePie(bt) {

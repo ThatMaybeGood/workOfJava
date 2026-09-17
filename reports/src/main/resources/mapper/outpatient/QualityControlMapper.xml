@@ -2,46 +2,103 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.reports.mapper.QualityControlMapper">
 
-    <!-- ============================================================ -->
-    <!-- 查询门诊质量控制概览 -->
-    <!-- ============================================================ -->
-    <select id="queryOverview" resultType="com.reports.entity.QualityControlOvEntity">
-        SELECT
-        MAX(emr_usage_rate) AS emrUsageRate,
-        MAX(standard_diagnosis_rate) AS standardDiagnosisRate,
-        MAX(on_time_rate) AS onTimeRate,
-        MAX(stop_rate) AS stopRate,
-        MAX(chemo_record_rate) AS chemoRecordRate,
-        MAX(chemo_adverse_rate) AS chemoAdverseRate,
-        MAX(chemo_infusion_rate) AS chemoInfusionRate,
-        MAX(critical_value_rate) AS criticalValueRate,
-        MAX(blood_draw_error_rate) AS bloodDrawErrorRate,
-        MAX(surgery_complication_rate) AS surgeryComplicationRate,
-        MAX(adverse_event_rate) AS adverseEventRate
-        FROM TR_QC_OV
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-    </select>
+    <!-- 比率不落库，取数时按分子分母现算；分子分母缺一或分母为0时返回NULL -->
+    <sql id="rate">
+        CASE WHEN ${col}_num IS NULL OR ${col}_den IS NULL OR ${col}_den = 0 THEN NULL
+             ELSE TO_CHAR(ROUND(${col}_num / ${col}_den * 100, 2), 'FM999990.00') || '%' END
+    </sql>
 
-    <!-- ============================================================ -->
-    <!-- 查询门诊质量控制月度明细 -->
-    <!-- ============================================================ -->
-    <select id="queryMonthlyDetail" resultType="com.reports.entity.QualityControlDtlEntity">
+    <!-- 按月份区间查询（报表取数用，一月一行） -->
+    <select id="queryMonthly" resultType="com.reports.dto.response.outpatient.quality.control.TableItem">
         SELECT
-        stat_month AS statMonth,
-        emr_usage_rate AS emrUsageRate,
-        standard_diagnosis_rate AS standardDiagnosisRate,
-        on_time_rate AS onTimeRate,
-        stop_rate AS stopRate,
-        chemo_record_rate AS chemoRecordRate,
-        chemo_adverse_rate AS chemoAdverseRate,
-        chemo_infusion_rate AS chemoInfusionRate,
-        critical_value_rate AS criticalValueRate,
-        blood_draw_error_rate AS bloodDrawErrorRate,
-        surgery_complication_rate AS surgeryComplicationRate,
-        adverse_event_rate AS adverseEventRate
+            stat_month AS month,
+            <include refid="rate"><property name="col" value="emr_usage_rate"/></include> AS emrUsageRate,
+            <include refid="rate"><property name="col" value="standard_diagnosis_rate"/></include> AS standardDiagnosisRate,
+            <include refid="rate"><property name="col" value="on_time_rate"/></include> AS onTimeRate,
+            <include refid="rate"><property name="col" value="stop_rate"/></include> AS stopRate,
+            <include refid="rate"><property name="col" value="chemo_record_rate"/></include> AS chemoRecordRate,
+            <include refid="rate"><property name="col" value="chemo_adverse_rate"/></include> AS chemoAdverseRate,
+            <include refid="rate"><property name="col" value="chemo_infusion_rate"/></include> AS chemoInfusionRate,
+            <include refid="rate"><property name="col" value="critical_value_rate"/></include> AS criticalValueRate,
+            <include refid="rate"><property name="col" value="blood_draw_error_rate"/></include> AS bloodDrawErrorRate,
+            <include refid="rate"><property name="col" value="surgery_complication_rate"/></include> AS surgeryComplicationRate,
+            <include refid="rate"><property name="col" value="adverse_event_rate"/></include> AS adverseEventRate
         FROM TR_QC_DTL
         WHERE stat_month BETWEEN #{startMonth} AND #{endMonth}
         ORDER BY stat_month
     </select>
+
+    <!-- 按月份查询单行（数据维护弹窗预填用） -->
+    <select id="queryByMonth" resultType="com.reports.entity.QualityControlDtlEntity">
+        SELECT
+            stat_month AS statMonth,
+            emr_usage_rate_num AS emrUsageRateNum,
+            emr_usage_rate_den AS emrUsageRateDen,
+            standard_diagnosis_rate_num AS standardDiagnosisRateNum,
+            standard_diagnosis_rate_den AS standardDiagnosisRateDen,
+            on_time_rate_num AS onTimeRateNum,
+            on_time_rate_den AS onTimeRateDen,
+            stop_rate_num AS stopRateNum,
+            stop_rate_den AS stopRateDen,
+            chemo_record_rate_num AS chemoRecordRateNum,
+            chemo_record_rate_den AS chemoRecordRateDen,
+            chemo_adverse_rate_num AS chemoAdverseRateNum,
+            chemo_adverse_rate_den AS chemoAdverseRateDen,
+            chemo_infusion_rate_num AS chemoInfusionRateNum,
+            chemo_infusion_rate_den AS chemoInfusionRateDen,
+            critical_value_rate_num AS criticalValueRateNum,
+            critical_value_rate_den AS criticalValueRateDen,
+            blood_draw_error_rate_num AS bloodDrawErrorRateNum,
+            blood_draw_error_rate_den AS bloodDrawErrorRateDen,
+            surgery_complication_rate_num AS surgeryComplicationRateNum,
+            surgery_complication_rate_den AS surgeryComplicationRateDen,
+            adverse_event_rate_num AS adverseEventRateNum,
+            adverse_event_rate_den AS adverseEventRateDen,
+            source_type AS sourceType,
+            create_time AS createTime,
+            update_time AS updateTime,
+            ext1 AS ext1,
+            ext2 AS ext2,
+            ext3 AS ext3
+        FROM TR_QC_DTL
+        WHERE stat_month = #{statMonth}
+    </select>
+
+    <!-- 人工维护：该月有行就补写人工填的分子分母（没填的保持原值），没有就新建一行 -->
+    <update id="mergeMaintain" parameterType="com.reports.entity.QualityControlDtlEntity">
+        MERGE INTO TR_QC_DTL t
+        USING (SELECT #{statMonth} AS stat_month FROM DUAL) s
+        ON (t.stat_month = s.stat_month)
+        WHEN MATCHED THEN UPDATE SET
+            emr_usage_rate_num = NVL(#{emrUsageRateNum}, emr_usage_rate_num),
+            emr_usage_rate_den = NVL(#{emrUsageRateDen}, emr_usage_rate_den),
+            standard_diagnosis_rate_num = NVL(#{standardDiagnosisRateNum}, standard_diagnosis_rate_num),
+            standard_diagnosis_rate_den = NVL(#{standardDiagnosisRateDen}, standard_diagnosis_rate_den),
+            on_time_rate_num = NVL(#{onTimeRateNum}, on_time_rate_num),
+            on_time_rate_den = NVL(#{onTimeRateDen}, on_time_rate_den),
+            stop_rate_num = NVL(#{stopRateNum}, stop_rate_num),
+            stop_rate_den = NVL(#{stopRateDen}, stop_rate_den),
+            chemo_record_rate_num = NVL(#{chemoRecordRateNum}, chemo_record_rate_num),
+            chemo_record_rate_den = NVL(#{chemoRecordRateDen}, chemo_record_rate_den),
+            source_type = '人工登记',
+            update_time = SYSDATE
+        WHEN NOT MATCHED THEN INSERT (
+            stat_month,
+            emr_usage_rate_num, emr_usage_rate_den,
+            standard_diagnosis_rate_num, standard_diagnosis_rate_den,
+            on_time_rate_num, on_time_rate_den,
+            stop_rate_num, stop_rate_den,
+            chemo_record_rate_num, chemo_record_rate_den,
+            source_type, create_time, update_time
+        ) VALUES (
+            #{statMonth},
+            #{emrUsageRateNum}, #{emrUsageRateDen},
+            #{standardDiagnosisRateNum}, #{standardDiagnosisRateDen},
+            #{onTimeRateNum}, #{onTimeRateDen},
+            #{stopRateNum}, #{stopRateDen},
+            #{chemoRecordRateNum}, #{chemoRecordRateDen},
+            '人工登记', SYSDATE, SYSDATE
+        )
+    </update>
 
 </mapper>
