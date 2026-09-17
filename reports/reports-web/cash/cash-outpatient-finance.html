@@ -143,7 +143,10 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
 }
 
 /* 金额钻取弹层（本页无 bootstrap） */
-.fin-drill-mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 2000; }
+/* 用 top/left/width/height 而不是 inset 简写：inset 要 Chrome 87+，
+   内网老浏览器会整条忽略，弹层拿不到定位就"点了没反应"（同页 .loading-overlay 一直是老写法） */
+.fin-drill-mask { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,.45); z-index: 2000; }
 .fin-drill-mask.show { display: flex; align-items: center; justify-content: center; }
 .fin-drill-dialog { width: 720px; max-width: 92vw; max-height: 88vh; overflow: auto; background: #fff;
   border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
