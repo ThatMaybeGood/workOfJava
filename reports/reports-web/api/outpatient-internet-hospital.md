@@ -136,3 +136,79 @@
 | body.*Ranking.total | number | 总记录数 |
 | body.*Ranking.page | number | 当前页码 |
 | body.*Ranking.pageSize | number | 每页条数 |
+
+## 数据维护接口
+
+- **method**：`reports.outp.internet-hospital-maintain`
+- **说明**：维护概览 7 项指标，写入 `tr_inet_hosp_ov`；该月有行补写（没填的保持原值），无行新建，`ext1` 记为 `人工登记`
+
+### 请求报文（query）
+
+```json
+{
+    "head": {
+        "charset": "utf-8",
+        "encrypt_type": "AES",
+        "language": "zh_CN",
+        "method": "reports.outp.internet-hospital-maintain"
+    },
+    "body": {
+        "action": "query",
+        "statMonth": "2025-12"
+    }
+}
+```
+
+### 请求报文（save）
+
+```json
+{
+    "head": {
+        "charset": "utf-8",
+        "encrypt_type": "AES",
+        "language": "zh_CN",
+        "method": "reports.outp.internet-hospital-maintain"
+    },
+    "body": {
+        "action": "save",
+        "statMonth": "2025-12",
+        "list": [
+            { "indicatorCode": "outpatient_volume", "indicatorName": "互联网医院门诊量", "value": "4652" },
+            { "indicatorCode": "doctor_ratio", "indicatorName": "互联网医师占比", "value": "73.5" }
+        ]
+    }
+}
+```
+
+### 请求参数说明
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| action | string | 是 | 操作类型：query（查询）、save（保存） |
+| statMonth | string | 是 | 统计月份，格式 yyyy-MM |
+| list | array | save 时必填 | 指标列表，按 月份+指标编码 覆盖 |
+| list[].indicatorCode | string | 是 | 指标编码：outpatient_volume / doctor_ratio / reception_rate / prescription_rate / record_rate / review_rate / execution_rate |
+| list[].indicatorName | string | 否 | 指标名称 |
+| list[].value | string | 否 | 指标值；门诊量为纯数字，比率支持 `73.5` 或 `73.5%`（缺 % 自动补）；空或缺省保持原值 |
+
+### 响应报文（query）
+
+```json
+{
+    "result": { "code": "10000", "success": true, "sub_msg": "数据维护查询成功！" },
+    "body": {
+        "list": [
+            { "indicatorCode": "outpatient_volume", "indicatorName": "互联网医院门诊量", "value": "4652" }
+        ]
+    }
+}
+```
+
+### 响应报文（save）
+
+```json
+{
+    "result": { "code": "10000", "success": true, "sub_msg": "数据维护保存成功！" },
+    "body": { "affected": 1 }
+}
+```

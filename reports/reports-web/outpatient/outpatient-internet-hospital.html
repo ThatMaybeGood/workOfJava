@@ -12,6 +12,8 @@
         .ih-table tbody td { font-size: 12px; }
         .text-success { color: #52c41a !important; }
         .text-danger { color: #f5222d !important; }
+        /* 统计时间加宽：低分辨率下 120px 的月份框显示不全 */
+        #monthSelect { width: 170px; }
     </style>
 </head>
 <body>
@@ -222,32 +224,36 @@
     </div>
 
     <div class="modal fade" id="maintainModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">数据维护</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <span>时间：</span>
+                        <input type="month" id="maintainMonth" class="form-control form-control-sm" style="width: 170px;">
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-bordered">
                             <thead class="table-light">
-                                <tr><th>指标</th><th>值</th></tr>
+                                <tr><th style="min-width: 220px;">指标</th><th>值</th></tr>
                             </thead>
-                            <tbody>
-                                <tr><td>互联网医院门诊量</td><td><input type="text" class="form-control form-control-sm"></td></tr>
-                                <tr><td>互联网医师占比</td><td><input type="text" class="form-control form-control-sm"></td></tr>
-                                <tr><td>互联网医院接诊率</td><td><input type="text" class="form-control form-control-sm"></td></tr>
-                                <tr><td>互联网医院处方开具率</td><td><input type="text" class="form-control form-control-sm"></td></tr>
-                                <tr><td>互联网医院病历书写率</td><td><input type="text" class="form-control form-control-sm"></td></tr>
-                                <tr><td>互联网医院处方点评率</td><td><input type="text" class="form-control form-control-sm"></td></tr>
-                                <tr><td>互联网医院药品处方执行率</td><td><input type="text" class="form-control form-control-sm"></td></tr>
+                            <tbody id="maintainTableBody">
+                                <tr><td>互联网医院门诊量</td><td><input type="text" class="form-control form-control-sm" data-indicator="outpatient_volume"></td></tr>
+                                <tr><td>互联网医师占比</td><td><input type="text" class="form-control form-control-sm" data-indicator="doctor_ratio"></td></tr>
+                                <tr><td>互联网医院接诊率</td><td><input type="text" class="form-control form-control-sm" data-indicator="reception_rate"></td></tr>
+                                <tr><td>互联网医院处方开具率</td><td><input type="text" class="form-control form-control-sm" data-indicator="prescription_rate"></td></tr>
+                                <tr><td>互联网医院病历书写率</td><td><input type="text" class="form-control form-control-sm" data-indicator="record_rate"></td></tr>
+                                <tr><td>互联网医院处方点评率</td><td><input type="text" class="form-control form-control-sm" data-indicator="review_rate"></td></tr>
+                                <tr><td>互联网医院药品处方执行率</td><td><input type="text" class="form-control form-control-sm" data-indicator="execution_rate"></td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">保存</button>
+                    <button type="button" class="btn btn-primary" id="maintainSaveBtn">保存</button>
                 </div>
             </div>
         </div>

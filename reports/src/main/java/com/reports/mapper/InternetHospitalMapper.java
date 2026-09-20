@@ -65,4 +65,20 @@ public interface InternetHospitalMapper extends BaseMapper<InternetHospitalOvEnt
      * @return 互医质控增长趋势数据列表
      */
     List<InternetHospitalGrwEntity> queryGrowthChart(@Param("statMonth") String statMonth);
+
+    /**
+     * 按月份查询概览单行（数据维护弹窗预填用）
+     *
+     * @param statMonth 统计月份
+     * @return 互医质控概览数据
+     */
+    InternetHospitalOvEntity queryOvByMonth(@Param("statMonth") String statMonth);
+
+    /**
+     * 人工维护：该月有行就补写人工填的指标值（没填的保持原值），没有就新建一行
+     *
+     * @param entity 概览数据（statMonth 必填）
+     * @return 影响行数
+     */
+    int mergeOvMaintain(InternetHospitalOvEntity entity);
 }

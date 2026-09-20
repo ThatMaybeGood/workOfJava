@@ -87,4 +87,51 @@
         ORDER BY category
     </select>
 
+    <!-- ============================================================ -->
+    <!-- 数据维护：按月份查询概览单行（弹窗预填用） -->
+    <!-- ============================================================ -->
+    <select id="queryOvByMonth" resultType="com.reports.entity.InternetHospitalOvEntity">
+        SELECT
+        stat_month AS statMonth,
+        outpatient_volume AS outpatientVolume,
+        doctor_ratio AS doctorRatio,
+        reception_rate AS receptionRate,
+        prescription_rate AS prescriptionRate,
+        record_rate AS recordRate,
+        review_rate AS reviewRate,
+        execution_rate AS executionRate
+        FROM TR_INET_HOSP_OV
+        WHERE stat_month = #{statMonth}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 数据维护：该月有行就补写人工填的指标值（没填的保持原值），没有就新建一行 -->
+    <!-- ============================================================ -->
+    <update id="mergeOvMaintain" parameterType="com.reports.entity.InternetHospitalOvEntity">
+        MERGE INTO TR_INET_HOSP_OV t
+        USING (SELECT #{statMonth} AS stat_month FROM DUAL) s
+        ON (t.stat_month = s.stat_month)
+        WHEN MATCHED THEN UPDATE SET
+            outpatient_volume = NVL(#{outpatientVolume}, outpatient_volume),
+            doctor_ratio = NVL(#{doctorRatio}, doctor_ratio),
+            reception_rate = NVL(#{receptionRate}, reception_rate),
+            prescription_rate = NVL(#{prescriptionRate}, prescription_rate),
+            record_rate = NVL(#{recordRate}, record_rate),
+            review_rate = NVL(#{reviewRate}, review_rate),
+            execution_rate = NVL(#{executionRate}, execution_rate),
+            ext1 = '人工登记',
+            update_time = SYSDATE
+        WHEN NOT MATCHED THEN INSERT (
+            stat_month,
+            outpatient_volume, doctor_ratio, reception_rate, prescription_rate,
+            record_rate, review_rate, execution_rate,
+            ext1, create_time, update_time
+        ) VALUES (
+            #{statMonth},
+            #{outpatientVolume}, #{doctorRatio}, #{receptionRate}, #{prescriptionRate},
+            #{recordRate}, #{reviewRate}, #{executionRate},
+            '人工登记', SYSDATE, SYSDATE
+        )
+    </update>
+
 </mapper>

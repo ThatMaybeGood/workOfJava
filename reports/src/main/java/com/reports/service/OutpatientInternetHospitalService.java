@@ -1,6 +1,7 @@
 package com.reports.service;
 
 import com.reports.dto.common.PageResult;
+import com.reports.dto.request.InternetHospitalMaintainRequest;
 import com.reports.dto.request.OutpatientInternetHospitalRequest;
 import com.reports.dto.response.outpatient.internet.hospital.*;
 
@@ -40,5 +41,15 @@ public interface OutpatientInternetHospitalService {
      * 查询增长趋势图表
      */
     GrowthChart queryGrowthChart(OutpatientInternetHospitalRequest request);
+
+    /**
+     * 查询数据维护明细
+     */
+    List<IhMaintainItem> queryMaintainList(InternetHospitalMaintainRequest request);
+
+    /**
+     * 保存数据维护明细
+     */
+    int saveMaintain(InternetHospitalMaintainRequest request);
 
 }

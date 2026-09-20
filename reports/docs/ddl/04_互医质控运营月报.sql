@@ -28,7 +28,7 @@ CREATE TABLE tr_inet_hosp_ov (
     execution_rate  VARCHAR2(20),                      -- 执行率
     create_time     DATE            DEFAULT SYSDATE,       -- 创建时间
     update_time     DATE            DEFAULT SYSDATE,       -- 更新时间
-    ext1            VARCHAR2(500),                        -- 扩展字段1
+    ext1            VARCHAR2(500),                        -- 扩展字段1(数据来源: 人工登记/接口同步)
     ext2            VARCHAR2(500),                        -- 扩展字段2
     ext3            VARCHAR2(500)                         -- 扩展字段3
 );
@@ -120,7 +120,7 @@ COMMENT ON COLUMN tr_inet_hosp_ov.review_rate IS '审方率';
 COMMENT ON COLUMN tr_inet_hosp_ov.execution_rate IS '执行率';
 COMMENT ON COLUMN tr_inet_hosp_ov.create_time IS '创建时间';
 COMMENT ON COLUMN tr_inet_hosp_ov.update_time IS '更新时间';
-COMMENT ON COLUMN tr_inet_hosp_ov.ext1 IS '扩展字段1';
+COMMENT ON COLUMN tr_inet_hosp_ov.ext1 IS '扩展字段1(数据来源: 人工登记/接口同步)';
 COMMENT ON COLUMN tr_inet_hosp_ov.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_inet_hosp_ov.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_inet_hosp_op IS '互医质控运营月报-运行情况';

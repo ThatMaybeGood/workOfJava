@@ -134,6 +134,14 @@ const ReportAPI = {
     },
 
     /**
+     * 互医质控运营月报数据维护（query/save）
+     * method: reports.outp.internet-hospital-maintain
+     */
+    maintainInternetHospital(params) {
+        return apiRequest('reports.outp.internet-hospital-maintain', 'endpoint', params);
+    },
+
+    /**
      * 获取科室字典
      * method: reports.common.dept-dict
      */
