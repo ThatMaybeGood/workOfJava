@@ -18,7 +18,7 @@
             <include refid="periodExpr"><property name="col" value="${dateCol}"/></include> AS "period",
             COUNT(1) AS "cnt"
         FROM TR_OUTP_FIN_CLINIC_MASTER c
-        WHERE <include refid="periodExpr"><property name="col" value="${dateCol}"/></include> BETWEEN #{startDate} AND #{endDate}
+        WHERE ${dateCol} BETWEEN #{startDate} AND #{endDate}
         <choose>
             <when test="statisticType == 1">
                 AND c.IS_RETURN_TYPE = 1
