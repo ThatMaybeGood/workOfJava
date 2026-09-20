@@ -58,4 +58,82 @@
         ORDER BY item_name
     </select>
 
+    <!-- ============================================================ -->
+    <!-- 按月概览：本期与去年同期同范围分别求和后重算同比 -->
+    <!-- ============================================================ -->
+    <select id="queryOverviewMonth" resultType="com.reports.dto.response.cash.discharge.settlement.OverviewData">
+        SELECT
+            totalDischargeCount,
+            CASE WHEN lyTotalDischargeCount = 0 THEN NULL ELSE ROUND((totalDischargeCount - lyTotalDischargeCount) / lyTotalDischargeCount * 100, 0) END AS totalDischargeCompare,
+            dischargedCount,
+            CASE WHEN lyDischargedCount = 0 THEN NULL ELSE ROUND((dischargedCount - lyDischargedCount) / lyDischargedCount * 100, 0) END AS dischargedCompare,
+            notDischargedCount,
+            CASE WHEN lyNotDischargedCount = 0 THEN NULL ELSE ROUND((notDischargedCount - lyNotDischargedCount) / lyNotDischargedCount * 100, 0) END AS notDischargedCompare,
+            settlementAmount,
+            CASE WHEN lySettlementAmount = 0 THEN NULL ELSE ROUND((settlementAmount - lySettlementAmount) / lySettlementAmount * 100, 0) END AS settlementAmountCompare
+        FROM (
+            SELECT
+                NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN total_discharge_count ELSE 0 END), 0) AS totalDischargeCount,
+                NVL(SUM(CASE WHEN stat_date BETWEEN ADD_MONTHS(#{startDate}, -12) AND ADD_MONTHS(#{endDate}, -12) THEN total_discharge_count ELSE 0 END), 0) AS lyTotalDischargeCount,
+                NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN discharged_count ELSE 0 END), 0) AS dischargedCount,
+                NVL(SUM(CASE WHEN stat_date BETWEEN ADD_MONTHS(#{startDate}, -12) AND ADD_MONTHS(#{endDate}, -12) THEN discharged_count ELSE 0 END), 0) AS lyDischargedCount,
+                NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN not_discharged_count ELSE 0 END), 0) AS notDischargedCount,
+                NVL(SUM(CASE WHEN stat_date BETWEEN ADD_MONTHS(#{startDate}, -12) AND ADD_MONTHS(#{endDate}, -12) THEN not_discharged_count ELSE 0 END), 0) AS lyNotDischargedCount,
+                NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN settlement_amount ELSE 0 END), 0) AS settlementAmount,
+                NVL(SUM(CASE WHEN stat_date BETWEEN ADD_MONTHS(#{startDate}, -12) AND ADD_MONTHS(#{endDate}, -12) THEN settlement_amount ELSE 0 END), 0) AS lySettlementAmount
+            FROM TR_DISCH_SETTLE_OV
+            WHERE stat_date BETWEEN ADD_MONTHS(#{startDate}, -12) AND #{endDate}
+        )
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 按月明细：每月一行，对比按聚合后的本期/上期重算 -->
+    <!-- ============================================================ -->
+    <select id="queryDetailMonth" resultType="com.reports.dto.response.cash.discharge.settlement.TableItem">
+        SELECT
+        TO_CHAR(TRUNC(stat_date, 'MM'), 'YYYY-MM') AS "date",
+        NVL(SUM(total_last), 0) AS totalLast,
+        NVL(SUM(total_current), 0) AS totalCurrent,
+        CASE WHEN NVL(SUM(total_last), 0) = 0 THEN NULL ELSE ROUND((SUM(total_current) - SUM(total_last)) / SUM(total_last) * 100, 0) END AS totalCompare,
+        NVL(SUM(discharged_last), 0) AS dischargedLast,
+        NVL(SUM(discharged_current), 0) AS dischargedCurrent,
+        CASE WHEN NVL(SUM(discharged_last), 0) = 0 THEN NULL ELSE ROUND((SUM(discharged_current) - SUM(discharged_last)) / SUM(discharged_last) * 100, 0) END AS dischargedCompare,
+        NVL(SUM(not_discharged_last), 0) AS notDischargedLast,
+        NVL(SUM(not_discharged_current), 0) AS notDischargedCurrent,
+        CASE WHEN NVL(SUM(not_discharged_last), 0) = 0 THEN NULL ELSE ROUND((SUM(not_discharged_current) - SUM(not_discharged_last)) / SUM(not_discharged_last) * 100, 0) END AS notDischargedCompare,
+        NVL(SUM(amount_last), 0) AS amountLast,
+        NVL(SUM(amount_current), 0) AS amountCurrent,
+        CASE WHEN NVL(SUM(amount_last), 0) = 0 THEN NULL ELSE ROUND((SUM(amount_current) - SUM(amount_last)) / SUM(amount_last) * 100, 0) END AS amountCompare
+        FROM TR_DISCH_SETTLE_DTL
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY TRUNC(stat_date, 'MM')
+        ORDER BY TRUNC(stat_date, 'MM')
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 按月图表：构成类按项目汇总，趋势类(AMOUNT_TYPE)按月份汇总 -->
+    <!-- ============================================================ -->
+    <select id="queryChartMonth" resultType="com.reports.dto.response.cash.discharge.settlement.ChartItem">
+        SELECT
+        <choose>
+            <when test="chartType == 'AMOUNT_TYPE'">TO_CHAR(TRUNC(stat_date, 'MM'), 'YYYY-MM')</when>
+            <otherwise>item_name</otherwise>
+        </choose> AS name,
+        NVL(SUM(item_value), 0) AS value,
+        ROUND(NVL(AVG(item_compare), 0), 0) AS compare
+        FROM TR_DISCH_SETTLE_CHT
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        AND chart_type = #{chartType}
+        GROUP BY
+        <choose>
+            <when test="chartType == 'AMOUNT_TYPE'">TRUNC(stat_date, 'MM')</when>
+            <otherwise>item_name</otherwise>
+        </choose>
+        ORDER BY
+        <choose>
+            <when test="chartType == 'AMOUNT_TYPE'">TRUNC(stat_date, 'MM')</when>
+            <otherwise>item_name</otherwise>
+        </choose>
+    </select>
+
 </mapper>

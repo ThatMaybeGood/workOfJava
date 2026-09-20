@@ -155,6 +155,9 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
 
     private OverviewData queryOverviewByMybatisPlus(CashDischargeSettlementRequest request) {
         try {
+            if (isMonthDimension(request)) {
+                return dischSettleMapper.queryOverviewMonth(request.getStartDate(), request.getEndDate());
+            }
             DischSettleOvEntity entity = dischSettleMapper.queryOverview(request.getStartDate(), request.getEndDate());
             return buildOverviewData(entity);
         } catch (Exception e) {
@@ -165,14 +168,24 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
 
     private ChartsData queryChartsByMybatisPlus(CashDischargeSettlementRequest request) {
         try {
-            List<DischSettleChtEntity> channelEntities = dischSettleMapper.queryChart(request.getStartDate(), request.getEndDate(), "CHANNEL");
-            List<DischSettleChtEntity> patientTypeEntities = dischSettleMapper.queryChart(request.getStartDate(), request.getEndDate(), "PATIENT_TYPE");
-            List<DischSettleChtEntity> amountTypeEntities = dischSettleMapper.queryChart(request.getStartDate(), request.getEndDate(), "AMOUNT_TYPE");
+            boolean month = isMonthDimension(request);
+            List<DischSettleChtEntity> channelEntities = month
+                    ? null : dischSettleMapper.queryChart(request.getStartDate(), request.getEndDate(), "CHANNEL");
+            List<DischSettleChtEntity> patientTypeEntities = month
+                    ? null : dischSettleMapper.queryChart(request.getStartDate(), request.getEndDate(), "PATIENT_TYPE");
+            List<DischSettleChtEntity> amountTypeEntities = month
+                    ? null : dischSettleMapper.queryChart(request.getStartDate(), request.getEndDate(), "AMOUNT_TYPE");
 
             ChartsData charts = new ChartsData();
-            charts.setChannelAnalysis(buildChartItemList(channelEntities));
-            charts.setPatientTypeAnalysis(buildChartItemList(patientTypeEntities));
-            charts.setAmountTypeAnalysis(buildChartItemList(amountTypeEntities));
+            if (month) {
+                charts.setChannelAnalysis(dischSettleMapper.queryChartMonth(request.getStartDate(), request.getEndDate(), "CHANNEL"));
+                charts.setPatientTypeAnalysis(dischSettleMapper.queryChartMonth(request.getStartDate(), request.getEndDate(), "PATIENT_TYPE"));
+                charts.setAmountTypeAnalysis(dischSettleMapper.queryChartMonth(request.getStartDate(), request.getEndDate(), "AMOUNT_TYPE"));
+            } else {
+                charts.setChannelAnalysis(buildChartItemList(channelEntities));
+                charts.setPatientTypeAnalysis(buildChartItemList(patientTypeEntities));
+                charts.setAmountTypeAnalysis(buildChartItemList(amountTypeEntities));
+            }
             return charts;
         } catch (Exception e) {
             log.warn("查询出院结算图表失败", e);
@@ -182,6 +195,14 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
 
     private PageResult<TableItem> queryTableByMybatisPlus(CashDischargeSettlementRequest request, Integer page, Integer pageSize) {
         try {
+            if (isMonthDimension(request)) {
+                List<TableItem> allItems = dischSettleMapper.queryDetailMonth(request.getStartDate(), request.getEndDate());
+                int total = allItems.size();
+                int start = (page - 1) * pageSize;
+                int end = Math.min(start + pageSize, total);
+                List<TableItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
+                return PageResult.of(pageList, (long) total, page, pageSize);
+            }
             List<DischSettleDtlEntity> rows = dischSettleMapper.queryDetail(request.getStartDate(), request.getEndDate());
             List<TableItem> allItems = new ArrayList<>();
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
@@ -197,6 +218,11 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
             log.warn("查询出院结算表格失败", e);
             return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
         }
+    }
+
+    /** 按月统计：dimension=month 时表格/图表/概览都按月聚合 */
+    private static boolean isMonthDimension(CashDischargeSettlementRequest request) {
+        return "month".equals(request.getDimension());
     }
 
     // ==================== 实体转换 ====================

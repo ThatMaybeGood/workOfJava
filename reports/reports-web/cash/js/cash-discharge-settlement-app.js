@@ -75,30 +75,54 @@ class DischargeSettlementController {
     }
 
     initDateRangePicker() {
+        this.resetDatePicker();
+    }
+
+    /** 按天/按月切换时重建日期控件：按月显示 yyyy/MM，且起止对齐到月初/月末（出院结算人次统计同款） */
+    resetDatePicker() {
         const dateRangeInput = document.getElementById('dateRange');
         if (!dateRangeInput) return;
 
+        const monthMode = this.filter.dimension === 'month';
+        const formatDate = (date) => {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        };
+
+        if (this.datePicker) {
+            this.datePicker.destroy();
+        }
         this.datePicker = flatpickr(dateRangeInput, {
             mode: 'range',
-            dateFormat: 'Y/m/d',
+            dateFormat: monthMode ? 'Y/m' : 'Y/m/d',
             defaultDate: [this.filter.startDate.replace(/-/g, '/'), this.filter.endDate.replace(/-/g, '/')],
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {
                 if (selectedDates.length === 2) {
-                    const formatDate = (date) => {
-                        const y = date.getFullYear();
-                        const m = String(date.getMonth() + 1).padStart(2, '0');
-                        const d = String(date.getDate()).padStart(2, '0');
-                        return `${y}-${m}-${d}`;
-                    };
-                    this.filter.startDate = formatDate(selectedDates[0]);
-                    this.filter.endDate = formatDate(selectedDates[1]);
+                    let start = selectedDates[0];
+                    let end = selectedDates[1];
+                    if (monthMode) {
+                        // 按月只取选中年月，起止对齐到月初/月末，后端仍收日期范围、SQL 不变
+                        start = new Date(start.getFullYear(), start.getMonth(), 1);
+                        end = new Date(end.getFullYear(), end.getMonth() + 1, 0);
+                    }
+                    this.filter.startDate = formatDate(start);
+                    this.filter.endDate = formatDate(end);
                     this.tableState.currentPage = 1;
                     this.loadData();
                 }
             }
         });
+        // 已选范围对齐到粒度边界
+        if (monthMode) {
+            const s = new Date(this.filter.startDate + 'T00:00:00');
+            const e = new Date(this.filter.endDate + 'T00:00:00');
+            this.filter.startDate = formatDate(new Date(s.getFullYear(), s.getMonth(), 1));
+            this.filter.endDate = formatDate(new Date(e.getFullYear(), e.getMonth() + 1, 0));
+        }
     }
 
     handleDimensionChange(e) {
@@ -106,6 +130,9 @@ class DischargeSettlementController {
         document.querySelectorAll('#timeDimensionFilter .filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         this.filter.dimension = btn.dataset.value;
+        this.resetDatePicker();
+        // 表格首列表头跟随统计粒度：按月显示「月份」
+        document.getElementById('itemDateHeader').textContent = this.filter.dimension === 'month' ? '月份' : '日期';
         this.tableState.currentPage = 1;
         this.loadData();
     }
@@ -369,7 +396,8 @@ function exportReport() {
         return;
     }
 
-    const headers = ['日期', '总出院人数-去年同期', '总出院人数-当前日期', '总出院人数-同比',
+    const dateHeader = dischargeSettlementController.filter.dimension === 'month' ? '月份' : '日期';
+    const headers = [dateHeader, '总出院人数-去年同期', '总出院人数-当前日期', '总出院人数-同比',
         '已出院人数-去年同期', '已出院人数-当前日期', '已出院人数-同比',
         '未出院人数-去年同期', '未出院人数-当前日期', '未出院人数-同比',
         '结算金额-去年同期', '结算金额-当前日期', '结算金额-同比'];
