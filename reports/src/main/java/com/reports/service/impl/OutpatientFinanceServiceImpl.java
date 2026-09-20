@@ -182,8 +182,26 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
      */
     private List<DetailListItem> loadPeriods(Integer statisticType, Integer timeType,
                                              Date startDate, Date endDate) {
-        Map<String, Double> clinic = toPeriodMap(
-                financeMapper.queryClinicCounts(statisticType, startDate, endDate, timeType), "cnt");
+        // 门诊量：T1小计 = 进项(T2) − 退项(T3)（净量，同下方人次口径）。
+        // 退项按退号日归期后，收(IS_RETURN_TYPE=1)不再等于进项−退项（跨天退号时收留在挂号日、
+        // 退量落在退号日），故小计必须相减；相减后某周期退多于进为负数属正常。
+        Map<String, Double> clinic;
+        if (statisticType != null && statisticType == 1) {
+            Map<String, Double> clinicIn = toPeriodMap(
+                    financeMapper.queryClinicCounts(2, startDate, endDate, timeType), "cnt");
+            Map<String, Double> clinicOut = toPeriodMap(
+                    financeMapper.queryClinicCounts(3, startDate, endDate, timeType), "cnt");
+            clinic = new HashMap<>();
+            for (Map.Entry<String, Double> e : clinicIn.entrySet()) {
+                clinic.merge(e.getKey(), e.getValue(), Double::sum);
+            }
+            for (Map.Entry<String, Double> e : clinicOut.entrySet()) {
+                clinic.merge(e.getKey(), -e.getValue(), Double::sum);
+            }
+        } else {
+            clinic = toPeriodMap(
+                    financeMapper.queryClinicCounts(statisticType, startDate, endDate, timeType), "cnt");
+        }
 
         Map<String, Double> amount = new HashMap<>();
         Map<String, Double> receipt = new HashMap<>();
