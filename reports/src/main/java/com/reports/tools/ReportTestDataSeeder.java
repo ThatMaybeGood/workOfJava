@@ -1069,6 +1069,7 @@ public final class ReportTestDataSeeder {
                     clinic.add(new Object[]{
                             patient, day, visitDate, visitNo,
                             isRefund ? day : null, Integer.valueOf(isRefund ? -1 : 1),
+                            Integer.valueOf(isRefund ? 2 : 1),
                             Double.valueOf(round2(rnd(5, 50))), Double.valueOf(round2(rnd(10, 120))),
                             DEPTS[rnd(0, DEPTS.length - 1)][1] + "|" + day,
                             (rnd(0, 1) == 0) ? "上午" : "下午", operator
@@ -1106,8 +1107,8 @@ public final class ReportTestDataSeeder {
         }
 
         batch(conn, "INSERT INTO TR_OUTP_FIN_CLINIC_MASTER (PATIENT_ID, STAT_DATE, VISIT_DATE, VISIT_NO,"
-                + " RETURNED_DATE, IS_RETURN_TYPE, REGIST_FEE, CLINIC_FEE, CLINIC_LABEL, VISIT_TIME_DESC,"
-                + " OPERATOR_NO) VALUES (?,?,?,?,?,?,?,?,?,?,?)", clinic);
+                + " RETURNED_DATE, IS_RETURN_TYPE, REGISTRATION_STATUS, REGIST_FEE, CLINIC_FEE, CLINIC_LABEL, VISIT_TIME_DESC,"
+                + " OPERATOR_NO) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", clinic);
         batch(conn, "INSERT INTO TR_OUTP_FIN_RCPT_ACCT (RCPT_NO, PATIENT_ID, STAT_DATE, VISIT_DATE,"
                 + " TOTAL_CHARGES, TOTAL_COSTS, REFUNDED_RCPT_NO, OPERATOR_NO, BILL_CLASS)"
                 + " VALUES (?,?,?,?,?,?,?,?,?)", rcpt);

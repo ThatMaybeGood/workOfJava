@@ -22,6 +22,8 @@ public class OutpFinanceClinicMaster implements Serializable {
 
     @TableField("returned_date")
     private Date returnedDate;
+    @TableField("registration_status")
+    private Integer registrationStatus;
 
     @TableField("regist_fee")
     private BigDecimal registFee;

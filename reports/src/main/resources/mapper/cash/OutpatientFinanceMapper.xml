@@ -10,22 +10,25 @@
         </choose>
     </sql>
 
-    <!-- 门诊量·明细/柱图：T1汇总=收(IS_RETURN_TYPE=1) T2进项=当日全部 T3退=退号(-1)，条件放WHERE -->
+    <!-- 门诊量·明细/柱图：T1汇总=收(IS_RETURN_TYPE=1) T2进项=当日全部 T3退=退号日归期；STAT_DATE=挂号日，退号可跨天，T3按TRUNC(RETURNED_DATE)匹配与分组 -->
     <select id="queryClinicCounts" resultType="map">
+        <!-- 归期列：T3按退号日，其余按挂号日 -->
+        <bind name="dateCol" value="statisticType == 3 ? 'c.RETURNED_DATE' : 'c.STAT_DATE'"/>
         SELECT
-            <include refid="periodExpr"><property name="col" value="c.STAT_DATE"/></include> AS "period",
+            <include refid="periodExpr"><property name="col" value="${dateCol}"/></include> AS "period",
             COUNT(1) AS "cnt"
         FROM TR_OUTP_FIN_CLINIC_MASTER c
-        WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+        WHERE <include refid="periodExpr"><property name="col" value="${dateCol}"/></include> BETWEEN #{startDate} AND #{endDate}
         <choose>
             <when test="statisticType == 1">
                 AND c.IS_RETURN_TYPE = 1
             </when>
             <when test="statisticType == 3">
                 AND c.IS_RETURN_TYPE = -1
+                <![CDATA[AND c.REGISTRATION_STATUS <> 0]]>
             </when>
         </choose>
-        GROUP BY <include refid="periodExpr"><property name="col" value="c.STAT_DATE"/></include>
+        GROUP BY <include refid="periodExpr"><property name="col" value="${dateCol}"/></include>
         ORDER BY "period"
     </select>
 
@@ -94,15 +97,20 @@
         LEFT JOIN TR_OUTP_FIN_MOP_QUEUE q
         ON q.STAT_DATE = c.STAT_DATE
         AND q.visit_no  = c.visit_no
-        WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+        <!-- T3退项按退号日归期(STAT_DATE=挂号日,退号可跨天)；其余按挂号日 -->
         <choose>
-            <when test="statisticType == 1">
-                AND c.IS_RETURN_TYPE = 1
-            </when>
             <when test="statisticType == 3">
+                WHERE c.RETURNED_DATE BETWEEN #{startDate} AND #{endDate}
                 AND c.IS_RETURN_TYPE = -1
+                <![CDATA[AND c.REGISTRATION_STATUS <> 0]]>
             </when>
+            <otherwise>
+                WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+            </otherwise>
         </choose>
+        <if test="statisticType == 1">
+            AND c.IS_RETURN_TYPE = 1
+        </if>
         GROUP BY nvl(q.SOURCE_NAME,decode(c.operator_no,'9101','自助机','窗口'))
         ORDER BY "cnt" DESC
     </select>
@@ -112,15 +120,20 @@
          SELECT DECODE(c.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
                COUNT(1) AS "cnt"
         FROM TR_OUTP_FIN_CLINIC_MASTER c
-        WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+        <!-- T3退项按退号日归期(STAT_DATE=挂号日,退号可跨天)；其余按挂号日 -->
         <choose>
-            <when test="statisticType == 1">
-                AND c.IS_RETURN_TYPE = 1
-            </when>
             <when test="statisticType == 3">
+                WHERE c.RETURNED_DATE BETWEEN #{startDate} AND #{endDate}
                 AND c.IS_RETURN_TYPE = -1
+                <![CDATA[AND c.REGISTRATION_STATUS <> 0]]>
             </when>
+            <otherwise>
+                WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+            </otherwise>
         </choose>
+        <if test="statisticType == 1">
+            AND c.IS_RETURN_TYPE = 1
+        </if>
         GROUP BY DECODE(c.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口')
         ORDER BY "cnt" DESC
     </select>
@@ -130,15 +143,20 @@
          SELECT DECODE(r.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
                COUNT(1) AS "cnt"
         FROM TR_OUTP_FIN_CLINIC_MASTER r
-        WHERE r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+        <!-- T3退项按退号日归期(STAT_DATE=挂号日,退号可跨天)；其余按挂号日 -->
         <choose>
-            <when test="statisticType == 1">
-                AND r.IS_RETURN_TYPE = 1
-            </when>
             <when test="statisticType == 3">
+                WHERE r.RETURNED_DATE BETWEEN #{startDate} AND #{endDate}
                 AND r.IS_RETURN_TYPE = -1
+                <![CDATA[AND r.REGISTRATION_STATUS <> 0]]>
             </when>
+            <otherwise>
+                WHERE r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+            </otherwise>
         </choose>
+        <if test="statisticType == 1">
+            AND r.IS_RETURN_TYPE = 1
+        </if>
         GROUP BY DECODE(r.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口')
         ORDER BY "cnt" DESC
     </select>
