@@ -1,6 +1,5 @@
 {
   "permissions": {
-    "defaultMode": "acceptEdits",
     "allow": [
       "Bash",
       "Read",
@@ -66,7 +65,18 @@
       "Read(//c/Program Files \\\\\\(x86\\\\\\)/Microsoft/Edge/Application/**)",
       "Bash(python -)",
       "Bash(sed -E 's/.*[[:space:]]+//')",
-      "Bash(sed -E 's/.*\\\\.//')"
+      "Bash(sed -E 's/.*\\\\.//')",
+      "Read(//tmp/**)",
+      "Bash(netstat -ano)",
+      "Bash(cd *)",
+      "Bash(node --check reports-web/api-config.js)",
+      "Bash(node .tmp-verify.mjs)",
+      "Bash(node .tmp-banner-test.mjs)",
+      "Bash(node .tmp-fetch-trace.mjs)",
+      "Bash(node .tmp-final.mjs)",
+      "Bash(node .tmp-loading.mjs)",
+      "Bash(node .tmp-loading2.mjs)",
+      "Bash(ls *)"
     ],
     "ask": [
       "Bash(rm)",
@@ -98,7 +108,8 @@
       "Bash(git clean:*)",
       "Bash(git reset --hard*)",
       "Bash(git filter-branch *)"
-    ]
+    ],
+    "defaultMode": "acceptEdits"
   },
   "hooks": {
     "PreToolUse": [
@@ -107,9 +118,9 @@
         "hooks": [
           {
             "type": "command",
+            "command": "c=$(cat); printf '%s' \"$c\" | grep -qiE '(^|[^[:alnum:]_./-])(rm|rmdir|unlink|shred|sdelete|truncate)([^[:alnum:]_./-]|$)|(^|[^[:alnum:]_./-])(del|erase|rd)([[:space:]]|$)|git[[:space:]]+(rm|clean)([[:space:]]|$)|git[[:space:]]+reset[[:space:]]+--hard|DROP[[:space:]]+(TABLE|DATABASE|INDEX|VIEW|SEQUENCE|USER)|TRUNCATE[[:space:]]+TABLE|DELETE[[:space:]]+FROM' && printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"ask\",\"permissionDecisionReason\":\"检测到删除类操作（rm/del/git rm/DROP/DELETE/TRUNCATE），需要你确认\"}}'; exit 0",
             "timeout": 10,
-            "statusMessage": "检查是否为删除类操作…",
-            "command": "c=$(cat); printf '%s' \"$c\" | grep -qiE '(^|[^[:alnum:]_./-])(rm|rmdir|unlink|shred|sdelete|truncate)([^[:alnum:]_./-]|$)|(^|[^[:alnum:]_./-])(del|erase|rd)([[:space:]]|$)|git[[:space:]]+(rm|clean)([[:space:]]|$)|git[[:space:]]+reset[[:space:]]+--hard|DROP[[:space:]]+(TABLE|DATABASE|INDEX|VIEW|SEQUENCE|USER)|TRUNCATE[[:space:]]+TABLE|DELETE[[:space:]]+FROM' && printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"ask\",\"permissionDecisionReason\":\"检测到删除类操作（rm/del/git rm/DROP/DELETE/TRUNCATE），需要你确认\"}}'; exit 0"
+            "statusMessage": "检查是否为删除类操作…"
           }
         ]
       }
