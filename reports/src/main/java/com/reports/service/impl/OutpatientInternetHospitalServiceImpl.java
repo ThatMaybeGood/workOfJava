@@ -1,8 +1,8 @@
 package com.reports.service.impl;
 
+import com.reports.annotation.DataSource;
 import com.reports.config.ReportDataConfig;
 import com.reports.dto.common.PageResult;
-import com.reports.dto.request.InternetHospitalMaintainRequest;
 import com.reports.dto.request.OutpatientInternetHospitalRequest;
 import com.reports.dto.response.outpatient.internet.hospital.*;
 import com.reports.entity.InternetHospitalBizEntity;
@@ -21,29 +21,15 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 互医质控运营月报服务实现
  */
 @Slf4j
 @Service
+@DataSource("yq_powerihsp")
 public class OutpatientInternetHospitalServiceImpl implements OutpatientInternetHospitalService {
-
-    /** 数据维护弹窗支持的指标：编码(对应 tr_inet_hosp_ov 列名) -> 名称 */
-    private static final Map<String, String> MAINTAIN_INDICATORS = new LinkedHashMap<>();
-
-    static {
-        MAINTAIN_INDICATORS.put("outpatient_volume", "互联网医院门诊量");
-        MAINTAIN_INDICATORS.put("doctor_ratio", "互联网医师占比");
-        MAINTAIN_INDICATORS.put("reception_rate", "互联网医院接诊率");
-        MAINTAIN_INDICATORS.put("prescription_rate", "互联网医院处方开具率");
-        MAINTAIN_INDICATORS.put("record_rate", "互联网医院病历书写率");
-        MAINTAIN_INDICATORS.put("review_rate", "互联网医院处方点评率");
-        MAINTAIN_INDICATORS.put("execution_rate", "互联网医院药品处方执行率");
-    }
 
     private final ReportDataConfig dataConfig;
     private final JdbcTemplate jdbcTemplate;
@@ -258,11 +244,46 @@ public class OutpatientInternetHospitalServiceImpl implements OutpatientInternet
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientInternetHospitalRequest request) {
         try {
-            InternetHospitalOvEntity entity = internetHospitalMapper.queryOverview(request.getMonth());
+            InternetHospitalOvEntity entity = internetHospitalMapper.queryOverview(
+                    overviewStart(request), overviewEnd(request));
             return buildOverviewData(entity);
         } catch (Exception e) {
             log.warn("查询互医质控概览失败", e);
             return new OverviewData();
+        }
+    }
+
+    /** 概览查询起始日期：优先请求传的，没有则按 month 转整月，兜底当月1号 */
+    private static String overviewStart(OutpatientInternetHospitalRequest request) {
+        if (request.getStartDate() != null && !request.getStartDate().trim().isEmpty()) {
+            return request.getStartDate().trim();
+        }
+        return resolveMonth(request.getMonth()).atDay(1).toString();
+    }
+
+    /** 概览查询结束日期：优先请求传的，没有则按 month 转整月，兜底当月最后一天 */
+    private static String overviewEnd(OutpatientInternetHospitalRequest request) {
+        if (request.getEndDate() != null && !request.getEndDate().trim().isEmpty()) {
+            return request.getEndDate().trim();
+        }
+        return resolveMonth(request.getMonth()).atEndOfMonth().toString();
+    }
+
+    /** 解析 month(yyyy-MM)；非法或为空兜底当月 */
+    private static java.time.YearMonth resolveMonth(String month) {
+        try {
+            return java.time.YearMonth.parse(month.trim());
+        } catch (Exception e) {
+            return java.time.YearMonth.now();
+        }
+    }
+
+    /** 排行环比用的当月 YearMonth：优先 startDate 推，没有则按 month */
+    private static java.time.YearMonth resolveRangeYearMonth(OutpatientInternetHospitalRequest request) {
+        try {
+            return java.time.YearMonth.parse(overviewStart(request).substring(0, 7));
+        } catch (Exception e) {
+            return java.time.YearMonth.now();
         }
     }
 
@@ -292,7 +313,10 @@ public class OutpatientInternetHospitalServiceImpl implements OutpatientInternet
 
     private PageResult<DeptRankingItem> queryDeptRankingByMybatisPlus(OutpatientInternetHospitalRequest request, Integer page, Integer pageSize) {
         try {
-            List<InternetHospitalDeptRnkEntity> rows = internetHospitalMapper.queryDeptRanking(request.getMonth());
+            java.time.YearMonth ym = resolveRangeYearMonth(request);
+            List<InternetHospitalDeptRnkEntity> rows = internetHospitalMapper.queryDeptRanking(
+                    overviewStart(request), overviewEnd(request),
+                    ym.minusMonths(1).atDay(1).toString(), ym.minusMonths(1).atEndOfMonth().toString());
             List<DeptRankingItem> allItems = new ArrayList<>();
             for (InternetHospitalDeptRnkEntity row : rows) {
                 allItems.add(buildDeptRankingItem(row));
@@ -310,7 +334,8 @@ public class OutpatientInternetHospitalServiceImpl implements OutpatientInternet
 
     private PageResult<DoctorRankingItem> queryDoctorRankingByMybatisPlus(OutpatientInternetHospitalRequest request, Integer page, Integer pageSize) {
         try {
-            List<InternetHospitalDocRnkEntity> rows = internetHospitalMapper.queryDoctorRanking(request.getMonth());
+            List<InternetHospitalDocRnkEntity> rows = internetHospitalMapper.queryDoctorRanking(
+                    overviewStart(request), overviewEnd(request));
             List<DoctorRankingItem> allItems = new ArrayList<>();
             for (InternetHospitalDocRnkEntity row : rows) {
                 allItems.add(buildDoctorRankingItem(row));
@@ -328,138 +353,23 @@ public class OutpatientInternetHospitalServiceImpl implements OutpatientInternet
 
     private GrowthChart queryGrowthChartByMybatisPlus(OutpatientInternetHospitalRequest request) {
         try {
-            List<InternetHospitalGrwEntity> rows = internetHospitalMapper.queryGrowthChart(request.getMonth());
+            List<InternetHospitalGrwEntity> rows = internetHospitalMapper.queryGrowthChart(
+                    overviewStart(request), overviewEnd(request));
             return buildGrowthChart(rows);
         } catch (Exception e) {
-            log.warn("查询互医质控增长趋势图表失败", e);
+            log.warn("查询互医质控候诊时长排行失败", e);
             return new GrowthChart();
         }
     }
 
-    // ==================== 数据维护 ====================
-
-    @Override
-    public List<IhMaintainItem> queryMaintainList(InternetHospitalMaintainRequest request) {
-        log.info("查询互医质控维护明细，statMonth={}，mode={}", request.getStatMonth(), dataConfig.getMode());
-        List<IhMaintainItem> result = new ArrayList<>();
-        if (!dataConfig.isMybatisPlus()) {
-            return result;
-        }
-        try {
-            InternetHospitalOvEntity row = internetHospitalMapper.queryOvByMonth(request.getStatMonth());
-            for (Map.Entry<String, String> indicator : MAINTAIN_INDICATORS.entrySet()) {
-                result.add(toMaintainItem(indicator.getKey(), indicator.getValue(), row));
-            }
-        } catch (Exception e) {
-            log.warn("查询互医质控维护明细失败", e);
-        }
-        return result;
-    }
-
-    @Override
-    public int saveMaintain(InternetHospitalMaintainRequest request) {
-        log.info("保存互医质控维护明细，statMonth={}，mode={}", request.getStatMonth(), dataConfig.getMode());
-        if (!dataConfig.isMybatisPlus() || request.getList() == null) {
-            return 0;
-        }
-        InternetHospitalOvEntity entity = new InternetHospitalOvEntity();
-        entity.setStatMonth(request.getStatMonth());
-        for (IhMaintainItem item : request.getList()) {
-            fillMaintain(entity, item);
-        }
-        return internetHospitalMapper.mergeOvMaintain(entity);
-    }
-
-    /** 该月概览行 -> 维护弹窗的行；该月还没数据时行内数值为空 */
-    static IhMaintainItem toMaintainItem(String code, String name, InternetHospitalOvEntity row) {
-        IhMaintainItem item = new IhMaintainItem();
-        item.setIndicatorCode(code);
-        item.setIndicatorName(name);
-        if (row == null) {
-            return item;
-        }
-        switch (code) {
-            case "outpatient_volume":
-                item.setValue(row.getOutpatientVolume() == null ? null : String.valueOf(row.getOutpatientVolume()));
-                break;
-            case "doctor_ratio":
-                item.setValue(row.getDoctorRatio());
-                break;
-            case "reception_rate":
-                item.setValue(row.getReceptionRate());
-                break;
-            case "prescription_rate":
-                item.setValue(row.getPrescriptionRate());
-                break;
-            case "record_rate":
-                item.setValue(row.getRecordRate());
-                break;
-            case "review_rate":
-                item.setValue(row.getReviewRate());
-                break;
-            case "execution_rate":
-                item.setValue(row.getExecutionRate());
-                break;
-            default:
-                break;
-        }
-        return item;
-    }
-
-    /** 维护弹窗提交的行 -> 待写入的概览列；没填的指标不动 */
-    static void fillMaintain(InternetHospitalOvEntity entity, IhMaintainItem item) {
-        if (item == null || item.getIndicatorCode() == null) {
-            return;
-        }
-        String value = item.getValue() == null ? null : item.getValue().trim();
-        if (value != null && value.isEmpty()) {
-            value = null;
-        }
-        switch (item.getIndicatorCode()) {
-            case "outpatient_volume":
-                entity.setOutpatientVolume(parseVolume(value));
-                break;
-            case "doctor_ratio":
-                entity.setDoctorRatio(normalizeRate(value));
-                break;
-            case "reception_rate":
-                entity.setReceptionRate(normalizeRate(value));
-                break;
-            case "prescription_rate":
-                entity.setPrescriptionRate(normalizeRate(value));
-                break;
-            case "record_rate":
-                entity.setRecordRate(normalizeRate(value));
-                break;
-            case "review_rate":
-                entity.setReviewRate(normalizeRate(value));
-                break;
-            case "execution_rate":
-                entity.setExecutionRate(normalizeRate(value));
-                break;
-            default:
-                break;
-        }
-    }
-
-    /** 门诊量字符串转整数；空或非法返回 null（merge 时保持原值） */
-    private static Integer parseVolume(String value) {
-        if (value == null) {
+    /** 分子分母 -> 'xx.xx%'；分子分母缺一或分母为0返回 null */
+    private static String ratioPct(BigDecimal num, BigDecimal den) {
+        if (num == null || den == null || den.compareTo(BigDecimal.ZERO) == 0) {
             return null;
         }
-        try {
-            return new BigDecimal(value.replace(",", "")).intValue();
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    /** 比率归一：缺 % 后缀的补上 */
-    private static String normalizeRate(String value) {
-        if (value == null || value.endsWith("%")) {
-            return value;
-        }
-        return value + "%";
+        return num.multiply(BigDecimal.valueOf(100))
+                .divide(den, 2, java.math.RoundingMode.HALF_UP)
+                .toPlainString() + "%";
     }
 
     // ==================== entity -> DTO 转换方法 ====================
@@ -470,12 +380,12 @@ public class OutpatientInternetHospitalServiceImpl implements OutpatientInternet
         }
         OverviewData data = new OverviewData();
         data.setOutpatientVolume(entity.getOutpatientVolume());
-        data.setDoctorRatio(entity.getDoctorRatio());
-        data.setReceptionRate(entity.getReceptionRate());
-        data.setPrescriptionRate(entity.getPrescriptionRate());
-        data.setRecordRate(entity.getRecordRate());
-        data.setReviewRate(entity.getReviewRate());
-        data.setExecutionRate(entity.getExecutionRate());
+        data.setDoctorRatio(ratioPct(entity.getDoctorRatioNum(), entity.getDoctorRatioDen()));
+        data.setReceptionRate(ratioPct(entity.getReceptionRateNum(), entity.getReceptionRateDen()));
+        data.setPrescriptionRate(ratioPct(entity.getPrescriptionRateNum(), entity.getPrescriptionRateDen()));
+        data.setRecordRate(ratioPct(entity.getRecordRateNum(), entity.getRecordRateDen()));
+        data.setReviewRate(ratioPct(entity.getReviewRateNum(), entity.getReviewRateDen()));
+        data.setExecutionRate(ratioPct(entity.getExecutionRateNum(), entity.getExecutionRateDen()));
         return data;
     }
 
@@ -518,8 +428,16 @@ public class OutpatientInternetHospitalServiceImpl implements OutpatientInternet
         item.setDeptName(entity.getDeptName());
         item.setCurrentMonth(entity.getCurrentMonth());
         item.setLastMonth(entity.getLastMonth());
-        item.setGrowth(entity.getGrowthRate());
+        item.setGrowth(growthPct(entity.getCurrentMonth(), entity.getLastMonth()));
         return item;
+    }
+
+    /** 环比：上月为0或null返回null，否则带符号两位百分数，如 "+20.00%"/"-5.00%" */
+    private static String growthPct(Integer cur, Integer last) {
+        if (cur == null || last == null || last == 0) {
+            return null;
+        }
+        return String.format("%+.2f%%", (cur - last) * 100.0 / last);
     }
 
     private DoctorRankingItem buildDoctorRankingItem(InternetHospitalDocRnkEntity entity) {

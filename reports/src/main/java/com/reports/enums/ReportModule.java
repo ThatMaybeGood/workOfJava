@@ -63,16 +63,6 @@ public enum ReportModule {
             )),
 
     /**
-     * 互医质控运营月报数据维护
-     */
-    OUTPATIENT_INTERNET_HOSPITAL_MAINTAIN("互医质控运营月报数据维护",
-            "com.reports.service.OutpatientInternetHospitalService",
-            Arrays.asList(
-                    new ReportMethod("queryMaintainList", "查询维护明细"),
-                    new ReportMethod("saveMaintain", "保存维护明细")
-            )),
-
-    /**
      * 检验统计
      */
     OUTPATIENT_LAB_STATS("检验统计",

@@ -18,14 +18,20 @@ DROP TABLE tr_inet_hosp_grw CASCADE CONSTRAINTS;
 
 -- 4.1 互医质控概览表
 CREATE TABLE tr_inet_hosp_ov (
-    stat_month      VARCHAR2(20)    NOT NULL,           -- 统计月份(YYYY-MM)
+    stat_date       DATE            NOT NULL,           -- 统计日期(YYYY-MM-DD)
     outpatient_volume NUMBER(10)    DEFAULT 0,          -- 门诊量
-    doctor_ratio    VARCHAR2(20),                      -- 医师占比
-    reception_rate  VARCHAR2(20),                      -- 接诊率
-    prescription_rate VARCHAR2(20),                    -- 处方率
-    record_rate     VARCHAR2(20),                      -- 病历率
-    review_rate     VARCHAR2(20),                      -- 审方率
-    execution_rate  VARCHAR2(20),                      -- 执行率
+    doctor_ratio_num    NUMBER(18,4),                  -- 互联网医师占比-分子
+    doctor_ratio_den    NUMBER(18,4),                  -- 互联网医师占比-分母
+    reception_rate_num  NUMBER(18,4),                  -- 互联网医院接诊率-分子
+    reception_rate_den  NUMBER(18,4),                  -- 互联网医院接诊率-分母
+    prescription_rate_num NUMBER(18,4),                -- 互联网医院处方开具率-分子
+    prescription_rate_den NUMBER(18,4),                -- 互联网医院处方开具率-分母
+    record_rate_num     NUMBER(18,4),                  -- 互联网医院病历书写率-分子
+    record_rate_den     NUMBER(18,4),                  -- 互联网医院病历书写率-分母
+    review_rate_num     NUMBER(18,4),                  -- 互联网医院处方点评率-分子
+    review_rate_den     NUMBER(18,4),                  -- 互联网医院处方点评率-分母
+    execution_rate_num  NUMBER(18,4),                  -- 互联网医院药品处方执行率-分子
+    execution_rate_den  NUMBER(18,4),                  -- 互联网医院药品处方执行率-分母
     create_time     DATE            DEFAULT SYSDATE,       -- 创建时间
     update_time     DATE            DEFAULT SYSDATE,       -- 更新时间
     ext1            VARCHAR2(500),                        -- 扩展字段1(数据来源: 人工登记/接口同步)
@@ -104,20 +110,26 @@ CREATE TABLE tr_inet_hosp_grw (
 
 -- 创建索引
 
-CREATE INDEX idx_tr_internet_overview_month ON tr_inet_hosp_ov(stat_month);
+CREATE INDEX idx_tr_inet_hosp_ov_date ON tr_inet_hosp_ov(stat_date);
 
 -- 添加注释
 
 COMMENT ON TABLE tr_inet_hosp_ov IS '互医质控运营月报-概览';
 COMMENT ON TABLE tr_inet_hosp_ov IS '互医质控运营月报-概览(存储互联网医院月度质控总览指标:门诊量、接诊率、处方率、审方率等)';
-COMMENT ON COLUMN tr_inet_hosp_ov.stat_month IS '统计月份(YYYY-MM)';
+COMMENT ON COLUMN tr_inet_hosp_ov.stat_date IS '统计日期(YYYY-MM-DD)，按月查询时取该月日期范围聚合';
 COMMENT ON COLUMN tr_inet_hosp_ov.outpatient_volume IS '门诊量';
-COMMENT ON COLUMN tr_inet_hosp_ov.doctor_ratio IS '医师占比';
-COMMENT ON COLUMN tr_inet_hosp_ov.reception_rate IS '接诊率';
-COMMENT ON COLUMN tr_inet_hosp_ov.prescription_rate IS '处方率';
-COMMENT ON COLUMN tr_inet_hosp_ov.record_rate IS '病历率';
-COMMENT ON COLUMN tr_inet_hosp_ov.review_rate IS '审方率';
-COMMENT ON COLUMN tr_inet_hosp_ov.execution_rate IS '执行率';
+COMMENT ON COLUMN tr_inet_hosp_ov.doctor_ratio_num IS '互联网医师占比-分子';
+COMMENT ON COLUMN tr_inet_hosp_ov.doctor_ratio_den IS '互联网医师占比-分母';
+COMMENT ON COLUMN tr_inet_hosp_ov.reception_rate_num IS '互联网医院接诊率-分子';
+COMMENT ON COLUMN tr_inet_hosp_ov.reception_rate_den IS '互联网医院接诊率-分母';
+COMMENT ON COLUMN tr_inet_hosp_ov.prescription_rate_num IS '互联网医院处方开具率-分子';
+COMMENT ON COLUMN tr_inet_hosp_ov.prescription_rate_den IS '互联网医院处方开具率-分母';
+COMMENT ON COLUMN tr_inet_hosp_ov.record_rate_num IS '互联网医院病历书写率-分子';
+COMMENT ON COLUMN tr_inet_hosp_ov.record_rate_den IS '互联网医院病历书写率-分母';
+COMMENT ON COLUMN tr_inet_hosp_ov.review_rate_num IS '互联网医院处方点评率-分子';
+COMMENT ON COLUMN tr_inet_hosp_ov.review_rate_den IS '互联网医院处方点评率-分母';
+COMMENT ON COLUMN tr_inet_hosp_ov.execution_rate_num IS '互联网医院药品处方执行率-分子';
+COMMENT ON COLUMN tr_inet_hosp_ov.execution_rate_den IS '互联网医院药品处方执行率-分母';
 COMMENT ON COLUMN tr_inet_hosp_ov.create_time IS '创建时间';
 COMMENT ON COLUMN tr_inet_hosp_ov.update_time IS '更新时间';
 COMMENT ON COLUMN tr_inet_hosp_ov.ext1 IS '扩展字段1(数据来源: 人工登记/接口同步)';

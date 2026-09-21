@@ -518,8 +518,9 @@ public final class ReportTestDataSeeder {
         for (String mo : months) {
             int volume = rnd(3000, 9000);
             ov.add(new Object[]{
-                    mo, Integer.valueOf(volume), rate(30, 70), rate(85, 99), rate(70, 95),
-                    rate(80, 99), rate(60, 95), rate(75, 98)
+                    mo + "-01", Integer.valueOf(volume),
+                    num(30, 70), DEN, num(85, 99), DEN, num(70, 95), DEN,
+                    num(80, 99), DEN, num(60, 95), DEN, num(75, 98), DEN
             });
             for (String item : items) {
                 int cur = rnd(500, 5000);
@@ -544,9 +545,14 @@ public final class ReportTestDataSeeder {
                 grw.add(new Object[]{mo, DEPTS[i][1], Integer.valueOf(rnd(8, 45))});
             }
         }
-        batch(conn, "INSERT INTO TR_INET_HOSP_OV (stat_month, outpatient_volume, doctor_ratio,"
-                + " reception_rate, prescription_rate, record_rate, review_rate, execution_rate)"
-                + " VALUES (?,?,?,?,?,?,?,?)", ov);
+        batch(conn, "INSERT INTO TR_INET_HOSP_OV (stat_date, outpatient_volume,"
+                + " doctor_ratio_num, doctor_ratio_den,"
+                + " reception_rate_num, reception_rate_den,"
+                + " prescription_rate_num, prescription_rate_den,"
+                + " record_rate_num, record_rate_den,"
+                + " review_rate_num, review_rate_den,"
+                + " execution_rate_num, execution_rate_den)"
+                + " VALUES (TO_DATE(?, 'yyyy-mm-dd'),?,?,?,?,?,?,?,?,?,?,?,?,?)", ov);
         batch(conn, "INSERT INTO TR_INET_HOSP_OP (stat_month, item_name, current_value, last_value, growth_rate)"
                 + " VALUES (?,?,?,?,?)", op);
         batch(conn, "INSERT INTO TR_INET_HOSP_BIZ (stat_month, category, current_value, last_value)"
@@ -1235,6 +1241,14 @@ public final class ReportTestDataSeeder {
     /** 百分比字符串，如 "87.35"。 */
     private static String rate(int min, int max) {
         return String.valueOf(round2(min + rnd.nextDouble() * (max - min)));
+    }
+
+    /** 比率分母固定值（造数用，配合 num 组成 分子/100 的比率） */
+    private static final java.math.BigDecimal DEN = java.math.BigDecimal.valueOf(100);
+
+    /** [min,max] 区间两位小数的分子数值。 */
+    private static java.math.BigDecimal num(int min, int max) {
+        return new java.math.BigDecimal(rate(min, max));
     }
 
     /** 按月环比增长率字符串。 */

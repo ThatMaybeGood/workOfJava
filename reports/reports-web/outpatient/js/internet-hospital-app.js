@@ -11,6 +11,16 @@ function currentMonth() {
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
 }
 
+/** 筛选月份转整月日期范围（月初~月末），后端概览按 stat_date 范围查询 */
+function monthDateRange(month) {
+    const [y, m] = month.split('-').map(Number);
+    const pad = (n) => String(n).padStart(2, '0');
+    return {
+        startDate: `${y}-${pad(m)}-01`,
+        endDate: `${y}-${pad(m)}-${new Date(y, m, 0).getDate()}`
+    };
+}
+
 class InternetHospitalController {
     constructor() {
         this.state = {
@@ -76,62 +86,6 @@ class InternetHospitalController {
             this.state.doctorPage.currentPage = 1;
             this.loadDoctorRanking();
         });
-
-        // 数据维护弹窗：打开/切月份时加载已维护值，保存提交
-        const maintainModal = document.getElementById('maintainModal');
-        if (maintainModal) {
-            maintainModal.addEventListener('shown.bs.modal', () => {
-                const maintainMonth = document.getElementById('maintainMonth');
-                // 弹窗月份默认跟随页面筛选月份
-                maintainMonth.value = this.state.filter.month;
-                this.loadMaintain();
-            });
-            document.getElementById('maintainMonth').addEventListener('change', () => this.loadMaintain());
-            document.getElementById('maintainSaveBtn').addEventListener('click', () => this.saveMaintain());
-        }
-    }
-
-    async loadMaintain() {
-        const month = document.getElementById('maintainMonth').value;
-        if (!month) return;
-        try {
-            const body = await ReportAPI.maintainInternetHospital({ action: 'query', statMonth: month });
-            const values = {};
-            (body.list || []).forEach(item => {
-                values[item.indicatorCode] = item.value;
-            });
-            document.querySelectorAll('#maintainTableBody input[data-indicator]').forEach(input => {
-                input.value = values[input.dataset.indicator] != null ? values[input.dataset.indicator] : '';
-            });
-        } catch (error) {
-            console.error('Load maintain failed:', error);
-        }
-    }
-
-    async saveMaintain() {
-        const month = document.getElementById('maintainMonth').value;
-        if (!month) return;
-        const items = [];
-        document.querySelectorAll('#maintainTableBody input[data-indicator]').forEach(input => {
-            items.push({
-                indicatorCode: input.dataset.indicator,
-                value: input.value.trim() === '' ? null : input.value.trim()
-            });
-        });
-        try {
-            await ReportAPI.maintainInternetHospital({ action: 'save', statMonth: month, list: items });
-            alert('保存成功！');
-            bootstrap.Modal.getInstance(document.getElementById('maintainModal')).hide();
-            // 维护的是概览指标，保存后按弹窗月份刷新页面数据与筛选
-            this.state.filter.month = month;
-            this.state.deptPage.currentPage = 1;
-            this.state.doctorPage.currentPage = 1;
-            this.updateMonthHeaders();
-            this.loadData();
-        } catch (error) {
-            console.error('Save maintain failed:', error);
-            alert('保存失败，请重试');
-        }
     }
 
     /** 当月/上月标签，用于表头与图表图例 */
@@ -170,6 +124,7 @@ class InternetHospitalController {
         try {
             const body = await ReportAPI.getInternetHospitalStats({
                 month: this.state.filter.month,
+                ...monthDateRange(this.state.filter.month),
                 deptPage: this.state.deptPage.currentPage,
                 deptPageSize: this.state.deptPage.pageSize,
                 doctorPage: this.state.doctorPage.currentPage,
@@ -196,6 +151,7 @@ class InternetHospitalController {
         try {
             const body = await ReportAPI.getInternetHospitalStats({
                 month: this.state.filter.month,
+                ...monthDateRange(this.state.filter.month),
                 deptPage: this.state.deptPage.currentPage,
                 deptPageSize: this.state.deptPage.pageSize,
                 doctorPage: this.state.doctorPage.currentPage,
@@ -214,6 +170,7 @@ class InternetHospitalController {
         try {
             const body = await ReportAPI.getInternetHospitalStats({
                 month: this.state.filter.month,
+                ...monthDateRange(this.state.filter.month),
                 deptPage: this.state.deptPage.currentPage,
                 deptPageSize: this.state.deptPage.pageSize,
                 doctorPage: this.state.doctorPage.currentPage,

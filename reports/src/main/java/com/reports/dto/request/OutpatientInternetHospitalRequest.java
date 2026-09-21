@@ -19,6 +19,16 @@ public class OutpatientInternetHospitalRequest extends BaseRequestBody {
     private String month;
 
     /**
+     * 起始日期（含），格式 yyyy-MM-dd；为空时按 month 转整月
+     */
+    private String startDate;
+
+    /**
+     * 结束日期（含），格式 yyyy-MM-dd；为空时按 month 转整月
+     */
+    private String endDate;
+
+    /**
      * 科室排行当前页码（可选，默认第1页）
      */
     private Integer deptPage;

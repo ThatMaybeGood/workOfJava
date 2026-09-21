@@ -3,19 +3,61 @@
 <mapper namespace="com.reports.mapper.InternetHospitalMapper">
 
     <!-- ============================================================ -->
-    <!-- 查询互医质控概览 -->
+    <!-- 查询互医质控概览：门诊量/接诊率直查源表(register order)，医师占比取rsp_doctor_info快照(开通问诊数/医师总数)， -->
+    <!-- 其余比率取tr_inet_hosp_ov的分子分母合计，比率在impl层相除 -->
     <!-- ============================================================ -->
     <select id="queryOverview" resultType="com.reports.entity.InternetHospitalOvEntity">
         SELECT
-        outpatient_volume AS outpatientVolume,
-        doctor_ratio AS doctorRatio,
-        reception_rate AS receptionRate,
-        prescription_rate AS prescriptionRate,
-        record_rate AS recordRate,
-        review_rate AS reviewRate,
-        execution_rate AS executionRate
-        FROM TR_INET_HOSP_OV
-        WHERE stat_month = #{statMonth}
+        v.outpatientVolume,
+        d.doctorRatioNum,
+        d.doctorRatioDen,
+        r.receptionRateNum,
+        v.outpatientVolume AS receptionRateDen,
+        o.prescriptionRateNum,
+        o.prescriptionRateDen,
+        o.recordRateNum,
+        o.recordRateDen,
+        o.reviewRateNum,
+        o.reviewRateDen,
+        o.executionRateNum,
+        o.executionRateDen
+        FROM (
+            SELECT COUNT(1) AS outpatientVolume
+            FROM powerihsp_register_oder ro
+            JOIN public_order_master om ON ro.order_id = om.order_id
+            WHERE ro.out_date &gt;= #{startDate}
+              AND ro.out_date &lt; #{endDate} + 1
+              AND ro.order_status != 5
+        ) v,
+        (
+            SELECT
+            SUM(CASE WHEN open_online_consultaation = 1 THEN 1 ELSE 0 END) AS doctorRatioNum,
+            COUNT(1) AS doctorRatioDen
+            FROM powerrsp.rsp_doctor_info
+        ) d,
+        (
+            -- 接诊率分子：同门诊量口径，ro.order_status&lt;2为未接诊，故取&gt;=2
+            SELECT COUNT(1) AS receptionRateNum
+            FROM powerihsp_register_oder ro
+            JOIN public_order_master om ON ro.order_id = om.order_id
+            WHERE ro.out_date &gt;= #{startDate}
+              AND ro.out_date &lt; #{endDate} + 1
+              AND ro.order_status &gt;= 2
+        ) r,
+        (
+            SELECT
+            SUM(prescription_rate_num) AS prescriptionRateNum,
+            SUM(prescription_rate_den) AS prescriptionRateDen,
+            SUM(record_rate_num) AS recordRateNum,
+            SUM(record_rate_den) AS recordRateDen,
+            SUM(review_rate_num) AS reviewRateNum,
+            SUM(review_rate_den) AS reviewRateDen,
+            SUM(execution_rate_num) AS executionRateNum,
+            SUM(execution_rate_den) AS executionRateDen
+            FROM tr_inet_hosp_ov
+            WHERE stat_date &gt;= #{startDate}
+              AND stat_date &lt; #{endDate} + 1
+        ) o
     </select>
 
     <!-- ============================================================ -->
@@ -46,92 +88,64 @@
     </select>
 
     <!-- ============================================================ -->
-    <!-- 查询互医质控科室排行 -->
+    <!-- 查询互医质控科室接诊量排行：源表register order，已接诊(order_status>=2)按科室分组， -->
+    <!-- 单次扫描覆盖当月+上月两段日期，CASE分别累加，倒序按当月 -->
     <!-- ============================================================ -->
     <select id="queryDeptRanking" resultType="com.reports.entity.InternetHospitalDeptRnkEntity">
-        SELECT
-        rank_num AS rankNum,
-        dept_name AS deptName,
-        current_month AS currentMonth,
-        last_month AS lastMonth,
-        growth_rate AS growthRate
-        FROM TR_INET_HOSP_DEPT_RNK
-        WHERE stat_month = #{statMonth}
-        ORDER BY rank_num
+        SELECT ROWNUM AS rankNum, deptName, currentMonth, lastMonth FROM (
+            SELECT
+            ro.dept_name AS deptName,
+            SUM(CASE WHEN ro.out_date &gt;= #{startDate} AND ro.out_date &lt; #{endDate} + 1
+                     THEN 1 ELSE 0 END) AS currentMonth,
+            SUM(CASE WHEN ro.out_date &gt;= #{lastStartDate} AND ro.out_date &lt; #{lastEndDate} + 1
+                     THEN 1 ELSE 0 END) AS lastMonth
+            FROM powerihsp_register_oder ro
+            WHERE ro.out_date &gt;= #{lastStartDate}
+              AND ro.out_date &lt; #{endDate} + 1
+              AND ro.order_status &gt;= 2
+            GROUP BY ro.dept_code, ro.dept_name
+            ORDER BY SUM(CASE WHEN ro.out_date &gt;= #{startDate} AND ro.out_date &lt; #{endDate} + 1
+                              THEN 1 ELSE 0 END) DESC
+        )
     </select>
 
     <!-- ============================================================ -->
-    <!-- 查询互医质控医生排行 -->
+    <!-- 查询互医质控医生接诊量排行：源表register order，已接诊(order_status>=2)按医生分组计数 -->
     <!-- ============================================================ -->
     <select id="queryDoctorRanking" resultType="com.reports.entity.InternetHospitalDocRnkEntity">
-        SELECT
-        rank_num AS rankNum,
-        doctor_name AS doctorName,
-        dept_name AS deptName,
-        title,
-        current_month AS currentMonth
-        FROM TR_INET_HOSP_DOC_RNK
-        WHERE stat_month = #{statMonth}
-        ORDER BY rank_num
+        SELECT ROWNUM AS rankNum, doctorName, deptName, title, currentMonth FROM (
+            SELECT
+            ro.doctor_name AS doctorName,
+            ro.dept_name AS deptName,
+            ro.doctor_title AS title,
+            COUNT(1) AS currentMonth
+            FROM powerihsp_register_oder ro
+            WHERE ro.out_date &gt;= #{startDate}
+              AND ro.out_date &lt; #{endDate} + 1
+              AND ro.order_status &gt;= 2
+            GROUP BY ro.doctor_code, ro.doctor_name, ro.dept_name, ro.doctor_title
+            ORDER BY COUNT(1) DESC
+        )
     </select>
 
     <!-- ============================================================ -->
-    <!-- 查询互医质控增长趋势 -->
+    <!-- 查询互医质控平均候诊时长科室TOP20：源表register order，候诊=reception_time-create_time(天数差x1440转分钟) -->
     <!-- ============================================================ -->
     <select id="queryGrowthChart" resultType="com.reports.entity.InternetHospitalGrwEntity">
-        SELECT
-        category,
-        data_value AS dataValue
-        FROM TR_INET_HOSP_GRW
-        WHERE stat_month = #{statMonth}
-        ORDER BY category
-    </select>
-
-    <!-- ============================================================ -->
-    <!-- 数据维护：按月份查询概览单行（弹窗预填用） -->
-    <!-- ============================================================ -->
-    <select id="queryOvByMonth" resultType="com.reports.entity.InternetHospitalOvEntity">
-        SELECT
-        stat_month AS statMonth,
-        outpatient_volume AS outpatientVolume,
-        doctor_ratio AS doctorRatio,
-        reception_rate AS receptionRate,
-        prescription_rate AS prescriptionRate,
-        record_rate AS recordRate,
-        review_rate AS reviewRate,
-        execution_rate AS executionRate
-        FROM TR_INET_HOSP_OV
-        WHERE stat_month = #{statMonth}
-    </select>
-
-    <!-- ============================================================ -->
-    <!-- 数据维护：该月有行就补写人工填的指标值（没填的保持原值），没有就新建一行 -->
-    <!-- ============================================================ -->
-    <update id="mergeOvMaintain" parameterType="com.reports.entity.InternetHospitalOvEntity">
-        MERGE INTO TR_INET_HOSP_OV t
-        USING (SELECT #{statMonth} AS stat_month FROM DUAL) s
-        ON (t.stat_month = s.stat_month)
-        WHEN MATCHED THEN UPDATE SET
-            outpatient_volume = NVL(#{outpatientVolume}, outpatient_volume),
-            doctor_ratio = NVL(#{doctorRatio}, doctor_ratio),
-            reception_rate = NVL(#{receptionRate}, reception_rate),
-            prescription_rate = NVL(#{prescriptionRate}, prescription_rate),
-            record_rate = NVL(#{recordRate}, record_rate),
-            review_rate = NVL(#{reviewRate}, review_rate),
-            execution_rate = NVL(#{executionRate}, execution_rate),
-            ext1 = '人工登记',
-            update_time = SYSDATE
-        WHEN NOT MATCHED THEN INSERT (
-            stat_month,
-            outpatient_volume, doctor_ratio, reception_rate, prescription_rate,
-            record_rate, review_rate, execution_rate,
-            ext1, create_time, update_time
-        ) VALUES (
-            #{statMonth},
-            #{outpatientVolume}, #{doctorRatio}, #{receptionRate}, #{prescriptionRate},
-            #{recordRate}, #{reviewRate}, #{executionRate},
-            '人工登记', SYSDATE, SYSDATE
+        SELECT category, dataValue FROM (
+            SELECT
+            ro.dept_name AS category,
+            ROUND(AVG((ro.reception_time - ro.create_time) * 1440), 0) AS dataValue
+            FROM powerihsp_register_oder ro
+            WHERE ro.out_date &gt;= #{startDate}
+              AND ro.out_date &lt; #{endDate} + 1
+              AND ro.order_status &gt;= 2
+              AND ro.reception_time IS NOT NULL
+              AND ro.create_time IS NOT NULL
+            GROUP BY ro.dept_code, ro.dept_name
+            ORDER BY AVG((ro.reception_time - ro.create_time) * 1440) DESC
         )
-    </update>
+        WHERE ROWNUM &lt;= 20
+    </select>
 
 </mapper>
