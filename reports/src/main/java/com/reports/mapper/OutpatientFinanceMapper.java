@@ -48,6 +48,12 @@ public interface OutpatientFinanceMapper {
                                                  @Param("timeType") Integer timeType);
 
     /**
+     * 退项门诊量悬浮标注：当日挂号退号(STAT_DATE=RETURNED_DATE)/非当日各多少（T3口径）
+     */
+    Map<String, Object> queryRefundVisitSplit(@Param("startDate") Date startDate,
+                                              @Param("endDate") Date endDate);
+
+    /**
      * bt1 订单来源：门诊挂号表按 SOURCE_TYPE 净人次（未退号+1，退号-1）
      */
     List<Map<String, Object>> queryClinicCountBySource(@Param("statisticType") Integer statisticType,

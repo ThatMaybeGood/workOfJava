@@ -34,4 +34,10 @@ public class IndicatorData {
     /** 金额同比 */
     private String amountYoy;
 
+    /** 退项-当日挂号退号数（仅退项tab返回，悬浮门诊量卡片显示） */
+    private Double refundSameDayCount;
+
+    /** 退项-非当日挂号退号数（仅退项tab返回） */
+    private Double refundCrossDayCount;
+
 }

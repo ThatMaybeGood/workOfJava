@@ -32,6 +32,17 @@
         ORDER BY "period"
     </select>
 
+    <!-- 退项门诊量悬浮标注：当日挂号退号(STAT_DATE=RETURNED_DATE)与非当日各多少，口径同queryClinicCounts的T3 -->
+    <select id="queryRefundVisitSplit" resultType="map">
+        SELECT
+            SUM(CASE WHEN c.STAT_DATE = c.RETURNED_DATE THEN 1 ELSE 0 END) AS "sameDay",
+            SUM(CASE WHEN c.STAT_DATE != c.RETURNED_DATE THEN 1 ELSE 0 END) AS "crossDay"
+        FROM TR_OUTP_FIN_CLINIC_MASTER c
+        WHERE c.RETURNED_DATE BETWEEN #{startDate} AND #{endDate}
+          AND c.IS_RETURN_TYPE = -1
+          <![CDATA[AND c.REGISTRATION_STATUS <> 0]]>
+    </select>
+
     <!-- 收据张数/金额·明细：结账主表按 STAT_DATE 分组（T1小计=TOTAL_INCOMES/T2进项=TOTAL_COSTS/T3退费） -->
     <select id="queryAcctAmounts" resultType="map">
         SELECT

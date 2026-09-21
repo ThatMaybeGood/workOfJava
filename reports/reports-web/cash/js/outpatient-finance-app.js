@@ -166,6 +166,12 @@ function updateCards(outerType, indicator) {
             yoyEl.textContent = '同比 ' + indicator[yoyMap[field]];
         }
     });
+    // 退项门诊量悬浮标注： 带出当日/非当日挂号退号数
+    var refundOvLabel = document.getElementById('refundOvLabel');
+    if (refundOvLabel && outerType === 'refund' && indicator.refundSameDayCount != null) {
+        refundOvLabel.title = '门诊量：总订单数 - 总退号数\n当日挂号退号 ' + formatNumber(indicator.refundSameDayCount)
+            + '，非当日挂号退号 ' + formatNumber(indicator.refundCrossDayCount);
+    }
 }
 
 // ===== 明细表 =====

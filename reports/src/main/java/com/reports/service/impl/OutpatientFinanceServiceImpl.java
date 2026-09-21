@@ -57,7 +57,9 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         if (dataConfig.isMock()) {
             return buildIndicatorFromDetail(queryDetailListMock(request));
         } else {
-            return buildIndicatorFromDetail(detailList);
+            IndicatorData data = buildIndicatorFromDetail(detailList);
+            fillRefundVisitSplit(request, data);
+            return data;
         }
     }
 
@@ -134,7 +136,23 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
     // ==================== MyBatis-Plus 模式 ====================
 
     private IndicatorData queryIndicatorByMybatisPlus(OutpatientFinanceRequest request) {
-        return buildIndicatorFromDetail(queryDetailListByMybatisPlus(request));
+        IndicatorData data = buildIndicatorFromDetail(queryDetailListByMybatisPlus(request));
+        fillRefundVisitSplit(request, data);
+        return data;
+    }
+
+    /** 退项门诊量悬浮标注：当日挂号退号(STAT_DATE=RETURNED_DATE)与非当日各多少，仅T3有值 */
+    private void fillRefundVisitSplit(OutpatientFinanceRequest request, IndicatorData data) {
+        if (request.getStatisticType() == null || request.getStatisticType() != 3) {
+            return;
+        }
+        Date start = normalizeDate(3, request.getTimeType(), request.getStartDate());
+        Date end = normalizeDate(3, request.getTimeType(), request.getEndDate());
+        Map<String, Object> row = financeMapper.queryRefundVisitSplit(start, end);
+        if (row != null) {
+            data.setRefundSameDayCount(toMapDouble(row.get("sameDay")));
+            data.setRefundCrossDayCount(toMapDouble(row.get("crossDay")));
+        }
     }
 
     private List<DetailListItem> queryDetailListByMybatisPlus(OutpatientFinanceRequest request) {
