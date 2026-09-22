@@ -912,11 +912,11 @@
             document.getElementById("reportDateDisplay").textContent = `登记时间：${reportDateStr}`;
             return;
         }
-        const prev = new Date(d);
-        prev.setDate(prev.getDate() - 1);
+        const next = new Date(d);
+        next.setDate(next.getDate() + 1);
         const formatCN = date => `${date.getMonth() + 1}月${date.getDate()}日`;
-        document.getElementById("mainTitle").textContent = `${formatCN(prev)} 审核/出纳 报表现金登记表`;
-        document.getElementById("reportDateDisplay").textContent = `登记时间：${formatCN(d)}`;
+        document.getElementById("mainTitle").textContent = `${formatCN(d)} 审核/出纳 报表现金登记表`;
+        document.getElementById("reportDateDisplay").textContent = `登记时间：${formatCN(next)}`;
     }
 
     async function saveReport() {
