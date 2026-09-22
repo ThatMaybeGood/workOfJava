@@ -17,7 +17,8 @@ CREATE TABLE mpp_cash_inp_master (
     report_type VARCHAR2(20) DEFAULT 'DAILY',  -- 报表类型：DAILY-日报，MONTHLY-月报
     report_status VARCHAR2(20) DEFAULT 'DRAFT', -- 报表状态：DRAFT-草稿，SUBMITTED-已提交，APPROVED-已审核
     total_amount NUMBER(18,2),                 -- 总金额（可冗余存储）
-    sub_count NUMBER(5) DEFAULT 0              -- 子表数量（冗余字段，方便查询）
+    sub_count NUMBER(5) DEFAULT 0,             -- 子表数量（冗余字段，方便查询）
+    total_remark VARCHAR2(500)                 -- 报表级备注（合计行下方整表一条）
 );
 
 -- 添加注释
@@ -34,6 +35,7 @@ COMMENT ON COLUMN mpp_cash_inp_master.report_type IS '报表类型：DAILY-日�
 COMMENT ON COLUMN mpp_cash_inp_master.report_status IS '报表状态：DRAFT-草稿，SUBMITTED-已提交，APPROVED-已审核';
 COMMENT ON COLUMN mpp_cash_inp_master.total_amount IS '总金额';
 COMMENT ON COLUMN mpp_cash_inp_master.sub_count IS '子表数量';
+COMMENT ON COLUMN mpp_cash_inp_master.total_remark IS '报表级备注（合计行下方整表一条）';
 
 -- 创建索引
 CREATE INDEX idx_mpp_cash_master_report_date ON mpp_cash_inp_master(report_date);

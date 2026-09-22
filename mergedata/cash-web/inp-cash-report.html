@@ -228,7 +228,7 @@
             font-weight: 700;
             padding: 10px 8px;
             border: 1px solid #c8d4dc;
-            text-align: right;
+            text-align: center;
             vertical-align: middle;
             line-height: 1.4;
             min-width: 90px;
@@ -267,7 +267,7 @@
         .data-table td {
             padding: 8px 8px;
             border: 1px solid #dce4e9;
-            text-align: right;
+            text-align: center;
             color: #37474f;
             vertical-align: middle;
             height: 36px;
@@ -315,7 +315,7 @@
 
         .data-table th:nth-child(2),
         .data-table td:nth-child(2) {
-            text-align: left;
+            text-align: center;
             position: sticky;
             left: 55px;
             background: #ffffff !important;
@@ -351,6 +351,36 @@
         }
         .total-row td:first-child,
         .total-row td:nth-child(2) { background: #e8f4f8 !important; }
+        /* bt4 现金合计合并两列后，原收费员列样式会命中本行第2格，需覆盖 */
+        .data-table tr.total-row td:first-child { background: #e8f4f8 !important; }
+        .data-table tr.total-row td:nth-child(2) { position: static; left: auto; text-align: center; }
+        /* 第2格背景交还列分组色，仅抵消偶数行白色important */
+        .data-table tr.total-row td:nth-child(2).group-morning { background-color: var(--group-morning-light) !important; }
+        .data-table tr.total-row td:nth-child(2).group-afternoon { background-color: var(--group-afternoon-light) !important; }
+        .data-table tr.total-row td:nth-child(2).group-retain { background-color: var(--group-retain-light) !important; }
+        .data-table tr.total-row:nth-child(even) td:nth-child(2).group-morning { background-color: #dff0df !important; }
+        .data-table tr.total-row:nth-child(even) td:nth-child(2).group-afternoon { background-color: #fff0db !important; }
+        .data-table tr.total-row:nth-child(even) td:nth-child(2).group-retain { background-color: #f6e8f8 !important; }
+
+        /* bt3 备注行：白底 */
+        .remark-row td {
+            background: #ffffff;
+            color: var(--medical-blue);
+            font-weight: 700;
+            border-top: 2px solid #90a4ae;
+        }
+        .remark-row td:first-child { background: #ffffff !important; }
+        .remark-row td:nth-child(2) {
+            position: static;
+            left: auto;
+            background: #ffffff !important;
+        }
+        .data-table .remark-row .remark-value {
+            text-align: left;
+            font-weight: 500;
+            white-space: normal;
+            min-height: 36px;
+        }
 
         .editable-cell {
             cursor: pointer;
@@ -383,7 +413,7 @@
             border-radius: 4px;
             padding: 4px 6px;
             font-size: 13px;
-            text-align: right;
+            text-align: center;
             outline: none;
             background: #fff;
         }
@@ -632,6 +662,7 @@
     };
 
     var currentData = [];
+    var reportRemark = "";
     var reportMeta = { report_date: null, holiday_total_flag: "0" };
     var currentTotalFlag = "0";
     var useMock = false;
@@ -753,15 +784,21 @@
         COLUMN_CONFIG.forEach((col, colIdx) => {
             const groupClass = groupClasses[colIdx] || "";
             if (col.field === null) {
-                html += `<td class="${groupClass}">现金合计</td>`;
+                html += `<td colspan="2" class="${groupClass}">现金合计</td>`;
             } else if (col.field === "operator_name") {
-                html += `<td class="${groupClass}"></td>`;
+                // 已并入上一单元格 colspan=2
             } else if (col.field === "remarks") {
                 html += `<td class="${groupClass}"></td>`;
             } else {
                 html += `<td class="${groupClass}">${formatMoneyValue(totals[col.field])}</td>`;
             }
         });
+        html += "</tr>";
+
+        // bt1 备注行：标签占两列，内容跨剩余列可编辑
+        html += `<tr class="remark-row">`;
+        html += `<td colspan="2">备注</td>`;
+        html += `<td colspan="21" class="editable-cell remark-value" data-field="total_remark">${escapeHtml(reportRemark)}</td>`;
         html += "</tr>";
 
         tbody.innerHTML = html;
@@ -779,6 +816,20 @@
         if (cell.querySelector("input")) return;
 
         const field = cell.getAttribute("data-field");
+
+        // bt2 报表级备注：存 reportRemark，不走行数据
+        if (field === "total_remark") {
+            cell.innerHTML = `<input type="text" class="cell-input" style="text-align:left" value="${escapeHtml(reportRemark)}">`;
+            const input = cell.querySelector("input");
+            input.focus();
+            input.addEventListener("blur", () => { reportRemark = input.value.trim(); renderTable(); });
+            input.addEventListener("keydown", ev => {
+                if (ev.key === "Enter") input.blur();
+                else if (ev.key === "Escape") renderTable();
+            });
+            return;
+        }
+
         const rowIdx = parseInt(cell.getAttribute("data-row"));
         const col = COLUMN_CONFIG.find(c => c.field === field);
         if (!col || !col.editable) return;
@@ -837,6 +888,7 @@
             };
             currentData = body.subs || [];
             currentData.forEach(row => calculateRow(row));
+            reportRemark = body.total_remark || "";
 
             updateTitle(dateStr);
 
@@ -844,6 +896,7 @@
         } catch (error) {
             showToast(`查询失败: ${error.message}`, "error");
             currentData = [];
+            reportRemark = "";
             renderTable();
         } finally {
             showLoading(false);
@@ -911,6 +964,7 @@
                 report_type: "1",
                 total_flag: reportMeta.total_flag || currentTotalFlag,
                 holiday_total_flag: reportMeta.holiday_total_flag,
+                total_remark: reportRemark || null,
                 subs: subsToSave
             };
 

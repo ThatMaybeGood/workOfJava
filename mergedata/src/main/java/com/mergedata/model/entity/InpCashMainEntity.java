@@ -58,6 +58,11 @@ public class InpCashMainEntity {
     @TableField(value = "holiday_total_flag")
     private String holidayTotalFlag = Constant.NO;
     /**
+     * 报表级备注（合计行下方整表一条）
+     */
+    @TableField(value = "total_remark")
+    private String totalRemark;
+    /**
      * 子报表列表（一对多关系）
      */
     @TableField(exist = false)

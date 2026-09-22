@@ -29,6 +29,8 @@ public class InpReportVO {
     @TableField(value = "total_flag")
     private String totalFlag = Constant.NO; //汇总标志
 
+    private String totalRemark;           // 报表级备注（合计行下方）
+
     // 关联的子报表列表（一对多关系）
     @TableField(exist = false)
     private List<InpCashSubEntity> subs;
