@@ -76,12 +76,12 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
     private OverviewData queryOverviewCompute(OutpatientForecastRequest request) {
         try {
             List<DailyForecast> daily = calcDailyForecast(request);
-            List<Integer> monthValues = calcYearForecast(request);
+            List<MonthPoint> monthValues = calcYearForecast(request);
             OverviewData overview = new OverviewData();
             overview.setTomorrow(daily.isEmpty() ? 0 : daily.get(0).value);
             overview.setNextWeek(sumRange(daily, 0, 7));
             overview.setNextMonth(sumRange(daily, 0, DAILY_DAYS));
-            overview.setNextYear(monthValues.stream().mapToInt(Integer::intValue).sum());
+            overview.setNextYear(monthValues.stream().mapToInt(p -> p.value).sum());
             return overview;
         } catch (Exception e) {
             log.warn("查询预测门诊量概览失败", e);
@@ -113,14 +113,13 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
 
     private YearForecast queryYearForecastCompute(OutpatientForecastRequest request) {
         try {
-            List<Integer> monthValues = calcYearForecast(request);
+            List<MonthPoint> monthValues = calcYearForecast(request);
             YearForecast forecast = new YearForecast();
             List<String> months = new ArrayList<>();
             List<Integer> data = new ArrayList<>();
-            int year = LocalDate.now().getYear();
-            for (int i = 1; i <= 12; i++) {
-                months.add(year + "-" + String.format("%02d", i));
-                data.add(monthValues.get(i - 1));
+            for (MonthPoint p : monthValues) {
+                months.add(p.yearMonth.toString());
+                data.add(p.value);
             }
             forecast.setMonths(months);
             forecast.setData(data);
@@ -135,76 +134,128 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
     }
 
     /**
-     * 未来30天每日预测:基础量 × 就诊系数,clamp ±10%
+     * 未来30天每日预测
+     * 步骤:
+     * 1. 取三个基准值:近30天挂号日均avgReg、近30天预约日均avgAppoint(预约无当日数据时兜底用)、近30天就诊系数visitCoef
+     * 2. 逐日循环未来30天,每天:
+     *    基础量base = 当日实时预约量(查不到则退回avgAppoint) + avgReg
+     *    预测值 = base × visitCoef × 当日天气系数(查不到按1) × 节假日系数(仅法定假日日,非法定假日按1)
+     * 3. clampForecast把预测值压回base的±10%区间
      */
     private List<DailyForecast> calcDailyForecast(OutpatientForecastRequest request) {
         LocalDate today = LocalDate.now();
         Date last30Start = toDate(today.minusDays(DAILY_DAYS));
         Date yesterday = toDate(today.minusDays(1));
 
+        // 步骤1:三个基准值
         double avgReg = nvl(forecastMapper.queryAvgReg(last30Start, yesterday, request.getDeptCode(), request.getDeptName()));
         double avgAppoint = nvl(forecastMapper.queryAvgAppoint(last30Start, yesterday, request.getDeptCode(), request.getDeptName()));
         double visitCoef = nvl(forecastMapper.queryVisitCoef(last30Start, yesterday, request.getDeptCode(), request.getDeptName()), 1d);
 
         List<DailyForecast> result = new ArrayList<>();
+        // 节假日系数30天内不变,首次遇到法定假日日才算,后续复用
+        Double holidayCoefCache = null;
         for (int i = 1; i <= DAILY_DAYS; i++) {
             LocalDate day = today.plusDays(i);
+            // 步骤2:当日基础量 = 实时预约(无则兜底avgAppoint) + 挂号日均
             Double appoint = forecastMapper.queryAppoint(toDate(day), request.getDeptCode(), request.getDeptName());
             double base = (appoint != null ? appoint : avgAppoint) + avgReg;
             double weatherCoef = nvl(forecastMapper.queryWeatherCoef(toDate(day)), 1d);
-            double holidayCoef = isLegalHoliday(day) ? calcHolidayCoef(request) : 1d;
+            double holidayCoef = 1d;
+            if (isLegalHoliday(day)) {
+                if (holidayCoefCache == null) {
+                    holidayCoefCache = calcHolidayCoef(request);
+                }
+                holidayCoef = holidayCoefCache;
+            }
+            // 步骤3:乘系数后clamp到±10%
             result.add(new DailyForecast(day, clampForecast(base, base * visitCoef * weatherCoef * holidayCoef)));
         }
         return result;
     }
 
     /**
-     * 今年12个月预测:1月按去年比前年增率外推,2-12月按预测全年量 × 去年同月占比;历史不足按近90天日均兜底
+     * 当前月起12个月预测(跨年)
+     * 前置数据:
+     *  - lastYear/prevYear:去年、前年的分月门诊量
+     *  - curYear:今年已过的分月门诊量(预测明年已过月用)
+     *  - projectedYear:今年全年外推量 = 今年截至昨日YTD ÷ 今年已过天数 × 今年天数(闰年366)
+     *  - growth:今年同比 = 今年YTD ÷ 去年同期YTD
+     *  - avgDaily90:近90天挂号日均,历史不足时兜底
+     * 逐月规则:
+     *  - 今年剩余月:projectedYear × 去年同月量 ÷ 去年总量(按去年月度分布拆分全年预测)
+     *  - 今年1月(仅当前月为1月时命中):去年1月 × 去年总量÷前年总量
+     *  - 明年已过月(月号<当前月):今年同月实际 × growth
+     *  - 明年未过月(月号>=当前月):去年同月量 × growth
+     *  - 任一月算出来≤0:改用 avgDaily90 × 当月天数 兜底
      */
-    private List<Integer> calcYearForecast(OutpatientForecastRequest request) {
+    private List<MonthPoint> calcYearForecast(OutpatientForecastRequest request) {
         LocalDate today = LocalDate.now();
         int year = today.getYear();
+        int curMonth = today.getMonthValue();
         String deptCode = request.getDeptCode();
         String deptName = request.getDeptName();
 
+        // 前置:去年/前年/今年已过的分月量
         Map<Integer, Integer> lastYear = toMonthMap(forecastMapper.queryMonthlyVolume(String.valueOf(year - 1), deptCode, deptName));
         int lastYearTotal = lastYear.values().stream().mapToInt(Integer::intValue).sum();
         Map<Integer, Integer> prevYear = toMonthMap(forecastMapper.queryMonthlyVolume(String.valueOf(year - 2), deptCode, deptName));
         int prevYearTotal = prevYear.values().stream().mapToInt(Integer::intValue).sum();
+        Map<Integer, Integer> curYear = toMonthMap(forecastMapper.queryMonthlyVolume(String.valueOf(year), deptCode, deptName));
 
+        // 前置:今年全年外推量 YTD/已过天数*今年天数(1月1日当天elapsedDays=0则外推量为0)
         int elapsedDays = today.getDayOfYear() - 1;
+        int yearDays = java.time.Year.of(year).length();
         double ytd = forecastMapper.queryYtdVolume(toDate(LocalDate.of(year, 1, 1)), toDate(today.minusDays(1)), deptCode, deptName);
-        double projectedYear = elapsedDays > 0 ? ytd / elapsedDays * 365 : 0;
+        double projectedYear = elapsedDays > 0 ? ytd / elapsedDays * yearDays : 0;
 
+        // 前置:同比增幅 今年YTD/去年同期YTD
+        double ytdPrev = forecastMapper.queryYtdVolume(toDate(LocalDate.of(year - 1, 1, 1)), toDate(today.minusYears(1).minusDays(1)), deptCode, deptName);
+        double growth = ytdPrev > 0 ? ytd / ytdPrev : 0;
+
+        // 前置:近90天挂号日均(兜底用)
         double avgDaily90 = nvl(forecastMapper.queryAvgReg(toDate(today.minusDays(90)), toDate(today.minusDays(1)), deptCode, deptName));
 
-        List<Integer> values = new ArrayList<>();
-        for (int m = 1; m <= 12; m++) {
+        List<MonthPoint> values = new ArrayList<>();
+        for (int i = 0; i < 12; i++) {
+            java.time.YearMonth ym = java.time.YearMonth.of(year, curMonth).plusMonths(i);
+            int m = ym.getMonthValue();
             double value;
-            if (m == 1) {
-                // 1月:去年1月 × (1 + 去年比前年门诊量增率)
-                value = prevYearTotal > 0
-                        ? lastYear.getOrDefault(1, 0) * (1 + (double) lastYearTotal / prevYearTotal - 1)
-                        : 0;
+            if (ym.getYear() == year) {
+                if (m == 1) {
+                    // 今年1月:去年1月 × 去年总量÷前年总量
+                    value = prevYearTotal > 0
+                            ? lastYear.getOrDefault(1, 0) * ((double) lastYearTotal / prevYearTotal)
+                            : 0;
+                } else {
+                    // 今年剩余月:预测全年量 × 去年同月占比
+                    value = lastYearTotal > 0 ? projectedYear * lastYear.getOrDefault(m, 0) / lastYearTotal : 0;
+                }
+            } else if (m < curMonth) {
+                // 明年已过月:今年同月实际 × 同比
+                value = growth > 0 ? curYear.getOrDefault(m, 0) * growth : 0;
             } else {
-                // 2-12月:预测全年量 × 去年同月占比
-                value = lastYearTotal > 0 ? projectedYear * lastYear.getOrDefault(m, 0) / lastYearTotal : 0;
+                // 明年未过月:去年同月 × 同比
+                value = growth > 0 ? lastYear.getOrDefault(m, 0) * growth : 0;
             }
             if (value <= 0) {
-                value = avgDaily90 * LocalDate.of(year, m, 1).lengthOfMonth();
+                // 历史不足兜底:近90天日均 × 当月天数
+                value = avgDaily90 * ym.lengthOfMonth();
             }
-            values.add((int) Math.round(value));
+            values.add(new MonthPoint(ym, (int) Math.round(value)));
         }
         return values;
     }
 
     /**
-     * 节假日系数:近30次法定节假日较前一正常工作日门诊量增长率的平均数
+     * 节假日系数 = 1 + 近30次法定节假日较前一正常工作日门诊量增长率的平均数
+     * 每个样本增长率 = (节假日量 - 前一工作日量) / 前一工作日量,最多取近一年最近30个法定假日
+     * 找不到前一个工作日或前一工作日门诊量为0的样本跳过;一个有效样本都没有则增长率按0(系数按1)
      */
     private double calcHolidayCoef(OutpatientForecastRequest request) {
         LocalDate today = LocalDate.now();
         List<Date> holidays = forecastMapper.queryRecentHolidays(toDate(today.minusDays(365)), toDate(today.minusDays(1)));
-        double sum = 0;
+        double growthSum = 0;
         int count = 0;
         for (Date holiday : holidays) {
             if (count >= HOLIDAY_SAMPLE_LIMIT) {
@@ -217,11 +268,12 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
             int holidayVol = forecastMapper.queryVolume(holiday, request.getDeptCode(), request.getDeptName());
             int prevVol = forecastMapper.queryVolume(prevWorkday, request.getDeptCode(), request.getDeptName());
             if (prevVol > 0) {
-                sum += (double) holidayVol / prevVol;
+                growthSum += (double) (holidayVol - prevVol) / prevVol;
                 count++;
             }
         }
-        return count > 0 ? sum / count : 1d;
+        // 系数 = 1 + 增长率平均数(与直接平均 节假日量/工作日量 恒等)
+        return count > 0 ? 1 + growthSum / count : 1d;
     }
 
     private boolean isLegalHoliday(LocalDate day) {
@@ -270,6 +322,17 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
 
         private DailyForecast(LocalDate date, int value) {
             this.date = date;
+            this.value = value;
+        }
+    }
+
+    /** 月预测点:某年某月及其预测量 */
+    private static class MonthPoint {
+        private final java.time.YearMonth yearMonth;
+        private final int value;
+
+        private MonthPoint(java.time.YearMonth yearMonth, int value) {
+            this.yearMonth = yearMonth;
             this.value = value;
         }
     }
@@ -335,5 +398,36 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
         }
         return values;
     }
+
+    // ==================== 预测逻辑整体说明(以 2026-09-23 为锚点示例) ====================
+    //
+    // 报表所有指标都以「查询当天」为锚实时计算,不查预测结果表。
+    //
+    // 【基准窗口】近30天 = 2026-08-24 ~ 2026-09-22(截至昨天),从挂号日汇总表取:
+    //   avgReg     近30天挂号日均(按天汇总后取平均,无记录的天不占分母)
+    //   avgAppoint 近30天预约日均(预约表无当日数据时的兜底值)
+    //   visitCoef  就诊系数 = 1 - 近30天(退号+爽约)/挂号总量
+    //
+    // 【未来30天每日预测】预测 2026-09-24 ~ 2026-10-23,每天独立计算:
+    //   基础量base = 当日实时预约量(tr_fc_appoint,查不到退回avgAppoint) + avgReg
+    //   预测值   = base × visitCoef × 当日天气系数(tr_fc_weather,无数据按1)
+    //              × 节假日系数(仅法定假日日;30天内只算一次,假日日复用)
+    //   节假日系数 = 1 + 近30次法定假日「(节假日量-前一正常工作日量)/前一工作日量」的增长率平均数
+    //              (前一正常工作日 = 排除周末及节假日的最近统计日;无样本按1)
+    //   最后 clamp 到 base 的 ±10% 区间
+    //
+    // 【概览四指标】
+    //   明日     = 日预测第1天(09-24)
+    //   未来一周 = 日预测前7天求和(09-24~09-30)
+    //   未来一月 = 日预测30天求和(09-24~10-23,即今天+30天)
+    //   未来一年 = 月预测12个月求和
+    //
+    // 【当前月起12个月预测】预测 2026-09 ~ 2027-08:
+    //   前置:projectedYear = 今年YTD(01-01~09-22) ÷ 已过天数265 × 366/365(闰年)
+    //         growth = 今年YTD ÷ 去年同期YTD(2025-01-01~2025-09-22)
+    //   今年剩余月(09~12): projectedYear × 去年同月量 ÷ 去年总量
+    //   明年已过月(01~08):  今年同月实际 × growth
+    //   明年未过月(09~12):  去年同月量 × growth
+    //   任一月≤0 兜底: 近90天挂号日均 × 当月天数
 
 }
