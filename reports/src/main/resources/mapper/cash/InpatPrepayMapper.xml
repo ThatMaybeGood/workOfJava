@@ -2,59 +2,86 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.reports.mapper.InpatPrepayMapper">
 
-    <!-- ============================================================ -->
-    <!-- 查询住院预交金概览 -->
-    <!-- ============================================================ -->
+    <!-- 数据范围:结算=退项(金额为负),其余=进项,SUMMARY=全部 -->
+    <sql id="scopeFilter">
+        <choose>
+            <when test="scope == 'INCOME'">
+                AND transact_type &lt;&gt; '结算'
+            </when>
+            <when test="scope == 'REFUND'">
+                AND transact_type = '结算'
+            </when>
+        </choose>
+    </sql>
+
+    <!-- 渠道:操作员9111为自助机,其余为窗口 -->
+    <sql id="channelExpr">
+        CASE WHEN operator_no = '9111' THEN '自助机' ELSE '窗口' END
+    </sql>
+
+    <!-- 日期轴:同期日期ADD_MONTHS+12平移回本期 -->
+    <sql id="axisExpr">
+        CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate}
+             THEN ADD_MONTHS(stat_date, 12) ELSE stat_date END
+    </sql>
+
+    <!-- 概览聚合:一次扫描,本期/同期两个区间OR过滤,行内CASE出两段 -->
     <select id="queryOverview" resultType="com.reports.entity.InpatPrepayOvEntity">
         SELECT
-        NVL(prepayment_count, 0) AS prepaymentCount,
-        NVL(prepayment_count_compare, 0) AS prepaymentCountCompare,
-        NVL(prepayment_amount, 0) AS prepaymentAmount,
-        NVL(prepayment_amount_compare, 0) AS prepaymentAmountCompare
-        FROM TR_INPAT_PREPAY_OV
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        COUNT(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN patient_id END) AS countCurrent,
+        COUNT(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN patient_id END) AS countLast,
+        NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN amount ELSE 0 END), 0) AS amountCurrent,
+        NVL(SUM(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN amount ELSE 0 END), 0) AS amountLast
+        FROM tr_inpat_prepay_rcpt
+        WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
+           OR stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
+        <include refid="scopeFilter"/>
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 查询住院预交金日明细 -->
-    <!-- ============================================================ -->
-    <select id="queryDetail" resultType="com.reports.entity.InpatPrepayDtlEntity">
+    <!-- 按天/按月聚合:本期/同期在聚合函数里CASE区分;month=true时按月分桶(日期轴平移后TO_CHAR) -->
+    <select id="queryDaily" resultType="com.reports.entity.InpatPrepayDtlEntity">
         SELECT
-        item_date AS itemDate,
-        data_type AS dataType,
-        NVL(count_last, 0) AS countLast,
-        NVL(count_current, 0) AS countCurrent,
-        NVL(count_compare, 0) AS countCompare,
-        NVL(amount_last, 0) AS amountLast,
-        NVL(amount_current, 0) AS amountCurrent,
-        NVL(amount_compare, 0) AS amountCompare
-        FROM TR_INPAT_PREPAY_DTL
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        <if test="dataType != null and dataType != ''">
-            AND data_type = #{dataType}
-        </if>
-        ORDER BY item_date
+        <choose>
+            <when test="month">
+                TO_DATE(TO_CHAR(<include refid="axisExpr"/>, 'YYYY-MM'), 'YYYY-MM') AS itemDate
+            </when>
+            <otherwise>
+                <include refid="axisExpr"/> AS itemDate
+            </otherwise>
+        </choose>,
+        COUNT(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN patient_id END) AS countCurrent,
+        COUNT(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN patient_id END) AS countLast,
+        NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN amount ELSE 0 END), 0) AS amountCurrent,
+        NVL(SUM(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN amount ELSE 0 END), 0) AS amountLast
+        FROM tr_inpat_prepay_rcpt
+        WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
+           OR stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
+        <include refid="scopeFilter"/>
+        GROUP BY <include refid="axisExpr"/>
+        ORDER BY itemDate
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 查询住院预交金图表数据 -->
-    <!-- ============================================================ -->
-    <select id="queryChart" resultType="com.reports.entity.InpatPrepayChtEntity">
+    <!-- 渠道×支付方式聚合 -->
+    <select id="queryChannel" resultType="com.reports.entity.InpatPrepayChtEntity">
         SELECT
-        chart_type AS chartType,
-        chart_title AS chartTitle,
-        chart_subtitle AS chartSubtitle,
-        date_range AS dateRange,
-        category,
-        series_name AS seriesName,
-        NVL(data_value, 0) AS dataValue,
-        NVL(compare_value, 0) AS compareValue
-        FROM TR_INPAT_PREPAY_CHT
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        <if test="chartType != null and chartType != ''">
-            AND chart_type = #{chartType}
-        </if>
-        ORDER BY category, series_name
+        channel,
+        pay_way AS payWay,
+        COUNT(CASE WHEN in_current = 1 THEN patient_id END) AS countCurrent,
+        COUNT(CASE WHEN in_last = 1 THEN patient_id END) AS countLast,
+        NVL(SUM(CASE WHEN in_current = 1 THEN amount ELSE 0 END), 0) AS amountCurrent,
+        NVL(SUM(CASE WHEN in_last = 1 THEN amount ELSE 0 END), 0) AS amountLast
+        FROM (
+            SELECT patient_id, amount, pay_way,
+                   <include refid="channelExpr"/> AS channel,
+                   CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
+                   CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last
+            FROM tr_inpat_prepay_rcpt
+            WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
+               OR stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
+            <include refid="scopeFilter"/>
+        )
+        GROUP BY channel, pay_way
+        ORDER BY channel, pay_way
     </select>
 
 </mapper>

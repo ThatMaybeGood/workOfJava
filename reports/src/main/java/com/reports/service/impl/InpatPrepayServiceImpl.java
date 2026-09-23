@@ -11,8 +11,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -22,26 +26,17 @@ import java.util.Set;
 /**
  * 住院预交金统计服务实现。
  *
- * <p>数据来自三张表：
+ * <p>数据来自交易流水表 {@code TR_INPAT_PREPAY_RCPT} 实时聚合,口径:
  * <ul>
- *   <li>{@code TR_INPAT_PREPAY_OV} —— 概览快照（1 行）</li>
- *   <li>{@code TR_INPAT_PREPAY_DTL} —— 按天的明细，用 {@code data_type} 区分汇总/进项/退项</li>
- *   <li>{@code TR_INPAT_PREPAY_CHT} —— 图表数据，用 {@code chart_type} 区分趋势/渠道/支付方式；
- *       渠道图把 {@code category} 当渠道、{@code series_name} 当支付方式，一行同时供三种图使用</li>
+ *   <li>退项 = transact_type '结算'(金额为负,展示取绝对值),其余 = 进项</li>
+ *   <li>渠道按操作员区分:9111 自助机,其余窗口</li>
+ *   <li>对比 = 同比(本期 vs 去年同日期范围),由后端推去年同期区间,SQL 一次查出两段</li>
+ *   <li>人次 = 交易笔数(COUNT 流水行)</li>
  * </ul>
  */
 @Slf4j
 @Service
 public class InpatPrepayServiceImpl implements InpatPrepayService {
-
-    /** SimpleDateFormat 非线程安全，按线程各持一份。 */
-    private static final ThreadLocal<java.text.SimpleDateFormat> DAY_FORMAT =
-            new ThreadLocal<java.text.SimpleDateFormat>() {
-                @Override
-                protected java.text.SimpleDateFormat initialValue() {
-                    return new java.text.SimpleDateFormat("yyyy-MM-dd");
-                }
-            };
 
     private final ReportDataConfig dataConfig;
     private final InpatPrepayMapper inpatPrepayMapper;
@@ -57,18 +52,22 @@ public class InpatPrepayServiceImpl implements InpatPrepayService {
     @Override
     public Map<String, Object> queryOverview(InpatPrepayRequest request) {
         Map<String, Object> result = new LinkedHashMap<String, Object>();
-        if (!dataConfig.isMybatisPlus()) {
+        if (!dataConfig.isMybatisPlus() || !hasDateRange(request)) {
             return result;
         }
         try {
-            InpatPrepayOvEntity e =
-                    inpatPrepayMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            String scope = scopeOf(request.getType(), "INCOME");
+            Date[] lastRange = lastYearRange(request);
+            InpatPrepayOvEntity e = inpatPrepayMapper.queryOverview(
+                    request.getStartDate(), request.getEndDate(), lastRange[0], lastRange[1], scope);
             if (e != null) {
-                result.put("prepaymentCount", nvl(e.getPrepaymentCount()));
-                result.put("prepaymentCountCompare", nvl(e.getPrepaymentCountCompare()));
-                result.put("prepaymentAmount", e.getPrepaymentAmount() == null
-                        ? Double.valueOf(0d) : e.getPrepaymentAmount());
-                result.put("prepaymentAmountCompare", nvl(e.getPrepaymentAmountCompare()));
+                boolean refund = "REFUND".equals(scope);
+                double amountCurrent = amountOf(e.getAmountCurrent(), refund);
+                double amountLast = amountOf(e.getAmountLast(), refund);
+                result.put("prepaymentCount", nvl(e.getCountCurrent()));
+                result.put("prepaymentCountCompare", comparePct(nvl(e.getCountCurrent()), nvl(e.getCountLast())));
+                result.put("prepaymentAmount", amountCurrent);
+                result.put("prepaymentAmountCompare", comparePct(amountCurrent, amountLast));
             }
         } catch (Exception e) {
             log.warn("查询住院预交金概览失败", e);
@@ -81,21 +80,25 @@ public class InpatPrepayServiceImpl implements InpatPrepayService {
     @Override
     public Map<String, Object> queryTable(InpatPrepayRequest request, String dataType) {
         List<Map<String, Object>> all = new ArrayList<Map<String, Object>>();
-        if (dataConfig.isMybatisPlus()) {
+        if (dataConfig.isMybatisPlus() && hasDateRange(request)) {
             try {
-                List<InpatPrepayDtlEntity> rows = inpatPrepayMapper.queryDetail(
-                        request.getStartDate(), request.getEndDate(), dataType);
+                boolean refund = "REFUND".equals(dataType);
+                boolean month = isMonthDimension(request);
+                Date[] lastRange = lastYearRange(request);
+                List<InpatPrepayDtlEntity> rows = inpatPrepayMapper.queryDaily(
+                        request.getStartDate(), request.getEndDate(), lastRange[0], lastRange[1], dataType, month);
                 for (InpatPrepayDtlEntity r : rows) {
                     Map<String, Object> item = new LinkedHashMap<String, Object>();
-                    // 直接返回 Date 会被序列化成 ISO（2026-08-12T16:00:00.000+00:00）原样显示在表格里，
-                    // 这里先格式化成 yyyy-MM-dd
-                    item.put("date", r.getItemDate() == null ? null : DAY_FORMAT.get().format(r.getItemDate()));
+                    // Date 序列化会成 ISO 字符串,先格式化;按月聚合时格式为 yyyy-MM
+                    item.put("date", r.getItemDate() == null ? null : formatDate(r.getItemDate(), month));
                     item.put("countLast", nvl(r.getCountLast()));
                     item.put("countCurrent", nvl(r.getCountCurrent()));
-                    item.put("countCompare", nvl(r.getCountCompare()));
-                    item.put("amountLast", r.getAmountLast());
-                    item.put("amountCurrent", r.getAmountCurrent());
-                    item.put("amountCompare", nvl(r.getAmountCompare()));
+                    item.put("countCompare", comparePct(nvl(r.getCountCurrent()), nvl(r.getCountLast())));
+                    double amountLast = amountOf(r.getAmountLast(), refund);
+                    double amountCurrent = amountOf(r.getAmountCurrent(), refund);
+                    item.put("amountLast", amountLast);
+                    item.put("amountCurrent", amountCurrent);
+                    item.put("amountCompare", comparePct(amountCurrent, amountLast));
                     all.add(item);
                 }
             } catch (Exception e) {
@@ -110,24 +113,33 @@ public class InpatPrepayServiceImpl implements InpatPrepayService {
     @Override
     public Map<String, Object> queryTrendChart(InpatPrepayRequest request) {
         String type = typeOf(request, "summary_count");
+        boolean byAmount = type.endsWith("amount");
         Map<String, Object> result = new LinkedHashMap<String, Object>();
         result.put("type", type);
-        result.put("title", titlePrefix(type) + "趋势");
+        result.put("title", (byAmount ? "缴费金额" : "缴费人次") + "趋势");
         result.put("legend", Collections.unmodifiableList(
-                java.util.Arrays.asList("本期", "上期")));
+                java.util.Arrays.asList("本期", "同期")));
 
         List<String> categories = new ArrayList<String>();
         List<Integer> currentData = new ArrayList<Integer>();
         List<Integer> lastData = new ArrayList<Integer>();
-        if (dataConfig.isMybatisPlus()) {
+        if (dataConfig.isMybatisPlus() && hasDateRange(request)) {
             try {
-                List<InpatPrepayChtEntity> rows = inpatPrepayMapper.queryChart(
-                        request.getStartDate(), request.getEndDate(), "TREND");
-                for (InpatPrepayChtEntity r : rows) {
-                    categories.add(r.getCategory());
-                    currentData.add(nvl(r.getDataValue()));
-                    // TREND 行的 compare_value 存的是上期值（不是差值），直接作为上期系列
-                    lastData.add(nvl(r.getCompareValue()));
+                String scope = scopeOf(type, "SUMMARY");
+                boolean refund = "REFUND".equals(scope);
+                boolean month = isMonthDimension(request);
+                Date[] lastRange = lastYearRange(request);
+                List<InpatPrepayDtlEntity> rows = inpatPrepayMapper.queryDaily(
+                        request.getStartDate(), request.getEndDate(), lastRange[0], lastRange[1], scope, month);
+                for (InpatPrepayDtlEntity r : rows) {
+                    categories.add(r.getItemDate() == null ? "" : formatDate(r.getItemDate(), month));
+                    if (byAmount) {
+                        currentData.add((int) Math.round(amountOf(r.getAmountCurrent(), refund)));
+                        lastData.add((int) Math.round(amountOf(r.getAmountLast(), refund)));
+                    } else {
+                        currentData.add(nvl(r.getCountCurrent()));
+                        lastData.add(nvl(r.getCountLast()));
+                    }
                 }
             } catch (Exception e) {
                 log.warn("查询住院预交金趋势失败", e);
@@ -144,33 +156,41 @@ public class InpatPrepayServiceImpl implements InpatPrepayService {
     @Override
     public Map<String, Object> queryChannelChart(InpatPrepayRequest request) {
         String type = typeOf(request, "summary_count");
+        boolean byAmount = type.endsWith("amount");
         Map<String, Object> result = new LinkedHashMap<String, Object>();
         result.put("type", type);
 
-        Map<String, int[]> byChannel = new LinkedHashMap<String, int[]>();
-        Map<String, int[]> byPayType = new LinkedHashMap<String, int[]>();
-        Map<String, Map<String, Integer>> cross = new LinkedHashMap<String, Map<String, Integer>>();
+        Map<String, long[]> byChannel = new LinkedHashMap<String, long[]>();
+        Map<String, long[]> byPayType = new LinkedHashMap<String, long[]>();
+        Map<String, Map<String, Long[]>> cross = new LinkedHashMap<String, Map<String, Long[]>>();
         Set<String> payTypes = new LinkedHashSet<String>();
 
-        if (dataConfig.isMybatisPlus()) {
+        if (dataConfig.isMybatisPlus() && hasDateRange(request)) {
             try {
-                List<InpatPrepayChtEntity> rows = inpatPrepayMapper.queryChart(
-                        request.getStartDate(), request.getEndDate(), "CHANNEL");
+                String scope = scopeOf(type, "SUMMARY");
+                Date[] lastRange = lastYearRange(request);
+                List<InpatPrepayChtEntity> rows = inpatPrepayMapper.queryChannel(
+                        request.getStartDate(), request.getEndDate(), lastRange[0], lastRange[1], scope);
                 for (InpatPrepayChtEntity r : rows) {
-                    String channel = r.getCategory() == null ? "未知" : r.getCategory();
-                    String payType = r.getSeriesName() == null ? "未知" : r.getSeriesName();
-                    int v = nvl(r.getDataValue());
-                    int c = nvl(r.getCompareValue());
-                    accumulate(byChannel, channel, v, c);
-                    accumulate(byPayType, payType, v, c);
+                    String channel = r.getChannel() == null ? "未知" : r.getChannel();
+                    String payType = r.getPayWay() == null ? "未知" : r.getPayWay();
+                    long cur = metricOf(r, byAmount, false);
+                    long last = metricOf(r, byAmount, true);
+                    accumulate(byChannel, channel, cur, last);
+                    accumulate(byPayType, payType, cur, last);
                     payTypes.add(payType);
-                    Map<String, Integer> line = cross.get(channel);
+                    Map<String, Long[]> line = cross.get(channel);
                     if (line == null) {
-                        line = new LinkedHashMap<String, Integer>();
+                        line = new LinkedHashMap<String, Long[]>();
                         cross.put(channel, line);
                     }
-                    Integer old = line.get(payType);
-                    line.put(payType, Integer.valueOf(old == null ? v : old.intValue() + v));
+                    Long[] cell = line.get(payType);
+                    if (cell == null) {
+                        line.put(payType, new Long[]{Long.valueOf(cur), Long.valueOf(last)});
+                    } else {
+                        cell[0] = Long.valueOf(cell[0].longValue() + cur);
+                        cell[1] = Long.valueOf(cell[1].longValue() + last);
+                    }
                 }
             } catch (Exception e) {
                 log.warn("查询住院预交金渠道分析失败", e);
@@ -182,11 +202,11 @@ public class InpatPrepayServiceImpl implements InpatPrepayService {
 
         List<String> payTypeOrder = new ArrayList<String>(payTypes);
         List<Map<String, Object>> series = new ArrayList<Map<String, Object>>();
-        for (Map.Entry<String, Map<String, Integer>> e : cross.entrySet()) {
-            List<Integer> data = new ArrayList<Integer>();
+        for (Map.Entry<String, Map<String, Long[]>> e : cross.entrySet()) {
+            List<Long> data = new ArrayList<Long>();
             for (String pt : payTypeOrder) {
-                Integer v = e.getValue().get(pt);
-                data.add(Integer.valueOf(v == null ? 0 : v.intValue()));
+                Long[] cell = e.getValue().get(pt);
+                data.add(Long.valueOf(cell == null ? 0L : cell[0].longValue()));
             }
             Map<String, Object> s = new LinkedHashMap<String, Object>();
             s.put("name", e.getKey());
@@ -204,18 +224,16 @@ public class InpatPrepayServiceImpl implements InpatPrepayService {
 
     @Override
     public Map<String, Object> queryPayTypeChart(InpatPrepayRequest request) {
-        String type = typeOf(request, "refund_count");
         Map<String, Object> result = new LinkedHashMap<String, Object>();
-        result.put("type", type);
-
-        Map<String, int[]> byPayType = new LinkedHashMap<String, int[]>();
-        if (dataConfig.isMybatisPlus()) {
+        Map<String, long[]> byPayType = new LinkedHashMap<String, long[]>();
+        if (dataConfig.isMybatisPlus() && hasDateRange(request)) {
             try {
-                List<InpatPrepayChtEntity> rows = inpatPrepayMapper.queryChart(
-                        request.getStartDate(), request.getEndDate(), "PAY_TYPE");
+                Date[] lastRange = lastYearRange(request);
+                List<InpatPrepayChtEntity> rows = inpatPrepayMapper.queryChannel(
+                        request.getStartDate(), request.getEndDate(), lastRange[0], lastRange[1], "REFUND");
                 for (InpatPrepayChtEntity r : rows) {
-                    accumulate(byPayType, r.getCategory() == null ? "未知" : r.getCategory(),
-                            nvl(r.getDataValue()), nvl(r.getCompareValue()));
+                    accumulate(byPayType, r.getPayWay() == null ? "未知" : r.getPayWay(),
+                            metricOf(r, true, false), metricOf(r, true, true));
                 }
             } catch (Exception e) {
                 log.warn("查询住院预交金支付方式分析失败", e);
@@ -227,33 +245,93 @@ public class InpatPrepayServiceImpl implements InpatPrepayService {
 
     // ==================== 工具方法 ====================
 
+    /** 同比区间:本期日期整体减一年(9-01~9-03 → 去年9-01~9-03) */
+    private static Date[] lastYearRange(InpatPrepayRequest request) {
+        LocalDate start = toLocalDate(request.getStartDate()).minusYears(1);
+        LocalDate end = toLocalDate(request.getEndDate()).minusYears(1);
+        return new Date[]{toDate(start), toDate(end)};
+    }
+
+    /** 按月统计:dimension=month 时表格/趋势按月分桶 */
+    private static boolean isMonthDimension(InpatPrepayRequest request) {
+        return request != null && "month".equals(request.getDimension());
+    }
+
+    /** 格式化日期轴:按天 yyyy-MM-dd,按月 yyyy-MM */
+    private static String formatDate(Date date, boolean month) {
+        LocalDate d = toLocalDate(date);
+        return month ? String.format("%04d-%02d", d.getYear(), d.getMonthValue()) : d.toString();
+    }
+
+    /** type → 数据范围:refund开头=退项,summary开头=汇总,其余=进项 */
+    private static String scopeOf(String type, String def) {
+        if (type == null || type.trim().isEmpty()) {
+            return def;
+        }
+        String t = type.trim().toLowerCase();
+        if (t.startsWith("refund")) {
+            return "REFUND";
+        }
+        if (t.startsWith("summary")) {
+            return "SUMMARY";
+        }
+        if (t.startsWith("income")) {
+            return "INCOME";
+        }
+        return def;
+    }
+
     private static String typeOf(InpatPrepayRequest request, String def) {
         String t = request == null ? null : request.getType();
         return (t == null || t.trim().isEmpty()) ? def : t;
     }
 
-    private static String titlePrefix(String type) {
-        return type.endsWith("amount") ? "缴费金额" : "缴费人次";
+    private static boolean hasDateRange(InpatPrepayRequest request) {
+        return request != null && request.getStartDate() != null && request.getEndDate() != null;
     }
 
-    /** name -> {value, compare} 累加。 */
-    private static void accumulate(Map<String, int[]> target, String name, int value, int compare) {
-        int[] cell = target.get(name);
+    /** 退项金额取绝对值(流水里结算为负数) */
+    private static double amountOf(BigDecimal v, boolean refund) {
+        double d = v == null ? 0d : v.doubleValue();
+        return refund ? Math.abs(d) : d;
+    }
+
+    /** 行内取数:金额或笔数,本期或同期 */
+    private static long metricOf(InpatPrepayChtEntity r, boolean byAmount, boolean last) {
+        if (byAmount) {
+            BigDecimal v = last ? r.getAmountLast() : r.getAmountCurrent();
+            return v == null ? 0L : Math.abs(Math.round(v.doubleValue()));
+        }
+        Integer v = last ? r.getCountLast() : r.getCountCurrent();
+        return v == null ? 0L : v.longValue();
+    }
+
+    /** 同比百分比:同期为0返回0 */
+    private static int comparePct(double current, double last) {
+        if (last == 0d) {
+            return 0;
+        }
+        return (int) Math.round((current - last) * 100d / last);
+    }
+
+    /** name -> {本期, 同期} 累加 */
+    private static void accumulate(Map<String, long[]> target, String name, long cur, long last) {
+        long[] cell = target.get(name);
         if (cell == null) {
-            target.put(name, new int[]{value, compare});
+            target.put(name, new long[]{cur, last});
         } else {
-            cell[0] += value;
-            cell[1] += compare;
+            cell[0] += cur;
+            cell[1] += last;
         }
     }
 
-    private static List<Map<String, Object>> toNameValueList(Map<String, int[]> src) {
+    private static List<Map<String, Object>> toNameValueList(Map<String, long[]> src) {
         List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
-        for (Map.Entry<String, int[]> e : src.entrySet()) {
+        for (Map.Entry<String, long[]> e : src.entrySet()) {
             Map<String, Object> item = new LinkedHashMap<String, Object>();
             item.put("name", e.getKey());
-            item.put("value", Integer.valueOf(e.getValue()[0]));
-            item.put("compare", Integer.valueOf(e.getValue()[1]));
+            item.put("value", Long.valueOf(e.getValue()[0]));
+            item.put("compare", Integer.valueOf(comparePct(e.getValue()[0], e.getValue()[1])));
             list.add(item);
         }
         return list;
@@ -272,6 +350,14 @@ public class InpatPrepayServiceImpl implements InpatPrepayService {
         result.put("page", Integer.valueOf(page));
         result.put("pageSize", Integer.valueOf(size));
         return result;
+    }
+
+    private static LocalDate toLocalDate(Date date) {
+        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    }
+
+    private static Date toDate(LocalDate day) {
+        return java.sql.Date.valueOf(day);
     }
 
     private static int nvl(Integer v) {

@@ -8,6 +8,7 @@
     <link href="../vendor/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <link href="../vendor/flatpickr@4.6.13/css/flatpickr.min.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
+    <link href="css/month-range-picker.css" rel="stylesheet">
 </head>
 <body>
     <div class="container-fluid py-2">
@@ -42,10 +43,11 @@
                         <button class="filter-btn active" data-value="day">按天统计</button>
                     </div>
                     <div class="date-range-picker">
-                        <div class="date-input-wrapper range-wrapper">
+                        <div class="date-input-wrapper range-wrapper" id="dayRangeWrapper">
                             <input type="text" class="form-control form-control-sm date-input" id="dateRange" readonly>
                             <i class="bi bi-calendar date-input-icon"></i>
                         </div>
+                        <span id="monthRangePicker" style="display:none;"></span>
                     </div>
                 </div>
             </div>
@@ -59,7 +61,7 @@
                             <table class="table table-hover table-bordered mb-0" id="summaryTable">
                                 <thead class="table-light">
                                     <tr>
-                                        <th rowspan="2" class="align-middle">日期</th>
+                                        <th rowspan="2" class="align-middle date-axis-header">日期</th>
                                         <th colspan="3" class="th-group-1">缴费人次</th>
                                         <th colspan="3" class="th-group-2">缴费金额</th>
                                     </tr>
@@ -163,7 +165,7 @@
                             <table class="table table-hover table-bordered mb-0" id="incomeTable">
                                 <thead class="table-light">
                                     <tr>
-                                        <th rowspan="2" class="align-middle">日期</th>
+                                        <th rowspan="2" class="align-middle date-axis-header">日期</th>
                                         <th colspan="3" class="th-group-1">缴费人次</th>
                                         <th colspan="3" class="th-group-2">缴费金额</th>
                                     </tr>
@@ -267,7 +269,7 @@
                             <table class="table table-hover table-bordered mb-0" id="refundTable">
                                 <thead class="table-light">
                                     <tr>
-                                        <th rowspan="2" class="align-middle">日期</th>
+                                        <th rowspan="2" class="align-middle date-axis-header">日期</th>
                                         <th colspan="3" class="th-group-1">退院人次</th>
                                         <th colspan="3" class="th-group-2">退院金额</th>
                                     </tr>
@@ -333,6 +335,7 @@
     <script src="../api-config.js"></script>
     <script src="js/mock.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/month-range-picker.js"></script>
     <script>
         (function() {
             const toggle = document.getElementById('mockToggle');

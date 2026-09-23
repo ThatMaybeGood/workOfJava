@@ -10,104 +10,53 @@ DROP TABLE tr_inpat_prepay_dtl CASCADE CONSTRAINTS;
 
 DROP TABLE tr_inpat_prepay_cht CASCADE CONSTRAINTS;
 
--- 18.1 住院预交金概览表
-CREATE TABLE tr_inpat_prepay_ov (
-    stat_date               DATE            NOT NULL,   -- 统计日期
-    prepayment_count        NUMBER(10)      DEFAULT 0,  -- 预交金笔数
-    prepayment_count_compare NUMBER(10)     DEFAULT 0,  -- 预交金笔数对比
-    prepayment_amount       NUMBER(18,2),               -- 预交金金额
-    prepayment_amount_compare NUMBER(10)    DEFAULT 0,  -- 预交金金额对比
-    create_time             DATE            DEFAULT SYSDATE,       -- 创建时间
-    update_time             DATE            DEFAULT SYSDATE,       -- 更新时间
-    ext1                    VARCHAR2(500),                        -- 扩展字段1
-    ext2                    VARCHAR2(500),                        -- 扩展字段2
-    ext3                    VARCHAR2(500)                         -- 扩展字段3
-);
+DROP TABLE tr_inpat_prepay_rcpt CASCADE CONSTRAINTS;
 
--- 18.2 住院预交金日明细表
-CREATE TABLE tr_inpat_prepay_dtl (
-    stat_date       DATE            NOT NULL,           -- 统计日期
-    item_date       DATE            NOT NULL,           -- 日期
-    data_type       VARCHAR2(20)    NOT NULL,           -- 数据类型(SUMMARY/INCOME/REFUND)
-    count_last      NUMBER(10)      DEFAULT 0,          -- 上期笔数
-    count_current   NUMBER(10)      DEFAULT 0,          -- 本期笔数
-    count_compare   NUMBER(10)      DEFAULT 0,          -- 笔数对比
-    amount_last     NUMBER(18,2),                       -- 上期金额
-    amount_current  NUMBER(18,2),                       -- 本期金额
-    amount_compare  NUMBER(10)      DEFAULT 0,          -- 金额对比
-    create_time     DATE            DEFAULT SYSDATE,       -- 创建时间
-    update_time     DATE            DEFAULT SYSDATE,       -- 更新时间
-    ext1            VARCHAR2(500),                        -- 扩展字段1
-    ext2            VARCHAR2(500),                        -- 扩展字段2
-    ext3            VARCHAR2(500)                         -- 扩展字段3
-);
-
--- 18.3 住院预交金图表数据表
-CREATE TABLE tr_inpat_prepay_cht (
-    stat_date       DATE            NOT NULL,           -- 统计日期
-    chart_type      VARCHAR2(50)    NOT NULL,           -- 图表类型(TREND/CHANNEL/PAY_TYPE)
-    chart_title     VARCHAR2(200),                      -- 图表标题
-    chart_subtitle  VARCHAR2(200),                      -- 副标题
-    date_range      VARCHAR2(100),                      -- 日期范围
-    category        VARCHAR2(100)   NOT NULL,           -- 分类
-    series_name     VARCHAR2(100),                      -- 系列名称
-    data_value      NUMBER(10)      DEFAULT 0,          -- 数值
-    compare_value   NUMBER(10)      DEFAULT 0,          -- 对比值
-    create_time     DATE            DEFAULT SYSDATE,       -- 创建时间
-    update_time     DATE            DEFAULT SYSDATE,       -- 更新时间
-    ext1            VARCHAR2(500),                        -- 扩展字段1
-    ext2            VARCHAR2(500),                        -- 扩展字段2
-    ext3            VARCHAR2(500)                         -- 扩展字段3
+-- 18.1 住院预交金交易流水表(对应HIS prepayment_rcpt,报表按transact_date实时聚合)
+CREATE TABLE tr_inpat_prepay_rcpt (
+    stat_date           DATE            NOT NULL,   -- 统计日期(=transact_date的年月日,查询按此字段匹配)
+    patient_id          VARCHAR2(50)    NOT NULL,   -- 患者ID
+    visit_id            VARCHAR2(50)    NOT NULL,   -- 住院就诊ID(一次住院)
+    rcpt_no             VARCHAR2(50)    NOT NULL,   -- 预交金收据号(每笔交易唯一)
+    transact_tpe       VARCHAR2(20)    NOT NULL,   -- 交易类型(结算=出院结算出账,其余=预交金缴存/退款等)
+    amount              NUMBER(18,2)    NOT NULL,   -- 交易金额
+    pay_way             VARCHAR2(20),               -- 支付方式(现金/银行卡/微信/支付宝等)
+    transact_date       DATE            NOT NULL,   -- 交易时间
+    operator_no         VARCHAR2(50),               -- 操作员工号
+    refunded_rcpt_no    VARCHAR2(50),               -- 退款票据号(退款交易指向被退的原收据号)
+    acct_no             VARCHAR2(50),               -- 结账号(结算交易关联的结算单号)
+    create_time         DATE            DEFAULT SYSDATE,       -- 创建时间
+    update_time         DATE            DEFAULT SYSDATE,       -- 更新时间
+    ext1                VARCHAR2(500),                        -- 扩展字段1
+    ext2                VARCHAR2(500),                        -- 扩展字段2
+    ext3                VARCHAR2(500)                         -- 扩展字段3
 );
 
 -- 创建索引
 
--- 注: TR_OUTP_FIN_* 的索引与表注释已移至 19_门诊财务.sql (那些表在 19 才创建)
-
-CREATE INDEX idx_tr_prepay_overview_date ON tr_inpat_prepay_ov(stat_date);
-CREATE INDEX idx_tr_prepay_detail_date ON tr_inpat_prepay_dtl(stat_date);
-CREATE INDEX idx_tr_prepay_chart_date ON tr_inpat_prepay_cht(stat_date);
+CREATE UNIQUE INDEX uk_tr_prepay_rcpt_no ON tr_inpat_prepay_rcpt(rcpt_no);
+CREATE INDEX idx_tr_prepay_rcpt_statdate ON tr_inpat_prepay_rcpt(stat_date);
+CREATE INDEX idx_tr_prepay_rcpt_date ON tr_inpat_prepay_rcpt(transact_date);
+CREATE INDEX idx_tr_prepay_rcpt_visit ON tr_inpat_prepay_rcpt(visit_id);
+CREATE INDEX idx_tr_prepay_rcpt_patient ON tr_inpat_prepay_rcpt(patient_id);
+CREATE INDEX idx_tr_prepay_rcpt_refund ON tr_inpat_prepay_rcpt(refunded_rcpt_no);
 
 -- 添加注释
 
-COMMENT ON TABLE tr_inpat_prepay_ov IS '住院预交金统计-概览(存储住院预交金总览:预交金笔数、金额及对比值)';
-COMMENT ON COLUMN tr_inpat_prepay_ov.stat_date IS '统计日期';
-COMMENT ON COLUMN tr_inpat_prepay_ov.prepayment_count IS '预交金笔数';
-COMMENT ON COLUMN tr_inpat_prepay_ov.prepayment_count_compare IS '预交金笔数对比值';
-COMMENT ON COLUMN tr_inpat_prepay_ov.prepayment_amount IS '预交金金额';
-COMMENT ON COLUMN tr_inpat_prepay_ov.prepayment_amount_compare IS '预交金金额对比值';
-COMMENT ON COLUMN tr_inpat_prepay_ov.create_time IS '创建时间';
-COMMENT ON COLUMN tr_inpat_prepay_ov.update_time IS '更新时间';
-COMMENT ON COLUMN tr_inpat_prepay_ov.ext1 IS '扩展字段1';
-COMMENT ON COLUMN tr_inpat_prepay_ov.ext2 IS '扩展字段2';
-COMMENT ON COLUMN tr_inpat_prepay_ov.ext3 IS '扩展字段3';
-COMMENT ON TABLE tr_inpat_prepay_dtl IS '住院预交金统计-日明细(按日期和数据类型存储预交金笔数和金额的明细对比)';
-COMMENT ON COLUMN tr_inpat_prepay_dtl.stat_date IS '统计日期';
-COMMENT ON COLUMN tr_inpat_prepay_dtl.item_date IS '日期';
-COMMENT ON COLUMN tr_inpat_prepay_dtl.data_type IS '数据类型(SUMMARY/INCOME/REFUND)';
-COMMENT ON COLUMN tr_inpat_prepay_dtl.count_last IS '上期笔数';
-COMMENT ON COLUMN tr_inpat_prepay_dtl.count_current IS '本期笔数';
-COMMENT ON COLUMN tr_inpat_prepay_dtl.count_compare IS '笔数对比';
-COMMENT ON COLUMN tr_inpat_prepay_dtl.amount_last IS '上期金额';
-COMMENT ON COLUMN tr_inpat_prepay_dtl.amount_current IS '本期金额';
-COMMENT ON COLUMN tr_inpat_prepay_dtl.amount_compare IS '金额对比';
-COMMENT ON COLUMN tr_inpat_prepay_dtl.create_time IS '创建时间';
-COMMENT ON COLUMN tr_inpat_prepay_dtl.update_time IS '更新时间';
-COMMENT ON COLUMN tr_inpat_prepay_dtl.ext1 IS '扩展字段1';
-COMMENT ON COLUMN tr_inpat_prepay_dtl.ext2 IS '扩展字段2';
-COMMENT ON COLUMN tr_inpat_prepay_dtl.ext3 IS '扩展字段3';
-COMMENT ON TABLE tr_inpat_prepay_cht IS '住院预交金统计-图表(存储预交金趋势、渠道、支付方式等图表数据)';
-COMMENT ON COLUMN tr_inpat_prepay_cht.stat_date IS '统计日期';
-COMMENT ON COLUMN tr_inpat_prepay_cht.chart_type IS '图表类型(TREND/CHANNEL/PAY_TYPE)';
-COMMENT ON COLUMN tr_inpat_prepay_cht.chart_title IS '图表标题';
-COMMENT ON COLUMN tr_inpat_prepay_cht.chart_subtitle IS '副标题';
-COMMENT ON COLUMN tr_inpat_prepay_cht.date_range IS '日期范围';
-COMMENT ON COLUMN tr_inpat_prepay_cht.category IS '分类';
-COMMENT ON COLUMN tr_inpat_prepay_cht.series_name IS '系列名称';
-COMMENT ON COLUMN tr_inpat_prepay_cht.data_value IS '数值';
-COMMENT ON COLUMN tr_inpat_prepay_cht.compare_value IS '对比值';
-COMMENT ON COLUMN tr_inpat_prepay_cht.create_time IS '创建时间';
-COMMENT ON COLUMN tr_inpat_prepay_cht.update_time IS '更新时间';
-COMMENT ON COLUMN tr_inpat_prepay_cht.ext1 IS '扩展字段1';
-COMMENT ON COLUMN tr_inpat_prepay_cht.ext2 IS '扩展字段2';
-COMMENT ON COLUMN tr_inpat_prepay_cht.ext3 IS '扩展字段3';
+COMMENT ON TABLE tr_inpat_prepay_rcpt IS '住院预交金统计-交易流水源表(对应HIS prepayment_rcpt,报表按交易类型/日期实时聚合)';
+COMMENT ON COLUMN tr_inpat_prepay_rcpt.patient_id IS '患者ID';
+COMMENT ON COLUMN tr_inpat_prepay_rcpt.visit_id IS '住院就诊ID(一次住院)';
+COMMENT ON COLUMN tr_inpat_prepay_rcpt.rcpt_no IS '预交金收据号(每笔交易唯一)';
+COMMENT ON COLUMN tr_inpat_prepay_rcpt.transact_type IS '交易类型(结算=出院结算出账,其余=预交金缴存/退款等)';
+COMMENT ON COLUMN tr_inpat_prepay_rcpt.amount IS '交易金额';
+COMMENT ON COLUMN tr_inpat_prepay_rcpt.pay_way IS '支付方式(现金/银行卡/微信/支付宝等)';
+COMMENT ON COLUMN tr_inpat_prepay_rcpt.transact_date IS '交易时间';
+COMMENT ON COLUMN tr_inpat_prepay_rcpt.stat_date IS '统计日期(=transact_date的年月日,查询按此字段匹配)';
+COMMENT ON COLUMN tr_inpat_prepay_rcpt.operator_no IS '操作员工号';
+COMMENT ON COLUMN tr_inpat_prepay_rcpt.refunded_rcpt_no IS '退款票据号(退款交易指向被退的原收据号)';
+COMMENT ON COLUMN tr_inpat_prepay_rcpt.acct_no IS '结账号(结算交易关联的结算单号)';
+COMMENT ON COLUMN tr_inpat_prepay_rcpt.create_time IS '创建时间';
+COMMENT ON COLUMN tr_inpat_prepay_rcpt.update_time IS '更新时间';
+COMMENT ON COLUMN tr_inpat_prepay_rcpt.ext1 IS '扩展字段1';
+COMMENT ON COLUMN tr_inpat_prepay_rcpt.ext2 IS '扩展字段2';
+COMMENT ON COLUMN tr_inpat_prepay_rcpt.ext3 IS '扩展字段3';

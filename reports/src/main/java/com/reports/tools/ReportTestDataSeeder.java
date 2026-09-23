@@ -130,10 +130,7 @@ public final class ReportTestDataSeeder {
             "预约挂号量", "预约取号量", "当日挂号量", "有效挂号量", "退号量", "门诊收费量",
             "门诊退费量", "收预交金量", "退院量", "出院结算量"};
 
-    /** 住院预交金渠道图的渠道（TR_INPAT_PREPAY_CHT.category）。 */
-    private static final String[] INPAT_CHANNELS = {"窗口", "自助机", "掌上医院"};
-
-    /** 住院预交金支付方式（TR_INPAT_PREPAY_CHT.series_name）。 */
+    /** 住院预交金流水表的支付方式（tr_inpat_prepay_rcpt.pay_way）。 */
     private static final String[] INPAT_PAY_TYPES = {"微信", "支付宝", "银行卡", "现金"};
 
     private static final String[] MONEY_TYPES = {
@@ -222,7 +219,7 @@ public final class ReportTestDataSeeder {
                 "TR_CASH_SETTLE_OV", "TR_CASH_SETTLE_DTL", "TR_CASH_SETTLE_CHT",
                 "TR_DISCH_SETTLE_OV", "TR_DISCH_SETTLE_DTL", "TR_DISCH_SETTLE_CHT",
                 "TR_TREAT_STAT_OV", "TR_TREAT_STAT_DTL", "TR_TREAT_STAT_TREND",
-                "TR_INPAT_PREPAY_OV", "TR_INPAT_PREPAY_DTL", "TR_INPAT_PREPAY_CHT",
+                "TR_INPAT_PREPAY_RCPT",
                 "TR_OUTP_FIN_CLINIC_MASTER", "TR_OUTP_FIN_RCPT_ACCT", "TR_OUTP_FIN_ACCT_MASTER",
                 "TR_OUTP_FIN_PAYMENTS_MONEY", "TR_OUTP_FIN_MOP_QUEUE", "TR_OUTP_FIN_ACCT_MONEY",
                 "TR_TREAT_STAT_ITEM",
@@ -960,59 +957,37 @@ public final class ReportTestDataSeeder {
     }
 
     private static void seedInpatPrepay(Connection conn) throws SQLException {
-        List<Object[]> ov = new ArrayList<Object[]>();
-        List<Object[]> dtl = new ArrayList<Object[]>();
-        List<Object[]> cht = new ArrayList<Object[]>();
-        // 概览表走 selectOne (InpatPrepayMapper.queryOverview 无聚合), 只能有 1 行
-        int cnt0 = rnd(20, 200);
-        double amt0 = round2(rnd(20000, 300000));
-        ov.add(new Object[]{dayAt(DAYS - 1), Integer.valueOf(cnt0), Integer.valueOf(rnd(-20, 20)),
-                Double.valueOf(amt0), Integer.valueOf(rnd(-20, 20))});
+        // 交易流水:报表按stat_date实时聚合(结算=退项金额为负),渠道由operator_no(9111=自助机)派生
+        List<Object[]> rcpt = new ArrayList<Object[]>();
+        int seq = 0;
         for (int d = 0; d < DAYS; d++) {
             Date day = dayAt(d);
-            String[] dataTypes = {"SUMMARY", "INCOME", "REFUND"};
-            for (String t : dataTypes) {
-                // 每类单独取值：原来 cnt/amt 在循环外算一次，导致汇总/进项/退项三张表数值完全一样
-                int cnt = rnd(20, 200);
-                double amt = round2(rnd(20000, 300000));
-                dtl.add(new Object[]{day, day, t,
-                        Integer.valueOf(rnd(20, 180)), Integer.valueOf(cnt), Integer.valueOf(rnd(-20, 20)),
-                        Double.valueOf(round2(rnd(20000, 250000))), Double.valueOf(amt),
-                        Integer.valueOf(rnd(-20, 20))});
-            }
-            // TREND: 一天一个点。data_value=本期值，compare_value=上期值（后端直接当两个系列用）
-            cht.add(new Object[]{day, "TREND", "住院预交金趋势", "近 30 天", "30天",
-                    String.format("%02d-%02d", Integer.valueOf(day.toLocalDate().getMonthValue()),
-                            Integer.valueOf(day.toLocalDate().getDayOfMonth())),
-                    "本期", Integer.valueOf(rnd(50, 2000)), Integer.valueOf(rnd(50, 2000))});
-
-        }
-
-        // 渠道 / 支付方式两类图各一份快照（趋势图才是按天一个点）：
-        // 页面把数组直接喂给饼图和堆叠图，按天写会出现几百个同名扇区/类目。
-        // CHANNEL: category=渠道，series_name=支付方式 —— 一行同时供三张图用：
-        //   按 category 汇总得渠道饼图，按 series_name 汇总得支付方式饼图，交叉得堆叠图。
-        for (String ch : INPAT_CHANNELS) {
-            for (String pt : INPAT_PAY_TYPES) {
-                cht.add(new Object[]{dayAt(DAYS - 1), "CHANNEL", "渠道支付方式分析", "近 30 天", "30天",
-                        ch, pt, Integer.valueOf(rnd(20, 400)), Integer.valueOf(rnd(20, 400))});
+            int n = rnd(15, 60);
+            for (int i = 0; i < n; i++) {
+                seq++;
+                boolean settle = rnd(0, 100) < 25;
+                double amt = settle ? -round2(rnd(2000, 30000)) : round2(rnd(1000, 20000));
+                String operator = rnd(0, 100) < 30 ? "9111" : "10" + rnd(1, 8);
+                java.sql.Timestamp ts = java.sql.Timestamp.valueOf(day.toLocalDate()
+                        .atTime(rnd(8, 17), rnd(0, 59), rnd(0, 59)));
+                rcpt.add(new Object[]{
+                        String.format("P%06d", rnd(1, 3000)),
+                        String.format("V%06d", rnd(1, 2500)),
+                        String.format("R%08d", seq),
+                        settle ? "结算" : "缴存",
+                        Double.valueOf(amt),
+                        INPAT_PAY_TYPES[rnd(0, INPAT_PAY_TYPES.length)],
+                        ts,
+                        day,
+                        operator,
+                        null,
+                        settle ? String.format("A%08d", seq) : null});
             }
         }
-        // PAY_TYPE: category=支付方式（退项用）
-        for (String pt : INPAT_PAY_TYPES) {
-            cht.add(new Object[]{dayAt(DAYS - 1), "PAY_TYPE", "退项支付方式分析", "近 30 天", "30天",
-                    pt, "退项", Integer.valueOf(rnd(10, 200)), Integer.valueOf(rnd(10, 200))});
-        }
-        batch(conn, "INSERT INTO TR_INPAT_PREPAY_OV (stat_date, prepayment_count,"
-                + " prepayment_count_compare, prepayment_amount, prepayment_amount_compare)"
-                + " VALUES (?,?,?,?,?)", ov);
-        batch(conn, "INSERT INTO TR_INPAT_PREPAY_DTL (stat_date, item_date, data_type, count_last,"
-                + " count_current, count_compare, amount_last, amount_current, amount_compare)"
-                + " VALUES (?,?,?,?,?,?,?,?,?)", dtl);
-        batch(conn, "INSERT INTO TR_INPAT_PREPAY_CHT (stat_date, chart_type, chart_title,"
-                + " chart_subtitle, date_range, category, series_name, data_value, compare_value)"
-                + " VALUES (?,?,?,?,?,?,?,?,?)", cht);
-        out.println("  [住院预交金] OV=" + ov.size() + " DTL=" + dtl.size() + " CHT=" + cht.size());
+        batch(conn, "INSERT INTO TR_INPAT_PREPAY_RCPT (patient_id, visit_id, rcpt_no, transact_type,"
+                + " amount, pay_way, transact_date, stat_date, operator_no, refunded_rcpt_no, acct_no)"
+                + " VALUES (?,?,?,?,?,?,?,?,?,?,?)", rcpt);
+        out.println("  [住院预交金] RCPT=" + rcpt.size());
     }
 
     /**

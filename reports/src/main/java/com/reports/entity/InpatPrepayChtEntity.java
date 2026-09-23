@@ -1,75 +1,34 @@
 package com.reports.entity;
 
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.util.Date;
+import java.math.BigDecimal;
 
 /**
- * 住院预交金统计-图表数据
+ * 住院预交金统计-渠道×支付方式聚合(本期/去年同期)
  */
 @Data
-@TableName("TR_INPAT_PREPAY_CHT")
 public class InpatPrepayChtEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    /** 渠道(自助机/窗口,按操作员区分:9111为自助机) */
+    private String channel;
 
-    /** 统计日期 */
-    @TableField("stat_date")
-    private Date statDate;
+    /** 支付方式 */
+    private String payWay;
 
-    /** 图表类型(TREND/CHANNEL/PAY_TYPE) */
-    @TableField("chart_type")
-    private String chartType;
+    /** 本期笔数 */
+    private Integer countCurrent;
 
-    /** 图表标题 */
-    @TableField("chart_title")
-    private String chartTitle;
+    /** 去年同期笔数 */
+    private Integer countLast;
 
-    /** 副标题 */
-    @TableField("chart_subtitle")
-    private String chartSubtitle;
+    /** 本期金额 */
+    private BigDecimal amountCurrent;
 
-    /** 日期范围 */
-    @TableField("date_range")
-    private String dateRange;
+    /** 去年同期金额 */
+    private BigDecimal amountLast;
 
-    /** 分类 */
-    @TableField("category")
-    private String category;
-
-    /** 系列名称 */
-    @TableField("series_name")
-    private String seriesName;
-
-    /** 数值 */
-    @TableField("data_value")
-    private Integer dataValue;
-
-    /** 对比值 */
-    @TableField("compare_value")
-    private Integer compareValue;
-
-    /** 创建时间 */
-    @TableField("create_time")
-    private Date createTime;
-
-    /** 更新时间 */
-    @TableField("update_time")
-    private Date updateTime;
-
-    /** 扩展字段1 */
-    @TableField("ext1")
-    private String ext1;
-
-    /** 扩展字段2 */
-    @TableField("ext2")
-    private String ext2;
-
-    /** 扩展字段3 */
-    @TableField("ext3")
-    private String ext3;
 }
