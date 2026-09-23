@@ -28,20 +28,32 @@ public interface InternetHospitalMapper extends BaseMapper<InternetHospitalOvEnt
     InternetHospitalOvEntity queryOverview(@Param("startDate") String startDate, @Param("endDate") String endDate);
 
     /**
-     * 查询互医质控运行情况
+     * 查询互医质控运行情况（9个指标独立子查询，前两项直查register order，其余占位待补；指标名按seq在impl层映射）
      *
-     * @param statMonth 统计月份
-     * @return 互医质控运行情况列表
+     * @param startDate     当月起始日期（含），格式 yyyy-MM-dd
+     * @param endDate       当月结束日期（含），格式 yyyy-MM-dd
+     * @param lastStartDate 上月起始日期（含），格式 yyyy-MM-dd
+     * @param lastEndDate   上月结束日期（含），格式 yyyy-MM-dd
+     * @return 运行情况列表
      */
-    List<InternetHospitalOpEntity> queryOperationTable(@Param("statMonth") String statMonth);
+    List<InternetHospitalOpEntity> queryOperationTable(@Param("startDate") String startDate,
+                                                       @Param("endDate") String endDate,
+                                                       @Param("lastStartDate") String lastStartDate,
+                                                       @Param("lastEndDate") String lastEndDate);
 
     /**
-     * 查询互医质控业务分析图表
+     * 查询互医质控业务分析图表（源表直查：已接诊按业务类型consult_type_name分组计数，当月+上月一次扫描分别累加）
      *
-     * @param statMonth 统计月份
-     * @return 互医质控业务分析数据列表
+     * @param startDate     当月起始日期（含），格式 yyyy-MM-dd
+     * @param endDate       当月结束日期（含），格式 yyyy-MM-dd
+     * @param lastStartDate 上月起始日期（含），格式 yyyy-MM-dd
+     * @param lastEndDate   上月结束日期（含），格式 yyyy-MM-dd
+     * @return 业务分析数据列表
      */
-    List<InternetHospitalBizEntity> queryBusinessChart(@Param("statMonth") String statMonth);
+    List<InternetHospitalBizEntity> queryBusinessChart(@Param("startDate") String startDate,
+                                                       @Param("endDate") String endDate,
+                                                       @Param("lastStartDate") String lastStartDate,
+                                                       @Param("lastEndDate") String lastEndDate);
 
     /**
      * 查询互医质控科室接诊量排行（源表直查：已接诊按科室分组，当月+上月一次扫描分别累加，按当月倒序）

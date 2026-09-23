@@ -18,6 +18,11 @@ public class InternetHospitalOpEntity implements Serializable {
 
 
     /**
+     * 行序号(1-9)，指标名在impl层按seq映射
+     */
+    private Integer seq;
+
+    /**
      * 统计月份(YYYY-MM)
      */
     @TableField("stat_month")

@@ -55,6 +55,11 @@ public class OutpatientInternetHospitalServiceImpl implements OutpatientInternet
         }
     }
 
+    /** 运行情况11个指标名，按SQL返回的seq(1-11)对位；源库US7ASCII，SQL不写中文字面量 */
+    private static final String[] OP_ITEM_NAMES = {"总挂号量（含退号）", "净接诊量（不含退号）", "病历书写量", "药品处方开具量",
+            "药品处方执行量", "挂号费（元）", "检查检验费（元）", "药品处方费（元）", "住院证开具量",
+            "药品处方单总数", "院前检查单数"};
+
     @Override
     public List<OperationTableItem> queryOperationTable(OutpatientInternetHospitalRequest request) {
         log.info("查询互医质控运行情况表，mode={}", dataConfig.getMode());
@@ -133,7 +138,8 @@ public class OutpatientInternetHospitalServiceImpl implements OutpatientInternet
     private List<OperationTableItem> queryOperationTableMock(OutpatientInternetHospitalRequest request) {
         SeqUtil.next();
         String[] names = {"总挂号量（含退号）", "净接诊量（不含退号）", "病历书写量", "药品处方开具量",
-                "药品处方执行量", "挂号费（元）", "检查检验费（元）", "药品处方费（元）", "住院证开具量"};
+                "药品处方执行量", "挂号费（元）", "检查检验费（元）", "药品处方费（元）", "住院证开具量",
+                "药品处方单总数", "院前检查单数"};
         List<OperationTableItem> list = new ArrayList<>();
         for (int i = 0; i < names.length; i++) {
             OperationTableItem item = new OperationTableItem();
@@ -289,7 +295,10 @@ public class OutpatientInternetHospitalServiceImpl implements OutpatientInternet
 
     private List<OperationTableItem> queryOperationTableByMybatisPlus(OutpatientInternetHospitalRequest request) {
         try {
-            List<InternetHospitalOpEntity> rows = internetHospitalMapper.queryOperationTable(request.getMonth());
+            java.time.YearMonth ym = resolveRangeYearMonth(request);
+            List<InternetHospitalOpEntity> rows = internetHospitalMapper.queryOperationTable(
+                    overviewStart(request), overviewEnd(request),
+                    ym.minusMonths(1).atDay(1).toString(), ym.minusMonths(1).atEndOfMonth().toString());
             List<OperationTableItem> items = new ArrayList<>();
             for (InternetHospitalOpEntity row : rows) {
                 items.add(buildOperationTableItem(row));
@@ -303,7 +312,10 @@ public class OutpatientInternetHospitalServiceImpl implements OutpatientInternet
 
     private BusinessChart queryBusinessChartByMybatisPlus(OutpatientInternetHospitalRequest request) {
         try {
-            List<InternetHospitalBizEntity> rows = internetHospitalMapper.queryBusinessChart(request.getMonth());
+            java.time.YearMonth ym = resolveRangeYearMonth(request);
+            List<InternetHospitalBizEntity> rows = internetHospitalMapper.queryBusinessChart(
+                    overviewStart(request), overviewEnd(request),
+                    ym.minusMonths(1).atDay(1).toString(), ym.minusMonths(1).atEndOfMonth().toString());
             return buildBusinessChart(rows);
         } catch (Exception e) {
             log.warn("查询互医质控业务分析图表失败", e);
@@ -394,10 +406,11 @@ public class OutpatientInternetHospitalServiceImpl implements OutpatientInternet
             return new OperationTableItem();
         }
         OperationTableItem item = new OperationTableItem();
-        item.setName(entity.getItemName());
+        item.setName(entity.getSeq() != null && entity.getSeq() >= 1 && entity.getSeq() <= OP_ITEM_NAMES.length
+                ? OP_ITEM_NAMES[entity.getSeq() - 1] : null);
         item.setCurrent(entity.getCurrentValue());
         item.setLast(entity.getLastValue());
-        item.setGrowth(entity.getGrowthRate());
+        item.setGrowth(growthPct(entity.getCurrentValue(), entity.getLastValue()));
         return item;
     }
 

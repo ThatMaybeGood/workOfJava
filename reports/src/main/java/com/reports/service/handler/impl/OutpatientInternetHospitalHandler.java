@@ -55,8 +55,7 @@ public class OutpatientInternetHospitalHandler implements ReportHandler<Outpatie
         if (body == null) {
             body = new OutpatientInternetHospitalRequest();
         }
-        // 月份为空时兜底成当月：运行/排行等表仍按 stat_month = #{statMonth} 查，
-        // 传空会变成 stat_month = null 直接查不到任何数据（页面不传月份时就是这种情况）
+        // 月份为空时兜底成当月：所有查询均按日期范围聚合，范围未传时按 month 推导当月起止
         if (body.getMonth() == null || body.getMonth().trim().isEmpty()) {
             body.setMonth(new SimpleDateFormat("yyyy-MM").format(new Date()));
         }
