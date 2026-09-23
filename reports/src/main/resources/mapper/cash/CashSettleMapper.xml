@@ -30,20 +30,24 @@
     </select>
 
     <!-- ============================================================ -->
-    <!-- 查询收费员结账日明细 -->
+    <!-- 查询收费员结账日明细:month=true时按月聚合(每月每收费员每类型一行) -->
     <!-- ============================================================ -->
     <select id="queryDetail" resultType="com.reports.entity.CashSettleDtlEntity">
         SELECT
-        item_date AS itemDate,
+        <choose>
+            <when test="month">TRUNC(item_date, 'MM')</when>
+            <otherwise>item_date</otherwise>
+        </choose> AS itemDate,
         cashier_name AS cashierName,
         item_type AS itemType,
-        NVL(item_value, 0) AS itemValue
+        NVL(SUM(item_value), 0) AS itemValue
         FROM TR_CASH_SETTLE_DTL
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         <if test="itemType != null and itemType != ''">
             AND item_type = #{itemType}
         </if>
-        ORDER BY item_date, cashier_name
+        GROUP BY <choose><when test="month">TRUNC(item_date, 'MM')</when><otherwise>item_date</otherwise></choose>, cashier_name, item_type
+        ORDER BY itemDate, cashier_name
     </select>
 
     <!-- ============================================================ -->

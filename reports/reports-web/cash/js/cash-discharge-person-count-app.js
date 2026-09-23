@@ -141,38 +141,60 @@ class PersonCountApp {
             && (!this.state.channelFilter || row.settleChannel === this.state.channelFilter));
     }
 
-    /** 按天/按月切换时重建日期控件：按月显示 yyyy/MM，且起止对齐到月初/月末 */
+    /** 按天/按月切换时重建日期控件：按月用月份范围选择器(只选月),按天用flatpickr */
     resetDatePicker() {
         const monthMode = this.state.timeDimension === 'month';
-        this.datePicker.destroy();
-        this.datePicker = flatpickr(document.getElementById('dateRange'), {
+        const dateRangeInput = document.getElementById('dateRange');
+        const monthWrap = document.getElementById('monthRangePicker');
+        if (this.datePicker) {
+            this.datePicker.destroy();
+            this.datePicker = null;
+        }
+        if (this.monthPicker) {
+            this.monthPicker.destroy();
+            this.monthPicker = null;
+        }
+
+        if (monthMode) {
+            dateRangeInput.parentElement.style.display = 'none';
+            monthWrap.style.display = '';
+            // 已选范围对齐到粒度边界:起始月1号 ~ 结束月最后一天
+            const s = new Date(this.state.startDate + 'T00:00:00');
+            const e = new Date(this.state.endDate + 'T00:00:00');
+            this.state.startDate = this.formatDate(new Date(s.getFullYear(), s.getMonth(), 1));
+            this.state.endDate = this.formatDate(new Date(e.getFullYear(), e.getMonth() + 1, 0));
+            this.monthPicker = new MonthRangePicker(monthWrap, {
+                start: this.state.startDate.slice(0, 7),
+                end: this.state.endDate.slice(0, 7),
+                onConfirm: (start, end) => {
+                    const [sy, sm] = start.split('-').map(Number);
+                    const [ey, em] = end.split('-').map(Number);
+                    this.state.startDate = this.formatDate(new Date(sy, sm - 1, 1));
+                    this.state.endDate = this.formatDate(new Date(ey, em, 0));
+                    this.state.page = 1;
+                    this.load();
+                }
+            });
+            return;
+        }
+
+        monthWrap.style.display = 'none';
+        dateRangeInput.parentElement.style.display = '';
+        this.datePicker = flatpickr(dateRangeInput, {
             mode: 'range',
-            dateFormat: monthMode ? 'Y/m' : 'Y/m/d',
+            dateFormat: 'Y/m/d',
             defaultDate: [this.state.startDate.replace(/-/g, '/'), this.state.endDate.replace(/-/g, '/')],
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {
                 if (selectedDates.length === 2) {
-                    let start = selectedDates[0];
-                    let end = selectedDates[1];
-                    if (monthMode) {
-                        start = new Date(start.getFullYear(), start.getMonth(), 1);
-                        end = new Date(end.getFullYear(), end.getMonth() + 1, 0);
-                    }
-                    this.state.startDate = this.formatDate(start);
-                    this.state.endDate = this.formatDate(end);
+                    this.state.startDate = this.formatDate(selectedDates[0]);
+                    this.state.endDate = this.formatDate(selectedDates[1]);
                     this.state.page = 1;
                     this.load();
                 }
             }
         });
-        // 已选范围对齐到粒度边界
-        if (monthMode) {
-            const s = new Date(this.state.startDate + 'T00:00:00');
-            const e = new Date(this.state.endDate + 'T00:00:00');
-            this.state.startDate = this.formatDate(new Date(s.getFullYear(), s.getMonth(), 1));
-            this.state.endDate = this.formatDate(new Date(e.getFullYear(), e.getMonth() + 1, 0));
-        }
     }
 
     initDatePicker() {

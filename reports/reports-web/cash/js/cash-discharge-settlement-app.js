@@ -78,10 +78,11 @@ class DischargeSettlementController {
         this.resetDatePicker();
     }
 
-    /** 按天/按月切换时重建日期控件：按月显示 yyyy/MM，且起止对齐到月初/月末（出院结算人次统计同款） */
+    /** 按天/按月切换时重建日期控件：按月用月份范围选择器(只选月),按天用flatpickr */
     resetDatePicker() {
         const dateRangeInput = document.getElementById('dateRange');
-        if (!dateRangeInput) return;
+        const monthWrap = document.getElementById('monthRangePicker');
+        if (!dateRangeInput || !monthWrap) return;
 
         const monthMode = this.filter.dimension === 'month';
         const formatDate = (date) => {
@@ -93,36 +94,53 @@ class DischargeSettlementController {
 
         if (this.datePicker) {
             this.datePicker.destroy();
+            this.datePicker = null;
         }
+        if (this.monthPicker) {
+            this.monthPicker.destroy();
+            this.monthPicker = null;
+        }
+
+        if (monthMode) {
+            dateRangeInput.parentElement.style.display = 'none';
+            monthWrap.style.display = '';
+            // 已选范围对齐到粒度边界:起始月1号 ~ 结束月最后一天
+            const s = new Date(this.filter.startDate + 'T00:00:00');
+            const e = new Date(this.filter.endDate + 'T00:00:00');
+            this.filter.startDate = formatDate(new Date(s.getFullYear(), s.getMonth(), 1));
+            this.filter.endDate = formatDate(new Date(e.getFullYear(), e.getMonth() + 1, 0));
+            this.monthPicker = new MonthRangePicker(monthWrap, {
+                start: this.filter.startDate.slice(0, 7),
+                end: this.filter.endDate.slice(0, 7),
+                onConfirm: (start, end) => {
+                    const [sy, sm] = start.split('-').map(Number);
+                    const [ey, em] = end.split('-').map(Number);
+                    this.filter.startDate = formatDate(new Date(sy, sm - 1, 1));
+                    this.filter.endDate = formatDate(new Date(ey, em, 0));
+                    this.tableState.currentPage = 1;
+                    this.loadData();
+                }
+            });
+            return;
+        }
+
+        monthWrap.style.display = 'none';
+        dateRangeInput.parentElement.style.display = '';
         this.datePicker = flatpickr(dateRangeInput, {
             mode: 'range',
-            dateFormat: monthMode ? 'Y/m' : 'Y/m/d',
+            dateFormat: 'Y/m/d',
             defaultDate: [this.filter.startDate.replace(/-/g, '/'), this.filter.endDate.replace(/-/g, '/')],
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {
                 if (selectedDates.length === 2) {
-                    let start = selectedDates[0];
-                    let end = selectedDates[1];
-                    if (monthMode) {
-                        // 按月只取选中年月，起止对齐到月初/月末，后端仍收日期范围、SQL 不变
-                        start = new Date(start.getFullYear(), start.getMonth(), 1);
-                        end = new Date(end.getFullYear(), end.getMonth() + 1, 0);
-                    }
-                    this.filter.startDate = formatDate(start);
-                    this.filter.endDate = formatDate(end);
+                    this.filter.startDate = formatDate(selectedDates[0]);
+                    this.filter.endDate = formatDate(selectedDates[1]);
                     this.tableState.currentPage = 1;
                     this.loadData();
                 }
             }
         });
-        // 已选范围对齐到粒度边界
-        if (monthMode) {
-            const s = new Date(this.filter.startDate + 'T00:00:00');
-            const e = new Date(this.filter.endDate + 'T00:00:00');
-            this.filter.startDate = formatDate(new Date(s.getFullYear(), s.getMonth(), 1));
-            this.filter.endDate = formatDate(new Date(e.getFullYear(), e.getMonth() + 1, 0));
-        }
     }
 
     handleDimensionChange(e) {

@@ -172,8 +172,9 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
      * outpatientCharge / outpatientRefund 这几个固定字段取值（见 renderTable 的 else 分支）。
      * 数据还是 TR_CASH_SETTLE_DTL，按 (日期, 收费员) 透视 item_type。
      */
-    private PageResult<TableItem> buildWorkloadTable(List<CashSettleDtlEntity> rows, Integer page, Integer pageSize) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    private PageResult<TableItem> buildWorkloadTable(List<CashSettleDtlEntity> rows, Integer page, Integer pageSize,
+                                                     boolean month) {
+        SimpleDateFormat sdf = new SimpleDateFormat(month ? "yyyy-MM" : "yyyy-MM-dd");
         // (日期, 收费员) -> {item_type: 金额}
         Map<String, Map<String, Double>> cellMap = new LinkedHashMap<>();
         for (CashSettleDtlEntity row : rows) {
@@ -224,9 +225,11 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
 
     private PageResult<TableItem> queryTableByMybatisPlus(CashCashierSettlementRequest request, Integer page, Integer pageSize) {
         try {
-            List<CashSettleDtlEntity> rows = cashSettleMapper.queryDetail(request.getStartDate(), request.getEndDate(), null);
+            boolean month = "month".equalsIgnoreCase(request.getDimension());
+            List<CashSettleDtlEntity> rows = cashSettleMapper.queryDetail(
+                    request.getStartDate(), request.getEndDate(), null, month);
             if ("workload".equalsIgnoreCase(request.getTab())) {
-                return buildWorkloadTable(rows, page, pageSize);
+                return buildWorkloadTable(rows, page, pageSize, month);
             }
             // 页面两张表都是「行 = 日期，动态列 = 维度名」，所以按日期分组，
             // 列名看页签：
@@ -235,7 +238,7 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
             // 列名必须和页面 JS 里写死的一致（收费员1..8 / 预约挂号量…），否则每列都显示 '-'
             boolean byCashier = !"source".equalsIgnoreCase(request.getTab());
             Map<String, Map<String, Double>> dateColMap = new LinkedHashMap<>();
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            SimpleDateFormat sdf = new SimpleDateFormat(month ? "yyyy-MM" : "yyyy-MM-dd");
             for (CashSettleDtlEntity row : rows) {
                 String dateStr = row.getItemDate() == null ? "" : sdf.format(row.getItemDate());
                 String colName = byCashier ? row.getCashierName() : row.getItemType();

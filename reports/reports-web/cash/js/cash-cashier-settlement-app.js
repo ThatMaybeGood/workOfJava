@@ -75,10 +75,11 @@ class CashierSettlementController {
         this.resetDatePicker();
     }
 
-    /** 按天/按月切换时重建日期控件：按月显示 yyyy/MM，且起止对齐到月初/月末（出院结算人次统计同款） */
+    /** 按天/按月切换时重建日期控件：按月用月份范围选择器(只选月),按天用flatpickr */
     resetDatePicker() {
         const dateRangeInput = document.getElementById('dateRange');
-        if (!dateRangeInput) return;
+        const monthWrap = document.getElementById('monthRangePicker');
+        if (!dateRangeInput || !monthWrap) return;
 
         const monthMode = this.filter.dimension === 'month';
         const formatDate = (date) => {
@@ -90,36 +91,53 @@ class CashierSettlementController {
 
         if (this.datePicker) {
             this.datePicker.destroy();
+            this.datePicker = null;
         }
+        if (this.monthPicker) {
+            this.monthPicker.destroy();
+            this.monthPicker = null;
+        }
+
+        if (monthMode) {
+            dateRangeInput.parentElement.style.display = 'none';
+            monthWrap.style.display = '';
+            // 已选范围对齐到粒度边界:起始月1号 ~ 结束月最后一天
+            const s = new Date(this.filter.startDate + 'T00:00:00');
+            const e = new Date(this.filter.endDate + 'T00:00:00');
+            this.filter.startDate = formatDate(new Date(s.getFullYear(), s.getMonth(), 1));
+            this.filter.endDate = formatDate(new Date(e.getFullYear(), e.getMonth() + 1, 0));
+            this.monthPicker = new MonthRangePicker(monthWrap, {
+                start: this.filter.startDate.slice(0, 7),
+                end: this.filter.endDate.slice(0, 7),
+                onConfirm: (start, end) => {
+                    const [sy, sm] = start.split('-').map(Number);
+                    const [ey, em] = end.split('-').map(Number);
+                    this.filter.startDate = formatDate(new Date(sy, sm - 1, 1));
+                    this.filter.endDate = formatDate(new Date(ey, em, 0));
+                    this.tableState.currentPage = 1;
+                    this.loadData();
+                }
+            });
+            return;
+        }
+
+        monthWrap.style.display = 'none';
+        dateRangeInput.parentElement.style.display = '';
         this.datePicker = flatpickr(dateRangeInput, {
             mode: 'range',
-            dateFormat: monthMode ? 'Y/m' : 'Y/m/d',
+            dateFormat: 'Y/m/d',
             defaultDate: [this.filter.startDate.replace(/-/g, '/'), this.filter.endDate.replace(/-/g, '/')],
             locale: 'zh',
             allowInput: false,
             onChange: (selectedDates) => {
                 if (selectedDates.length === 2) {
-                    let start = selectedDates[0];
-                    let end = selectedDates[1];
-                    if (monthMode) {
-                        // 按月只取选中年月，起止对齐到月初/月末，后端仍收日期范围、SQL 不变
-                        start = new Date(start.getFullYear(), start.getMonth(), 1);
-                        end = new Date(end.getFullYear(), end.getMonth() + 1, 0);
-                    }
-                    this.filter.startDate = formatDate(start);
-                    this.filter.endDate = formatDate(end);
+                    this.filter.startDate = formatDate(selectedDates[0]);
+                    this.filter.endDate = formatDate(selectedDates[1]);
                     this.tableState.currentPage = 1;
                     this.loadData();
                 }
             }
         });
-        // 已选范围对齐到粒度边界
-        if (monthMode) {
-            const s = new Date(this.filter.startDate + 'T00:00:00');
-            const e = new Date(this.filter.endDate + 'T00:00:00');
-            this.filter.startDate = formatDate(new Date(s.getFullYear(), s.getMonth(), 1));
-            this.filter.endDate = formatDate(new Date(e.getFullYear(), e.getMonth() + 1, 0));
-        }
     }
 
     handleTabChange(e) {
@@ -251,10 +269,11 @@ class CashierSettlementController {
     renderTable() {
         const thead = document.getElementById('cashierTableHead');
         const tbody = document.getElementById('cashierTableBody');
+        const dateLabel = this.filter.dimension === 'month' ? '月份' : '日期';
 
         if (this.filter.tab === 'cashier') {
             const cashiers = ['收费员1', '收费员2', '收费员3', '收费员4', '收费员5', '收费员6', '收费员7', '收费员8'];
-            let headHtml = `<tr><th>日期</th>`;
+            let headHtml = `<tr><th>${dateLabel}</th>`;
             cashiers.forEach(name => {
                 headHtml += `<th class="text-center">${name}</th>`;
             });
@@ -289,7 +308,7 @@ class CashierSettlementController {
 
         } else if (this.filter.tab === 'source') {
             const columns = ['预约挂号量', '预约取号量', '当日挂号量', '退号量', '门诊收费量', '门诊退费量', '收预交金量', '退院量', '出院结算量'];
-            let headHtml = `<tr><th>日期</th>`;
+            let headHtml = `<tr><th>${dateLabel}</th>`;
             columns.forEach(name => {
                 headHtml += `<th class="text-center">${name}</th>`;
             });
@@ -324,7 +343,7 @@ class CashierSettlementController {
         } else {
             thead.innerHTML = `
                 <tr>
-                    <th>日期</th>
+                    <th>${dateLabel}</th>
                     <th>收费员</th>
                     <th class="text-center">当日挂号</th>
                     <th class="text-center">有效挂号数</th>
@@ -503,17 +522,18 @@ function exportCashierReport() {
 
     let headers, rows;
     const tab = controller.filter.tab;
+    const dateLabel = controller.filter.dimension === 'month' ? '月份' : '日期';
 
     if (tab === 'cashier') {
         const cashiers = ['收费员1', '收费员2', '收费员3', '收费员4', '收费员5', '收费员6', '收费员7', '收费员8'];
-        headers = ['日期', ...cashiers, '汇总'];
+        headers = [dateLabel, ...cashiers, '汇总'];
         rows = data.map(row => [row.date, ...cashiers.map(name => row[name]), row['汇总']]);
     } else if (tab === 'source') {
         const columns = ['预约挂号量', '预约取号量', '当日挂号量', '退号量', '门诊收费量', '门诊退费量', '收预交金量', '退院量', '出院结算量'];
-        headers = ['日期', ...columns, '汇总'];
+        headers = [dateLabel, ...columns, '汇总'];
         rows = data.map(row => [row.date, ...columns.map(name => row[name]), row['汇总']]);
     } else {
-        headers = ['日期', '收费员', '当日挂号', '有效挂号数', '预约挂号', '门诊收费', '门诊退费'];
+        headers = [dateLabel, '收费员', '当日挂号', '有效挂号数', '预约挂号', '门诊收费', '门诊退费'];
         rows = data.map(row => [row.dateRange, row.cashier, row.todayRegister, row.effectiveRegister, row.appointmentRegister, row.outpatientCharge, row.outpatientRefund]);
     }
 

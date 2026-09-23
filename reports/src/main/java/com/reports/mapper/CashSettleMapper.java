@@ -31,11 +31,13 @@ public interface CashSettleMapper extends BaseMapper<CashSettleOvEntity> {
      * @param startDate 开始日期
      * @param endDate   结束日期
      * @param itemType  项目类型
+     * @param month     true按月聚合(每月每收费员每类型一行),false按天
      * @return 日明细数据
      */
     List<CashSettleDtlEntity> queryDetail(@Param("startDate") Date startDate,
                                            @Param("endDate") Date endDate,
-                                           @Param("itemType") String itemType);
+                                           @Param("itemType") String itemType,
+                                           @Param("month") boolean month);
 
     /**
      * 查询收费员结账图表数据

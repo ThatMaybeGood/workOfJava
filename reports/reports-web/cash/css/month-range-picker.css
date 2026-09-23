@@ -1,0 +1,20 @@
+/* 月份范围选择器(与门诊财务按月选择同款交互) */
+.month-picker-wrap { position: relative; display: inline-block; }
+.month-picker-trigger { padding: 5px 10px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; cursor: pointer; background: #fff; text-align: left; display: flex; align-items: center; }
+.month-picker-trigger:hover { border-color: #1890ff; }
+.month-picker-trigger .cal-icon { color: #bbb; font-size: 14px; margin-right: 8px; }
+.month-picker-trigger .range-sep { color: #999; margin: 0 4px; }
+.month-picker-trigger .range-start, .month-picker-trigger .range-end { min-width: 70px; text-align: center; }
+.month-picker-trigger .range-start.picking, .month-picker-trigger .range-end.picking { color: #1890ff; border-bottom: 2px solid #1890ff; }
+.month-picker-dropdown { position: absolute; top: 100%; left: 0; z-index: 999; background: #fff; border: 1px solid #d9d9d9; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.15); padding: 10px; width: 260px; display: none; }
+.month-picker-dropdown.show { display: block; }
+.mp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.mp-header button { background: none; border: none; cursor: pointer; font-size: 16px; color: #666; padding: 2px 8px; border-radius: 4px; }
+.mp-header button:hover { background: #f0f0f0; }
+.mp-header .mp-year { font-size: 14px; font-weight: bold; }
+.mp-months { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.mp-month { padding: 6px 0; text-align: center; border-radius: 4px; cursor: pointer; font-size: 13px; border: 1px solid transparent; transition: all .15s; }
+.mp-month:hover { border-color: #1890ff; color: #1890ff; }
+.mp-month.selected { background: #1890ff; color: #fff; }
+.mp-month.current { border-color: #1890ff; }
+.mp-month.in-range { background: #e6f7ff; }
