@@ -63,9 +63,35 @@ public class InpCashMainEntity {
     @TableField(value = "total_remark")
     private String totalRemark;
     /**
+     * 审核状态 0：未审核 1：审核通过 2：审核不通过
+     */
+    @TableField(value = "audit_status")
+    private String auditStatus = Constant.NO;
+    /**
+     * 审核人
+     */
+    @TableField(value = "audit_by")
+    private String auditBy;
+    /**
+     * 审核时间
+     */
+    @TableField(value = "audit_time")
+    private LocalDateTime auditTime;
+    /**
+     * 审核意见
+     */
+    @TableField(value = "audit_remark")
+    private String auditRemark;
+    /**
      * 子报表列表（一对多关系）
      */
     @TableField(exist = false)
     private List<InpCashSubEntity> subs;
+
+    /**
+     * 审核日志列表（查询时附带，不落本表）
+     */
+    @TableField(exist = false)
+    private List<InpAuditLogEntity> auditLogs;
 
 }

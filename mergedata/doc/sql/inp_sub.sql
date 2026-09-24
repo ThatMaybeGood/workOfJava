@@ -1,75 +1,67 @@
--- MINE.MPP_CASH_INP_SUB definition
+-- 住院现金统计子表（与 InpCashSubEntity 代码一致）
+DROP TABLE mpp_cash_inp_sub;
 
-CREATE TABLE "MINE"."MPP_CASH_INP_SUB"
-(	"SERIAL_NO" VARCHAR2(50),
-     "EMP_ID" VARCHAR2(20),
-     "EMP_NAME" VARCHAR2(100),
-     "PREV_DAY_ADV_RECEIPT" NUMBER(18,2),
-     "TODAY_ADV_PAYMENT" NUMBER(18,2),
-     "TODAY_SETTLE_INCOME" NUMBER(18,2),
-     "TODAY_PRE_HOSP_INCOME" NUMBER(18,2),
-     "TRAFFIC_ASSIST_FUND" NUMBER(18,2),
-     "BLOOD_DONATE_COMPENSATE" NUMBER(18,2),
-     "RECEIVABLE_PAYABLE" NUMBER(18,2),
-     "TODAY_REPORT_TOTAL" NUMBER(18,2),
-     "PREV_DAY_IOU" NUMBER(18,2),
-     "TODAY_OUTP_IOU" NUMBER(18,2),
-     "TODAY_REPORT_REC_PAY" NUMBER(18,2),
-     "TODAY_ADV_RECEIPT" NUMBER(18,2),
-     "TODAY_REPORT_CASH_RCV" NUMBER(18,2),
-     "TODAY_CASH_RCV_TOTAL" NUMBER(18,2),
-     "BALANCE" NUMBER(18,2),
-     "ADJUSTMENT" NUMBER(18,2),
-     "TODAY_IOU" NUMBER(18,2),
-     "HOLIDAY_PAYMENT" NUMBER(18,2),
-     "CASH_ON_HAND" NUMBER(18,2),
-     "DIFFERENCE" NUMBER(18,2),
-     "REMARKS" VARCHAR2(500),
-     "CREATED_TIME" TIMESTAMP (6) DEFAULT SYSTIMESTAMP,
-     "UPDATED_TIME" TIMESTAMP (6) DEFAULT SYSTIMESTAMP,
-     "CREATED_BY" VARCHAR2(50),
-     "UPDATED_BY" VARCHAR2(50),
-     PRIMARY KEY ("SERIAL_NO")
-         USING INDEX PCTFREE 10 INITRANS 2 MAXTRANS 255 NOCOMPRESS LOGGING
-         TABLESPACE "USERS"  ENABLE
-) SEGMENT CREATION DEFERRED
-  PCTFREE 10 PCTUSED 40 INITRANS 1 MAXTRANS 255 NOCOMPRESS LOGGING
-  TABLESPACE "USERS" ;
+CREATE TABLE mpp_cash_inp_sub (
+    serial_no VARCHAR2(50) NOT NULL,            -- 主表流水号（关联mpp_cash_inp_master）
+    emp_id VARCHAR2(20),                        -- 收费员ID
+    emp_name VARCHAR2(100),                     -- 收费员姓名
+    prev_day_adv_receipt NUMBER(18,2),          -- （1）前日暂收款
+    today_adv_payment NUMBER(18,2),             -- （2）今日预交金数（HIS收入）
+    today_settle_income NUMBER(18,2),           -- （3）今日结账收入（HIS收入）
+    today_pre_hosp_income NUMBER(18,2),         -- （4）今日院前收入（HIS收入）
+    traffic_assist_fund NUMBER(18,2),           -- （5）交通救助金
+    blood_donate_compensate NUMBER(18,2),       -- （6）无偿献血补偿金
+    receivable_payable NUMBER(18,2),            -- （7）应收款/应付款
+    today_report_total NUMBER(18,2),            -- （8）今日报表数合计（公式）
+    prev_day_iou NUMBER(18,2),                  -- （9）前日欠条
+    today_outp_iou NUMBER(18,2),                -- （10）今日门诊借条
+    today_report_rec_pay NUMBER(18,2),          -- （11）今日报表应收/应付（公式）
+    today_adv_receipt NUMBER(18,2),             -- （12）今日暂收款
+    today_report_cash_rcv NUMBER(18,2),         -- （13）今日报表实收
+    today_cash_rcv_total NUMBER(18,2),          -- （14）今日实收现金合计（公式）
+    balance NUMBER(18,2),                       -- （15）余额（公式）
+    adjustment NUMBER(18,2),                    -- （16）调整
+    today_iou NUMBER(18,2),                     -- （17）今日欠条（公式）
+    holiday_payment NUMBER(18,2),               -- （18）节假日交款
+    cash_on_hand NUMBER(18,2),                  -- （19）库存现金
+    difference NUMBER(18,2),                    -- （20）差额（公式）
+    remarks VARCHAR2(500),                      -- （21）备注
+    created_time TIMESTAMP DEFAULT SYSTIMESTAMP,-- 创建时间
+    updated_time TIMESTAMP DEFAULT SYSTIMESTAMP,-- 更新时间
+    created_by VARCHAR2(50),                    -- 创建人
+    updated_by VARCHAR2(50),                    -- 更新人
+    db_user VARCHAR2(50)                        -- 操作员数据库账号
+);
 
-CREATE UNIQUE INDEX "MINE"."SYS_C0011686" ON "MINE"."MPP_CASH_INP_SUB" ("SERIAL_NO")
-    PCTFREE 10 INITRANS 2 MAXTRANS 255 NOCOMPRESS LOGGING
-  TABLESPACE "USERS" ;
+COMMENT ON TABLE mpp_cash_inp_sub IS '住院现金统计子表';
+COMMENT ON COLUMN mpp_cash_inp_sub.serial_no IS '主表流水号（关联mpp_cash_inp_master.serial_no，一个主表对应多行子表）';
+COMMENT ON COLUMN mpp_cash_inp_sub.emp_id IS '收费员ID';
+COMMENT ON COLUMN mpp_cash_inp_sub.emp_name IS '收费员姓名';
+COMMENT ON COLUMN mpp_cash_inp_sub.prev_day_adv_receipt IS '（1）前日暂收款';
+COMMENT ON COLUMN mpp_cash_inp_sub.today_adv_payment IS '（2）今日预交金数（HIS收入）';
+COMMENT ON COLUMN mpp_cash_inp_sub.today_settle_income IS '（3）今日结账收入（HIS收入）';
+COMMENT ON COLUMN mpp_cash_inp_sub.today_pre_hosp_income IS '（4）今日院前收入（HIS收入）';
+COMMENT ON COLUMN mpp_cash_inp_sub.traffic_assist_fund IS '（5）交通救助金';
+COMMENT ON COLUMN mpp_cash_inp_sub.blood_donate_compensate IS '（6）无偿献血补偿金';
+COMMENT ON COLUMN mpp_cash_inp_sub.receivable_payable IS '（7）应收款/应付款';
+COMMENT ON COLUMN mpp_cash_inp_sub.today_report_total IS '（8）今日报表数合计（公式）';
+COMMENT ON COLUMN mpp_cash_inp_sub.prev_day_iou IS '（9）前日欠条';
+COMMENT ON COLUMN mpp_cash_inp_sub.today_outp_iou IS '（10）今日门诊借条';
+COMMENT ON COLUMN mpp_cash_inp_sub.today_report_rec_pay IS '（11）今日报表应收/应付（公式）';
+COMMENT ON COLUMN mpp_cash_inp_sub.today_adv_receipt IS '（12）今日暂收款';
+COMMENT ON COLUMN mpp_cash_inp_sub.today_report_cash_rcv IS '（13）今日报表实收';
+COMMENT ON COLUMN mpp_cash_inp_sub.today_cash_rcv_total IS '（14）今日实收现金合计（公式）';
+COMMENT ON COLUMN mpp_cash_inp_sub.balance IS '（15）余额（公式）';
+COMMENT ON COLUMN mpp_cash_inp_sub.adjustment IS '（16）调整';
+COMMENT ON COLUMN mpp_cash_inp_sub.today_iou IS '（17）今日欠条（公式）';
+COMMENT ON COLUMN mpp_cash_inp_sub.holiday_payment IS '（18）节假日交款';
+COMMENT ON COLUMN mpp_cash_inp_sub.cash_on_hand IS '（19）库存现金';
+COMMENT ON COLUMN mpp_cash_inp_sub.difference IS '（20）差额（公式）';
+COMMENT ON COLUMN mpp_cash_inp_sub.remarks IS '备注';
+COMMENT ON COLUMN mpp_cash_inp_sub.created_time IS '创建时间';
+COMMENT ON COLUMN mpp_cash_inp_sub.updated_time IS '更新时间';
+COMMENT ON COLUMN mpp_cash_inp_sub.created_by IS '创建人';
+COMMENT ON COLUMN mpp_cash_inp_sub.updated_by IS '更新人';
+COMMENT ON COLUMN mpp_cash_inp_sub.db_user IS '操作员数据库账号';
 
-COMMENT ON TABLE MINE.MPP_CASH_INP_SUB IS '住院现金统计子表';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.SERIAL_NO IS '主键ID/流水号';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.EMP_ID IS '收费员ID';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.EMP_NAME IS '收费员姓名';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.PREV_DAY_ADV_RECEIPT IS '前日暂收款';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.TODAY_ADV_PAYMENT IS '今日预交金数';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.TODAY_SETTLE_INCOME IS '今日结账收入';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.TODAY_PRE_HOSP_INCOME IS '今日院前收入';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.TRAFFIC_ASSIST_FUND IS '交通救助金';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.BLOOD_DONATE_COMPENSATE IS '无偿献血补偿金';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.RECEIVABLE_PAYABLE IS '应收款/应付款';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.TODAY_REPORT_TOTAL IS '今日报表数合计';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.PREV_DAY_IOU IS '前日欠条';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.TODAY_OUTP_IOU IS '今日门诊借条';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.TODAY_REPORT_REC_PAY IS '今日报表应收/应付';
-
-
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.TODAY_ADV_RECEIPT IS '今日暂收款';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.TODAY_REPORT_CASH_RCV IS '今日报表实收';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.TODAY_CASH_RCV_TOTAL IS '今日实收现金合计';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.BALANCE IS '余额';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.ADJUSTMENT IS '调整';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.TODAY_IOU IS '今日欠条';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.HOLIDAY_PAYMENT IS '节假日交款';
-
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.CASH_ON_HAND IS '库存现金';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.DIFFERENCE IS '差额';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.REMARKS IS '备注';
-
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.CREATED_TIME IS '创建时间';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.UPDATED_TIME IS '更新时间';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.CREATED_BY IS '创建人';
-COMMENT ON COLUMN MINE.MPP_CASH_INP_SUB.UPDATED_BY IS '更新人';
+CREATE INDEX idx_mpp_cash_inp_sub_serial ON mpp_cash_inp_sub(serial_no);

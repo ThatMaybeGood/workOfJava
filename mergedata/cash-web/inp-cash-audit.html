@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>住院部现金统计表</title>
+    <title>住院部现金统计表-审核</title>
     <style>
         :root {
             --bg-main: #f4f7f9;
@@ -35,24 +35,6 @@
         }
 
         .dashboard-container { max-width: 1680px; margin: 0 auto; }
-
-        .report-title-bar {
-            text-align: center;
-            margin-bottom: 16px;
-            padding: 12px 0;
-        }
-        .report-title-bar h1 {
-            font-size: 28px;
-            font-weight: 700;
-            color: #000;
-            letter-spacing: 4px;
-            margin-bottom: 6px;
-        }
-        .report-title-bar .subtitle {
-            font-size: 15px;
-            color: var(--text-main);
-            font-weight: 500;
-        }
 
         .header-card {
             background: var(--card-bg);
@@ -131,11 +113,24 @@
         }
         .btn-query:hover { background: #08475f; transform: translateY(-1px); }
 
-        .btn-save {
+        .btn-pass {
             background: var(--income-green);
             color: white;
         }
-        .btn-save:hover { background: #1e5e38; transform: translateY(-1px); }
+        .btn-pass:hover { background: #1e5e38; transform: translateY(-1px); }
+
+        .btn-reject {
+            background: #c62828;
+            color: white;
+        }
+        .btn-reject:hover { background: #8e1c1c; transform: translateY(-1px); }
+
+        .btn-cancel-audit {
+            background: var(--refund-orange);
+            color: white;
+        }
+        .btn-cancel-audit:hover { background: #a55a30; transform: translateY(-1px); }
+
         .btn-group {
             display: flex;
             background: var(--bg-main);
@@ -173,30 +168,6 @@
         }
         .btn-excel:hover { background: #14532d; transform: translateY(-1px); }
 
-        .btn-init {
-            background: var(--refund-orange);
-            color: white;
-        }
-        .toggle-switch {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--bg-main);
-            border: 1px solid var(--border-color);
-            padding: 6px 14px;
-            border-radius: 8px;
-        }
-        .toggle-switch label {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--medical-blue);
-        }
-        .toggle-switch input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-
         /* 审核状态徽标 */
         .audit-badge {
             padding: 7px 18px;
@@ -221,6 +192,84 @@
             border: 1px solid #c62828;
         }
 
+        /* ===== 审核弹窗：左决策卡片 右时间线 ===== */
+        /* 右侧面板：审核记录时间线 */
+        .modal-record-section { display: none; }
+        .modal-record-section.show { display: flex; }
+        .modal-record-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-title);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        /* 决策卡片：一行平铺 */
+        .decision-cards { display: flex; gap: 10px; }
+        .decision-card {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px 4px;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+            background: #ffffff;
+        }
+        .decision-card:hover { border-color: #9db8c6; }
+        .decision-card input[type="radio"] {
+            width: 14px;
+            height: 14px;
+            margin: 0;
+            cursor: pointer;
+            accent-color: var(--medical-blue);
+            flex-shrink: 0;
+        }
+        .decision-card .card-label { font-size: 13px; font-weight: 700; color: var(--text-title); white-space: nowrap; }
+        .decision-card.selected-pass { border-color: #2c7a4d; background: #f3f9f5; }
+        .decision-card.selected-pass .card-label { color: #2c7a4d; }
+        .decision-card.selected-reject { border-color: #c62828; background: #fdf4f4; }
+        .decision-card.selected-reject .card-label { color: #c62828; }
+        .decision-card.selected-cancel { border-color: #c96f3e; background: #fdf7f2; }
+        .decision-card.selected-cancel .card-label { color: #c96f3e; }
+
+        /* 审核记录时间线 */
+        .timeline { max-height: 268px; overflow-y: auto; padding: 2px 4px 0 2px; }
+        .timeline-item { display: flex; gap: 12px; }
+        .timeline-rail {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 10px;
+            flex-shrink: 0;
+            padding-top: 5px;
+        }
+        .timeline-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+        .timeline-line { width: 2px; flex: 1; background: #dfe8ee; margin-top: 3px; min-height: 20px; }
+        .timeline-content { flex: 1; min-width: 0; padding-bottom: 14px; }
+        .timeline-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+        .timeline-action { font-weight: 700; font-size: 13px; }
+        .timeline-action.pass { color: #2c7a4d; }
+        .timeline-action.reject { color: #c62828; }
+        .timeline-action.cancel { color: #c96f3e; }
+        .timeline-time { font-size: 12px; font-weight: 600; color: #546e7a; white-space: nowrap; }
+        .timeline-remark {
+            margin-top: 5px;
+            font-size: 13px;
+            color: #37474f;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #f6f9fb;
+            border-radius: 6px;
+            padding: 7px 10px;
+        }
+
         .section-card {
             background: var(--card-bg);
             border-radius: 16px;
@@ -239,7 +288,7 @@
             position: relative;
         }
 
-        /* 审核水印：圆圈章样式 */
+        /* 审核水印：椭圆章样式 */
         .watermark {
             position: absolute;
             inset: 0;
@@ -277,42 +326,6 @@
             box-shadow: inset 0 0 0 3px rgba(198, 40, 40, 0.16);
         }
         .watermark.reject .stamp span { color: rgba(198, 40, 40, 0.35); }
-
-        /* 审核不通过意见横幅：白底红边条 */
-        .audit-opinion {
-            max-width: 1680px;
-            margin: 0 auto 16px;
-            background: #ffffff;
-            border: 1px solid var(--border-color);
-            border-left: 4px solid #c62828;
-            border-radius: 8px;
-            padding: 12px 20px;
-            font-size: 13px;
-            display: none;
-            gap: 12px;
-            align-items: baseline;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-        }
-        .audit-opinion.show { display: flex; }
-        .audit-opinion-label {
-            font-weight: 700;
-            color: #c62828;
-            white-space: nowrap;
-            font-size: 14px;
-        }
-        .audit-opinion-text {
-            flex: 1;
-            white-space: pre-wrap;
-            word-break: break-word;
-            color: #37474f;
-            line-height: 1.6;
-        }
-        .audit-opinion-time {
-            white-space: nowrap;
-            font-size: 13px;
-            font-weight: 700;
-            color: #455a64;
-        }
 
         .data-table {
             width: 100%;
@@ -440,12 +453,6 @@
         .data-table tr:nth-child(even) td.group-morning { background-color: #dff0df; }
         .data-table tr:nth-child(even) td.group-afternoon { background-color: #fff0db; }
         .data-table tr:nth-child(even) td.group-retain { background-color: #f6e8f8; }
-        .data-table tr:hover td { background-color: #e3f2fd; }
-        .data-table tr:hover td:first-child,
-        .data-table tr:hover td:nth-child(2) { background-color: #e3f2fd !important; }
-        .data-table tr:hover td.group-morning { background-color: #c8e6c9; }
-        .data-table tr:hover td.group-afternoon { background-color: #ffe0b2; }
-        .data-table tr:hover td.group-retain { background-color: #e1bee7; }
 
         .total-row {
             background: #e8f4f8;
@@ -459,10 +466,8 @@
         }
         .total-row td:first-child,
         .total-row td:nth-child(2) { background: #e8f4f8 !important; }
-        /* bt4 现金合计合并两列后，原收费员列样式会命中本行第2格，需覆盖 */
         .data-table tr.total-row td:first-child { background: #e8f4f8 !important; }
         .data-table tr.total-row td:nth-child(2) { position: static; left: auto; text-align: center; }
-        /* 第2格背景交还列分组色，仅抵消偶数行白色important */
         .data-table tr.total-row td:nth-child(2).group-morning { background-color: var(--group-morning-light) !important; }
         .data-table tr.total-row td:nth-child(2).group-afternoon { background-color: var(--group-afternoon-light) !important; }
         .data-table tr.total-row td:nth-child(2).group-retain { background-color: var(--group-retain-light) !important; }
@@ -470,7 +475,6 @@
         .data-table tr.total-row:nth-child(even) td:nth-child(2).group-afternoon { background-color: #fff0db !important; }
         .data-table tr.total-row:nth-child(even) td:nth-child(2).group-retain { background-color: #f6e8f8 !important; }
 
-        /* bt3 备注行：白底 */
         .remark-row td {
             background: #ffffff;
             color: var(--medical-blue);
@@ -492,24 +496,6 @@
             overflow: visible;
         }
 
-        .editable-cell {
-            cursor: pointer;
-            border-radius: 4px;
-            transition: background 0.15s;
-        }
-        .editable-cell:hover {
-            background-color: #bbdefb;
-            outline: 1px dashed #1976d2;
-        }
-        /* 已审核封存时不可编辑 */
-        .table-wrapper.sealed .editable-cell {
-            cursor: not-allowed;
-        }
-        .table-wrapper.sealed .editable-cell:hover {
-            background-color: inherit;
-            outline: none;
-        }
-
         .header-note {
             color: #d32f2f;
             font-size: 11px;
@@ -524,31 +510,6 @@
             font-size: 13px;
             color: var(--text-title);
             font-weight: 700;
-        }
-
-        .cell-input {
-            width: 100%;
-            border: 2px solid #1890ff;
-            border-radius: 4px;
-            padding: 4px 6px;
-            font-size: 13px;
-            text-align: center;
-            outline: none;
-            background: #fff;
-        }
-
-        .cell-textarea {
-            width: 100%;
-            min-height: 64px;
-            border: 2px solid #1890ff;
-            border-radius: 4px;
-            padding: 4px 6px;
-            font-size: 13px;
-            text-align: center;
-            outline: none;
-            background: #fff;
-            resize: vertical;
-            font-family: inherit;
         }
 
         .loading-overlay {
@@ -579,8 +540,124 @@
             color: #94a3b8;
         }
 
+        /* 审核意见弹窗 */
+        .modal-mask {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+        .modal-mask.show { display: flex; }
+        .modal-box {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            width: 560px;
+            max-width: 92vw;
+        }
+        /* 宽弹窗：左右独立面板 */
+        .modal-box.modal-wide { width: 780px; }
+        .modal-body {
+            display: flex;
+            gap: 16px;
+            align-items: stretch;
+        }
+        .modal-panel {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+        }
+        .modal-panel:first-child { flex: 0 0 320px; }
+        .panel-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-title);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+        .panel-sub {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+        .modal-left {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-head {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .modal-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-title);
+        }
+        .modal-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        /* 意见输入框：仅审核不通过时显示，撑在中间空白区 */
+        .audit-remark-wrap {
+            display: none;
+            flex: 1;
+            margin-top: 12px;
+        }
+        .audit-remark-wrap.show { display: flex; flex-direction: column; }
+        .audit-remark-wrap .modal-textarea { flex: 1; }
+        .modal-textarea {
+            width: 100%;
+            min-height: 96px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 13px;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+        }
+        .modal-textarea:focus { border-color: var(--medical-blue); }
+        /* 按钮固定底部两侧 */
+        .modal-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: auto;
+            padding-top: 14px;
+            gap: 10px;
+        }
+        .modal-btn {
+            border: none;
+            padding: 8px 22px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .modal-btn.confirm { background: var(--medical-blue); color: white; }
+        .modal-btn.plain { background: #eceff1; color: var(--text-main); }
+
         @media (max-width: 900px) {
             .header-card { flex-direction: column; align-items: flex-start; }
+        }
+
+        @media (max-width: 760px) {
+            .modal-body { flex-direction: column; }
+            .modal-left { width: 100%; }
+            .modal-panel:first-child { flex-basis: auto; }
         }
 
         @media print {
@@ -595,16 +672,18 @@
                 print-color-adjust: exact;
             }
             .header-card,
-            .report-title-bar,
+            .audit-info-card,
             .control-panel,
-            .toggle-switch,
             .btn-print,
-            .btn-save,
-            .btn-init,
-            .btn-query,
+            .btn-pass,
+            .btn-reject,
+            .btn-cancel-audit,
             .btn-excel,
+            .btn-query,
             .btn-group,
-            .date-group {
+            .date-group,
+            .modal-mask,
+            .loading-overlay {
                 display: none !important;
             }
             .section-card {
@@ -654,7 +733,7 @@
 
 <div class="dashboard-container">
     <div class="header-card">
-        <div class="header-title">住院部现金统计表</div>
+        <div class="header-title">住院部现金统计表（审核）</div>
         <span class="audit-badge none" id="auditBadge">未审核</span>
         <div class="control-panel">
             <div class="btn-group" id="reportTypeGroup">
@@ -671,17 +750,10 @@
                 <label for="mockToggle">使用Mock数据</label>
             </div>
             <button class="btn btn-query" id="queryBtn">查询</button>
-            <button class="btn btn-init" id="initBtn">初始化</button>
-            <button class="btn btn-save" id="saveBtn">保存</button>
+            <button class="btn btn-pass" id="auditBtn">审核</button>
             <button class="btn btn-excel" id="exportBtn">导出Excel</button>
             <button class="btn btn-print" id="printBtn">打印</button>
         </div>
-    </div>
-
-    <div class="audit-opinion" id="auditOpinion">
-        <span class="audit-opinion-label">审核意见</span>
-        <span class="audit-opinion-text" id="auditOpinionText"></span>
-        <span class="audit-opinion-time" id="auditOpinionTime"></span>
     </div>
 
     <div class="section-card" style="margin-bottom: 0;">
@@ -738,13 +810,50 @@
     </div>
 </div>
 
+<div class="modal-mask" id="auditModal">
+    <div class="modal-box modal-wide">
+        <div class="modal-body">
+            <div class="modal-panel">
+                <div class="panel-title">审核操作<span class="panel-sub" id="modalDateLabel"></span></div>
+                <div class="modal-left">
+                    <div class="decision-cards">
+                        <label class="decision-card" data-status="1">
+                            <input type="radio" name="auditStatusRadio" value="1" checked>
+                            <span class="card-label">审核通过</span>
+                        </label>
+                        <label class="decision-card" data-status="2">
+                            <input type="radio" name="auditStatusRadio" value="2">
+                            <span class="card-label">审核不通过</span>
+                        </label>
+                        <label class="decision-card" data-status="0">
+                            <input type="radio" name="auditStatusRadio" value="0">
+                            <span class="card-label">取消审核</span>
+                        </label>
+                    </div>
+                    <div class="audit-remark-wrap" id="auditRemarkWrap">
+                        <textarea class="modal-textarea" id="auditRemarkInput" placeholder="请填写审核不通过的原因（必填）"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="modal-btn plain" id="auditCancelBtn">取消</button>
+                        <button class="modal-btn confirm" id="auditConfirmBtn">确认</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-panel modal-record-section" id="modalRecordSection">
+                <div class="modal-record-title" id="modalRecordTitle">审核记录</div>
+                <div class="timeline" id="modalAuditRecordList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="loading-overlay" id="loadingMask">
     <div class="spinner"></div>
     <div style="color: var(--medical-blue); font-weight: 700; font-size: 15px;">数据加载中...</div>
 </div>
 
 <script>
-    const API_BASE = "http://127.0.0.1:18081/api/reports";
+    const API_BASE = "http://127.0.0.1:18081/api/audit";
 
     const COMMON_HEAD = {
         charset: "utf-8",
@@ -787,8 +896,19 @@
         { field: "remarks", title: "备注", align: "left", editable: true, computed: false, isText: true, note: "（手工录入）" }
     ];
 
+    var currentData = [];
+    var reportRemark = "";
+    var reportMeta = { report_date: null, holiday_total_flag: "0" };
+    var currentTotalFlag = "0";
+    var auditStatus = "0";
+    var hasData = false;
+    var useMock = false;
+    var auditLogs = [];
+    var auditRemarkCurrent = "";
+
+    /* Mock数据：审核状态存localStorage，与报表页Mock联动预览水印封存 */
     const MOCK_DATA = {
-        "result": { "code": "10000", "sub_msg": "查询住院报表列表成功！", "success": true },
+        "result": { "code": "10000", "sub_msg": "查询住院审核报表列表成功！", "success": true },
         "body": {
             "serial_no": "2069713378259722241",
             "report_date": "2025-11-24",
@@ -799,21 +919,13 @@
             "subs": [
                 { "serial_no": "2069713378259722241", "operator_no": null, "operator_name": "王晓慧", "db_user": "ORBILL_WXH", "previous_day_advance_receipt": 100, "today_advance_payment": 200, "today_settlement_income": 300, "today_pre_hospital_income": 50, "traffic_assistance_fund": 10, "blood_donation_compensation": 20, "receivable_payable": 30, "previous_day_iou": 5, "today_outpatient_iou": 15, "today_advance_receipt": 250, "today_report_cash_received": 180, "adjustment": 0, "holiday_payment": 0, "cash_on_hand": 0, "remarks": "测试" },
                 { "serial_no": "2069713378259722241", "operator_no": null, "operator_name": "艾蕾", "db_user": "BILL_AL", "previous_day_advance_receipt": 50, "today_advance_payment": 150, "today_settlement_income": 250, "today_pre_hospital_income": 30, "traffic_assistance_fund": 5, "blood_donation_compensation": 10, "receivable_payable": 20, "previous_day_iou": 0, "today_outpatient_iou": 10, "today_advance_receipt": 200, "today_report_cash_received": 120, "adjustment": 0, "holiday_payment": 0, "cash_on_hand": 0, "remarks": null },
-                { "serial_no": "2069713378259722241", "operator_no": null, "operator_name": "邓瑶", "db_user": "ADMIT_DY", "previous_day_advance_receipt": 80, "today_advance_payment": 180, "today_settlement_income": 220, "today_pre_hospital_income": 40, "traffic_assistance_fund": 8, "blood_donation_compensation": 12, "receivable_payable": 25, "previous_day_iou": 3, "today_outpatient_iou": 8, "today_advance_receipt": 220, "today_report_cash_received": 150, "adjustment": 5, "holiday_payment": 10, "cash_on_hand": 20, "remarks": "" },
-                { "serial_no": "2069713378259722241", "operator_no": null, "operator_name": "张莹", "db_user": "BILL_ZY1", "previous_day_advance_receipt": 60, "today_advance_payment": 160, "today_settlement_income": 190, "today_pre_hospital_income": 35, "traffic_assistance_fund": 6, "blood_donation_compensation": 9, "receivable_payable": 18, "previous_day_iou": 2, "today_outpatient_iou": 12, "today_advance_receipt": 180, "today_report_cash_received": 130, "adjustment": 0, "holiday_payment": 0, "cash_on_hand": 15, "remarks": null },
-                { "serial_no": "2069713378259722241", "operator_no": null, "operator_name": "刘梅", "db_user": "ORBILL_LM1", "previous_day_advance_receipt": 40, "today_advance_payment": 140, "today_settlement_income": 170, "today_pre_hospital_income": 25, "traffic_assistance_fund": 4, "blood_donation_compensation": 7, "receivable_payable": 15, "previous_day_iou": 1, "today_outpatient_iou": 6, "today_advance_receipt": 160, "today_report_cash_received": 110, "adjustment": 0, "holiday_payment": 0, "cash_on_hand": 10, "remarks": "" }
+                { "serial_no": "2069713378259722241", "operator_no": null, "operator_name": "邓瑶", "db_user": "ADMIT_DY", "previous_day_advance_receipt": 80, "today_advance_payment": 180, "today_settlement_income": 220, "today_pre_hospital_income": 40, "traffic_assistance_fund": 8, "blood_donation_compensation": 12, "receivable_payable": 25, "previous_day_iou": 3, "today_outpatient_iou": 8, "today_advance_receipt": 220, "today_report_cash_received": 150, "adjustment": 5, "holiday_payment": 10, "cash_on_hand": 20, "remarks": "" }
             ]
         }
     };
 
-    var currentData = [];
-    var reportRemark = "";
-    var reportMeta = { report_date: null, holiday_total_flag: "0" };
-    var currentTotalFlag = "0";
-    var useMock = false;
-    var auditStatus = "0";
-    var auditRemark = "";
-    var auditTime = "";
+    const MOCK_STORAGE_KEY = "inp_mock_audit";
+    const MOCK_LOG_KEY = "inp_mock_audit_log";
 
     async function apiRequest(url, bodyData) {
         const requestBody = {
@@ -863,12 +975,6 @@
         return (val === null || val === undefined || isNaN(val)) ? "" : parseFloat(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    function parseMoneyValue(str) {
-        if (!str) return 0;
-        const val = parseFloat(String(str).replace(/,/g, ""));
-        return isNaN(val) ? 0 : val;
-    }
-
     function escapeHtml(str) {
         if (!str) return "";
         return String(str).replace(/[&<>]/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[m]));
@@ -901,24 +1007,21 @@
         return totals;
     }
 
-    /* 审核状态展示：徽标 + 水印 + 封存 */
-    function applyAuditStatus(status) {
-        auditStatus = status || "0";
+    /* 审核状态展示：徽标 + 水印 + 审核记录 */
+    function applyAuditStatus(body) {
+        auditStatus = body.audit_status || "0";
         const badge = document.getElementById("auditBadge");
         const watermark = document.getElementById("watermark");
         const watermarkText = document.getElementById("watermarkText");
-        const wrapper = document.getElementById("tableWrapper");
 
         badge.className = "audit-badge";
         watermark.className = "watermark";
-        wrapper.classList.remove("sealed");
 
         if (auditStatus === "1") {
             badge.classList.add("pass");
             badge.textContent = "已审核通过";
             watermarkText.textContent = "已审核通过";
             watermark.classList.add("show");
-            wrapper.classList.add("sealed");
         } else if (auditStatus === "2") {
             badge.classList.add("reject");
             badge.textContent = "审核不通过";
@@ -928,20 +1031,53 @@
             badge.classList.add("none");
             badge.textContent = "未审核";
         }
+    }
 
-        // 审核不通过时，报表页展示审核意见和时间
-        const banner = document.getElementById("auditOpinion");
-        if (auditStatus === "2") {
-            document.getElementById("auditOpinionText").textContent = auditRemark || "（无审核意见）";
-            document.getElementById("auditOpinionTime").textContent = auditTime || "";
-            banner.classList.add("show");
-        } else {
-            banner.classList.remove("show");
+    /* 意见输入框只在选中审核不通过时显示 */
+    /* 决策卡片高亮 + 意见输入框显隐 */
+    function refreshDecisionCards() {
+        const checked = document.querySelector('input[name="auditStatusRadio"]:checked');
+        document.querySelectorAll(".decision-card").forEach(card => {
+            card.classList.remove("selected-pass", "selected-reject", "selected-cancel");
+        });
+        if (checked) {
+            const card = checked.closest(".decision-card");
+            if (checked.value === "1") card.classList.add("selected-pass");
+            else if (checked.value === "2") card.classList.add("selected-reject");
+            else card.classList.add("selected-cancel");
         }
+        document.getElementById("auditRemarkWrap").classList.toggle("show", checked && checked.value === "2");
+    }
 
-        const sealed = auditStatus === "1";
-        document.getElementById("saveBtn").disabled = sealed;
-        document.getElementById("initBtn").disabled = sealed;
+    /* 审核记录时间线：最近在前 */
+    function renderAuditRecords(logs) {
+        const section = document.getElementById("modalRecordSection");
+        const list = document.getElementById("modalAuditRecordList");
+        if (!logs || logs.length === 0) {
+            section.classList.remove("show");
+            return;
+        }
+        document.getElementById("modalRecordTitle").textContent = `审核记录（${logs.length}）`;
+        const actionMap = { "1": ["审核通过", "pass"], "2": ["审核不通过", "reject"], "0": ["取消审核", "cancel"] };
+        const colorMap = { pass: "#2c7a4d", reject: "#c62828", cancel: "#c96f3e" };
+        list.innerHTML = logs.map((log, i) => {
+            const action = actionMap[log.audit_status] || ["审核操作", ""];
+            const last = i === logs.length - 1;
+            return `<div class="timeline-item">
+                <div class="timeline-rail">
+                    <span class="timeline-dot" style="background:${colorMap[action[1]] || "#78909c"}"></span>
+                    ${last ? "" : '<span class="timeline-line"></span>'}
+                </div>
+                <div class="timeline-content">
+                    <div class="timeline-head">
+                        <span class="timeline-action ${action[1]}">${action[0]}</span>
+                        <span class="timeline-time">${log.audit_time || ""}</span>
+                    </div>
+                    ${log.audit_remark ? `<div class="timeline-remark">${escapeHtml(log.audit_remark)}</div>` : ""}
+                </div>
+            </div>`;
+        }).join("");
+        section.classList.add("show");
     }
 
     function renderTable() {
@@ -970,10 +1106,9 @@
                 } else {
                     const val = row[col.field];
                     const displayVal = col.isText ? escapeHtml(val) : formatMoneyValue(val);
-                    const editableClass = col.editable ? "editable-cell" : "";
                     const textClass = col.isText ? "text-cell" : "";
                     const alignStyle = col.align && !col.isText ? `text-align:${col.align}` : "";
-                    html += `<td class="${editableClass} ${textClass} ${groupClass}" data-field="${col.field}" data-row="${idx}" style="${alignStyle}">${displayVal}</td>`;
+                    html += `<td class="${textClass} ${groupClass}" data-field="${col.field}" data-row="${idx}" style="${alignStyle}">${displayVal}</td>`;
                 }
             });
             html += "</tr>";
@@ -994,108 +1129,31 @@
         });
         html += "</tr>";
 
-        // bt1 备注行：标签占两列，内容跨剩余列可编辑
         html += `<tr class="remark-row">`;
         html += `<td colspan="2">备注</td>`;
-        html += `<td colspan="21" class="editable-cell remark-value" data-field="total_remark">${escapeHtml(reportRemark)}</td>`;
+        html += `<td colspan="21" class="remark-value">${escapeHtml(reportRemark)}</td>`;
         html += "</tr>";
 
         tbody.innerHTML = html;
-        bindCellEditing();
     }
 
-    function bindCellEditing() {
-        document.querySelectorAll(".editable-cell").forEach(cell => {
-            cell.addEventListener("dblclick", handleCellDblClick);
-        });
-    }
-
-    function handleCellDblClick(e) {
-        // 已审核通过的报表封存，禁止编辑
-        if (auditStatus === "1") {
-            showToast("该报表已审核通过，已封存不能修改", "warning");
-            return;
-        }
-
-        const cell = e.currentTarget;
-        if (cell.querySelector("input,textarea")) return;
-
-        const field = cell.getAttribute("data-field");
-
-        // bt2 报表级备注：存 reportRemark，不走行数据；多行输入
-        if (field === "total_remark") {
-            cell.innerHTML = `<textarea class="cell-textarea">${escapeHtml(reportRemark)}</textarea>`;
-            const textarea = cell.querySelector("textarea");
-            textarea.focus();
-            textarea.addEventListener("blur", () => { reportRemark = textarea.value.trim(); renderTable(); });
-            textarea.addEventListener("keydown", ev => {
-                if (ev.key === "Escape") renderTable();
-            });
-            return;
-        }
-
-        const rowIdx = parseInt(cell.getAttribute("data-row"));
-        const col = COLUMN_CONFIG.find(c => c.field === field);
-        if (!col || !col.editable) return;
-
-        const row = currentData[rowIdx];
-        const originalValue = row[field] || "";
-
-        // 文本类字段用多行文本框，支持换行
-        if (col.isText) {
-            cell.innerHTML = `<textarea class="cell-textarea">${escapeHtml(originalValue)}</textarea>`;
-            const textarea = cell.querySelector("textarea");
-            textarea.focus();
-            textarea.addEventListener("blur", () => {
-                row[field] = textarea.value;
-                renderTable();
-            });
-            textarea.addEventListener("keydown", ev => {
-                if (ev.key === "Escape") renderTable();
-            });
-            return;
-        }
-
-        cell.innerHTML = `<input type="number" step="0.01" class="cell-input" value="${originalValue}">`;
-        const input = cell.querySelector("input");
-        input.focus();
-        input.select();
-
-        function finishEdit() {
-            const rawValue = input.value.trim();
-            let newValue = parseMoneyValue(rawValue);
-            row[field] = newValue;
-            calculateRow(row);
-            renderTable();
-        }
-
-        input.addEventListener("blur", finishEdit);
-        input.addEventListener("keydown", ev => {
-            if (ev.key === "Enter") {
-                input.blur();
-            } else if (ev.key === "Escape") {
-                renderTable();
-            }
-        });
-    }
-
-    async function fetchReport(dateStr, initFlag = "0") {
+    async function fetchReport(dateStr) {
         showLoading(true);
         try {
             let result;
             if (useMock) {
                 await new Promise(resolve => setTimeout(resolve, 300));
                 result = JSON.parse(JSON.stringify(MOCK_DATA));
-                // 与审核页Mock联动：读取本地模拟的审核状态
-                const mockAudit = JSON.parse(localStorage.getItem("inp_mock_audit") || "{}");
+                const mockAudit = JSON.parse(localStorage.getItem(MOCK_STORAGE_KEY) || "{}");
                 result.body.audit_status = mockAudit.status || "0";
                 result.body.audit_remark = mockAudit.remark || "";
                 result.body.audit_time = mockAudit.time || "";
+                result.body.audit_logs = JSON.parse(localStorage.getItem(MOCK_LOG_KEY) || "[]");
                 result.body.report_date = dateStr;
             } else {
                 result = await apiRequest(`${API_BASE}/inp_findbydate`, {
                     reportdate: dateStr,
-                    init_flag: initFlag,
+                    init_flag: "0",
                     total_flag: currentTotalFlag,
                     extend_params1: null,
                     extend_params2: null,
@@ -1104,6 +1162,7 @@
             }
 
             const body = result.body || {};
+            hasData = !!(body.serial_no && body.subs && body.subs.length);
             reportMeta = {
                 report_date: body.report_date || dateStr,
                 holiday_total_flag: body.holiday_total_flag || "0",
@@ -1112,17 +1171,18 @@
             currentData = body.subs || [];
             currentData.forEach(row => calculateRow(row));
             reportRemark = body.total_remark || "";
-            auditRemark = body.audit_remark || "";
-            auditTime = body.audit_time || "";
+            auditLogs = body.audit_logs || [];
+            auditRemarkCurrent = body.audit_remark || "";
 
             updateTitle(dateStr);
-            applyAuditStatus(body.audit_status);
-
+            applyAuditStatus(body);
             renderTable();
         } catch (error) {
             showToast(`查询失败: ${error.message}`, "error");
             currentData = [];
             reportRemark = "";
+            hasData = false;
+            applyAuditStatus({});
             renderTable();
         } finally {
             showLoading(false);
@@ -1145,7 +1205,6 @@
         document.getElementById("mainTitle").textContent = `${formatCN(d)} 审核/出纳 报表现金登记表`;
         document.getElementById("reportDateDisplay").textContent = `登记时间：${formatCN(next)}`;
 
-        // 表头注释动态日期：前日/报表日/登记日
         const prev = new Date(d);
         prev.setDate(prev.getDate() - 1);
         const noteMap = { prev: formatDot(prev), curr: formatDot(d), next: formatDot(next) };
@@ -1154,76 +1213,49 @@
         });
     }
 
-    async function saveReport() {
-        if (!currentData || currentData.length === 0) {
-            showToast("没有可保存的数据", "warning");
+    async function saveAudit(auditStatusVal, auditRemarkVal) {
+        if (!hasData) {
+            showToast("当前日期没有可审核的报表数据", "warning");
             return;
         }
 
-        if (!reportMeta.report_date) {
-            showToast("报表日期无效", "warning");
-            return;
-        }
+        const actions = { "1": "审核通过", "2": "审核不通过", "0": "取消审核" };
 
-        if (auditStatus === "1") {
-            showToast("该报表已审核通过，已封存不能修改", "warning");
-            return;
-        }
-
-        const saveBtn = document.getElementById("saveBtn");
-        saveBtn.disabled = true;
-        showLoading(true);
-
-        // Mock模式：仅预览，不提交后端
+        // Mock模式：审核结果存本地，与报表页联动预览
         if (useMock) {
-            showLoading(false);
-            saveBtn.disabled = false;
-            showToast("Mock模式：保存成功（仅预览，未提交）", "success");
+            const now = new Date().toLocaleString("zh-CN");
+            const logs = JSON.parse(localStorage.getItem(MOCK_LOG_KEY) || "[]");
+            logs.unshift({ audit_status: auditStatusVal, audit_time: now, audit_remark: auditRemarkVal || "" });
+            localStorage.setItem(MOCK_LOG_KEY, JSON.stringify(logs));
+            if (auditStatusVal === "0") {
+                localStorage.removeItem(MOCK_STORAGE_KEY);
+            } else {
+                localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify({
+                    status: auditStatusVal,
+                    time: now,
+                    remark: auditRemarkVal || ""
+                }));
+            }
+            showToast(`${actions[auditStatusVal]}成功`, "success");
+            await fetchReport(reportMeta.report_date);
             return;
         }
 
+        showLoading(true);
         try {
-            const subsToSave = currentData.map(row => ({
-                serial_no: row.serial_no || null,
-                operator_no: row.operator_no || null,
-                operator_name: row.operator_name || null,
-                db_user: row.db_user || null,
-                previous_day_advance_receipt: parseFloat(row.previous_day_advance_receipt || 0),
-                today_advance_payment: parseFloat(row.today_advance_payment || 0),
-                today_settlement_income: parseFloat(row.today_settlement_income || 0),
-                today_pre_hospital_income: parseFloat(row.today_pre_hospital_income || 0),
-                traffic_assistance_fund: parseFloat(row.traffic_assistance_fund || 0),
-                blood_donation_compensation: parseFloat(row.blood_donation_compensation || 0),
-                receivable_payable: parseFloat(row.receivable_payable || 0),
-                previous_day_iou: parseFloat(row.previous_day_iou || 0),
-                today_outpatient_iou: parseFloat(row.today_outpatient_iou || 0),
-                today_advance_receipt: parseFloat(row.today_advance_receipt || 0),
-                today_report_cash_received: parseFloat(row.today_report_cash_received || 0),
-                adjustment: parseFloat(row.adjustment || 0),
-                holiday_payment: parseFloat(row.holiday_payment || 0),
-                cash_on_hand: parseFloat(row.cash_on_hand || 0),
-                remarks: row.remarks || null
-            }));
-
-            const saveBody = {
-                serial_no: null,
-                report_date: reportMeta.report_date,
-                report_year: new Date(reportMeta.report_date).getFullYear(),
-                report_type: "1",
+            await apiRequest(`${API_BASE}/inp_save`, {
+                reportdate: reportMeta.report_date,
                 total_flag: reportMeta.total_flag || currentTotalFlag,
-                holiday_total_flag: reportMeta.holiday_total_flag,
-                total_remark: reportRemark || null,
-                subs: subsToSave
-            };
-
-            await apiRequest(`${API_BASE}/inp_insert`, saveBody);
-            showToast("保存成功", "success");
+                audit_status: auditStatusVal,
+                audit_remark: auditRemarkVal || null,
+                audit_by: null
+            });
+            showToast(`${actions[auditStatusVal]}成功`, "success");
             await fetchReport(reportMeta.report_date);
         } catch (error) {
-            showToast(`保存失败: ${error.message}`, "error");
+            showToast(`操作失败: ${error.message}`, "error");
         } finally {
             showLoading(false);
-            saveBtn.disabled = auditStatus === "1";
         }
     }
 
@@ -1247,7 +1279,6 @@
         return (crc ^ 0xFFFFFFFF) >>> 0;
     }
 
-    /* 生成store方式zip（无压缩，兼容Excel） */
     function buildZip(files) {
         const encoder = new TextEncoder();
         const chunks = [];
@@ -1266,8 +1297,8 @@
             const view = new DataView(local.buffer);
             view.setUint32(0, 0x04034b50, true);
             view.setUint16(4, 20, true);
-            view.setUint16(6, 0x0800, true); // UTF-8标志
-            view.setUint16(8, 0, true);      // store
+            view.setUint16(6, 0x0800, true);
+            view.setUint16(8, 0, true);
             view.setUint16(10, dosTime, true);
             view.setUint16(12, dosDate, true);
             view.setUint32(14, crc, true);
@@ -1298,7 +1329,7 @@
             offset += local.length + file.data.length;
         });
 
-        let centralSize = central.reduce((s, c) => s + c.length, 0);
+        const centralSize = central.reduce((s, c) => s + c.length, 0);
         const end = new Uint8Array(22);
         const ev = new DataView(end.buffer);
         ev.setUint32(0, 0x06054b50, true);
@@ -1325,7 +1356,6 @@
         return s;
     }
 
-    /* 组装sheet：行=[{v,s}]，s为样式索引，null为空单元格 */
     function buildSheet(rows, merges, colCount) {
         let xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`;
         xml += `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">`;
@@ -1358,7 +1388,6 @@
         return xml;
     }
 
-    /* 样式：0边框默认 1表头(加粗换行居中) 2标题(大字) 3文本(换行左对齐) 4金额(千分位两位) */
     function buildStyles() {
         return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
@@ -1388,30 +1417,25 @@
             return;
         }
 
-        const colCount = COLUMN_CONFIG.length; // 23
+        const colCount = COLUMN_CONFIG.length;
         const lastCol = colLetter(colCount - 1);
         const merges = [];
         const rows = [];
 
-        // 行1 标题
         const titleText = `${document.getElementById("mainTitle").textContent}    ${document.getElementById("reportDateDisplay").textContent}`;
         rows.push([{ v: titleText, s: 2 }]);
         merges.push(`A1:${lastCol}1`);
 
-        // 行2 分组色带
-        const bandRow = [
+        rows.push([
             { v: "", s: 1 }, { v: "", s: 1 },
             { v: "（上午）统计报表现金数据", s: 1 }, null, null, null, null, null, null, null,
             { v: "（下午）收取现金数据", s: 1 }, null, null, null, null, null, null,
             { v: "收费员留存", s: 1 }, null, null, null, null, null
-        ];
-        rows.push(bandRow);
+        ]);
         merges.push(`A2:B2`, `C2:J2`, `K2:Q2`, `R2:W2`);
 
-        // 行3 表头
         rows.push(COLUMN_CONFIG.map(col => ({ v: col.note ? `${col.title}\n${col.note}` : col.title, s: 1 })));
 
-        // 数据行
         currentData.forEach((row, idx) => {
             rows.push(COLUMN_CONFIG.map(col => {
                 if (col.field === null) return { v: idx + 1, s: 0 };
@@ -1421,21 +1445,18 @@
             }));
         });
 
-        // 合计行
         const totals = calculateTotals(currentData);
-        const totalRow = [
+        rows.push([
             { v: "现金合计", s: 1 }, null,
             ...COLUMN_CONFIG.slice(2).map(col => {
                 if (col.field === "remarks") return { v: "", s: 0 };
                 if (col.field === "operator_name") return { v: "", s: 0 };
                 return { v: parseFloat(totals[col.field] || 0), s: 4 };
             })
-        ];
-        rows.push(totalRow);
+        ]);
         const totalRowIdx = rows.length;
         merges.push(`A${totalRowIdx}:B${totalRowIdx}`);
 
-        // 备注行
         rows.push([{ v: "备注", s: 1 }, null, { v: reportRemark || "", s: 3 }]);
         const remarkRowIdx = rows.length;
         merges.push(`A${remarkRowIdx}:B${remarkRowIdx}`, `C${remarkRowIdx}:${lastCol}${remarkRowIdx}`);
@@ -1479,6 +1500,11 @@
         return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     }
 
+    function getTotalFlagText() {
+        const map = { "0": "正常日", "1": "汇总", "2": "月初报表" };
+        return map[currentTotalFlag] || "正常日";
+    }
+
     window.addEventListener("DOMContentLoaded", () => {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
@@ -1500,22 +1526,7 @@
                 return;
             }
             updateTitle(date);
-            fetchReport(date, "0");
-        });
-
-        document.getElementById("initBtn").addEventListener("click", () => {
-            const date = document.getElementById("reportDate").value;
-            if (!date) {
-                showToast("请选择报表日期", "warning");
-                return;
-            }
-            if (auditStatus === "1") {
-                showToast("该报表已审核通过，已封存不能初始化", "warning");
-                return;
-            }
-            if (!confirm(`确定要初始化 ${date} 的${getTotalFlagText()}报表数据吗？`)) return;
-            updateTitle(date);
-            fetchReport(date, "1");
+            fetchReport(date);
         });
 
         document.getElementById("reportDate").addEventListener("change", () => {
@@ -1526,10 +1537,49 @@
         document.getElementById("mockToggle").addEventListener("change", (e) => {
             useMock = e.target.checked;
             const date = document.getElementById("reportDate").value;
-            if (date) fetchReport(date, "0");
+            if (date) fetchReport(date);
         });
 
-        document.getElementById("saveBtn").addEventListener("click", saveReport);
+        document.getElementById("auditBtn").addEventListener("click", () => {
+            if (!hasData) {
+                showToast("当前日期没有可审核的报表数据", "warning");
+                return;
+            }
+            // 标题旁标注报表日期；默认选中当前状态，不通过时回填意见
+            document.getElementById("modalDateLabel").textContent = `报表日期：${reportMeta.report_date || ""}（${getTotalFlagText()}）`;
+            const current = (auditStatus === "1" || auditStatus === "2") ? auditStatus : "1";
+            document.querySelector(`input[name="auditStatusRadio"][value="${current}"]`).checked = true;
+            document.getElementById("auditRemarkInput").value = auditStatus === "2" ? auditRemarkCurrent : "";
+            refreshDecisionCards();
+            renderAuditRecords(auditLogs);
+            document.getElementById("auditModal").classList.add("show");
+            document.getElementById("auditRemarkInput").focus();
+        });
+
+        document.getElementById("auditCancelBtn").addEventListener("click", () => {
+            document.getElementById("auditModal").classList.remove("show");
+        });
+
+        document.querySelectorAll('input[name="auditStatusRadio"]').forEach(radio => {
+            radio.addEventListener("change", refreshDecisionCards);
+        });
+
+        document.getElementById("auditConfirmBtn").addEventListener("click", async () => {
+            const val = document.querySelector('input[name="auditStatusRadio"]:checked').value;
+            // 意见仅审核不通过时有效，其余状态不携带意见
+            const remark = val === "2" ? document.getElementById("auditRemarkInput").value.trim() : "";
+            if (val === "2" && !remark) {
+                showToast("审核不通过时必须填写审核意见", "warning");
+                return;
+            }
+            document.getElementById("auditModal").classList.remove("show");
+            // 状态和意见都没变化时不重复处理，也不产生新记录；意见有修改则允许重新提交
+            if (val === auditStatus && remark === (auditRemarkCurrent || "").trim()) {
+                showToast("审核状态和意见均未变化，无需重复操作", "warning");
+                return;
+            }
+            await saveAudit(val, remark || null);
+        });
 
         document.getElementById("exportBtn").addEventListener("click", exportExcel);
 
@@ -1537,13 +1587,8 @@
             window.print();
         });
 
-        fetchReport(dateStr, "0");
+        fetchReport(dateStr);
     });
-
-    function getTotalFlagText() {
-        const map = { "0": "正常日", "1": "汇总", "2": "月初报表" };
-        return map[currentTotalFlag] || "正常日";
-    }
 </script>
 
 </body>

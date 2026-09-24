@@ -1,9 +1,11 @@
 package com.mergedata.server.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.mergedata.constants.Constant;
 import com.mergedata.exception.BusinessException;
+import com.mergedata.model.dto.InpAuditRequestBody;
 import com.mergedata.model.dto.InpReportRequestBody;
 import com.mergedata.model.dto.OutpReportRequestBody;
 import com.mergedata.model.dto.external.HisInpIncomeResponseDTO;
@@ -826,6 +828,17 @@ public class ReportServiceImpl implements ReportService {
             //是否节假日汇总
             if (totalFlag.equals(Constant.YES)) {
                 if (holidayType.equals(Constant.HOLIDAY_AFTER)) {
+                    //已有汇总数据直接返回，不重复生成，避免覆盖审核状态
+                    InpCashMainEntity existTotal = queryInpReportByDate(currentDate, Constant.YES);
+                    if (existTotal != null && !isInitFlag) {
+                        return existTotal;
+                    }
+
+                    //已审核通过的汇总封存，不允许初始化覆盖
+                    if (isInitFlag && existTotal != null && Constant.YES.equals(existTotal.getAuditStatus())) {
+                        throw new BusinessException("该报表已审核通过，已封存不能初始化");
+                    }
+
                     LocalDate startDate = currentDate;
                     //开始汇总计算
                     while (true) {
@@ -867,6 +880,11 @@ public class ReportServiceImpl implements ReportService {
                 //查询数据库是否有相关数据
                 inpResult = queryInpReportByDate(currentDate, Constant.NOT_TOTAL);
 
+                //已审核通过的报表封存，不允许初始化覆盖
+                if (isInitFlag && inpResult != null && Constant.YES.equals(inpResult.getAuditStatus())) {
+                    throw new BusinessException("该报表已审核通过，已封存不能初始化");
+                }
+
                 // 1. 查主表单条 是否存在
                 if (inpResult == null || isInitFlag) {
                     //获取初始化的数据
@@ -878,6 +896,9 @@ public class ReportServiceImpl implements ReportService {
             }
         } catch (Exception e) {
             log.error("获取住院报表数据异常", e);
+            if (e instanceof BusinessException) {
+                throw (BusinessException) e;
+            }
             throw new RuntimeException("获取住院报表数据异常");
         }
 
@@ -890,6 +911,72 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public Integer insertInpReport(InpCashMainEntity main) {
         return isInitInsertInp(main, Constant.NO);
+    }
+
+    /**
+     * 查询住院审核报表数据（只查已有数据，不生成），附带审核日志
+     */
+    @Override
+    public InpCashMainEntity getInpAuditReport(InpReportRequestBody body) {
+        String holidayTotalFlag = Constant.YES.equals(body.getTotalFlag()) ? Constant.YES : Constant.NOT_TOTAL;
+        InpCashMainEntity main = queryInpReportByDate(body.getReportDate(), holidayTotalFlag);
+
+        //查询历史审核记录，最近的在前
+        List<InpAuditLogEntity> auditLogs = Db.lambdaQuery(InpAuditLogEntity.class)
+                .eq(InpAuditLogEntity::getReportDate, body.getReportDate())
+                .eq(InpAuditLogEntity::getHolidayTotalFlag, holidayTotalFlag)
+                .orderByDesc(InpAuditLogEntity::getAuditTime)
+                .page(new Page<>(1, 20))
+                .getRecords();
+        if (main == null) {
+            main = new InpCashMainEntity();
+        }
+        main.setAuditLogs(auditLogs);
+        return main;
+    }
+
+    /**
+     * 保存住院报表审核结果（1通过 2不通过 0取消审核），每次动作记审核日志
+     */
+    @Override
+    public Integer saveInpAuditReport(InpAuditRequestBody body) {
+        String holidayTotalFlag = Constant.YES.equals(body.getTotalFlag()) ? Constant.YES : Constant.NOT_TOTAL;
+        InpCashMainEntity main = queryInpReportByDate(body.getReportDate(), holidayTotalFlag);
+        if (main == null) {
+            throw new BusinessException("对应日期的住院报表不存在，无法审核");
+        }
+
+        //审核不通过必须填写审核意见
+        if ("2".equals(body.getAuditStatus()) && (body.getAuditRemark() == null || body.getAuditRemark().trim().isEmpty())) {
+            throw new BusinessException("审核不通过时必须填写审核意见");
+        }
+
+        boolean audited = Constant.YES.equals(body.getAuditStatus()) || "2".equals(body.getAuditStatus());
+        boolean updated = Db.lambdaUpdate(InpCashMainEntity.class)
+                .eq(InpCashMainEntity::getSerialNo, main.getSerialNo())
+                .set(InpCashMainEntity::getAuditStatus, body.getAuditStatus())
+                .set(InpCashMainEntity::getAuditBy, audited ? body.getAuditBy() : null)
+                .set(InpCashMainEntity::getAuditTime, audited ? LocalDateTime.now() : null)
+                .set(InpCashMainEntity::getAuditRemark, audited ? body.getAuditRemark() : null)
+                .update();
+
+        if (!updated) {
+            throw new BusinessException("审核保存失败");
+        }
+
+        //记录审核日志
+        InpAuditLogEntity auditLog = new InpAuditLogEntity();
+        auditLog.setSerialNo(PrimaryKeyGenerator.generateKey());
+        auditLog.setReportDate(body.getReportDate());
+        auditLog.setHolidayTotalFlag(holidayTotalFlag);
+        auditLog.setAuditStatus(body.getAuditStatus());
+        auditLog.setAuditBy(body.getAuditBy());
+        auditLog.setAuditTime(LocalDateTime.now());
+        auditLog.setAuditRemark(body.getAuditRemark());
+        Db.save(auditLog);
+
+        log.info("{} {} 审核状态更新为 {}", Constant.REPORT_NAME_INP, body.getReportDate(), body.getAuditStatus());
+        return Constant.SUCCESS;
     }
 
 
@@ -1107,10 +1194,26 @@ public class ReportServiceImpl implements ReportService {
     public Integer isInitInsertInp(InpCashMainEntity main, String isInitFlag) {
          String pk = PrimaryKeyGenerator.generateKey();
 
+        //已审核通过的报表封存，禁止保存修改
+        InpCashMainEntity existMain = Db.lambdaQuery(InpCashMainEntity.class)
+                .eq(InpCashMainEntity::getReportDate, main.getReportDate())
+                .eq(InpCashMainEntity::getValidFlag, Constant.YES)
+                .eq(InpCashMainEntity::getHolidayTotalFlag, main.getHolidayTotalFlag())
+                .one();
+        if (existMain != null && Constant.YES.equals(existMain.getAuditStatus())) {
+            throw new BusinessException("该报表已审核通过，已封存不能修改");
+        }
+
         //界面手工录入修改时候，保存数据重新计算明细的公式
         if (isInitFlag.equals(Constant.NO)) {
             main.setSubs(exchangeInpReportData(main.getSubs()));
         }
+
+        //保存生成新版本，审核状态重置为未审核
+        main.setAuditStatus(Constant.NO);
+        main.setAuditBy(null);
+        main.setAuditTime(null);
+        main.setAuditRemark(null);
 
 
         // 通用设置这些公共属性
