@@ -19,7 +19,7 @@ import java.util.List;
 public interface InternetHospitalMapper extends BaseMapper<InternetHospitalOvEntity> {
 
     /**
-     * 查询互医质控概览（门诊量直查源表计数，比率取 tr_inet_hosp_ov 分子分母合计后在 impl 相除）
+     * 查询互医质控概览（源表实时聚合，比率分子分母合计后在 impl 相除）
      *
      * @param startDate 起始日期（含），格式 yyyy-MM-dd
      * @param endDate   结束日期（含），格式 yyyy-MM-dd
@@ -28,7 +28,7 @@ public interface InternetHospitalMapper extends BaseMapper<InternetHospitalOvEnt
     InternetHospitalOvEntity queryOverview(@Param("startDate") String startDate, @Param("endDate") String endDate);
 
     /**
-     * 查询互医质控运行情况（9个指标独立子查询，前两项直查register order，其余占位待补；指标名按seq在impl层映射）
+     * 查询互医质控运行情况（11行指标，seq 对位指标名由 impl 映射，环比 impl 层计算）
      *
      * @param startDate     当月起始日期（含），格式 yyyy-MM-dd
      * @param endDate       当月结束日期（含），格式 yyyy-MM-dd

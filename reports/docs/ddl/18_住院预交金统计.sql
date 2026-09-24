@@ -18,7 +18,7 @@ CREATE TABLE tr_inpat_prepay_rcpt (
     patient_id          VARCHAR2(50)    NOT NULL,   -- 患者ID
     visit_id            VARCHAR2(50)    NOT NULL,   -- 住院就诊ID(一次住院)
     rcpt_no             VARCHAR2(50)    NOT NULL,   -- 预交金收据号(每笔交易唯一)
-    transact_tpe       VARCHAR2(20)    NOT NULL,   -- 交易类型(结算=出院结算出账,其余=预交金缴存/退款等)
+    transact_type       VARCHAR2(20)    NOT NULL,   -- 交易类型(结算=出院结算出账,其余=预交金缴存/退款等)
     amount              NUMBER(18,2)    NOT NULL,   -- 交易金额
     pay_way             VARCHAR2(20),               -- 支付方式(现金/银行卡/微信/支付宝等)
     transact_date       DATE            NOT NULL,   -- 交易时间

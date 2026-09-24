@@ -38,26 +38,39 @@
         <include refid="scopeFilter"/>
     </select>
 
-    <!-- 按天/按月聚合:本期/同期在聚合函数里CASE区分;month=true时按月分桶(日期轴平移后TO_CHAR) -->
+    <!-- 按天/按月聚合:内层算日期轴/本期同期标记,外层只按纯列分组(避免GROUP BY带绑定变量CASE触发ORA-00979) -->
     <select id="queryDaily" resultType="com.reports.entity.InpatPrepayDtlEntity">
         SELECT
         <choose>
             <when test="month">
-                TO_DATE(TO_CHAR(<include refid="axisExpr"/>, 'YYYY-MM'), 'YYYY-MM') AS itemDate
+                TRUNC(axis_date, 'MM') AS itemDate
             </when>
             <otherwise>
-                <include refid="axisExpr"/> AS itemDate
+                axis_date AS itemDate
             </otherwise>
         </choose>,
-        COUNT(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN patient_id END) AS countCurrent,
-        COUNT(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN patient_id END) AS countLast,
-        NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN amount ELSE 0 END), 0) AS amountCurrent,
-        NVL(SUM(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN amount ELSE 0 END), 0) AS amountLast
-        FROM tr_inpat_prepay_rcpt
-        WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
-           OR stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
-        <include refid="scopeFilter"/>
-        GROUP BY <include refid="axisExpr"/>
+        COUNT(CASE WHEN in_current = 1 THEN patient_id END) AS countCurrent,
+        COUNT(CASE WHEN in_last = 1 THEN patient_id END) AS countLast,
+        NVL(SUM(CASE WHEN in_current = 1 THEN amount ELSE 0 END), 0) AS amountCurrent,
+        NVL(SUM(CASE WHEN in_last = 1 THEN amount ELSE 0 END), 0) AS amountLast
+        FROM (
+            SELECT patient_id, amount,
+                   <include refid="axisExpr"/> AS axis_date,
+                   CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
+                   CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last
+            FROM tr_inpat_prepay_rcpt
+            WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
+               OR stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
+            <include refid="scopeFilter"/>
+        )
+        <choose>
+            <when test="month">
+                GROUP BY TRUNC(axis_date, 'MM')
+            </when>
+            <otherwise>
+                GROUP BY axis_date
+            </otherwise>
+        </choose>
         ORDER BY itemDate
     </select>
 

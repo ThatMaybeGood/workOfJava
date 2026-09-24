@@ -2,10 +2,23 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.reports.mapper.InternetHospitalMapper">
 
+    <!-- 有职称医生工号 -->
+    <sql id="titledDoctors">
+        SELECT doctor_code
+        FROM powerihsp_doctor_info
+        WHERE doctor_title_name IN ('医师','主治医生','主治医师','副主任医师','主任医师','专家A类','专家B类','知名专家')
+        GROUP BY doctor_code
+    </sql>
+
     <!-- ============================================================ -->
-    <!-- 查询互医质控概览：各指标独立子查询，比率在impl层相除 -->
-    <!-- 门诊量/接诊率直查register order，医师占比取rsp_doctor_info快照 -->
-    <!-- 处方/病历/点评/执行率暂为DUAL占位，待接源表后逐个替换 -->
+    <!-- 查询互医质控概览：对应页面7张指标卡片,各指标独立子查询,比率分子分母分开返回由impl相除 -->
+    <!--  outpatientVolume      门诊量(不含退号,register order) -->
+    <!--  doctorRatio           医师占比(开放在线问诊医生数/医生总数,rsp_doctor_info) -->
+    <!--  receptionRate         接诊率(已接诊order_status>=2 / 门诊量) -->
+    <!--  prescriptionRate      处方开具率(有职称医生中西药处方数/有职称医生挂号量) -->
+    <!--  recordRate            病历书写率(有职称医生病历数/有职称医生挂号量) -->
+    <!--  reviewRate            处方点评率(占位,待接源表) -->
+    <!--  executionRate         药品处方执行率(有职称医生支付处方数/开具处方数) -->
     <!-- ============================================================ -->
     <select id="queryOverview" resultType="com.reports.entity.InternetHospitalOvEntity">
         SELECT
@@ -15,24 +28,24 @@
         r.receptionRateNum,
         v.outpatientVolume AS receptionRateDen,
         p.prescriptionRateNum,
-        p.prescriptionRateDen,
-        rec.recordRateNum,
-        rec.recordRateDen,
+        g.prescriptionRateDen,
+        c.recordRateNum,
+        g.prescriptionRateDen AS recordRateDen,
         rev.reviewRateNum,
         rev.reviewRateDen,
-        exe.executionRateNum,
-        exe.executionRateDen
+        p.executionRateNum,
+        p.prescriptionRateNum AS executionRateDen
         FROM (
             SELECT COUNT(1) AS outpatientVolume
             FROM powerihsp_register_order ro
             JOIN public_order_master om ON ro.order_id = om.order_id
-            WHERE ro.out_date &gt;= #{startDate}
-              AND ro.out_date &lt; #{endDate} + 1
+            WHERE ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+              AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
               AND ro.order_status != 5
         ) v,
         (
             SELECT
-            SUM(CASE WHEN open_online_consultaation = 1 THEN 1 ELSE 0 END) AS doctorRatioNum,
+            SUM(CASE WHEN open_online_consultation = 1 THEN 1 ELSE 0 END) AS doctorRatioNum,
             COUNT(1) AS doctorRatioDen
             FROM powerrsp.rsp_doctor_info
         ) d,
@@ -41,26 +54,30 @@
             SELECT COUNT(1) AS receptionRateNum
             FROM powerihsp_register_order ro
             JOIN public_order_master om ON ro.order_id = om.order_id
-            WHERE ro.out_date &gt;= #{startDate}
-              AND ro.out_date &lt; #{endDate} + 1
+            WHERE ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+              AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
               AND ro.order_status &gt;= 2
         ) r,
         (
-            -- 处方开具率:MEDICALORDERS 有职称医生中西药处方数/挂号量(职称)
-            SELECT SUM(TO_NUMBER(NVL(t.prezhtodaycount, '0'))) AS prescriptionRateNum,
-                   SUM(TO_NUMBER(NVL(t.registerntitle, '0'))) AS prescriptionRateDen
-            FROM POWERETL_ODS.MEDICALORDERS t
-            WHERE t.visitdate >= #{startDate}
-              AND t.visitdate < #{endDate} + 1
+            -- 开具率分子/执行率分母:有职称医生中西药处方,其中status=13计入执行率分子
+            SELECT COUNT(sy.PRESCRIPTION_ID) AS prescriptionRateNum,
+                   NVL(SUM(CASE WHEN sy.prescription_status = '13' THEN 1 ELSE 0 END), 0) AS executionRateNum
+            FROM POWERIHSP_OUTP_DRUG_MASTER sy
+            JOIN (<include refid="titledDoctors"/>) dt ON dt.doctor_code = sy.doctor_code
+            WHERE sy.CREATE_TIME &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+              AND sy.CREATE_TIME &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+              AND sy.prescription_status IN ('3','8','9','11','13')
+              AND sy.enterprise_id = 'xinqiao'
         ) p,
         (
-            -- 病历书写率:MEDICALORDERS 有职称医生病历数/挂号量(职称)
-            SELECT SUM(TO_NUMBER(NVL(t.doctorcasetodaycount, '0'))) AS recordRateNum,
-                   SUM(TO_NUMBER(NVL(t.registerntitle, '0'))) AS recordRateDen
-            FROM POWERETL_ODS.MEDICALORDERS t
-            WHERE t.visitdate >= #{startDate}
-              AND t.visitdate < #{endDate} + 1
-        ) rec,
+            -- 书写率分子:有职称医生病历
+            SELECT COUNT(ca.OUPT_CASE_ID) AS recordRateNum
+            FROM powerihsp_oupt_case_master ca
+            JOIN (<include refid="titledDoctors"/>) dt ON dt.doctor_code = ca.doctor_code
+            WHERE ca.CREATEDTIME &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+              AND ca.CREATEDTIME &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+              AND ca.enterprise_id = 'xinqiao'
+        ) c,
         (
             -- 处方点评率：占位，待接源表
             SELECT CAST(NULL AS NUMBER(18,4)) AS reviewRateNum,
@@ -68,197 +85,229 @@
             FROM DUAL
         ) rev,
         (
-            -- 药品处方执行率:MEDICALORDERS 支付数/开具数(有职称医生中西药)
-            SELECT SUM(TO_NUMBER(NVL(t.prezftodaycount, '0'))) AS executionRateNum,
-                   SUM(TO_NUMBER(NVL(t.prezhtodaycount, '0'))) AS executionRateDen
-            FROM POWERETL_ODS.MEDICALORDERS t
-            WHERE t.visitdate >= #{startDate}
-              AND t.visitdate < #{endDate} + 1
-        ) exe
+            -- 开具率/书写率分母:有职称医生挂号量(out_date口径,create_time可能为空)
+            SELECT COUNT(1) AS prescriptionRateDen
+            FROM powerihsp_register_order ro
+            JOIN (<include refid="titledDoctors"/>) dt ON dt.doctor_code = ro.doctor_code
+            WHERE ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+              AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+              AND ro.order_status IN ('2','3','6')
+              AND ro.consult_type_code NOT IN ('82082','10003','10005')
+              AND ro.enterprise_id = 'xinqiao'
+        ) g
     </select>
 
     <!-- ============================================================ -->
-    <!-- 查询互医质控运行情况：9个指标各占一行独立子查询，单月+上月双日期单次扫描同构； -->
-    <!-- 1-2直查register order,3/4/5/9直查MEDICALORDERS,6-8金额项占位(1=2恒空)待补源表，补后删1=2，THEN 1换金额列 -->
-    <!-- 指标名按seq在impl层映射(源库US7ASCII不写中文字面量)，环比impl层计算 -->
+    <!-- 查询互医质控运行情况：对应页面「互联网医院运行情况」表11行,seq对位指标名(impl层OP_ITEM_NAMES映射) -->
+    <!--  1 总挂号量（含退号）      register order全量计数 -->
+    <!--  2 净接诊量（不含退号）    register order排除order_status=5 -->
+    <!--  3 病历书写量              oupt_case_master全医生计数 -->
+    <!--  4 药品处方开具量          outp_drug_master有职称医生中西药处方 -->
+    <!--  5 药品处方执行量          同上且prescription_status=13 -->
+    <!--  6 挂号费（元）            占位(1=2恒空),待补金额源表,THEN 1换金额列 -->
+    <!--  7 检查检验费（元）        占位(1=2恒空),待补金额源表 -->
+    <!--  8 药品处方费（元）        占位(1=2恒空),待补金额源表 -->
+    <!--  9 住院证开具量            hospermit_master计数 -->
+    <!--  10 药品处方单总数         outp_drug_master西药+中药(全部医生口径,与seq4互补) -->
+    <!--  11 院前检查单数           inspection_master recipel_type=0且IN_HOS_PROOF=1 -->
+    <!-- 单月+上月双日期单次扫描,环比impl层计算 -->
     <!-- ============================================================ -->
     <select id="queryOperationTable" resultType="com.reports.entity.InternetHospitalOpEntity">
         SELECT seq, current_value, last_value FROM (
             -- 1 总挂号量（含退号）：register order全量计数
             SELECT
             1 AS seq,
-            SUM(CASE WHEN ro.out_date &gt;= #{startDate} AND ro.out_date &lt; #{endDate} + 1
+            SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
                      THEN 1 ELSE 0 END) AS current_value,
-            SUM(CASE WHEN ro.out_date &gt;= #{lastStartDate} AND ro.out_date &lt; #{lastEndDate} + 1
+            SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
                      THEN 1 ELSE 0 END) AS last_value
             FROM powerihsp_register_order ro
             JOIN public_order_master om ON ro.order_id = om.order_id
-            WHERE ro.out_date &gt;= #{lastStartDate}
-              AND ro.out_date &lt; #{endDate} + 1
+            WHERE ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
+              AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
             UNION ALL
             -- 2 净接诊量（不含退号）：同门诊量口径，排除order_status=5退号
             SELECT
             2 AS seq,
-            SUM(CASE WHEN ro.out_date &gt;= #{startDate} AND ro.out_date &lt; #{endDate} + 1
+            SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
                      THEN 1 ELSE 0 END) AS current_value,
-            SUM(CASE WHEN ro.out_date &gt;= #{lastStartDate} AND ro.out_date &lt; #{lastEndDate} + 1
+            SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
                      THEN 1 ELSE 0 END) AS last_value
             FROM powerihsp_register_order ro
             JOIN public_order_master om ON ro.order_id = om.order_id
-            WHERE ro.out_date &gt;= #{lastStartDate}
-              AND ro.out_date &lt; #{endDate} + 1
+            WHERE ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
+              AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
               AND ro.order_status != 5
             UNION ALL
-            -- 3 病历书写量:MEDICALORDERS病历列区间求和(case为保留字须双引号)
+            -- 3 病历书写量:oupt_case_master全医生计数
             SELECT
             3 AS seq,
-            SUM(CASE WHEN t.visitdate &gt;= #{startDate} AND t.visitdate &lt; #{endDate} + 1
-                     THEN TO_NUMBER(NVL(t."case", '0')) ELSE 0 END) AS current_value,
-            SUM(CASE WHEN t.visitdate &gt;= #{lastStartDate} AND t.visitdate &lt; #{lastEndDate} + 1
-                     THEN TO_NUMBER(NVL(t."case", '0')) ELSE 0 END) AS last_value
-            FROM POWERETL_ODS.MEDICALORDERS t
-            WHERE t.visitdate &gt;= #{lastStartDate}
-              AND t.visitdate &lt; #{endDate} + 1
+            NVL(SUM(CASE WHEN ca.CREATEDTIME &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND ca.CREATEDTIME &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+                     THEN 1 ELSE 0 END), 0) AS current_value,
+            NVL(SUM(CASE WHEN ca.CREATEDTIME &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND ca.CREATEDTIME &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
+                     THEN 1 ELSE 0 END), 0) AS last_value
+            FROM powerihsp_oupt_case_master ca
+            WHERE ca.CREATEDTIME &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
+              AND ca.CREATEDTIME &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+              AND ca.enterprise_id = 'xinqiao'
             UNION ALL
-            -- 4 药品处方开具量:MEDICALORDERS有职称医生中西药处方数(prezhtodaycount,开具率分子)
+            -- 4 药品处方开具量:outp_drug_master有职称医生中西药处方(开具率分子)
             SELECT
             4 AS seq,
-            SUM(CASE WHEN t.visitdate &gt;= #{startDate} AND t.visitdate &lt; #{endDate} + 1
-                     THEN TO_NUMBER(NVL(t.prezhtodaycount, '0')) ELSE 0 END) AS current_value,
-            SUM(CASE WHEN t.visitdate &gt;= #{lastStartDate} AND t.visitdate &lt; #{lastEndDate} + 1
-                     THEN TO_NUMBER(NVL(t.prezhtodaycount, '0')) ELSE 0 END) AS last_value
-            FROM POWERETL_ODS.MEDICALORDERS t
-            WHERE t.visitdate &gt;= #{lastStartDate}
-              AND t.visitdate &lt; #{endDate} + 1
+            NVL(SUM(CASE WHEN sy.CREATE_TIME &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND sy.CREATE_TIME &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+                     THEN 1 ELSE 0 END), 0) AS current_value,
+            NVL(SUM(CASE WHEN sy.CREATE_TIME &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND sy.CREATE_TIME &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
+                     THEN 1 ELSE 0 END), 0) AS last_value
+            FROM POWERIHSP_OUTP_DRUG_MASTER sy
+            JOIN (<include refid="titledDoctors"/>) dt ON dt.doctor_code = sy.doctor_code
+            WHERE sy.CREATE_TIME &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
+              AND sy.CREATE_TIME &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+              AND sy.prescription_status IN ('3','8','9','11','13')
+              AND sy.enterprise_id = 'xinqiao'
             UNION ALL
-            -- 5 药品处方执行量:MEDICALORDERS支付数(prezftodaycount,执行率分子)
+            -- 5 药品处方执行量:同上且prescription_status=13(执行率分子)
             SELECT
             5 AS seq,
-            SUM(CASE WHEN t.visitdate &gt;= #{startDate} AND t.visitdate &lt; #{endDate} + 1
-                     THEN TO_NUMBER(NVL(t.prezftodaycount, '0')) ELSE 0 END) AS current_value,
-            SUM(CASE WHEN t.visitdate &gt;= #{lastStartDate} AND t.visitdate &lt; #{lastEndDate} + 1
-                     THEN TO_NUMBER(NVL(t.prezftodaycount, '0')) ELSE 0 END) AS last_value
-            FROM POWERETL_ODS.MEDICALORDERS t
-            WHERE t.visitdate &gt;= #{lastStartDate}
-              AND t.visitdate &lt; #{endDate} + 1
+            NVL(SUM(CASE WHEN sy.CREATE_TIME &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND sy.CREATE_TIME &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+                     THEN 1 ELSE 0 END), 0) AS current_value,
+            NVL(SUM(CASE WHEN sy.CREATE_TIME &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND sy.CREATE_TIME &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
+                     THEN 1 ELSE 0 END), 0) AS last_value
+            FROM POWERIHSP_OUTP_DRUG_MASTER sy
+            JOIN (<include refid="titledDoctors"/>) dt ON dt.doctor_code = sy.doctor_code
+            WHERE sy.CREATE_TIME &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
+              AND sy.CREATE_TIME &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+              AND sy.prescription_status = '13'
+              AND sy.enterprise_id = 'xinqiao'
             UNION ALL
             -- 6 挂号费（元）：占位，补源表后删1=2，THEN 1换金额列
             SELECT
             6 AS seq,
-            SUM(CASE WHEN ro.out_date &gt;= #{startDate} AND ro.out_date &lt; #{endDate} + 1
+            SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
                      THEN 1 ELSE 0 END) AS current_value,
-            SUM(CASE WHEN ro.out_date &gt;= #{lastStartDate} AND ro.out_date &lt; #{lastEndDate} + 1
+            SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
                      THEN 1 ELSE 0 END) AS last_value
             FROM powerihsp_register_order ro
-            WHERE ro.out_date &gt;= #{lastStartDate}
-              AND ro.out_date &lt; #{endDate} + 1
+            WHERE ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
+              AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
               AND 1 = 2
             UNION ALL
             -- 7 检查检验费（元）：占位，补源表后删1=2，THEN 1换金额列
             SELECT
             7 AS seq,
-            SUM(CASE WHEN ro.out_date &gt;= #{startDate} AND ro.out_date &lt; #{endDate} + 1
+            SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
                      THEN 1 ELSE 0 END) AS current_value,
-            SUM(CASE WHEN ro.out_date &gt;= #{lastStartDate} AND ro.out_date &lt; #{lastEndDate} + 1
+            SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
                      THEN 1 ELSE 0 END) AS last_value
             FROM powerihsp_register_order ro
-            WHERE ro.out_date &gt;= #{lastStartDate}
-              AND ro.out_date &lt; #{endDate} + 1
+            WHERE ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
+              AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
               AND 1 = 2
             UNION ALL
             -- 8 药品处方费（元）：占位，补源表后删1=2，THEN 1换金额列
             SELECT
             8 AS seq,
-            SUM(CASE WHEN ro.out_date &gt;= #{startDate} AND ro.out_date &lt; #{endDate} + 1
+            SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
                      THEN 1 ELSE 0 END) AS current_value,
-            SUM(CASE WHEN ro.out_date &gt;= #{lastStartDate} AND ro.out_date &lt; #{lastEndDate} + 1
+            SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
                      THEN 1 ELSE 0 END) AS last_value
             FROM powerihsp_register_order ro
-            WHERE ro.out_date &gt;= #{lastStartDate}
-              AND ro.out_date &lt; #{endDate} + 1
+            WHERE ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
+              AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
               AND 1 = 2
             UNION ALL
-            -- 9 住院证开具量:MEDICALORDERS住院证列区间求和
+            -- 9 住院证开具量:hospermit_master计数
             SELECT
             9 AS seq,
-            SUM(CASE WHEN t.visitdate &gt;= #{startDate} AND t.visitdate &lt; #{endDate} + 1
-                     THEN TO_NUMBER(NVL(t.ryz, '0')) ELSE 0 END) AS current_value,
-            SUM(CASE WHEN t.visitdate &gt;= #{lastStartDate} AND t.visitdate &lt; #{lastEndDate} + 1
-                     THEN TO_NUMBER(NVL(t.ryz, '0')) ELSE 0 END) AS last_value
-            FROM POWERETL_ODS.MEDICALORDERS t
-            WHERE t.visitdate &gt;= #{lastStartDate}
-              AND t.visitdate &lt; #{endDate} + 1
+            NVL(SUM(CASE WHEN hp.create_time &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND hp.create_time &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+                     THEN 1 ELSE 0 END), 0) AS current_value,
+            NVL(SUM(CASE WHEN hp.create_time &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND hp.create_time &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
+                     THEN 1 ELSE 0 END), 0) AS last_value
+            FROM powerihsp_hospermit_master hp
+            WHERE hp.create_time &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
+              AND hp.create_time &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+              AND hp.enterprise_id = 'xinqiao'
             UNION ALL
-            -- 10 药品处方单总数:MEDICALORDERS西药+中药(全部医生口径,与seq4仅职称医生不同)
+            -- 10 药品处方单总数:outp_drug_master西药+中药(全部医生口径,与seq4仅职称医生不同)
             SELECT
             10 AS seq,
-            SUM(CASE WHEN t.visitdate &gt;= #{startDate} AND t.visitdate &lt; #{endDate} + 1
-                     THEN TO_NUMBER(NVL(t.prexy, '0')) + TO_NUMBER(NVL(t.prezy, '0')) ELSE 0 END) AS current_value,
-            SUM(CASE WHEN t.visitdate &gt;= #{lastStartDate} AND t.visitdate &lt; #{lastEndDate} + 1
-                     THEN TO_NUMBER(NVL(t.prexy, '0')) + TO_NUMBER(NVL(t.prezy, '0')) ELSE 0 END) AS last_value
-            FROM POWERETL_ODS.MEDICALORDERS t
-            WHERE t.visitdate &gt;= #{lastStartDate}
-              AND t.visitdate &lt; #{endDate} + 1
+            NVL(SUM(CASE WHEN sy.CREATE_TIME &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND sy.CREATE_TIME &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+                     THEN 1 ELSE 0 END), 0) AS current_value,
+            NVL(SUM(CASE WHEN sy.CREATE_TIME &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND sy.CREATE_TIME &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
+                     THEN 1 ELSE 0 END), 0) AS last_value
+            FROM POWERIHSP_OUTP_DRUG_MASTER sy
+            WHERE sy.CREATE_TIME &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
+              AND sy.CREATE_TIME &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+              AND sy.PRESCRIPTION_NATURE IN ('0','1','2')
+              AND sy.prescription_status IN ('3','8','9','11','13')
+              AND sy.enterprise_id = 'xinqiao'
             UNION ALL
-            -- 11 院前检查单数:MEDICALORDERS院前检查列区间求和
+            -- 11 院前检查单数:inspection_master recipel_type=0且IN_HOS_PROOF=1
             SELECT
             11 AS seq,
-            SUM(CASE WHEN t.visitdate &gt;= #{startDate} AND t.visitdate &lt; #{endDate} + 1
-                     THEN TO_NUMBER(NVL(t.inhosjcjy, '0')) ELSE 0 END) AS current_value,
-            SUM(CASE WHEN t.visitdate &gt;= #{lastStartDate} AND t.visitdate &lt; #{lastEndDate} + 1
-                     THEN TO_NUMBER(NVL(t.inhosjcjy, '0')) ELSE 0 END) AS last_value
-            FROM POWERETL_ODS.MEDICALORDERS t
-            WHERE t.visitdate &gt;= #{lastStartDate}
-              AND t.visitdate &lt; #{endDate} + 1
+            NVL(SUM(CASE WHEN t1.CREATE_TIME &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND t1.CREATE_TIME &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+                     THEN 1 ELSE 0 END), 0) AS current_value,
+            NVL(SUM(CASE WHEN t1.CREATE_TIME &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND t1.CREATE_TIME &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
+                     THEN 1 ELSE 0 END), 0) AS last_value
+            FROM powerihsp_inspection_master t1
+            WHERE t1.CREATE_TIME &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
+              AND t1.CREATE_TIME &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+              AND t1.recipel_type = 0
+              AND t1.IN_HOS_PROOF = 1
+              AND t1.prescription_status IN ('3','8','9','11','13')
+              AND t1.enterprise_id = 'xinqiao'
         )
         ORDER BY seq
     </select>
 
     <!-- ============================================================ -->
-    <!-- 查询互医质控业务分析图表：源表register order，已接诊(order_status>=2)按业务类型分组计数， -->
-    <!-- 单次扫描覆盖当月+上月两段日期，CASE分别累加，倒序按当月 -->
+    <!-- 查询互医质控业务分析图表：对应页面「业务分析」图,按业务类型(consult_type_name)分布 -->
+    <!--  category=业务类型(图文问诊/视频问诊等), currentValue=本期接诊量, lastValue=上期接诊量 -->
+    <!-- 口径:已接诊(order_status>=2),单次扫描两段日期CASE分别累加,倒序按本期 -->
     <!-- ============================================================ -->
     <select id="queryBusinessChart" resultType="com.reports.entity.InternetHospitalBizEntity">
         SELECT
         ro.consult_type_name AS category,
-        SUM(CASE WHEN ro.out_date &gt;= #{startDate} AND ro.out_date &lt; #{endDate} + 1
+        SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
                  THEN 1 ELSE 0 END) AS currentValue,
-        SUM(CASE WHEN ro.out_date &gt;= #{lastStartDate} AND ro.out_date &lt; #{lastEndDate} + 1
+        SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
                  THEN 1 ELSE 0 END) AS lastValue
         FROM powerihsp_register_order ro
         JOIN public_order_master om ON ro.order_id = om.order_id
-        WHERE ro.out_date &gt;= #{lastStartDate}
-          AND ro.out_date &lt; #{endDate} + 1
+        WHERE ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
+          AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
           AND ro.order_status &gt;= 2
         GROUP BY ro.consult_type_name
-        ORDER BY SUM(CASE WHEN ro.out_date &gt;= #{startDate} AND ro.out_date &lt; #{endDate} + 1
+        ORDER BY SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
                           THEN 1 ELSE 0 END) DESC
     </select>
 
     <!-- ============================================================ -->
-    <!-- 查询互医质控科室接诊量排行：源表register order，已接诊(order_status>=2)按科室分组， -->
-    <!-- 单次扫描覆盖当月+上月两段日期，CASE分别累加，倒序按当月 -->
+    <!-- 查询互医质控科室接诊量排行：对应页面「临床医技科室接诊量排行」表 -->
+    <!--  rankNum=排名, deptName=科室, currentMonth=本期接诊量, lastMonth=上期接诊量 -->
+    <!-- 口径:已接诊(order_status>=2)按科室分组,单次扫描两段日期CASE分别累加,倒序按本期 -->
     <!-- ============================================================ -->
     <select id="queryDeptRanking" resultType="com.reports.entity.InternetHospitalDeptRnkEntity">
         SELECT ROWNUM AS rankNum, deptName, currentMonth, lastMonth FROM (
             SELECT
             ro.dept_name AS deptName,
-            SUM(CASE WHEN ro.out_date &gt;= #{startDate} AND ro.out_date &lt; #{endDate} + 1
+            SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
                      THEN 1 ELSE 0 END) AS currentMonth,
-            SUM(CASE WHEN ro.out_date &gt;= #{lastStartDate} AND ro.out_date &lt; #{lastEndDate} + 1
+            SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
                      THEN 1 ELSE 0 END) AS lastMonth
             FROM powerihsp_register_order ro
-            WHERE ro.out_date &gt;= #{lastStartDate}
-              AND ro.out_date &lt; #{endDate} + 1
+            WHERE ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
+              AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
               AND ro.order_status &gt;= 2
             GROUP BY ro.dept_code, ro.dept_name
-            ORDER BY SUM(CASE WHEN ro.out_date &gt;= #{startDate} AND ro.out_date &lt; #{endDate} + 1
+            ORDER BY SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
                               THEN 1 ELSE 0 END) DESC
         )
     </select>
 
     <!-- ============================================================ -->
-    <!-- 查询互医质控医生接诊量排行：源表register order，已接诊(order_status>=2)按医生分组计数 -->
+    <!-- 查询互医质控医生接诊量排行：对应页面「医生个人接诊量排行」表 -->
+    <!--  rankNum=排名, doctorName=医生, deptName=科室, title=职称, currentMonth=本期接诊量 -->
+    <!-- 口径:已接诊(order_status>=2)按医生分组计数,倒序 -->
     <!-- ============================================================ -->
     <select id="queryDoctorRanking" resultType="com.reports.entity.InternetHospitalDocRnkEntity">
         SELECT ROWNUM AS rankNum, doctorName, deptName, title, currentMonth FROM (
@@ -268,8 +317,8 @@
             ro.doctor_title AS title,
             COUNT(1) AS currentMonth
             FROM powerihsp_register_order ro
-            WHERE ro.out_date &gt;= #{startDate}
-              AND ro.out_date &lt; #{endDate} + 1
+            WHERE ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+              AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
               AND ro.order_status &gt;= 2
             GROUP BY ro.doctor_code, ro.doctor_name, ro.dept_name, ro.doctor_title
             ORDER BY COUNT(1) DESC
@@ -277,7 +326,9 @@
     </select>
 
     <!-- ============================================================ -->
-    <!-- 查询互医质控平均候诊时长科室TOP20：源表register order，候诊=reception_time-create_time(天数差x1440转分钟) -->
+    <!-- 查询互医质控平均候诊时长科室TOP20：对应页面「候诊时长」图 -->
+    <!--  category=科室, dataValue=平均候诊时长(分钟) -->
+    <!-- 口径:已接诊(order_status>=2),候诊=reception_time-create_time(天数差x1440转分钟)按科室取平均,取前20 -->
     <!-- ============================================================ -->
     <select id="queryGrowthChart" resultType="com.reports.entity.InternetHospitalGrwEntity">
         SELECT category, dataValue FROM (
@@ -285,8 +336,8 @@
             ro.dept_name AS category,
             ROUND(AVG((ro.reception_time - ro.create_time) * 1440), 0) AS dataValue
             FROM powerihsp_register_order ro
-            WHERE ro.out_date &gt;= #{startDate}
-              AND ro.out_date &lt; #{endDate} + 1
+            WHERE ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+              AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
               AND ro.order_status &gt;= 2
               AND ro.reception_time IS NOT NULL
               AND ro.create_time IS NOT NULL
