@@ -32,7 +32,7 @@ COMMENT ON COLUMN mpp_cash_inp_master.audit_by IS '审核人';
 COMMENT ON COLUMN mpp_cash_inp_master.audit_time IS '审核时间';
 COMMENT ON COLUMN mpp_cash_inp_master.audit_remark IS '审核意见（不通过原因等）';
 
-CREATE INDEX idx_mpp_cash_master_report_date ON mpp_cash_inp_master(report_date);
+CREATE INDEX idx_mpp_cash_master_rpt_date ON mpp_cash_inp_master(report_date);
 CREATE INDEX idx_mpp_cash_master_valid_flag ON mpp_cash_inp_master(valid_flag);
 
 CREATE OR REPLACE TRIGGER trg_mpp_cash_master_update

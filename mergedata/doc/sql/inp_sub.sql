@@ -9,23 +9,22 @@ CREATE TABLE mpp_cash_inp_sub (
     today_adv_payment NUMBER(18,2),             -- （2）今日预交金数（HIS收入）
     today_settle_income NUMBER(18,2),           -- （3）今日结账收入（HIS收入）
     today_pre_hosp_income NUMBER(18,2),         -- （4）今日院前收入（HIS收入）
-    traffic_assist_fund NUMBER(18,2),           -- （5）交通救助金
-    blood_donate_compensate NUMBER(18,2),       -- （6）无偿献血补偿金
-    receivable_payable NUMBER(18,2),            -- （7）应收款/应付款
-    today_report_total NUMBER(18,2),            -- （8）今日报表数合计（公式）
-    prev_day_iou NUMBER(18,2),                  -- （9）前日欠条
-    today_outp_iou NUMBER(18,2),                -- （10）今日门诊借条
-    today_report_rec_pay NUMBER(18,2),          -- （11）今日报表应收/应付（公式）
-    today_adv_receipt NUMBER(18,2),             -- （12）今日暂收款
-    today_report_cash_rcv NUMBER(18,2),         -- （13）今日报表实收
-    today_cash_rcv_total NUMBER(18,2),          -- （14）今日实收现金合计（公式）
-    balance NUMBER(18,2),                       -- （15）余额（公式）
-    adjustment NUMBER(18,2),                    -- （16）调整
-    today_iou NUMBER(18,2),                     -- （17）今日欠条（公式）
-    holiday_payment NUMBER(18,2),               -- （18）节假日交款
-    cash_on_hand NUMBER(18,2),                  -- （19）库存现金
-    difference NUMBER(18,2),                    -- （20）差额（公式）
-    remarks VARCHAR2(500),                      -- （21）备注
+    other_income NUMBER(18,2),                  -- （5）其它收入-手工报表
+    sub_remark VARCHAR2(500),                   -- （6）备注（手工录入）
+    today_report_total NUMBER(18,2),            -- （7）今日报表数合计（公式）
+    prev_day_iou NUMBER(18,2),                  -- （8）前日欠条
+    today_outp_iou NUMBER(18,2),                -- （9）今日借款
+    today_report_rec_pay NUMBER(18,2),          -- （10）今日应收合计（公式）
+    today_adv_receipt NUMBER(18,2),             -- （11）今日暂收款
+    today_report_cash_rcv NUMBER(18,2),         -- （12）今日报表实收
+    today_cash_rcv_total NUMBER(18,2),          -- （13）今日实收现金合计（公式）
+    balance NUMBER(18,2),                       -- （14）余额（公式）
+    adjustment NUMBER(18,2),                    -- （15）调整
+    today_iou NUMBER(18,2),                     -- （16）今日欠条（公式）
+    holiday_payment NUMBER(18,2),               -- （17）节假日交款
+    cash_on_hand NUMBER(18,2),                  -- （18）库存现金
+    difference NUMBER(18,2),                    -- （19）差额（公式）
+    remarks VARCHAR2(500),                      -- 备注（手工录入）
     created_time TIMESTAMP DEFAULT SYSTIMESTAMP,-- 创建时间
     updated_time TIMESTAMP DEFAULT SYSTIMESTAMP,-- 更新时间
     created_by VARCHAR2(50),                    -- 创建人
@@ -41,22 +40,21 @@ COMMENT ON COLUMN mpp_cash_inp_sub.prev_day_adv_receipt IS '（1）前日暂收�
 COMMENT ON COLUMN mpp_cash_inp_sub.today_adv_payment IS '（2）今日预交金数（HIS收入）';
 COMMENT ON COLUMN mpp_cash_inp_sub.today_settle_income IS '（3）今日结账收入（HIS收入）';
 COMMENT ON COLUMN mpp_cash_inp_sub.today_pre_hosp_income IS '（4）今日院前收入（HIS收入）';
-COMMENT ON COLUMN mpp_cash_inp_sub.traffic_assist_fund IS '（5）交通救助金';
-COMMENT ON COLUMN mpp_cash_inp_sub.blood_donate_compensate IS '（6）无偿献血补偿金';
-COMMENT ON COLUMN mpp_cash_inp_sub.receivable_payable IS '（7）应收款/应付款';
-COMMENT ON COLUMN mpp_cash_inp_sub.today_report_total IS '（8）今日报表数合计（公式）';
-COMMENT ON COLUMN mpp_cash_inp_sub.prev_day_iou IS '（9）前日欠条';
-COMMENT ON COLUMN mpp_cash_inp_sub.today_outp_iou IS '（10）今日门诊借条';
-COMMENT ON COLUMN mpp_cash_inp_sub.today_report_rec_pay IS '（11）今日报表应收/应付（公式）';
-COMMENT ON COLUMN mpp_cash_inp_sub.today_adv_receipt IS '（12）今日暂收款';
-COMMENT ON COLUMN mpp_cash_inp_sub.today_report_cash_rcv IS '（13）今日报表实收';
-COMMENT ON COLUMN mpp_cash_inp_sub.today_cash_rcv_total IS '（14）今日实收现金合计（公式）';
-COMMENT ON COLUMN mpp_cash_inp_sub.balance IS '（15）余额（公式）';
-COMMENT ON COLUMN mpp_cash_inp_sub.adjustment IS '（16）调整';
-COMMENT ON COLUMN mpp_cash_inp_sub.today_iou IS '（17）今日欠条（公式）';
-COMMENT ON COLUMN mpp_cash_inp_sub.holiday_payment IS '（18）节假日交款';
-COMMENT ON COLUMN mpp_cash_inp_sub.cash_on_hand IS '（19）库存现金';
-COMMENT ON COLUMN mpp_cash_inp_sub.difference IS '（20）差额（公式）';
+COMMENT ON COLUMN mpp_cash_inp_sub.other_income IS '（5）其它收入-手工报表';
+COMMENT ON COLUMN mpp_cash_inp_sub.sub_remark IS '（6）备注（手工录入）';
+COMMENT ON COLUMN mpp_cash_inp_sub.today_report_total IS '（7）今日报表数合计（公式）';
+COMMENT ON COLUMN mpp_cash_inp_sub.prev_day_iou IS '（8）前日欠条';
+COMMENT ON COLUMN mpp_cash_inp_sub.today_outp_iou IS '（9）今日借款';
+COMMENT ON COLUMN mpp_cash_inp_sub.today_report_rec_pay IS '（10）今日应收合计（公式）';
+COMMENT ON COLUMN mpp_cash_inp_sub.today_adv_receipt IS '（11）今日暂收款';
+COMMENT ON COLUMN mpp_cash_inp_sub.today_report_cash_rcv IS '（12）今日报表实收';
+COMMENT ON COLUMN mpp_cash_inp_sub.today_cash_rcv_total IS '（13）今日实收现金合计（公式）';
+COMMENT ON COLUMN mpp_cash_inp_sub.balance IS '（14）余额（公式）';
+COMMENT ON COLUMN mpp_cash_inp_sub.adjustment IS '（15）调整';
+COMMENT ON COLUMN mpp_cash_inp_sub.today_iou IS '（16）今日欠条（公式）';
+COMMENT ON COLUMN mpp_cash_inp_sub.holiday_payment IS '（17）节假日交款';
+COMMENT ON COLUMN mpp_cash_inp_sub.cash_on_hand IS '（18）库存现金';
+COMMENT ON COLUMN mpp_cash_inp_sub.difference IS '（19）差额（公式）';
 COMMENT ON COLUMN mpp_cash_inp_sub.remarks IS '备注';
 COMMENT ON COLUMN mpp_cash_inp_sub.created_time IS '创建时间';
 COMMENT ON COLUMN mpp_cash_inp_sub.updated_time IS '更新时间';

@@ -49,32 +49,27 @@ public class InpCashSubEntity {
     private BigDecimal todayPreHospitalIncome;       //4 his今日院前收入
 
     @Getter(AccessLevel.NONE)
-    @TableField("traffic_assist_fund")
-    private BigDecimal trafficAssistanceFund;        //5 交通救助金
+    @TableField("other_income")
+    private BigDecimal otherIncome;                  //5 其它收入-手工报表
 
-    @Getter(AccessLevel.NONE)
-    @TableField("blood_donate_compensate")
-    private BigDecimal bloodDonationCompensation;    //6 献血补偿金
-
-    @Getter(AccessLevel.NONE)
-    @TableField("receivable_payable")
-    private BigDecimal receivablePayable;            //7 应收款/应付款
+    @TableField("sub_remark")
+    private String subRemark;                    //6 备注（手工录入）
 
     @Getter(AccessLevel.NONE)
     @TableField("today_report_total")
-    private BigDecimal todayReportTotal;             //8 =（2）-（1）+（3）+（4）+（5）+(6)+(7) 今日报表数合计
+    private BigDecimal todayReportTotal;             //7 =（2）-（1）+（3）+（4）+（5） 今日报表数合计
 
     @Getter(AccessLevel.NONE)
     @TableField("prev_day_iou")
-    private BigDecimal previousDayIOU;               //9 前日欠条
+    private BigDecimal previousDayIOU;               //8 前日欠条
 
     @Getter(AccessLevel.NONE)
     @TableField("today_outp_iou")
-    private BigDecimal todayOutpatientIOU;           //10 今日门诊借条
+    private BigDecimal todayOutpatientIOU;           //9 今日借款
 
     @Getter(AccessLevel.NONE)
     @TableField("today_report_rec_pay")
-    private BigDecimal todayReportReceivablePayable; //（11）=（8）+（9）+（10）-（18） 今日报表应收/应付
+    private BigDecimal todayReportReceivablePayable; //（10）=（7）+（8）+（9）-（17） 今日应收合计
 
 
     /**
@@ -82,31 +77,31 @@ public class InpCashSubEntity {
      */
     @Getter(AccessLevel.NONE)
     @TableField("today_adv_receipt")
-    private BigDecimal todayAdvanceReceipt;       //（12）=（8）-（11） 今日暂收款
+    private BigDecimal todayAdvanceReceipt;       //（11）今日暂收款
 
     @Getter(AccessLevel.NONE)
     @TableField("today_report_cash_rcv")
-    private BigDecimal todayReportCashReceived;      //13 今日报表实收
+    private BigDecimal todayReportCashReceived;      //12 今日报表实收
 
     @Getter(AccessLevel.NONE)
     @TableField("today_cash_rcv_total")
-    private BigDecimal todayCashReceivedTotal;       //（14）=（12）+（13） 今日实收现金合计
+    private BigDecimal todayCashReceivedTotal;       //（13）=（11）+（12） 今日实收现金合计
 
     @Getter(AccessLevel.NONE)
     @TableField("balance")
-    private BigDecimal balance;                      //（15）=（13）-（11）余额
+    private BigDecimal balance;                      //（14）=（12）-（10）余额
 
     @Getter(AccessLevel.NONE)
     @TableField("adjustment")
-    private BigDecimal adjustment;                   //16 调整
+    private BigDecimal adjustment;                   //15 调整
 
     @Getter(AccessLevel.NONE)
     @TableField("today_iou")
-    private BigDecimal todayIOU;                     //（17）=（16）-（15） 今日欠条
+    private BigDecimal todayIOU;                     //（16）=（15）-（14） 今日欠条
 
     @Getter(AccessLevel.NONE)
     @TableField("holiday_payment")
-    private BigDecimal holidayPayment;               //18 节假日交款
+    private BigDecimal holidayPayment;               //17 节假日交款
 
 
     /**
@@ -114,14 +109,14 @@ public class InpCashSubEntity {
      */
     @Getter(AccessLevel.NONE)
     @TableField("cash_on_hand")
-    private BigDecimal cashOnHand;                   //19 库存现金
+    private BigDecimal cashOnHand;                   //18 库存现金
 
     @Getter(AccessLevel.NONE)
     @TableField("difference")
-    private BigDecimal difference;                   //（20）=（19）-（11）  差额
+    private BigDecimal difference;                   //（19）=（18）-（10）-（17） 差额
 
     @TableField("remarks")
-    private String remarks;                      //21  备注
+    private String remarks;                      //备注（手工录入）
 
 
     /*
@@ -144,9 +139,7 @@ public class InpCashSubEntity {
     public BigDecimal getTodayAdvancePayment() { return safeBigDecimal(todayAdvancePayment); }
     public BigDecimal getTodaySettlementIncome() { return safeBigDecimal(todaySettlementIncome); }
     public BigDecimal getTodayPreHospitalIncome() { return safeBigDecimal(todayPreHospitalIncome); }
-    public BigDecimal getTrafficAssistanceFund() { return safeBigDecimal(trafficAssistanceFund); }
-    public BigDecimal getBloodDonationCompensation() { return safeBigDecimal(bloodDonationCompensation); }
-    public BigDecimal getReceivablePayable() { return safeBigDecimal(receivablePayable); }
+    public BigDecimal getOtherIncome() { return safeBigDecimal(otherIncome); }
     public BigDecimal getTodayReportTotal() { return safeBigDecimal(todayReportTotal); }
     public BigDecimal getPreviousDayIOU() { return safeBigDecimal(previousDayIOU); }
     public BigDecimal getTodayOutpatientIOU() { return safeBigDecimal(todayOutpatientIOU); }

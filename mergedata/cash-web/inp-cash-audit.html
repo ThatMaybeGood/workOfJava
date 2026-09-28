@@ -291,7 +291,7 @@
         /* 审核水印：椭圆章样式 */
         .watermark {
             position: absolute;
-            inset: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             display: none;
             align-items: center;
             justify-content: center;
@@ -332,7 +332,7 @@
             border-collapse: separate;
             border-spacing: 0;
             font-size: 13px;
-            min-width: 2200px;
+            
         }
 
         .data-table th {
@@ -344,8 +344,8 @@
             text-align: center;
             vertical-align: middle;
             line-height: 1.4;
-            min-width: 90px;
-            word-break: break-word;
+            max-width: 85px;
+            word-break: break-all;
             white-space: normal;
         }
 
@@ -385,8 +385,6 @@
             vertical-align: middle;
             height: 36px;
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .data-table td.text-cell {
@@ -394,7 +392,7 @@
             word-break: break-word;
             overflow: visible;
             text-align: center;
-            min-width: 140px;
+            max-width: 85px;
         }
 
         .data-table th.group-morning,
@@ -442,10 +440,9 @@
             background: #ffffff !important;
             font-weight: 700;
             z-index: 15;
+            min-width: 60px;
             border: 1px solid #c8d4dc;
-            width: 115px;
-            min-width: 115px;
-        }
+                    }
 
         .data-table tr:nth-child(even) td { background-color: #f8fafc; }
         .data-table tr:nth-child(even) td:first-child,
@@ -497,6 +494,7 @@
         }
 
         .header-note {
+            word-break: break-all;
             color: #d32f2f;
             font-size: 11px;
             font-weight: 500;
@@ -514,7 +512,7 @@
 
         .loading-overlay {
             position: fixed;
-            inset: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(255,255,255,0.85);
             display: none;
             align-items: center;
@@ -543,7 +541,7 @@
         /* 审核意见弹窗 */
         .modal-mask {
             position: fixed;
-            inset: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0, 0, 0, 0.4);
             display: none;
             align-items: center;
@@ -762,48 +760,46 @@
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th colspan="23" class="table-main-title">
+                        <th colspan="22" class="table-main-title">
                             <span id="mainTitle">1月1日 审核/出纳 报表现金登记表</span>
                             <span class="table-main-subtitle" id="reportDateDisplay">登记时间：2026年1月2日</span>
                         </th>
                     </tr>
                     <tr>
-                        <th class="group-header group-morning"></th>
-                        <th class="group-header group-morning"></th>
-                        <th colspan="8" class="group-header group-morning">（上午）统计报表现金数据</th>
+                        <th class="group-header"></th>
+                        <th class="group-header"></th>
+                        <th class="group-header"></th>
+                        <th colspan="9" class="group-header group-morning">（上午）统计报表现金数据</th>
                         <th colspan="7" class="group-header group-afternoon">（下午）收取现金数据</th>
-                        <th colspan="6" class="group-header group-retain">收费员留存</th>
+                        <th colspan="3" class="group-header group-retain">收费员留存</th>
                     </tr>
                     <tr>
                         <th class="group-morning">序号</th>
                         <th class="group-morning">收费员</th>
-                        <th class="group-morning"><span class="header-main">前日暂收款</span><span class="header-note">（1）（自动提取前日暂收数据）<span class="note-date" data-note="prev"></span></span></th>
-                        <th class="group-morning"><span class="header-main">今日预交金数</span><span class="header-note">（2）（收入：系统自动录入）<span class="note-date" data-note="curr"></span></span></th>
-                        <th class="group-morning"><span class="header-main">今日结账收入</span><span class="header-note">（3）（收入：系统自动录入）<span class="note-date" data-note="curr"></span></span></th>
-                        <th class="group-morning"><span class="header-main">今日院前收入</span><span class="header-note">（4）（收入：系统自动录入）<span class="note-date" data-note="curr"></span></span></th>
-                        <th class="group-morning"><span class="header-main">交通救助金</span><span class="header-note">（5）（手工录入）<span class="note-date" data-note="next"></span></span></th>
-                        <th class="group-morning"><span class="header-main">无偿献血补偿金</span><span class="header-note">（6）（手工录入）<span class="note-date" data-note="next"></span></span></th>
-                        <th class="group-morning"><span class="header-main">应收款/应付款</span><span class="header-note">（7）（手工录入）<span class="note-date" data-note="next"></span></span></th>
-                        <th class="group-morning"><span class="header-main">今日报表数合计</span><span class="header-note">（8）=（2）-（1）+（3）
-							+（4）+（5）+
-							（6）+（7）（公式）</span></th>
-                        <th class="group-afternoon"><span class="header-main">前日欠条</span><span class="header-note">（9）（自动提取前日欠条数据）<span class="note-date" data-note="prev"></span></span></th>
-                        <th class="group-afternoon"><span class="header-main">今日门诊借条</span><span class="header-note">（10）（手工录入）<span class="note-date" data-note="next"></span></span></th>
-                        <th class="group-afternoon"><span class="header-main">今日报表应收／应付</span><span class="header-note">（11）=（8）+（9）+（10）-（18）（公式）</span></th>
-                        <th class="group-afternoon"><span class="header-main">今日暂收款</span><span class="header-note">（12）（手工录入）<span class="note-date" data-note="next"></span></span></th>
-                        <th class="group-afternoon"><span class="header-main">今日报表实收</span><span class="header-note">（13）（手工录入）<span class="note-date" data-note="next"></span></span></th>
-                        <th class="group-afternoon"><span class="header-main">今日实收现金合计</span><span class="header-note">（14）=（12）+（13）（公式）</span></th>
-                        <th class="group-afternoon"><span class="header-main">余额</span><span class="header-note">（15）=（13）-（11）（公式）</span></th>
-                        <th class="group-retain"><span class="header-main">调整</span><span class="header-note">（16）（手工录入）<span class="note-date" data-note="next"></span></span></th>
-                        <th class="group-retain"><span class="header-main">今日欠条</span><span class="header-note">（17）=（16）-（15）（公式）</span></th>
-                        <th class="group-retain"><span class="header-main">节假日交款</span><span class="header-note">（18）（手工录入）<span class="note-date" data-note="next"></span></span></th>
-                        <th class="group-retain"><span class="header-main">库存现金</span><span class="header-note">（19）（手工录入）<span class="note-date" data-note="next"></span></span></th>
-                        <th class="group-retain"><span class="header-main">差额</span><span class="header-note">（20）=（19）-（11）-（18）（公式）</span></th>
+                        <th><span class="header-main">前日暂收款（1）</span><span class="header-note">（自动提取前日暂收数据）</span></th>
+                        <th class="group-morning"><span class="header-main">今日预交金数（2）</span></th>
+                        <th class="group-morning"><span class="header-main">今日结账收入（3）</span></th>
+                        <th class="group-morning"><span class="header-main">今日院前收入（4）</span></th>
+                        <th class="group-morning"><span class="header-main">其它收入（5）</span><span class="header-note">（手工录入）</span></th>
+                        <th class="group-morning"><span class="header-main">备注（6）</span><span class="header-note">（手工录入）</span></th>
+                        <th class="group-morning"><span class="header-main">今日报表数合计（7）</span><span class="header-note">=（2）-（1）+（3）+（4）+（5）（公式）</span></th>
+                        <th class="group-morning"><span class="header-main">前日欠条（8）</span><span class="header-note">（自动提取前日欠条数据）</span></th>
+                        <th class="group-morning"><span class="header-main">今日借款（9）</span><span class="header-note">（手工录入）</span></th>
+                        <th class="group-morning"><span class="header-main">今日应收合计（10）</span><span class="header-note">=（7）+（8）+（9）-（17）（公式）</span></th>
+                        <th class="group-afternoon"><span class="header-main">今日暂收款（11）</span><span class="header-note">（手工录入）</span></th>
+                        <th class="group-afternoon"><span class="header-main">今日报表实收（12）</span><span class="header-note">（手工录入）</span></th>
+                        <th class="group-afternoon"><span class="header-main">今日实收现金合计（13）</span><span class="header-note">=（11）+（12）（公式）</span></th>
+                        <th class="group-afternoon"><span class="header-main">余额（14）</span><span class="header-note">=（12）-（10）（公式）</span></th>
+                        <th class="group-afternoon"><span class="header-main">调整（15）</span><span class="header-note">（手工录入）</span></th>
+                        <th class="group-afternoon"><span class="header-main">今日欠条（16）</span><span class="header-note">=（15）-（14）（公式）</span></th>
+                        <th class="group-afternoon"><span class="header-main">节假日交款（17）</span><span class="header-note">（手机端：收费员手工录入）</span></th>
+                        <th class="group-retain"><span class="header-main">库存现金（18）</span><span class="header-note">（手机端：收费员手工录入）</span></th>
+                        <th class="group-retain"><span class="header-main">差额（19）</span><span class="header-note">=（18）-（10）-（17）（公式）</span></th>
                         <th class="group-retain"><span class="header-main">备注</span><span class="header-note">（手工录入）</span></th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <tr><td colspan="23" class="empty-data">请选择日期并点击查询</td></tr>
+                    <tr><td colspan="22" class="empty-data">请选择日期并点击查询</td></tr>
                 </tbody>
             </table>
         </div>
@@ -873,26 +869,25 @@
     const COLUMN_CONFIG = [
         { field: null, title: "序号", align: "center", editable: false, computed: false },
         { field: "operator_name", title: "收费员", align: "left", editable: false, computed: false, isText: true },
-        { field: "previous_day_advance_receipt", title: "前日暂收款（1）", editable: true, computed: false, note: "（1）（自动提取前日暂收数据）" },
-        { field: "today_advance_payment", title: "今日预交金数（2）", editable: true, computed: false, note: "（2）（收入：系统自动录入）" },
-        { field: "today_settlement_income", title: "今日结账收入（3）", editable: true, computed: false, note: "（3）（收入：系统自动录入）" },
-        { field: "today_pre_hospital_income", title: "今日院前收入（4）", editable: true, computed: false, note: "（4）（收入：系统自动录入）" },
-        { field: "traffic_assistance_fund", title: "交通救助金（5）", editable: true, computed: false, note: "（5）（手工录入）" },
-        { field: "blood_donation_compensation", title: "无偿献血补偿金（6）", editable: true, computed: false, note: "（6）（手工录入）" },
-        { field: "receivable_payable", title: "应收款/应付款（7）", editable: true, computed: false, note: "（7）（手工录入）" },
-        { field: "today_report_total", title: "今日报表数合计（8）", editable: false, computed: true, note: "（8）=（2）-（1）+（3）+（4）+（5）+（6）+（7）（公式）" },
-        { field: "previous_day_iou", title: "前日欠条（9）", editable: true, computed: false, note: "（9）（自动提取前日欠条数据）" },
-        { field: "today_outpatient_iou", title: "今日门诊借条（10）", editable: true, computed: false, note: "（10）（手工录入）" },
-        { field: "today_report_receivable_payable", title: "今日报表应收／应付（11）", editable: false, computed: true, note: "（11）=（8）+（9）+（10）-（18）（公式）" },
-        { field: "today_advance_receipt", title: "今日暂收款（12）", editable: true, computed: false, note: "（12）（手工录入）" },
-        { field: "today_report_cash_received", title: "今日报表实收（13）", editable: true, computed: false, note: "（13）（手工录入）" },
-        { field: "today_cash_received_total", title: "今日实收现金合计（14）", editable: false, computed: true, note: "（14）=（12）+（13）（公式）" },
-        { field: "balance", title: "余额（15）", editable: false, computed: true, note: "（15）=（13）-（11）（公式）" },
-        { field: "adjustment", title: "调整（16）", editable: true, computed: false, note: "（16）（手工录入）" },
-        { field: "today_iou", title: "今日欠条（17）", editable: false, computed: true, note: "（17）=（16）-（15）（公式）" },
-        { field: "holiday_payment", title: "节假日交款（18）", editable: true, computed: false, note: "（18）（手工录入）" },
-        { field: "cash_on_hand", title: "库存现金（19）", editable: true, computed: false, note: "（19）（手工录入）" },
-        { field: "difference", title: "差额（20）", editable: false, computed: true, note: "（20）=（19）-（11）-（18）（公式）" },
+        { field: "previous_day_advance_receipt", title: "前日暂收款（1）", editable: false, computed: false, note: "（自动提取前日暂收数据）" },
+        { field: "today_advance_payment", title: "今日预交金数（2）", editable: false, computed: false },
+        { field: "today_settlement_income", title: "今日结账收入（3）", editable: false, computed: false },
+        { field: "today_pre_hospital_income", title: "今日院前收入（4）", editable: false, computed: false },
+        { field: "other_income", title: "其它收入（5）", editable: true, computed: false, note: "（手工录入）" },
+        { field: "sub_remark", title: "备注（6）", editable: true, computed: false, isText: true, note: "（手工录入）" },
+        { field: "today_report_total", title: "今日报表数合计（7）", editable: false, computed: true, note: "=（2）-（1）+（3）+（4）+（5）（公式）" },
+        { field: "previous_day_iou", title: "前日欠条（8）", editable: false, computed: false, note: "（自动提取前日欠条数据）" },
+        { field: "today_outpatient_iou", title: "今日借款（9）", editable: true, computed: false, note: "（手工录入）" },
+        { field: "today_report_receivable_payable", title: "今日应收合计（10）", editable: false, computed: true, note: "=（7）+（8）+（9）-（17）（公式）" },
+        { field: "today_advance_receipt", title: "今日暂收款（11）", editable: true, computed: false, note: "（手工录入）" },
+        { field: "today_report_cash_received", title: "今日报表实收（12）", editable: true, computed: false, note: "（手工录入）" },
+        { field: "today_cash_received_total", title: "今日实收现金合计（13）", editable: false, computed: true, note: "=（11）+（12）（公式）" },
+        { field: "balance", title: "余额（14）", editable: false, computed: true, note: "=（12）-（10）（公式）" },
+        { field: "adjustment", title: "调整（15）", editable: true, computed: false, note: "（手工录入）" },
+        { field: "today_iou", title: "今日欠条（16）", editable: false, computed: true, note: "=（15）-（14）（公式）" },
+        { field: "holiday_payment", title: "节假日交款（17）", editable: true, computed: false, note: "（手机端：收费员手工录入）" },
+        { field: "cash_on_hand", title: "库存现金（18）", editable: true, computed: false, note: "（手机端：收费员手工录入）" },
+        { field: "difference", title: "差额（19）", editable: false, computed: true, note: "=（18）-（10）-（17）（公式）" },
         { field: "remarks", title: "备注", align: "left", editable: true, computed: false, isText: true, note: "（手工录入）" }
     ];
 
@@ -917,9 +912,9 @@
             "holiday_total_flag": "0",
             "audit_status": "0",
             "subs": [
-                { "serial_no": "2069713378259722241", "operator_no": null, "operator_name": "王晓慧", "db_user": "ORBILL_WXH", "previous_day_advance_receipt": 100, "today_advance_payment": 200, "today_settlement_income": 300, "today_pre_hospital_income": 50, "traffic_assistance_fund": 10, "blood_donation_compensation": 20, "receivable_payable": 30, "previous_day_iou": 5, "today_outpatient_iou": 15, "today_advance_receipt": 250, "today_report_cash_received": 180, "adjustment": 0, "holiday_payment": 0, "cash_on_hand": 0, "remarks": "测试" },
-                { "serial_no": "2069713378259722241", "operator_no": null, "operator_name": "艾蕾", "db_user": "BILL_AL", "previous_day_advance_receipt": 50, "today_advance_payment": 150, "today_settlement_income": 250, "today_pre_hospital_income": 30, "traffic_assistance_fund": 5, "blood_donation_compensation": 10, "receivable_payable": 20, "previous_day_iou": 0, "today_outpatient_iou": 10, "today_advance_receipt": 200, "today_report_cash_received": 120, "adjustment": 0, "holiday_payment": 0, "cash_on_hand": 0, "remarks": null },
-                { "serial_no": "2069713378259722241", "operator_no": null, "operator_name": "邓瑶", "db_user": "ADMIT_DY", "previous_day_advance_receipt": 80, "today_advance_payment": 180, "today_settlement_income": 220, "today_pre_hospital_income": 40, "traffic_assistance_fund": 8, "blood_donation_compensation": 12, "receivable_payable": 25, "previous_day_iou": 3, "today_outpatient_iou": 8, "today_advance_receipt": 220, "today_report_cash_received": 150, "adjustment": 5, "holiday_payment": 10, "cash_on_hand": 20, "remarks": "" }
+                { "serial_no": "2069713378259722241", "operator_no": null, "operator_name": "王晓慧", "db_user": "ORBILL_WXH", "previous_day_advance_receipt": 100, "today_advance_payment": 200, "today_settlement_income": 300, "today_pre_hospital_income": 50, "other_income": 10, "sub_remark": "", "previous_day_iou": 5, "today_outpatient_iou": 15, "today_advance_receipt": 250, "today_report_cash_received": 180, "adjustment": 0, "holiday_payment": 0, "cash_on_hand": 0, "remarks": "测试" },
+                { "serial_no": "2069713378259722241", "operator_no": null, "operator_name": "艾蕾", "db_user": "BILL_AL", "previous_day_advance_receipt": 50, "today_advance_payment": 150, "today_settlement_income": 250, "today_pre_hospital_income": 30, "other_income": 5, "sub_remark": "", "previous_day_iou": 0, "today_outpatient_iou": 10, "today_advance_receipt": 200, "today_report_cash_received": 120, "adjustment": 0, "holiday_payment": 0, "cash_on_hand": 0, "remarks": null },
+                { "serial_no": "2069713378259722241", "operator_no": null, "operator_name": "邓瑶", "db_user": "ADMIT_DY", "previous_day_advance_receipt": 80, "today_advance_payment": 180, "today_settlement_income": 220, "today_pre_hospital_income": 40, "other_income": 8, "sub_remark": "", "previous_day_iou": 3, "today_outpatient_iou": 8, "today_advance_receipt": 220, "today_report_cash_received": 150, "adjustment": 5, "holiday_payment": 10, "cash_on_hand": 20, "remarks": "" }
             ]
         }
     };
@@ -985,8 +980,7 @@
 
         row.today_report_total = get("today_advance_payment") - get("previous_day_advance_receipt")
             + get("today_settlement_income") + get("today_pre_hospital_income")
-            + get("traffic_assistance_fund") + get("blood_donation_compensation")
-            + get("receivable_payable");
+            + get("other_income");
 
         row.today_report_receivable_payable = get("today_report_total") + get("previous_day_iou")
             + get("today_outpatient_iou") - get("holiday_payment");
@@ -994,7 +988,7 @@
         row.today_cash_received_total = get("today_advance_receipt") + get("today_report_cash_received");
         row.balance = get("today_report_cash_received") - get("today_report_receivable_payable");
         row.today_iou = get("adjustment") - get("balance");
-        row.difference = get("cash_on_hand") - get("today_report_receivable_payable");
+        row.difference = get("cash_on_hand") - get("today_report_receivable_payable") - get("holiday_payment");
     }
 
     function calculateTotals(data) {
@@ -1083,17 +1077,18 @@
     function renderTable() {
         const tbody = document.getElementById("tableBody");
         if (!currentData || currentData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="23" class="empty-data">暂无数据</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="22" class="empty-data">暂无数据</td></tr>`;
             return;
         }
 
         const totals = calculateTotals(currentData);
         const groupClasses = [
+            "", "", "",
             "group-morning", "group-morning", "group-morning", "group-morning", "group-morning", "group-morning",
-            "group-morning", "group-morning", "group-morning", "group-morning",
+            "group-morning", "group-morning", "group-morning",
             "group-afternoon", "group-afternoon", "group-afternoon", "group-afternoon",
             "group-afternoon", "group-afternoon", "group-afternoon",
-            "group-retain", "group-retain", "group-retain", "group-retain", "group-retain", "group-retain"
+            "group-retain", "group-retain", "group-retain"
         ];
         let html = "";
 
@@ -1131,7 +1126,7 @@
 
         html += `<tr class="remark-row">`;
         html += `<td colspan="2">备注</td>`;
-        html += `<td colspan="21" class="remark-value">${escapeHtml(reportRemark)}</td>`;
+        html += `<td colspan="20" class="remark-value">${escapeHtml(reportRemark)}</td>`;
         html += "</tr>";
 
         tbody.innerHTML = html;
@@ -1201,16 +1196,8 @@
         const next = new Date(d);
         next.setDate(next.getDate() + 1);
         const formatCN = date => `${date.getMonth() + 1}月${date.getDate()}日`;
-        const formatDot = date => `${date.getMonth() + 1}.${date.getDate()}`;
         document.getElementById("mainTitle").textContent = `${formatCN(d)} 审核/出纳 报表现金登记表`;
         document.getElementById("reportDateDisplay").textContent = `登记时间：${formatCN(next)}`;
-
-        const prev = new Date(d);
-        prev.setDate(prev.getDate() - 1);
-        const noteMap = { prev: formatDot(prev), curr: formatDot(d), next: formatDot(next) };
-        document.querySelectorAll(".note-date").forEach(span => {
-            span.textContent = noteMap[span.getAttribute("data-note")] || "";
-        });
     }
 
     async function saveAudit(auditStatusVal, auditRemarkVal) {
@@ -1427,12 +1414,12 @@
         merges.push(`A1:${lastCol}1`);
 
         rows.push([
-            { v: "", s: 1 }, { v: "", s: 1 },
-            { v: "（上午）统计报表现金数据", s: 1 }, null, null, null, null, null, null, null,
+            { v: "", s: 1 }, { v: "", s: 1 }, { v: "", s: 1 },
+            { v: "（上午）统计报表现金数据", s: 1 }, null, null, null, null, null, null, null, null,
             { v: "（下午）收取现金数据", s: 1 }, null, null, null, null, null, null,
-            { v: "收费员留存", s: 1 }, null, null, null, null, null
+            { v: "收费员留存", s: 1 }, null, null
         ]);
-        merges.push(`A2:B2`, `C2:J2`, `K2:Q2`, `R2:W2`);
+        merges.push(`A2:B2`, `D2:L2`, `M2:S2`, `T2:V2`);
 
         rows.push(COLUMN_CONFIG.map(col => ({ v: col.note ? `${col.title}\n${col.note}` : col.title, s: 1 })));
 

@@ -20,4 +20,4 @@ COMMENT ON COLUMN mpp_cash_inp_audit_log.audit_by IS '审核人';
 COMMENT ON COLUMN mpp_cash_inp_audit_log.audit_time IS '审核时间';
 COMMENT ON COLUMN mpp_cash_inp_audit_log.audit_remark IS '审核意见';
 
-CREATE INDEX idx_mpp_cash_inp_audit_log_date ON mpp_cash_inp_audit_log(report_date, holiday_total_flag);
+CREATE INDEX idx_mpp_cash_inp_audit_date ON mpp_cash_inp_audit_log(report_date, holiday_total_flag);

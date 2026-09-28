@@ -1007,9 +1007,7 @@ public class ReportServiceImpl implements ReportService {
             totalSub.setTodayAdvancePayment(totalSub.getTodayAdvancePayment().add(item.getTodayAdvancePayment()));
             totalSub.setTodaySettlementIncome(totalSub.getTodaySettlementIncome().add(item.getTodaySettlementIncome()));
             totalSub.setTodayPreHospitalIncome(totalSub.getTodayPreHospitalIncome().add(item.getTodayPreHospitalIncome()));
-            totalSub.setTrafficAssistanceFund(totalSub.getTrafficAssistanceFund().add(item.getTrafficAssistanceFund()));
-            totalSub.setBloodDonationCompensation(totalSub.getBloodDonationCompensation().add(item.getBloodDonationCompensation()));
-            totalSub.setReceivablePayable(totalSub.getReceivablePayable().add(item.getReceivablePayable()));
+            totalSub.setOtherIncome(totalSub.getOtherIncome().add(item.getOtherIncome()));
             totalSub.setTodayReportTotal(totalSub.getTodayReportTotal().add(item.getTodayReportTotal()));
             totalSub.setPreviousDayIOU(totalSub.getPreviousDayIOU().add(item.getPreviousDayIOU()));
             totalSub.setTodayOutpatientIOU(totalSub.getTodayOutpatientIOU().add(item.getTodayOutpatientIOU()));
@@ -1150,9 +1148,14 @@ public class ReportServiceImpl implements ReportService {
                     inpCashSub.setTodayPreHospitalIncome(getSafeBigDecimal(hisInpIncomeResponseDTO.getHisPreHospitalIncome()));
                 }
 
-                // --- 提取前日暂收款
+                // --- 提取前日暂收款（前一天报表同一收费员的今日暂收款，无则默认0）
                 if (yesterdayOutpReportVO != null) {
-                    inpCashSub.setPreviousDayAdvanceReceipt(getSafeBigDecimal(yesterdayOutpReportVO.getPreviousDayAdvanceReceipt()));
+                    inpCashSub.setPreviousDayAdvanceReceipt(getSafeBigDecimal(yesterdayOutpReportVO.getTodayAdvanceReceipt()));
+                }
+
+                // --- 提取前日欠条（前一天报表同一收费员的今日欠条，无则默认0）
+                if (yesterdayOutpReportVO != null) {
+                    inpCashSub.setPreviousDayIOU(getSafeBigDecimal(yesterdayOutpReportVO.getTodayIOU()));
                 }
 
                 YQCashRegRecordEntity cashRecord = cashMap.get(operator.getDbUser());
@@ -1331,42 +1334,41 @@ public class ReportServiceImpl implements ReportService {
     // 示例：为住院子表提取一个计算方法
     private void calculateInpSubEntityFields(InpCashSubEntity inpCashSub) {
 
-        // 8 =（2）-（1）+（3）+（4）+（5）+(6)+(7) 今日报表数合计
+        // 7 =（2）-（1）+（3）+（4）+（5） 今日报表数合计
         inpCashSub.setTodayReportTotal(
                 inpCashSub.getTodayAdvancePayment()
                         .subtract(inpCashSub.getPreviousDayAdvanceReceipt())
                         .add(inpCashSub.getTodaySettlementIncome())
                         .add(inpCashSub.getTodayPreHospitalIncome())
-                        .add(inpCashSub.getTrafficAssistanceFund())
-                        .add(inpCashSub.getBloodDonationCompensation()
-                                .add(inpCashSub.getReceivablePayable())));
+                        .add(inpCashSub.getOtherIncome()));
 
-        //（11）=（8）+（9）+（10）-（18） 今日报表应收/应付
+        //（10）=（7）+（8）+（9）-（17） 今日应收合计
         inpCashSub.setTodayReportReceivablePayable(
                 inpCashSub.getTodayReportTotal()
                         .add(inpCashSub.getPreviousDayIOU()
                                 .add(inpCashSub.getTodayOutpatientIOU())
                                 .subtract(inpCashSub.getHolidayPayment())));
 
-        //（14）=（12）+（13） 今日实收现金合计
+        //（13）=（11）+（12） 今日实收现金合计
         inpCashSub.setTodayCashReceivedTotal(
                 inpCashSub.getTodayAdvanceReceipt()
                         .add(inpCashSub.getTodayReportCashReceived()));
 
-        //（15）=（13）-（11）余额
+        //（14）=（12）-（10）余额
         inpCashSub.setBalance(
                 inpCashSub.getTodayReportCashReceived()
                         .subtract(inpCashSub.getTodayReportReceivablePayable()));
 
-        //（17）=（16）-（15）今日欠条
+        //（16）=（15）-（14）今日欠条
         inpCashSub.setTodayIOU(
                 inpCashSub.getAdjustment()
                         .subtract(inpCashSub.getBalance()));
 
-        //（20）=（19）-（11）  差额
+        //（19）=（18）-（10）-（17） 差额
         inpCashSub.setDifference(
                 inpCashSub.getCashOnHand()
-                        .subtract(inpCashSub.getTodayReportReceivablePayable()));
+                        .subtract(inpCashSub.getTodayReportReceivablePayable())
+                        .subtract(inpCashSub.getHolidayPayment()));
 
     }
 
