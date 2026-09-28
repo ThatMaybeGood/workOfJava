@@ -76,7 +76,8 @@
       "Bash(node .tmp-final.mjs)",
       "Bash(node .tmp-loading.mjs)",
       "Bash(node .tmp-loading2.mjs)",
-      "Bash(ls *)"
+      "Bash(ls *)",
+      "Bash(python 'D:\\\\JetBrains\\\\IdeaProjects\\\\workOfJava\\\\mergedata\\\\cash-web\\\\_check.py')"
     ],
     "ask": [
       "Bash(rm)",

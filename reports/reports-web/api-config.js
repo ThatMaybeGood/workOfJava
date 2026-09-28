@@ -195,6 +195,91 @@ async function apiRequest(methodKey, endpointKey, requestBody = null) {
 // 设为 0 表示不超时。
 const API_TIMEOUT_MS = 30000;
 
+/* ==================== 全局加载中遮罩 ====================
+ * 所有报表页共用：请求发出即显示转圈，全部响应后消失。
+ * 页面多接口并发时用计数器保证最后一个请求结束才关闭。 */
+const GlobalLoading = (() => {
+    let count = 0;
+    let maskEl = null;
+
+    function ensureMask() {
+        if (maskEl) return maskEl;
+        const style = document.createElement('style');
+        style.textContent = `
+            #globalLoadingMask{position:fixed;inset:0;background:rgba(255,255,255,0.72);z-index:99999;display:none;align-items:center;justify-content:center}
+            #globalLoadingMask.show{display:flex}
+            .global-loading-box{text-align:center;padding:22px 36px;background:#fff;border-radius:14px;box-shadow:0 6px 24px rgba(11,94,126,0.15)}
+            .global-loading-spinner{width:42px;height:42px;margin:0 auto 10px;border:4px solid #d6e4ec;border-top-color:#0b5e7e;border-radius:50%;animation:globalLoadingSpin .8s linear infinite}
+            @keyframes globalLoadingSpin{to{transform:rotate(360deg)}}
+            .global-loading-text{font-size:14px;font-weight:600;color:#0b5e7e;letter-spacing:1px}`;
+        document.head.appendChild(style);
+        maskEl = document.createElement('div');
+        maskEl.id = 'globalLoadingMask';
+        maskEl.innerHTML = '<div class="global-loading-box"><div class="global-loading-spinner"></div><div class="global-loading-text">数据加载中...</div></div>';
+        (document.body || document.documentElement).appendChild(maskEl);
+        return maskEl;
+    }
+
+    return {
+        show() { count++; ensureMask().classList.add('show'); },
+        hide() { count = Math.max(0, count - 1); if (count === 0 && maskEl) maskEl.classList.remove('show'); }
+    };
+})();
+
+/* ==================== 全局错误弹窗 ====================
+ * 请求失败/超时时常驻弹窗，手动关闭才消失；多条错误叠加显示带时间，
+ * 人离开回来后仍能看到本次查询的失败情况 */
+const GlobalErrorDialog = (() => {
+    const css = `
+        #globalErrorMask{position:fixed;inset:0;background:rgba(15,32,42,0.38);z-index:100001;display:none;align-items:center;justify-content:center}
+        #globalErrorMask.show{display:flex}
+        .global-error-box{width:460px;max-width:92vw;max-height:76vh;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.25);display:flex;flex-direction:column;overflow:hidden;animation:globalErrIn .18s ease-out}
+        @keyframes globalErrIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        .global-error-head{display:flex;align-items:center;gap:10px;padding:16px 20px 12px;border-bottom:1px solid #f0e3e3}
+        .global-error-icon{width:22px;height:22px;border-radius:50%;background:#c62828;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
+        .global-error-title{font-size:15px;font-weight:700;color:#8e1c1c}
+        .global-error-body{flex:1;overflow-y:auto;padding:12px 20px;display:flex;flex-direction:column;gap:8px;min-height:60px}
+        .global-error-item{display:flex;gap:10px;align-items:baseline;font-size:13px;line-height:1.6;color:#455a64;background:#fdf6f6;border-radius:8px;padding:8px 12px;border-left:3px solid #c62828}
+        .global-error-time{color:#90a4ae;font-size:12px;white-space:nowrap;font-weight:600;flex-shrink:0}
+        .global-error-foot{padding:12px 20px 16px;display:flex;justify-content:flex-end;border-top:1px solid #eef2f5}
+        .global-error-close{border:none;padding:8px 26px;border-radius:8px;background:#0b5e7e;color:#fff;font-size:13px;font-weight:600;cursor:pointer}
+        .global-error-close:hover{background:#08475f}`;
+    const style = document.createElement('style');
+    style.textContent = css;
+    document.head.appendChild(style);
+
+    const mask = document.createElement('div');
+    mask.id = 'globalErrorMask';
+    mask.innerHTML = `<div class="global-error-box">
+            <div class="global-error-head">
+                <div class="global-error-icon">!</div>
+                <div class="global-error-title">请求失败</div>
+            </div>
+            <div class="global-error-body" id="globalErrorBody"></div>
+            <div class="global-error-foot">
+                <button class="global-error-close" id="globalErrorClose">关闭</button>
+            </div>
+        </div>`;
+    (document.body || document.documentElement).appendChild(mask);
+    mask.querySelector('#globalErrorClose').addEventListener('click', () => {
+        mask.classList.remove('show');
+        document.getElementById('globalErrorBody').innerHTML = '';
+    });
+
+    return {
+        error(message) {
+            const body = document.getElementById('globalErrorBody');
+            const item = document.createElement('div');
+            item.className = 'global-error-item';
+            const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+            item.innerHTML = `<span class="global-error-time">${time}</span><span>${message || '请求失败，请稍后重试'}</span>`;
+            body.appendChild(item);
+            body.scrollTop = body.scrollHeight;
+            mask.classList.add('show');
+        }
+    };
+})();
+
 /**
  * 通用 fetch 封装
  */
@@ -204,6 +289,7 @@ async function fetchData(url, options = {}) {
         ? setTimeout(() => controller.abort(), API_TIMEOUT_MS)
         : null;
 
+    GlobalLoading.show();
     try {
         const response = await fetch(url, {
             headers: {
@@ -221,12 +307,15 @@ async function fetchData(url, options = {}) {
     } catch (error) {
         if (error.name === 'AbortError') {
             console.error(`Fetch timeout(${API_TIMEOUT_MS}ms):`, url);
+            GlobalErrorDialog.error('请求超时，请稍后重试或联系系统管理员');
             throw new Error('请求超时，请稍后重试或联系系统管理员');
         }
         console.error('Fetch error:', error);
+        GlobalErrorDialog.error(error.message || '请求失败，请检查网络或联系系统管理员');
         throw error;
     } finally {
         if (timer) clearTimeout(timer);
+        GlobalLoading.hide();
     }
 }
 
