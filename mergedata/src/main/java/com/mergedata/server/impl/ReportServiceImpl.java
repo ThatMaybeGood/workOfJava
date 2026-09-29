@@ -886,12 +886,18 @@ public class ReportServiceImpl implements ReportService {
                 }
 
                 // 1. 查主表单条 是否存在
-                if (inpResult == null || isInitFlag) {
+                if (inpResult == null) {
                     //获取初始化的数据
                     inpResult = getInpReportData(currentDate, holidayType, Constant.NOT_TOTAL);
                     //查询时候数据库没有相关的数据，插入数据库，此处调用插入数据
                     isInitInsertInp(inpResult, Constant.YES);
 
+                } else if (isInitFlag) {
+                    //重新初始化: 提取列(HIS收入/前日暂收款/前日欠条)重新获取, 手工录入列保留原值, 公式列按新值动态重算
+                    InpCashMainEntity existMain = inpResult;
+                    inpResult = getInpReportData(currentDate, holidayType, Constant.NOT_TOTAL);
+                    mergeManualInpColumns(inpResult, existMain);
+                    isInitInsertInp(inpResult, Constant.YES);
                 }
             }
         } catch (Exception e) {
@@ -1186,6 +1192,36 @@ public class ReportServiceImpl implements ReportService {
         }
     }
 
+
+    /**
+     * 重新初始化合并已存手工列: 提取列(HIS收入/前日暂收款/前日欠条)用新获取值, 手工录入列保留旧值, 公式列重算
+     */
+    private void mergeManualInpColumns(InpCashMainEntity fresh, InpCashMainEntity exist) {
+        fresh.setTotalRemark(exist.getTotalRemark());
+        if (exist.getSubs() == null || exist.getSubs().isEmpty()) {
+            return;
+        }
+        Map<String, InpCashSubEntity> existByDbUser = exist.getSubs().stream()
+                .filter(s -> s.getDbUser() != null)
+                .collect(Collectors.toMap(InpCashSubEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
+        for (InpCashSubEntity sub : fresh.getSubs()) {
+            InpCashSubEntity old = existByDbUser.get(sub.getDbUser());
+            if (old == null) {
+                continue;
+            }
+            sub.setOtherIncome(old.getOtherIncome());
+            sub.setSubRemark(old.getSubRemark());
+            sub.setTodayOutpatientIOU(old.getTodayOutpatientIOU());
+            sub.setTodayAdvanceReceipt(old.getTodayAdvanceReceipt());
+            sub.setTodayReportCashReceived(old.getTodayReportCashReceived());
+            sub.setAdjustment(old.getAdjustment());
+            sub.setHolidayPayment(old.getHolidayPayment());
+            sub.setCashOnHand(old.getCashOnHand());
+            sub.setRemarks(old.getRemarks());
+            //按新提取值+保留的手工值重算公式列
+            calculateInpSubEntityFields(sub);
+        }
+    }
 
     /**
      * 初始化插入住院现金主表数据
