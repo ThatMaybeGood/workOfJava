@@ -2,6 +2,7 @@ package com.mergedata.server.impl;
 
 import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.mergedata.mapper.CashMapper;
+import com.mergedata.model.entity.InpCashRegRecordEntity;
 import com.mergedata.model.entity.YQCashRegRecordEntity;
 import com.mergedata.server.YQCashService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,14 @@ public class CashServiceImpl implements YQCashService {
 
         return Db.lambdaQuery(YQCashRegRecordEntity.class)
                 .eq(YQCashRegRecordEntity::getSaveDate, reportdate)
+                .list();
+    }
+
+    /** 根据登记日期查询住院现金登记表 */
+    @Override
+    public List<InpCashRegRecordEntity> findInpByDate(LocalDate reportDate) {
+        return Db.lambdaQuery(InpCashRegRecordEntity.class)
+                .eq(InpCashRegRecordEntity::getSaveDate, reportDate)
                 .list();
     }
 }

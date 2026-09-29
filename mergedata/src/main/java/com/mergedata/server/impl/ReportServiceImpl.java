@@ -1091,7 +1091,7 @@ public class ReportServiceImpl implements ReportService {
             // 1. 获取所有必需的原始数据
             List<YQHolidayEntity> holidays = holidayService.findByYear(currtDate.getYear());
             List<YQOperatorEntity> operators = operatorService.findByCategory(Constant.TYPE_INP);
-            List<YQCashRegRecordEntity> yqRecordList = cashService.findByDate(currtDate);
+            List<InpCashRegRecordEntity> inpRegList = cashService.findInpByDate(currtDate);
 
             // 假设 HIS 接口需要 String，则转换
             List<HisInpIncomeResponseDTO> hisInpIncomeResponseDTOList = hisdata.findByDateInp(currtDate.toString());
@@ -1112,8 +1112,9 @@ public class ReportServiceImpl implements ReportService {
             Map<String, HisInpIncomeResponseDTO> hisDataMap = hisInpIncomeResponseDTOList.stream()
                     .collect(Collectors.toMap(HisInpIncomeResponseDTO::getDbUser, Function.identity(), (v1, v2) -> v1));
 
-            Map<String, YQCashRegRecordEntity> cashMap = yqRecordList.stream()
-                    .collect(Collectors.toMap(YQCashRegRecordEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
+            Map<String, InpCashRegRecordEntity> inpRegMap = inpRegList.stream()
+                    .filter(r -> r.getOperatorNo() != null)
+                    .collect(Collectors.toMap(InpCashRegRecordEntity::getOperatorNo, Function.identity(), (v1, v2) -> v1));
 
 
             // 3. 构建结果集
@@ -1131,6 +1132,7 @@ public class ReportServiceImpl implements ReportService {
 
                 inpCashSub.setSerialNo(pk);
                 inpCashSub.setDbUser(operator.getDbUser());
+                inpCashSub.setOperatorNo(operator.getOperatorNo());
                 inpCashSub.setOperatorName(operator.getOperatorName());
                 inpCashSub.setCreatedTime(LocalDateTime.now());
 
@@ -1164,15 +1166,12 @@ public class ReportServiceImpl implements ReportService {
                     inpCashSub.setPreviousDayIOU(getSafeBigDecimal(yesterdayOutpReportVO.getTodayIOU()));
                 }
 
-                YQCashRegRecordEntity cashRecord = cashMap.get(operator.getDbUser());
+                // 库存现金/节假日交款取住院现金登记表(手机端登记), 按操作员编号匹配, 无登记默认0
+                InpCashRegRecordEntity regRecord = inpRegMap.get(operator.getOperatorNo());
+                inpCashSub.setCashOnHand(regRecord != null ? getSafeBigDecimal(regRecord.getPettyAmount()) : BigDecimal.ZERO);
+                inpCashSub.setHolidayPayment(regRecord != null ? getSafeBigDecimal(regRecord.getHolidayPayment()) : BigDecimal.ZERO);
 
-                //获取小程序数据源
-                if (cashRecord != null) {
-                    inpCashSub.setCashOnHand(getSafeBigDecimal(cashRecord.getRetainedCash()));
-//                    inpCashSub.setRemarks(cashRecord.getRemarks());
-                }
-
-                // 对其他计算公式的计算
+                // 对其他计算公式的计算(差额=(18)-(10)-(17))
                 calculateInpSubEntityFields(inpCashSub);
 
                 // 加入结果集
@@ -1215,8 +1214,6 @@ public class ReportServiceImpl implements ReportService {
             sub.setTodayAdvanceReceipt(old.getTodayAdvanceReceipt());
             sub.setTodayReportCashReceived(old.getTodayReportCashReceived());
             sub.setAdjustment(old.getAdjustment());
-            sub.setHolidayPayment(old.getHolidayPayment());
-            sub.setCashOnHand(old.getCashOnHand());
             sub.setRemarks(old.getRemarks());
             //按新提取值+保留的手工值重算公式列
             calculateInpSubEntityFields(sub);
@@ -1242,6 +1239,9 @@ public class ReportServiceImpl implements ReportService {
         if (existMain != null && Constant.YES.equals(existMain.getAuditStatus())) {
             throw new BusinessException("该报表已审核通过，已封存不能修改");
         }
+
+        //库存现金/节假日交款以住院现金登记表为准(默认0), 先回填再算公式
+        applyInpRegRecords(main.getSubs(), main.getReportDate());
 
         //界面手工录入修改时候，保存数据重新计算明细的公式
         if (isInitFlag.equals(Constant.NO)) {
@@ -1371,6 +1371,35 @@ public class ReportServiceImpl implements ReportService {
         } catch (Exception e) {
             log.error("住院现金报表转换保存失败!", e);
             return Collections.emptyList();
+        }
+    }
+
+
+    /**
+     * 按登记表回填库存现金/节假日交款: 主键operator_no匹配, 兼容旧数据(无operator_no)按db_user匹配, 无登记默认0
+     * 跳过无operator_no和db_user的行(节假日汇总行), 保持汇总值不被清零
+     */
+    private void applyInpRegRecords(List<InpCashSubEntity> subs, LocalDate reportDate) {
+        if (subs == null || subs.isEmpty()) {
+            return;
+        }
+        List<InpCashRegRecordEntity> regList = cashService.findInpByDate(reportDate);
+        Map<String, InpCashRegRecordEntity> byOperatorNo = regList.stream()
+                .filter(r -> r.getOperatorNo() != null)
+                .collect(Collectors.toMap(InpCashRegRecordEntity::getOperatorNo, Function.identity(), (v1, v2) -> v1));
+        Map<String, InpCashRegRecordEntity> byDbUser = regList.stream()
+                .filter(r -> r.getDbUser() != null)
+                .collect(Collectors.toMap(InpCashRegRecordEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
+        for (InpCashSubEntity sub : subs) {
+            if (sub.getOperatorNo() == null && sub.getDbUser() == null) {
+                continue;
+            }
+            InpCashRegRecordEntity reg = sub.getOperatorNo() != null ? byOperatorNo.get(sub.getOperatorNo()) : null;
+            if (reg == null && sub.getDbUser() != null) {
+                reg = byDbUser.get(sub.getDbUser());
+            }
+            sub.setCashOnHand(reg != null ? getSafeBigDecimal(reg.getPettyAmount()) : BigDecimal.ZERO);
+            sub.setHolidayPayment(reg != null ? getSafeBigDecimal(reg.getHolidayPayment()) : BigDecimal.ZERO);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.mergedata.server;
 
+import com.mergedata.model.entity.InpCashRegRecordEntity;
 import com.mergedata.model.entity.YQCashRegRecordEntity;
 
 import java.time.LocalDate;
@@ -13,5 +14,8 @@ public interface YQCashService {
      * @return 现金登记记录列表
      */
     List<YQCashRegRecordEntity> findByDate(LocalDate reportdate);
+
+    /** 根据登记日期查询住院现金登记表 */
+    List<InpCashRegRecordEntity> findInpByDate(LocalDate reportDate);
 
 }
