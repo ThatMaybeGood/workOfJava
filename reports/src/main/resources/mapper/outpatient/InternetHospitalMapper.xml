@@ -183,37 +183,38 @@
             SELECT
             6 AS seq,
             SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
-                     THEN 1 ELSE 0 END) AS current_value,
+                     THEN ro.register_fee ELSE 0 END) AS current_value,
             SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
-                     THEN 1 ELSE 0 END) AS last_value
+                     THEN ro.register_fee ELSE 0 END) AS last_value
             FROM powerihsp_register_order ro
             WHERE ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
               AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
-              AND 1 = 2
             UNION ALL
             -- 7 检查检验费（元）：占位，补源表后删1=2，THEN 1换金额列
             SELECT
             7 AS seq,
-            SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
-                     THEN 1 ELSE 0 END) AS current_value,
-            SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
-                     THEN 1 ELSE 0 END) AS last_value
-            FROM powerihsp_register_order ro
-            WHERE ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
-              AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
-              AND 1 = 2
+            SUM(CASE WHEN ro.visit_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND ro.visit_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+                     THEN ro.bill_amount ELSE 0 END) AS current_value,
+            SUM(CASE WHEN ro.visit_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND ro.visit_date &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
+                     THEN ro.bill_amount ELSE 0 END) AS last_value
+            FROM powerihsp_inspection_master ro
+            WHERE ro.visit_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
+              AND ro.visit_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+              AND ro.recipel_type in(0,1)
             UNION ALL
             -- 8 药品处方费（元）：占位，补源表后删1=2，THEN 1换金额列
             SELECT
             8 AS seq,
-            SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
-                     THEN 1 ELSE 0 END) AS current_value,
-            SUM(CASE WHEN ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND ro.out_date &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
-                     THEN 1 ELSE 0 END) AS last_value
-            FROM powerihsp_register_order ro
-            WHERE ro.out_date &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
-              AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
-              AND 1 = 2
+            SUM(CASE WHEN sy.CREATE_TIME &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD') AND sy.CREATE_TIME &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+                     THEN sy.bill_amount ELSE 0 END) AS current_value,
+            SUM(CASE WHEN sy.CREATE_TIME &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD') AND sy.CREATE_TIME &lt; TO_DATE(#{lastEndDate}, 'YYYY-MM-DD') + 1
+                     THEN sy.bill_amount ELSE 0 END) AS last_value
+            FROM POWERIHSP_OUTP_DRUG_MASTER sy
+            WHERE sy.CREATE_TIME &gt;= TO_DATE(#{lastStartDate}, 'YYYY-MM-DD')
+                AND sy.CREATE_TIME &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+                AND sy.PRESCRIPTION_NATURE IN ('0','1','2')
+                AND sy.prescription_status IN ('3','8','9','11','13')
+                AND sy.enterprise_id = 'xinqiao'
             UNION ALL
             -- 9 住院证开具量:hospermit_master计数
             SELECT

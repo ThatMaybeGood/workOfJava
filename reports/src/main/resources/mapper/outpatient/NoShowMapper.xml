@@ -22,7 +22,7 @@
          这些列宽表里本来就有，一起 SUM 出来供 service 拼成嵌套结构 -->
     <select id="queryDeptDetail" resultType="com.reports.entity.NoShowDtlEntity">
         SELECT
-            dept_name AS deptName,
+            d.dept_name AS deptName,
             NVL(SUM(tui_hao_shu), 0) AS refundCount,
             ROUND(NVL(SUM(tui_hao_shu), 0) / NULLIF(SUM(total_guahao), 0) * 100, 2) || '%' AS refundRate,
             NVL(SUM(tui_hao_chong_qing), 0) AS refundChongqing,
