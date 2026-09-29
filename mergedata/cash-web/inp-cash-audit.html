@@ -1493,9 +1493,7 @@
     }
 
     window.addEventListener("DOMContentLoaded", () => {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const dateStr = formatDate(yesterday);
+        const dateStr = formatDate(new Date());
         document.getElementById("reportDate").value = dateStr;
 
         document.querySelectorAll("#reportTypeGroup .btn-option").forEach(btn => {
