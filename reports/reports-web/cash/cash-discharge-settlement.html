@@ -112,9 +112,21 @@
             </div>
             <div class="col-md-4">
                 <div class="chart-card">
-                    <div class="chart-card-title">结算费别金额分析</div>
+                    <div class="chart-card-title">结算金额支付方式分析</div>
                     <div id="amountTypeChart" class="chart-container"></div>
                 </div>
+            </div>
+        </div>
+
+        <!-- 图表钻取明细弹窗：渠道→费别人次 / 支付方式→收退占比 -->
+        <div class="drill-modal-mask" id="drillModal">
+            <div class="drill-modal-box">
+                <div class="drill-modal-head">
+                    <span class="drill-modal-title" id="drillModalTitle">明细</span>
+                    <button type="button" class="drill-modal-close" id="drillModalClose" aria-label="关闭">&times;</button>
+                </div>
+                <div id="drillChart" class="drill-chart-container"></div>
+                <div id="drillLegend" class="chart-legend-list"></div>
             </div>
         </div>
 

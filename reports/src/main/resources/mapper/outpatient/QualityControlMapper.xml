@@ -80,6 +80,18 @@
             stop_rate_den = NVL(#{stopRateDen}, stop_rate_den),
             chemo_record_rate_num = NVL(#{chemoRecordRateNum}, chemo_record_rate_num),
             chemo_record_rate_den = NVL(#{chemoRecordRateDen}, chemo_record_rate_den),
+            chemo_adverse_rate_num = NVL(#{chemoAdverseRateNum}, chemo_adverse_rate_num),
+            chemo_adverse_rate_den = NVL(#{chemoAdverseRateDen}, chemo_adverse_rate_den),
+            chemo_infusion_rate_num = NVL(#{chemoInfusionRateNum}, chemo_infusion_rate_num),
+            chemo_infusion_rate_den = NVL(#{chemoInfusionRateDen}, chemo_infusion_rate_den),
+            critical_value_rate_num = NVL(#{criticalValueRateNum}, critical_value_rate_num),
+            critical_value_rate_den = NVL(#{criticalValueRateDen}, critical_value_rate_den),
+            blood_draw_error_rate_num = NVL(#{bloodDrawErrorRateNum}, blood_draw_error_rate_num),
+            blood_draw_error_rate_den = NVL(#{bloodDrawErrorRateDen}, blood_draw_error_rate_den),
+            surgery_complication_rate_num = NVL(#{surgeryComplicationRateNum}, surgery_complication_rate_num),
+            surgery_complication_rate_den = NVL(#{surgeryComplicationRateDen}, surgery_complication_rate_den),
+            adverse_event_rate_num = NVL(#{adverseEventRateNum}, adverse_event_rate_num),
+            adverse_event_rate_den = NVL(#{adverseEventRateDen}, adverse_event_rate_den),
             source_type = '人工登记',
             update_time = SYSDATE
         WHEN NOT MATCHED THEN INSERT (
@@ -89,6 +101,12 @@
             on_time_rate_num, on_time_rate_den,
             stop_rate_num, stop_rate_den,
             chemo_record_rate_num, chemo_record_rate_den,
+            chemo_adverse_rate_num, chemo_adverse_rate_den,
+            chemo_infusion_rate_num, chemo_infusion_rate_den,
+            critical_value_rate_num, critical_value_rate_den,
+            blood_draw_error_rate_num, blood_draw_error_rate_den,
+            surgery_complication_rate_num, surgery_complication_rate_den,
+            adverse_event_rate_num, adverse_event_rate_den,
             source_type, create_time, update_time
         ) VALUES (
             #{statMonth},
@@ -97,6 +115,12 @@
             #{onTimeRateNum}, #{onTimeRateDen},
             #{stopRateNum}, #{stopRateDen},
             #{chemoRecordRateNum}, #{chemoRecordRateDen},
+            #{chemoAdverseRateNum}, #{chemoAdverseRateDen},
+            #{chemoInfusionRateNum}, #{chemoInfusionRateDen},
+            #{criticalValueRateNum}, #{criticalValueRateDen},
+            #{bloodDrawErrorRateNum}, #{bloodDrawErrorRateDen},
+            #{surgeryComplicationRateNum}, #{surgeryComplicationRateDen},
+            #{adverseEventRateNum}, #{adverseEventRateDen},
             '人工登记', SYSDATE, SYSDATE
         )
     </update>

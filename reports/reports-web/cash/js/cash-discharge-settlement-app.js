@@ -48,9 +48,11 @@ class DischargeSettlementController {
         this.charts.channel = echarts.init(document.getElementById('channelChart'));
         this.charts.patientType = echarts.init(document.getElementById('patientTypeChart'));
         this.charts.amountType = echarts.init(document.getElementById('amountTypeChart'));
+        this.drillChart = echarts.init(document.getElementById('drillChart'));
 
         window.addEventListener('resize', () => {
             Object.values(this.charts).forEach(chart => chart.resize());
+            this.drillChart && this.drillChart.resize();
         });
 
         // 紧凑布局（iframe 宽度 <=1300px，即 1440 屏）切换时按已加载数据重绘图表
@@ -71,6 +73,15 @@ class DischargeSettlementController {
             this.tableState.pageSize = parseInt(e.target.value);
             this.tableState.currentPage = 1;
             this.loadTableData();
+        });
+
+        // 钻取弹窗关闭：按钮、遮罩点击、Esc
+        document.getElementById('drillModalClose').addEventListener('click', () => this.closeDrillModal());
+        document.getElementById('drillModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) this.closeDrillModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') this.closeDrillModal();
         });
     }
 
@@ -205,92 +216,221 @@ class DischargeSettlementController {
 
     renderCharts(data) {
         this.chartData = data;
-        this.renderPieChart(this.charts.channel, data.channelAnalysis, '结算渠道分析');
-        this.renderPieChart(this.charts.patientType, data.patientTypeAnalysis, '结算费别人次分析');
-        this.renderPieChart(this.charts.amountType, data.amountTypeAnalysis, '结算费别金额分析');
+        this.renderPieChart(this.charts.channel, data.channelAnalysis, '结算渠道分析', 'CHANNEL');
+        this.renderPieChart(this.charts.patientType, data.patientTypeAnalysis, '结算费别人次分析', null);
+        this.renderPieChart(this.charts.amountType, data.amountTypeAnalysis, '结算金额支付方式分析', 'PAY_TYPE');
     }
 
-    renderPieChart(chart, data, title) {
+    /**
+     * 环形饼图 + 右侧自定义图例（参考门诊财务风格）：
+     * 平时图上不出标签，悬停扇区才显示 名称/数值/百分比；可钻取的图例项蓝名带▸
+     * @param drillType CHANNEL/PAY_TYPE 可点击钻取，null 不可点
+     */
+    renderPieChart(chart, data, title, drillType) {
         const colors = ['#1890ff', '#52c41a', '#13c2c2', '#faad14', '#f5222d', '#722ed1'];
         const compact = window.matchMedia('(max-width: 1300px)').matches;
         const option = {
-            title: {
-                text: title,
-                left: 'left',
-                top: 0,
-                textStyle: {
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: '#262626'
-                }
-            },
+            // 标题只在 HTML 卡片上有一份，不画进 canvas，避免重复
             tooltip: {
                 trigger: 'item',
                 formatter: (params) => {
                     const item = data[params.dataIndex];
                     const compareText = item.compare >= 0 ? `+${item.compare}%` : `${item.compare}%`;
-                    return `${params.name}: ${params.value} (${params.percent}%)\n同比${compareText}`;
+                    return `${params.name}: ${params.value} (${params.percent}%)<br/>同比${compareText}`;
                 }
             },
-            legend: {
-                orient: 'vertical',
-                right: 10,
-                top: 'center',
-                itemWidth: 10,
-                itemHeight: 10,
-                textStyle: { color: '#595959', fontSize: 12 },
-                formatter: (name) => {
-                    const item = data.find(d => d.name === name);
-                    const compareText = item.compare >= 0 ? `+${item.compare}%` : `${item.compare}%`;
-                    const compareColor = item.compare >= 0 ? '#f5222d' : '#52c41a';
-                    return `{name|${name}} {compare|（同比${compareText}）}`;
-                },
-                textStyle: {
-                    rich: {
-                        name: { color: '#595959', fontSize: 12 },
-                        compare: { color: '#595959', fontSize: 12 }
-                    }
-                }
-            },
+            legend: { show: false },
             color: colors,
             series: [
                 {
                     type: 'pie',
-                    radius: ['45%', '70%'],
-                    center: ['32%', '55%'],
+                    radius: ['48%', '72%'],
+                    center: ['50%', '50%'],
                     avoidLabelOverlap: true,
-                    label: {
-                        show: true,
-                        formatter: '{c}\n({d}%)',
-                        fontSize: 11,
-                        color: '#595959'
-                    },
-                    labelLine: {
-                        show: true,
-                        length: 10,
-                        length2: 10
+                    label: { show: false },
+                    labelLine: { show: false },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            fontSize: 13,
+                            fontWeight: 'bold',
+                            formatter: '{b}\n{c} ({d}%)'
+                        },
+                        itemStyle: { shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.15)' }
                     },
                     data: data
                 }
             ]
         };
         if (compact) {
-            // 紧凑布局：图例移到底部横向、饼图居中并缩小，为底部图例留出空间
-            option.legend.orient = 'horizontal';
-            option.legend.bottom = 0;
-            delete option.legend.right;
-            delete option.legend.top;
-            option.legend.textStyle = {
-                fontSize: 11,
-                rich: {
-                    name: { color: '#595959', fontSize: 11 },
-                    compare: { color: '#595959', fontSize: 11 }
-                }
-            };
-            option.series[0].radius = ['36%', '56%'];
-            option.series[0].center = ['50%', '40%'];
+            // 紧凑布局：饼图缩小，图例列表在下方不受影响
+            option.series[0].radius = ['40%', '60%'];
+            option.series[0].center = ['50%', '48%'];
         }
         chart.setOption(option, true);
+
+        // 钻取：点扇区或点图例都可弹明细
+        chart.off('click');
+        if (drillType) {
+            chart.on('click', (params) => {
+                if (params.componentType === 'series') {
+                    this.openDrillModal(drillType, params.name);
+                }
+            });
+        }
+        this.renderChartLegend(chart, data, colors, drillType);
+    }
+
+    /**
+     * 饼图右侧图例列表：色块/名称/数值/占比/同比；drillType 非空时项可点钻取
+     */
+    renderChartLegend(chart, data, colors, drillType) {
+        const dom = chart.getDom();
+        const wrapper = dom.parentNode;
+        let listEl = wrapper.querySelector('.chart-legend-list');
+        if (!listEl) {
+            listEl = document.createElement('div');
+            listEl.className = 'chart-legend-list';
+            wrapper.appendChild(listEl);
+        }
+        const total = data.reduce((sum, d) => sum + (parseFloat(d.value) || 0), 0);
+        listEl.innerHTML = data.map((item, idx) => {
+            const val = parseFloat(item.value) || 0;
+            const pct = total > 0 ? (val / total * 100).toFixed(1) + '%' : '';
+            const perText = (item.compare >= 0 ? '+' : '') + item.compare + '%';
+            const perCls = item.compare >= 0 ? 'up' : 'down';
+            const drillable = drillType ? ' drillable' : '';
+            const drillAttr = drillType ? ` data-drill="${item.name}" title="点击查看明细"` : '';
+            return `<div class="chart-legend-item${drillable}"${drillAttr}>
+                <span class="chart-legend-dot" style="background:${colors[idx % colors.length]}"></span>
+                <span class="chart-legend-name">${item.name}</span>
+                <span class="chart-legend-val">${val}</span>
+                <span class="chart-legend-pct">${pct}</span>
+                <span class="chart-legend-per ${perCls}">${perText}</span>
+            </div>`;
+        }).join('');
+
+        if (drillType) {
+            listEl.querySelectorAll('.chart-legend-item.drillable').forEach(el => {
+                el.addEventListener('click', () => this.openDrillModal(drillType, el.getAttribute('data-drill')));
+            });
+        }
+    }
+
+    /**
+     * 打开钻取明细弹窗：渠道→费别人次明细，支付方式→收/退占比
+     */
+    async openDrillModal(drillType, itemName) {
+        const isChannel = drillType === 'CHANNEL';
+        document.getElementById('drillModalTitle').textContent =
+            isChannel ? `${itemName} · 费别人次明细` : `${itemName} · 收退占比`;
+        document.getElementById('drillModal').classList.add('show');
+        // 弹窗初始为隐藏，echarts 初始化时是 0 尺寸，显示后必须手动 resize 否则饼图极小
+        this.drillChart.resize();
+        this.drillChart.showLoading({ text: '加载中...', color: '#0b5e7e', maskColor: 'rgba(255,255,255,0.6)' });
+
+        try {
+            const list = await ReportAPI.getDischargeSettlementChartDetail(Object.assign({}, this.filter, {
+                drillType, itemName
+            }));
+            const data = (list || []).filter(d => d && d.name != null);
+            if (!data.length) {
+                this.drillChart.hideLoading();
+                this.drillChart.clear();
+                this.drillChart.setOption({
+                    title: { text: '暂无明细数据', left: 'center', top: 'center', textStyle: { fontSize: 14, color: '#8c9aa5', fontWeight: 500 } }
+                });
+                return;
+            }
+            this.renderDrillPie(data, isChannel);
+        } catch (error) {
+            // 全局错误弹窗已提示，这里仅兜底关闭图表loading
+            this.drillChart.hideLoading();
+            console.error('Load drill detail failed:', error);
+        }
+    }
+
+    renderDrillPie(data, isChannel) {
+        this.drillChart.hideLoading();
+        // 收=绿 退=橙；费别人次用常规色板
+        const colors = isChannel
+            ? ['#1890ff', '#52c41a', '#13c2c2', '#faad14', '#722ed1', '#f5222d']
+            : ['#52c41a', '#fa8c16'];
+        this.drillChart.setOption({
+            tooltip: {
+                trigger: 'item',
+                formatter: (params) => `${params.name}: ${params.value} (${params.percent}%)`
+            },
+            legend: { show: false },
+            color: colors,
+            series: [
+                {
+                    type: 'pie',
+                    radius: ['42%', '68%'],
+                    center: ['50%', '50%'],
+                    label: { show: false },
+                    labelLine: { show: false },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            fontSize: 15,
+                            fontWeight: 'bold',
+                            formatter: '{b}\n{c} ({d}%)'
+                        },
+                        itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.18)' }
+                    },
+                    data: data
+                }
+            ]
+        }, true);
+        this.drillChart.resize();
+        // 弹窗图例与主页饼图同款布局：横条列表在饼下方，超 5 条分页
+        this.drillLegendState = { page: 1, data: data, colors: colors };
+        this.renderDrillLegend();
+    }
+
+    /** 钻取弹窗图例：色块/名称/数值/占比，超过 5 条分页（参考门诊财务） */
+    renderDrillLegend() {
+        const PAGE_SIZE = 5;
+        const state = this.drillLegendState;
+        const listEl = document.getElementById('drillLegend');
+        if (!listEl || !state) return;
+        const data = state.data;
+        const total = data.reduce((sum, d) => sum + (parseFloat(d.value) || 0), 0);
+        const totalPages = Math.max(1, Math.ceil(data.length / PAGE_SIZE));
+        if (state.page > totalPages) state.page = totalPages;
+        const start = (state.page - 1) * PAGE_SIZE;
+        const pageData = data.slice(start, start + PAGE_SIZE);
+
+        let html = pageData.map((item, idx) => {
+            const val = parseFloat(item.value) || 0;
+            const pct = total > 0 ? (val / total * 100).toFixed(1) + '%' : '';
+            return `<div class="chart-legend-item">
+                <span class="chart-legend-dot" style="background:${state.colors[(start + idx) % state.colors.length]}"></span>
+                <span class="chart-legend-name">${item.name}</span>
+                <span class="chart-legend-val">${val}</span>
+                <span class="chart-legend-pct">${pct}</span>
+            </div>`;
+        }).join('');
+
+        if (totalPages > 1) {
+            html += `<div class="chart-legend-pagination">
+                <button type="button" ${state.page <= 1 ? 'disabled' : ''} data-page="${state.page - 1}">上一页</button>
+                <span class="page-info">${state.page}/${totalPages} 页</span>
+                <button type="button" ${state.page >= totalPages ? 'disabled' : ''} data-page="${state.page + 1}">下一页</button>
+            </div>`;
+        }
+        listEl.innerHTML = html;
+        listEl.querySelectorAll('button[data-page]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.page = parseInt(btn.getAttribute('data-page'));
+                this.renderDrillLegend();
+            });
+        });
+    }
+
+    closeDrillModal() {
+        document.getElementById('drillModal').classList.remove('show');
     }
 
     async loadTableData() {

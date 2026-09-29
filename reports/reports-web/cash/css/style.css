@@ -731,11 +731,15 @@ body {
 }
 
 .charts-row .chart-card {
-    height: 320px;
+    min-height: 320px;
+    /* 纵向flex：卡片被同排撑高时，图表区吃掉剩余空间而不是留白 */
+    display: flex;
+    flex-direction: column;
 }
 
 .charts-row .chart-container {
     min-height: 260px;
+    flex: 1;
 }
 
 /* 出院结算报表分页样式 */
@@ -920,7 +924,7 @@ body {
     }
 
     .charts-row .chart-card {
-        height: 300px;
+        min-height: 300px;
     }
 }
 
@@ -935,3 +939,121 @@ body {
     z-index: 2;
     background-color: #f8f9fa;
 }
+
+/* ===== 饼图自定义图例列表（参考门诊财务）：饼在下无常驻标签，悬停扇区才出百分比，图例横条在饼下方 ===== */
+.chart-legend-list {
+    margin-top: 6px;
+    font-size: 12px;
+    max-height: 160px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    padding: 3px 8px;
+    color: #595959;
+    border-bottom: 1px dashed #f0f0f0;
+    line-height: 1.4;
+}
+.chart-legend-item:last-child { border-bottom: none; }
+.chart-legend-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; flex-shrink: 0; }
+.chart-legend-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex-shrink: 1;
+}
+.chart-legend-val { margin-left: auto; color: #262626; font-weight: 600; white-space: nowrap; min-width: 50px; text-align: right; }
+.chart-legend-pct { margin-left: 8px; color: #8c9aa5; font-size: 11px; white-space: nowrap; min-width: 35px; text-align: right; }
+.chart-legend-per { margin-left: 8px; font-size: 11px; white-space: nowrap; min-width: 65px; text-align: right; }
+.chart-legend-per.up { color: #f5222d; }
+.chart-legend-per.down { color: #52c41a; }
+/* 可钻取的分类：蓝名加粗带▸，悬停高亮 */
+.chart-legend-item.drillable { cursor: pointer; }
+.chart-legend-item.drillable:hover { background: #e6f4ff; }
+.chart-legend-item.drillable .chart-legend-name { color: #1890ff; font-weight: 600; }
+.chart-legend-item.drillable .chart-legend-name::after { content: ' ▸'; }
+
+/* ===== 图表钻取弹窗：渠道→费别人次 / 支付方式→收退占比 ===== */
+.drill-modal-mask {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 32, 42, 0.42);
+    z-index: 1200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+.drill-modal-mask.show { display: flex; }
+.drill-modal-box {
+    width: 780px;
+    max-width: 94vw;
+    max-height: 90vh;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 14px 48px rgba(0, 0, 0, 0.28);
+    padding: 20px 24px 16px;
+    animation: drillModalIn 0.18s ease-out;
+    display: flex;
+    flex-direction: column;
+}
+@keyframes drillModalIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.drill-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.drill-modal-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #16324a;
+}
+.drill-modal-close {
+    border: none;
+    background: #eef2f5;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    font-size: 16px;
+    line-height: 1;
+    color: #5c6f7c;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.drill-modal-close:hover { background: #dde5ea; color: #16324a; }
+.drill-chart-container {
+    width: 100%;
+    height: 440px;
+    margin-top: 10px;
+}
+
+/* 图例分页（参考门诊财务）：超过每页条数时 上一页/下一页 + 页码 */
+.chart-legend-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 4px 0 2px;
+}
+.chart-legend-pagination button {
+    padding: 2px 10px;
+    border: 1px solid #d9d9d9;
+    background: #fff;
+    cursor: pointer;
+    border-radius: 3px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.chart-legend-pagination button:hover:not(:disabled) { border-color: #1890ff; color: #1890ff; }
+.chart-legend-pagination button:disabled { opacity: 0.45; cursor: not-allowed; }
+.chart-legend-pagination .page-info { font-size: 12px; color: #8c9aa5; }

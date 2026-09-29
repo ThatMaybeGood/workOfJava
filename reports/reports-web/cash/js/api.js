@@ -22,6 +22,14 @@ const ReportAPI = {
     },
 
     /**
+     * 获取出院结算图表钻取明细（渠道→费别人次 / 支付方式→收退占比）
+     * method: reports.cash.cash-discharge-settlement
+     */
+    getDischargeSettlementChartDetail(params) {
+        return apiRequest('reports.cash.cash-discharge-settlement', 'chartDetail', params);
+    },
+
+    /**
      * 获取出院结算表格数据
      * method: reports.cash.cash-discharge-settlement
      */

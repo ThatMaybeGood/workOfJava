@@ -63,6 +63,23 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
     }
 
     @Override
+    public List<ChartItem> queryChartDetail(CashDischargeSettlementRequest request) {
+        log.info("查询出院结算图表钻取明细，drillType={}，itemName={}", request.getDrillType(), request.getItemName());
+        if (dataConfig.isMock()) {
+            return queryChartDetailMock(request);
+        }
+        try {
+            // 钻取明细按所选范围整体聚合，与 日/月 维度无关
+            String chartType = "CHANNEL".equals(request.getDrillType()) ? "CHANNEL_DETAIL" : "PAY_DETAIL";
+            return dischSettleMapper.queryChartDetail(request.getStartDate(), request.getEndDate(),
+                    chartType, request.getItemName() + "|");
+        } catch (Exception e) {
+            log.warn("查询出院结算钻取明细失败", e);
+            return new ArrayList<>();
+        }
+    }
+
+    @Override
     public PageResult<TableItem> queryTable(CashDischargeSettlementRequest request, Integer page, Integer pageSize) {
         log.info("查询出院结算表格数据，mode={}", dataConfig.getMode());
         if (dataConfig.isMock()) {
@@ -100,16 +117,35 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
         charts.setChannelAnalysis(channelAnalysis);
 
         List<ChartItem> patientTypeAnalysis = new ArrayList<>();
-        patientTypeAnalysis.add(newChartItem("医保", 175, 15));
-        patientTypeAnalysis.add(newChartItem("自费", 135, 12));
+        patientTypeAnalysis.add(newChartItem("职工医保", 120, 15));
+        patientTypeAnalysis.add(newChartItem("异地职工医保", 45, 8));
+        patientTypeAnalysis.add(newChartItem("居民医保", 60, 10));
+        patientTypeAnalysis.add(newChartItem("自费", 85, 12));
         charts.setPatientTypeAnalysis(patientTypeAnalysis);
 
         List<ChartItem> amountTypeAnalysis = new ArrayList<>();
-        for (int i = 0; i < 7; i++) {
-            amountTypeAnalysis.add(newChartItem("2024-01-0" + (i + 1), 80 + i, 5 + i));
-        }
+        amountTypeAnalysis.add(newChartItem("微信", 420, 5));
+        amountTypeAnalysis.add(newChartItem("支付宝", 260, 8));
+        amountTypeAnalysis.add(newChartItem("银行卡", 310, -3));
+        amountTypeAnalysis.add(newChartItem("现金", 180, -6));
         charts.setAmountTypeAnalysis(amountTypeAnalysis);
         return charts;
+    }
+
+    /** 钻取明细mock：渠道→费别人次，支付方式→收/退金额 */
+    private List<ChartItem> queryChartDetailMock(CashDischargeSettlementRequest request) {
+        SeqUtil.next();
+        List<ChartItem> list = new ArrayList<>();
+        String[] feeTypes = {"职工医保", "异地职工医保", "居民医保", "自费"};
+        if ("CHANNEL".equals(request.getDrillType())) {
+            for (String feeType : feeTypes) {
+                list.add(newChartItem(feeType, 10 + feeType.length() * 7, 0));
+            }
+        } else {
+            list.add(newChartItem("收", 80, 0));
+            list.add(newChartItem("退", 20, 0));
+        }
+        return list;
     }
 
     private PageResult<TableItem> queryTableMock(CashDischargeSettlementRequest request, Integer page, Integer pageSize) {

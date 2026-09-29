@@ -40,6 +40,12 @@ public class OutpatientQualityControlServiceImpl implements OutpatientQualityCon
         MAINTAIN_INDICATORS.put("on_time_rate", "门诊准时出诊率");
         MAINTAIN_INDICATORS.put("stop_rate", "门诊停诊率");
         MAINTAIN_INDICATORS.put("chemo_record_rate", "门诊化疗病历记录完整率");
+        MAINTAIN_INDICATORS.put("chemo_adverse_rate", "门诊化疗严重不良反应发生率");
+        MAINTAIN_INDICATORS.put("chemo_infusion_rate", "门诊化疗患者静脉治疗相关不良事件发生率");
+        MAINTAIN_INDICATORS.put("critical_value_rate", "门诊危急值30分钟内通报完成率");
+        MAINTAIN_INDICATORS.put("blood_draw_error_rate", "门诊静脉采血相关差错发生率");
+        MAINTAIN_INDICATORS.put("surgery_complication_rate", "门诊手术并发症发生率");
+        MAINTAIN_INDICATORS.put("adverse_event_rate", "每千门诊诊疗人次不良事件发生率");
     }
 
     private final ReportDataConfig dataConfig;
@@ -225,6 +231,30 @@ public class OutpatientQualityControlServiceImpl implements OutpatientQualityCon
                 item.setNumerator(row.getChemoRecordRateNum());
                 item.setDenominator(row.getChemoRecordRateDen());
                 break;
+            case "chemo_adverse_rate":
+                item.setNumerator(row.getChemoAdverseRateNum());
+                item.setDenominator(row.getChemoAdverseRateDen());
+                break;
+            case "chemo_infusion_rate":
+                item.setNumerator(row.getChemoInfusionRateNum());
+                item.setDenominator(row.getChemoInfusionRateDen());
+                break;
+            case "critical_value_rate":
+                item.setNumerator(row.getCriticalValueRateNum());
+                item.setDenominator(row.getCriticalValueRateDen());
+                break;
+            case "blood_draw_error_rate":
+                item.setNumerator(row.getBloodDrawErrorRateNum());
+                item.setDenominator(row.getBloodDrawErrorRateDen());
+                break;
+            case "surgery_complication_rate":
+                item.setNumerator(row.getSurgeryComplicationRateNum());
+                item.setDenominator(row.getSurgeryComplicationRateDen());
+                break;
+            case "adverse_event_rate":
+                item.setNumerator(row.getAdverseEventRateNum());
+                item.setDenominator(row.getAdverseEventRateDen());
+                break;
             default:
                 break;
         }
@@ -256,6 +286,30 @@ public class OutpatientQualityControlServiceImpl implements OutpatientQualityCon
             case "chemo_record_rate":
                 entity.setChemoRecordRateNum(item.getNumerator());
                 entity.setChemoRecordRateDen(item.getDenominator());
+                break;
+            case "chemo_adverse_rate":
+                entity.setChemoAdverseRateNum(item.getNumerator());
+                entity.setChemoAdverseRateDen(item.getDenominator());
+                break;
+            case "chemo_infusion_rate":
+                entity.setChemoInfusionRateNum(item.getNumerator());
+                entity.setChemoInfusionRateDen(item.getDenominator());
+                break;
+            case "critical_value_rate":
+                entity.setCriticalValueRateNum(item.getNumerator());
+                entity.setCriticalValueRateDen(item.getDenominator());
+                break;
+            case "blood_draw_error_rate":
+                entity.setBloodDrawErrorRateNum(item.getNumerator());
+                entity.setBloodDrawErrorRateDen(item.getDenominator());
+                break;
+            case "surgery_complication_rate":
+                entity.setSurgeryComplicationRateNum(item.getNumerator());
+                entity.setSurgeryComplicationRateDen(item.getDenominator());
+                break;
+            case "adverse_event_rate":
+                entity.setAdverseEventRateNum(item.getNumerator());
+                entity.setAdverseEventRateDen(item.getDenominator());
                 break;
             default:
                 break;

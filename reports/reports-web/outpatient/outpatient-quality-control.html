@@ -349,7 +349,7 @@
                 <div class="modal-body">
                     <div class="d-flex align-items-center gap-2 mb-3">
                         <span>时间：</span>
-                        <input type="month" id="maintainMonth" class="form-control form-control-sm" style="width: 160px;" value="2025-09">
+                        <input type="month" id="maintainMonth" class="form-control form-control-sm" style="width: 160px;">
                     </div>
                     <div class="table-responsive">
                         <table class="table table-bordered">
@@ -405,6 +405,60 @@
                                 <tr>
                                     <td>化疗病历总数</td>
                                     <td><input type="text" class="form-control form-control-sm" data-indicator="chemo_record_rate" data-part="denominator"></td>
+                                </tr>
+                                <tr>
+                                    <td rowspan="2">门诊化疗严重不良反应发生率</td>
+                                    <td>≥3级不良反应患者人次数</td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="chemo_adverse_rate" data-part="numerator"></td>
+                                </tr>
+                                <tr>
+                                    <td>门诊化疗总人次数</td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="chemo_adverse_rate" data-part="denominator"></td>
+                                </tr>
+                                <tr>
+                                    <td rowspan="2">门诊化疗患者静脉治疗相关不良事件发生率</td>
+                                    <td>静脉治疗相关不良事件人次数</td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="chemo_infusion_rate" data-part="numerator"></td>
+                                </tr>
+                                <tr>
+                                    <td>同期静脉治疗化疗人次数</td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="chemo_infusion_rate" data-part="denominator"></td>
+                                </tr>
+                                <tr>
+                                    <td rowspan="2">门诊危急值30分钟内通报完成率</td>
+                                    <td>30分钟内通报危急值例数</td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="critical_value_rate" data-part="numerator"></td>
+                                </tr>
+                                <tr>
+                                    <td>危急值总例数</td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="critical_value_rate" data-part="denominator"></td>
+                                </tr>
+                                <tr>
+                                    <td rowspan="2">门诊静脉采血相关差错发生率</td>
+                                    <td>采血相关差错例数</td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="blood_draw_error_rate" data-part="numerator"></td>
+                                </tr>
+                                <tr>
+                                    <td>采血总例数</td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="blood_draw_error_rate" data-part="denominator"></td>
+                                </tr>
+                                <tr>
+                                    <td rowspan="2">门诊手术并发症发生率</td>
+                                    <td>手术并发症例数</td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="surgery_complication_rate" data-part="numerator"></td>
+                                </tr>
+                                <tr>
+                                    <td>门诊手术总例数</td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="surgery_complication_rate" data-part="denominator"></td>
+                                </tr>
+                                <tr>
+                                    <td rowspan="2">每千门诊诊疗人次不良事件发生率</td>
+                                    <td>门诊不良事件总数</td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="adverse_event_rate" data-part="numerator"></td>
+                                </tr>
+                                <tr>
+                                    <td>门诊总人次数</td>
+                                    <td><input type="text" class="form-control form-control-sm" data-indicator="adverse_event_rate" data-part="denominator"></td>
                                 </tr>
                             </tbody>
                         </table>

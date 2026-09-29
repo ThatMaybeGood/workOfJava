@@ -42,4 +42,14 @@ public class CashDischargeSettlementRequest extends BaseRequestBody {
      */
     private Integer pageSize;
 
+    /**
+     * 钻取类型：CHANNEL（渠道→费别人次明细）、PAY_TYPE（支付方式→收退占比）
+     */
+    private String drillType;
+
+    /**
+     * 钻取分类名：点击的扇区名称，如 窗口、微信
+     */
+    private String itemName;
+
 }

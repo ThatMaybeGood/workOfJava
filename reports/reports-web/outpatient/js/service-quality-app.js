@@ -53,6 +53,7 @@ class ServiceQualityController {
                     this.state.filter.startDate = this.formatDate(selectedDates[0]);
                     this.state.filter.endDate = this.formatDate(selectedDates[1]);
                     this.state.currentPage = 1;
+                    this.loadOverview();
                     this.loadTableData();
                 }
             }
@@ -90,6 +91,17 @@ class ServiceQualityController {
             this.state.pageSize = parseInt(e.target.value);
             this.state.currentPage = 1;
             this.loadTableData();
+        });
+
+        // 长文本截断单元格（投诉内容/诉求等）：点击弹窗看全文
+        document.getElementById('tableBody').addEventListener('click', (e) => {
+            const cell = e.target.closest('td.cell-ellipsis');
+            if (!cell) return;
+            const ths = document.querySelectorAll('#tableHead th');
+            const th = ths[cell.cellIndex];
+            document.getElementById('textDetailTitle').textContent = th ? th.textContent.trim() + '（全文）' : '全文';
+            document.getElementById('textDetailBody').textContent = cell.textContent;
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('textDetailModal')).show();
         });
     }
 

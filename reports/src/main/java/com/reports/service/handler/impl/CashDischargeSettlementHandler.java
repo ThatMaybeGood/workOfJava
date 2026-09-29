@@ -67,6 +67,9 @@ public class CashDischargeSettlementHandler implements ReportHandler<CashDischar
         if ("charts".equals(endpoint)) {
             return ApiResponse.success(cashDischargeSettlementService.queryCharts(body), msg);
         }
+        if ("chartDetail".equals(endpoint)) {
+            return ApiResponse.success(cashDischargeSettlementService.queryChartDetail(body), msg);
+        }
 
         Integer page = body.getPage() != null ? body.getPage() : pageConfig.getDefaultPage();
         Integer pageSize = body.getPageSize() != null ? body.getPageSize() : pageConfig.getDefaultPageSize();

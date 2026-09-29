@@ -888,6 +888,10 @@ class InpatientPrepaymentController {
         this.renderPieChart(this.charts.refundPayTypePie, data.payTypeAnalysis, `${titlePrefix}支付方式分析`);
     }
 
+    /**
+     * 环形饼图 + 右侧自定义图例（参考门诊财务风格）：
+     * 平时图上不出标签，悬停扇区才显示 名称/数值/百分比
+     */
     renderPieChart(chart, data, title) {
         const colors = ['#1890ff', '#52c41a', '#13c2c2', '#faad14'];
         const compact = window.matchMedia('(max-width: 1300px)').matches;
@@ -897,46 +901,97 @@ class InpatientPrepaymentController {
                 formatter: (params) => {
                     const item = data[params.dataIndex];
                     const compareText = item.compare >= 0 ? `+${item.compare}%` : `${item.compare}%`;
-                    return `${params.name}: ${params.value} (${params.percent}%)\n同比${compareText}`;
+                    return `${params.name}: ${params.value} (${params.percent}%)<br/>同比${compareText}`;
                 }
             },
-            legend: {
-                orient: 'vertical',
-                right: 10,
-                top: 'center',
-                itemWidth: 10,
-                itemHeight: 10,
-                textStyle: { color: '#595959', fontSize: 12 }
-            },
+            legend: { show: false },
             color: colors,
             series: [{
                 type: 'pie',
                 radius: ['45%', '70%'],
-                center: ['32%', '55%'],
+                center: ['50%', '52%'],
                 avoidLabelOverlap: true,
-                label: {
-                    show: true,
-                    formatter: '{c}\n({d}%)',
-                    fontSize: 11,
-                    color: '#595959'
+                label: { show: false },
+                labelLine: { show: false },
+                emphasis: {
+                    label: {
+                        show: true,
+                        fontSize: 13,
+                        fontWeight: 'bold',
+                        formatter: '{b}\n{c} ({d}%)'
+                    },
+                    itemStyle: { shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.15)' }
                 },
-                labelLine: { show: true, length: 10, length2: 10 },
                 data: data
             }]
         };
         if (compact) {
-            // 紧凑布局：图例移到底部横向、饼图居中并缩小
-            option.legend = {
-                orient: 'horizontal',
-                bottom: 0,
-                itemWidth: 10,
-                itemHeight: 10,
-                textStyle: { fontSize: 11 }
-            };
+            // 紧凑布局：饼图居中缩小，图例列表在下方不受影响
             option.series[0].radius = ['36%', '56%'];
-            option.series[0].center = ['50%', '40%'];
+            option.series[0].center = ['50%', '46%'];
         }
         chart.setOption(option, true);
+        this.renderChartLegend(chart, data, colors);
+    }
+
+    /**
+     * 饼图右侧图例列表：色块/名称/数值/占比/同比，超过 5 条分页（参考门诊财务）
+     */
+    renderChartLegend(chart, data, colors) {
+        const dom = chart.getDom();
+        const wrapper = dom.parentNode;
+        let listEl = wrapper.querySelector('.chart-legend-list');
+        if (!listEl) {
+            listEl = document.createElement('div');
+            listEl.className = 'chart-legend-list';
+            wrapper.appendChild(listEl);
+        }
+        if (!this.legendPageState) this.legendPageState = {};
+        if (!this.legendPageState[dom.id]) this.legendPageState[dom.id] = { page: 1 };
+        const state = this.legendPageState[dom.id];
+        state.data = data;
+        state.colors = colors;
+        this.renderChartLegendPage(listEl, state, dom.id);
+    }
+
+    renderChartLegendPage(listEl, state, domId) {
+        const PAGE_SIZE = 5;
+        const data = state.data;
+        const colors = state.colors;
+        const total = data.reduce((sum, d) => sum + (parseFloat(d.value) || 0), 0);
+        const totalPages = Math.max(1, Math.ceil(data.length / PAGE_SIZE));
+        if (state.page > totalPages) state.page = totalPages;
+        const start = (state.page - 1) * PAGE_SIZE;
+        const pageData = data.slice(start, start + PAGE_SIZE);
+
+        let html = pageData.map((item, idx) => {
+            const val = parseFloat(item.value) || 0;
+            const pct = total > 0 ? (val / total * 100).toFixed(1) + '%' : '';
+            const perText = (item.compare >= 0 ? '+' : '') + item.compare + '%';
+            const perCls = item.compare >= 0 ? 'up' : 'down';
+            return `<div class="chart-legend-item">
+                <span class="chart-legend-dot" style="background:${colors[(start + idx) % colors.length]}"></span>
+                <span class="chart-legend-name">${item.name}</span>
+                <span class="chart-legend-val">${val}</span>
+                <span class="chart-legend-pct">${pct}</span>
+                <span class="chart-legend-per ${perCls}">${perText}</span>
+            </div>`;
+        }).join('');
+
+        if (totalPages > 1) {
+            html += `<div class="chart-legend-pagination">
+                <button type="button" ${state.page <= 1 ? 'disabled' : ''} data-page="${state.page - 1}">上一页</button>
+                <span class="page-info">${state.page}/${totalPages} 页</span>
+                <button type="button" ${state.page >= totalPages ? 'disabled' : ''} data-page="${state.page + 1}">下一页</button>
+            </div>`;
+        }
+        listEl.innerHTML = html;
+        listEl.querySelectorAll('button[data-page]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.page = parseInt(btn.getAttribute('data-page'));
+                this.renderChartLegendPage(listEl, state, domId);
+            });
+        });
     }
 
     renderStackBarChart(chart, data, title) {
@@ -976,7 +1031,7 @@ class InpatientPrepaymentController {
                 name: s.name,
                 type: 'bar',
                 stack: 'total',
-                barWidth: '40%',
+                barWidth: '58%',
                 itemStyle: { color: colors[index % colors.length] },
                 data: s.data
             }))

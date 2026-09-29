@@ -136,4 +136,20 @@
         </choose>
     </select>
 
+    <!-- ============================================================ -->
+    <!-- 图表钻取明细：item_name 存 分类|明细项（如 窗口|职工医保、微信|收），按明细项汇总 -->
+    <!-- ============================================================ -->
+    <select id="queryChartDetail" resultType="com.reports.dto.response.cash.discharge.settlement.ChartItem">
+        SELECT
+        SUBSTR(item_name, INSTR(item_name, '|') + 1) AS name,
+        NVL(SUM(item_value), 0) AS value,
+        0 AS compare
+        FROM TR_DISCH_SETTLE_CHT
+        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+        AND chart_type = #{chartType}
+        AND item_name LIKE #{itemPrefix} || '%'
+        GROUP BY SUBSTR(item_name, INSTR(item_name, '|') + 1)
+        ORDER BY name
+    </select>
+
 </mapper>

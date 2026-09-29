@@ -792,8 +792,8 @@
                         <th class="group-afternoon"><span class="header-main">余额（14）</span><span class="header-note">=（12）-（10）（公式）</span></th>
                         <th class="group-afternoon"><span class="header-main">调整（15）</span><span class="header-note">（手工录入）</span></th>
                         <th class="group-afternoon"><span class="header-main">今日欠条（16）</span><span class="header-note">=（15）-（14）（公式）</span></th>
-                        <th class="group-afternoon"><span class="header-main">节假日交款（17）</span><span class="header-note">（手机端：收费员手工录入）</span></th>
-                        <th class="group-retain"><span class="header-main">库存现金（18）</span><span class="header-note">（手机端：收费员手工录入）</span></th>
+                        <th class="group-afternoon"><span class="header-main">节假日交款（17）</span><span class="header-note">（手机端登记表提取）</span></th>
+                        <th class="group-retain"><span class="header-main">库存现金（18）</span><span class="header-note">（手机端登记表提取）</span></th>
                         <th class="group-retain"><span class="header-main">差额（19）</span><span class="header-note">=（18）-（10）-（17）（公式）</span></th>
                         <th class="group-retain"><span class="header-main">备注</span><span class="header-note">（手工录入）</span></th>
                     </tr>
@@ -885,8 +885,8 @@
         { field: "balance", title: "余额（14）", editable: false, computed: true, note: "=（12）-（10）（公式）" },
         { field: "adjustment", title: "调整（15）", editable: true, computed: false, note: "（手工录入）" },
         { field: "today_iou", title: "今日欠条（16）", editable: false, computed: true, note: "=（15）-（14）（公式）" },
-        { field: "holiday_payment", title: "节假日交款（17）", editable: true, computed: false, note: "（手机端：收费员手工录入）" },
-        { field: "cash_on_hand", title: "库存现金（18）", editable: true, computed: false, note: "（手机端：收费员手工录入）" },
+        { field: "holiday_payment", title: "节假日交款（17）", editable: false, computed: false, note: "（手机端登记表提取）" },
+        { field: "cash_on_hand", title: "库存现金（18）", editable: false, computed: false, note: "（手机端登记表提取）" },
         { field: "difference", title: "差额（19）", editable: false, computed: true, note: "=（18）-（10）-（17）（公式）" },
         { field: "remarks", title: "备注", align: "left", editable: true, computed: false, isText: true, note: "（手工录入）" }
     ];

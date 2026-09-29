@@ -36,24 +36,48 @@ const MockService = {
                     code: 200,
                     data: {
                         channelAnalysis: [
-                            { name: '窗口', value: 31, compare: -8 },
-                            { name: '自助机', value: 31, compare: 5 },
-                            { name: '掌上医院', value: 31, compare: 1 }
+                            { name: '窗口', value: 128, compare: -8 },
+                            { name: '自助机', value: 96, compare: 5 },
+                            { name: '掌上医院', value: 66, compare: 1 }
                         ],
                         patientTypeAnalysis: [
-                            { name: '微信', value: 31, compare: -8 },
-                            { name: '支付宝', value: 31, compare: 5 },
-                            { name: '银行卡', value: 31, compare: 1 },
-                            { name: '现金', value: 31, compare: -14 }
+                            { name: '职工医保', value: 120, compare: 6 },
+                            { name: '异地职工医保', value: 45, compare: 3 },
+                            { name: '居民医保', value: 60, compare: -2 },
+                            { name: '自费', value: 65, compare: -5 }
                         ],
                         amountTypeAnalysis: [
-                            { name: '微信', value: 31, compare: -8 },
+                            { name: '微信', value: 52, compare: -8 },
                             { name: '支付宝', value: 31, compare: 5 },
-                            { name: '银行卡', value: 31, compare: 1 },
-                            { name: '现金', value: 31, compare: -14 }
+                            { name: '银行卡', value: 38, compare: 1 },
+                            { name: '现金', value: 25, compare: -14 }
                         ]
                     }
                 });
+            }, 300);
+        });
+    },
+
+    /**
+     * 出院结算图表钻取明细：渠道→费别人次，支付方式→收/退金额
+     * @param {Object} params - { drillType: 'CHANNEL'|'PAY_TYPE', itemName: 分类名 }
+     */
+    getDischargeSettlementChartDetail(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const feeTypes = ['职工医保', '异地职工医保', '居民医保', '自费'];
+                let list;
+                if (params.drillType === 'CHANNEL') {
+                    list = feeTypes.map((name, i) => ({
+                        name, value: 30 + i * 17, compare: 0
+                    }));
+                } else {
+                    list = [
+                        { name: '收', value: 82, compare: 0 },
+                        { name: '退', value: 18, compare: 0 }
+                    ];
+                }
+                resolve({ code: 200, data: list });
             }, 300);
         });
     },

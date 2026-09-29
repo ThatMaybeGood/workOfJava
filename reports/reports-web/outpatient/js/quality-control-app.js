@@ -158,10 +158,16 @@ class QualityControlController {
             });
         }
 
-        // 数据维护弹窗：打开/切月份时加载已维护值，保存提交
+        // 数据维护弹窗：默认当前月，打开/切月份时加载已维护值，保存提交
         const maintainModal = document.getElementById('maintainModal');
         if (maintainModal) {
-            maintainModal.addEventListener('shown.bs.modal', () => this.loadMaintain());
+            maintainModal.addEventListener('shown.bs.modal', () => {
+                const monthInput = document.getElementById('maintainMonth');
+                if (!monthInput.value) {
+                    monthInput.value = new Date().toISOString().slice(0, 7);
+                }
+                this.loadMaintain();
+            });
             document.getElementById('maintainMonth').addEventListener('change', () => this.loadMaintain());
             document.getElementById('maintainSaveBtn').addEventListener('click', () => this.saveMaintain());
         }

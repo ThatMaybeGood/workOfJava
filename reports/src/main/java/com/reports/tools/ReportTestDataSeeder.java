@@ -888,15 +888,32 @@ public final class ReportTestDataSeeder {
         // 三种 chart_type 都要有，少一种对应那块图表就是空的。
         String[] dischChartTypes = {"CHANNEL", "PATIENT_TYPE", "AMOUNT_TYPE"};
         String[][] dischItems = {
-                {"窗口", "自助机", "医保", "自费"},
-                {"现金", "银行卡", "微信", "支付宝"},
-                {"检查费", "药费", "治疗费", "床位费", "欠费", "预交金"},
+                {"窗口", "自助机", "掌上医院"},
+                {"职工医保", "异地职工医保", "居民医保", "自费"},
+                {"微信", "支付宝", "银行卡", "现金"},
         };
         for (int i = 0; i < dischChartTypes.length; i++) {
             for (String item : dischItems[i]) {
                 cht.add(new Object[]{dayAt(DAYS - 1), dischChartTypes[i], item,
                         Integer.valueOf(rnd(10, 500)), Integer.valueOf(rnd(-50, 50))});
             }
+        }
+        // 钻取明细：渠道×费别人次、支付方式×收/退金额，item_name 存 分类|明细项
+        String[] dischChannels = dischItems[0];
+        String[] dischFeeTypes = dischItems[1];
+        String[] dischPayTypes = dischItems[2];
+        for (String channel : dischChannels) {
+            for (String feeType : dischFeeTypes) {
+                cht.add(new Object[]{dayAt(DAYS - 1), "CHANNEL_DETAIL", channel + "|" + feeType,
+                        Integer.valueOf(rnd(10, 300)), Integer.valueOf(0)});
+            }
+        }
+        for (String payType : dischPayTypes) {
+            int income = rnd(100, 500);
+            cht.add(new Object[]{dayAt(DAYS - 1), "PAY_DETAIL", payType + "|收",
+                    Integer.valueOf(income), Integer.valueOf(0)});
+            cht.add(new Object[]{dayAt(DAYS - 1), "PAY_DETAIL", payType + "|退",
+                    Integer.valueOf(rnd(10, income / 2)), Integer.valueOf(0)});
         }
         batch(conn, "INSERT INTO TR_DISCH_SETTLE_OV (stat_date, total_discharge_count,"
                 + " total_discharge_compare, discharged_count, discharged_compare, not_discharged_count,"

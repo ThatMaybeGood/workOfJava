@@ -108,6 +108,7 @@ const API_CONFIG = {
         'reports.cash.cash-discharge-settlement': {
             overview: '/api/cash/discharge-settlement/overview',
             charts: '/api/cash/discharge-settlement/charts',
+            chartDetail: '/api/cash/discharge-settlement/chart-detail',
             table: '/api/cash/discharge-settlement/table',
             export: '/api/cash/discharge-settlement/export'
         },
@@ -206,7 +207,7 @@ const GlobalLoading = (() => {
         if (maskEl) return maskEl;
         const style = document.createElement('style');
         style.textContent = `
-            #globalLoadingMask{position:fixed;inset:0;background:rgba(255,255,255,0.72);z-index:99999;display:none;align-items:center;justify-content:center}
+            #globalLoadingMask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.72);z-index:99999;display:none;align-items:center;justify-content:center}
             #globalLoadingMask.show{display:flex}
             .global-loading-box{text-align:center;padding:22px 36px;background:#fff;border-radius:14px;box-shadow:0 6px 24px rgba(11,94,126,0.15)}
             .global-loading-spinner{width:42px;height:42px;margin:0 auto 10px;border:4px solid #d6e4ec;border-top-color:#0b5e7e;border-radius:50%;animation:globalLoadingSpin .8s linear infinite}
@@ -231,7 +232,7 @@ const GlobalLoading = (() => {
  * 人离开回来后仍能看到本次查询的失败情况 */
 const GlobalErrorDialog = (() => {
     const css = `
-        #globalErrorMask{position:fixed;inset:0;background:rgba(15,32,42,0.38);z-index:100001;display:none;align-items:center;justify-content:center}
+        #globalErrorMask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,32,42,0.38);z-index:100001;display:none;align-items:center;justify-content:center}
         #globalErrorMask.show{display:flex}
         .global-error-box{width:460px;max-width:92vw;max-height:76vh;background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.25);display:flex;flex-direction:column;overflow:hidden;animation:globalErrIn .18s ease-out}
         @keyframes globalErrIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
@@ -413,6 +414,7 @@ function callMockService(methodKey, endpointKey, params) {
         'reports.cash.cash-discharge-settlement': {
             overview: () => MockService.getDischargeSettlementOverview(),
             charts: () => MockService.getDischargeSettlementCharts(),
+            chartDetail: (p) => MockService.getDischargeSettlementChartDetail(p),
             table: (p) => MockService.getDischargeSettlementTable(p),
             export: (p) => MockService.exportDischargeSettlement(p)
         },

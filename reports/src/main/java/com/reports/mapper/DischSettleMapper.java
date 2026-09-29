@@ -81,4 +81,18 @@ public interface DischSettleMapper extends BaseMapper<DischSettleOvEntity> {
     List<ChartItem> queryChartMonth(@Param("startDate") Date startDate,
                                     @Param("endDate") Date endDate,
                                     @Param("chartType") String chartType);
+
+    /**
+     * 图表钻取明细：CHANNEL_DETAIL（渠道|费别人次）、PAY_DETAIL（支付方式|收/退金额）
+     *
+     * @param startDate 开始日期
+     * @param endDate   结束日期
+     * @param chartType 钻取明细类型
+     * @param itemPrefix 分类前缀，如 窗口|、微信|
+     * @return 明细项
+     */
+    List<ChartItem> queryChartDetail(@Param("startDate") Date startDate,
+                                     @Param("endDate") Date endDate,
+                                     @Param("chartType") String chartType,
+                                     @Param("itemPrefix") String itemPrefix);
 }
