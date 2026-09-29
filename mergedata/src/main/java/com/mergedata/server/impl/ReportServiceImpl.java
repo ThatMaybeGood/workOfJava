@@ -1264,18 +1264,26 @@ public class ReportServiceImpl implements ReportService {
         return transactionTemplate.execute(status -> {
             try {
                 /*
-                 * 作废旧数据
-                 * 根据 report_date 将之前已生效的报表全部改为作废(0)
+                 * 删除旧数据(物理删除, 同一日期+类型只保留一条): 先按旧主表serial_no删子表, 再删主表
                  */
-                Db.lambdaUpdate(InpCashMainEntity.class)
+                List<String> oldSerialNos = Db.lambdaQuery(InpCashMainEntity.class)
+                        .select(InpCashMainEntity::getSerialNo)
                         .eq(InpCashMainEntity::getReportDate, main.getReportDate())
-                        .eq(InpCashMainEntity::getValidFlag, Constant.YES) // 只作废当前有效的
-                        .eq(InpCashMainEntity::getHolidayTotalFlag, main.getHolidayTotalFlag())  //对应节假日汇总类型
-                        .set(InpCashMainEntity::getValidFlag, Constant.NO)
-                        .set(InpCashMainEntity::getUpdateTime, LocalDateTime.now())
-                        .update();
+                        .eq(InpCashMainEntity::getHolidayTotalFlag, main.getHolidayTotalFlag())
+                        .list()
+                        .stream()
+                        .map(InpCashMainEntity::getSerialNo)
+                        .collect(Collectors.toList());
+                if (!oldSerialNos.isEmpty()) {
+                    Db.lambdaUpdate(InpCashSubEntity.class)
+                            .in(InpCashSubEntity::getSerialNo, oldSerialNos)
+                            .remove();
+                    Db.lambdaUpdate(InpCashMainEntity.class)
+                            .in(InpCashMainEntity::getSerialNo, oldSerialNos)
+                            .remove();
+                }
 
-                log.info("{} {}  历史报表数据作废完成", Constant.REPORT_NAME_INP, main.getReportDate());
+                log.info("{} {}  历史报表数据删除完成", Constant.REPORT_NAME_INP, main.getReportDate());
 
                 if (!main.getSubs().isEmpty()) {
                     /*
