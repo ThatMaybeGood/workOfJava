@@ -845,6 +845,11 @@ public class ReportServiceImpl implements ReportService {
 
                         startDate = startDate.minusDays(1);  //日期倒减
 
+                        // 到节前最后一个工作日即停, 不纳入汇总窗口(只合计纯假期)
+                        if (holidayService.queryDateType(startDate, Constant.TYPE_INP).equals(Constant.HOLIDAY_PRE)) {
+                            break;
+                        }
+
                         inpResult = queryInpReportByDate(startDate, Constant.NOT_TOTAL);
 
                         // 1. 查主表单条 是否存在
@@ -856,10 +861,6 @@ public class ReportServiceImpl implements ReportService {
                         }
 
                         mainList.add(inpResult);
-
-                        if (holidayService.queryDateType(startDate, Constant.TYPE_INP).equals(Constant.HOLIDAY_PRE)) {
-                            break;
-                        }
 
                         // 防止无限循环
                         if (currentDate.toEpochDay() - startDate.toEpochDay() > 30) {
@@ -994,20 +995,31 @@ public class ReportServiceImpl implements ReportService {
      * @return 汇总后的住院现金统计主表实体类
      */
     public InpCashMainEntity inpHolidayTotal(List<InpCashMainEntity> allMains, LocalDate reportDate) {
-        // 1. 创建一个汇总对象（合计行）
         InpCashMainEntity summary = new InpCashMainEntity();
 
         if (allMains == null || allMains.isEmpty()) {
             return summary;
         }
 
-        InpCashSubEntity totalSub = new InpCashSubEntity();
-
         List<InpCashSubEntity> allSubs = allMains.stream()
                 .flatMap(m -> m.getSubs().stream()).collect(Collectors.toList());
 
-
+        // 按收费员逐行汇总: 各列=期间每天对应列合计(公式列同样直接加总), 收费员顺序以最近一天报表为准
+        Map<String, InpCashSubEntity> grouped = new LinkedHashMap<>();
         for (InpCashSubEntity item : allSubs) {
+            String key = item.getOperatorNo() != null ? item.getOperatorNo() : item.getDbUser();
+            if (key == null) {
+                continue;
+            }
+            InpCashSubEntity totalSub = grouped.get(key);
+            if (totalSub == null) {
+                totalSub = new InpCashSubEntity();
+                totalSub.setDbUser(item.getDbUser());
+                totalSub.setOperatorNo(item.getOperatorNo());
+                totalSub.setOperatorName(item.getOperatorName());
+                totalSub.setCreatedTime(LocalDateTime.now());
+                grouped.put(key, totalSub);
+            }
             // 上午部分
             totalSub.setPreviousDayAdvanceReceipt(totalSub.getPreviousDayAdvanceReceipt().add(item.getPreviousDayAdvanceReceipt()));
             totalSub.setTodayAdvancePayment(totalSub.getTodayAdvancePayment().add(item.getTodayAdvancePayment()));
@@ -1032,12 +1044,18 @@ public class ReportServiceImpl implements ReportService {
             totalSub.setCashOnHand(totalSub.getCashOnHand().add(item.getCashOnHand()));
             totalSub.setDifference(totalSub.getDifference().add(item.getDifference()));
 
+            // 备注(6)拼接非空值
+            if (item.getSubRemark() != null && !item.getSubRemark().trim().isEmpty()) {
+                totalSub.setSubRemark(totalSub.getSubRemark() == null || totalSub.getSubRemark().isEmpty()
+                        ? item.getSubRemark()
+                        : totalSub.getSubRemark() + "；" + item.getSubRemark());
+            }
         }
 
         summary.setHolidayTotalFlag(Constant.YES);
         summary.setReportDate(reportDate);
         summary.setReportYear(reportDate.getYear());
-        summary.setSubs(Collections.singletonList(totalSub)); // 返回单条汇总结果
+        summary.setSubs(new ArrayList<>(grouped.values())); // 按收费员一行行的汇总结果
 
         log.info("住院现金统计-节假日汇总计算，报表日期：{}", reportDate);
 
@@ -1240,8 +1258,10 @@ public class ReportServiceImpl implements ReportService {
             throw new BusinessException("该报表已审核通过，已封存不能修改");
         }
 
-        //库存现金/节假日交款以住院现金登记表为准(默认0), 先回填再算公式
-        applyInpRegRecords(main.getSubs(), main.getReportDate());
+        //库存现金/节假日交款以住院现金登记表为准(默认0), 先回填再算公式; 节假日汇总行已是期间合计, 不回填
+        if (Constant.NOT_TOTAL.equals(main.getHolidayTotalFlag())) {
+            applyInpRegRecords(main.getSubs(), main.getReportDate());
+        }
 
         //界面手工录入修改时候，保存数据重新计算明细的公式
         if (isInitFlag.equals(Constant.NO)) {
