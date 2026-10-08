@@ -31,6 +31,10 @@ public class InpReportVO {
     @TableField(value = "total_flag")
     private String totalFlag = Constant.NO; //汇总标志
 
+    private String holidayTotalFlag;      // 节假日汇总标志 0-否 1-是
+    private LocalDate holidayStartDate;   // 汇总区间起（仅汇总返回）
+    private LocalDate holidayEndDate;     // 汇总区间止
+
     private String totalRemark;           // 报表级备注（合计行下方）
 
     private String auditStatus;           // 审核状态 0-未审核 1-通过 2-不通过
