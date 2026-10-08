@@ -644,6 +644,14 @@
                 border: 1px solid #000;
             }
         }
+
+        /* 审核功能已下线, 隐藏审核状态展示(徽标/水印/意见横幅) */
+        #auditBadge, #auditOpinion, #watermark { display: none !important; }
+        /* 月初报表功能下线 */
+        .btn-option[data-value="2"] { display: none; }
+        /* 查询提示: 页面内常显 */
+        .query-hint { display: none; margin: 0 0 12px; padding: 12px 16px; border-radius: 8px; background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; font-size: 14px; }
+        .query-hint.show { display: block; }
     </style>
 </head>
 <body>
@@ -679,6 +687,8 @@
         <span class="audit-opinion-text" id="auditOpinionText"></span>
         <span class="audit-opinion-time" id="auditOpinionTime"></span>
     </div>
+
+    <div class="query-hint" id="queryHint"></div>
 
     <div class="section-card" style="margin-bottom: 0;">
         <div class="table-wrapper" id="tableWrapper">
@@ -801,6 +811,7 @@
 
     var currentData = [];
     var reportRemark = "";
+    var holidayRange = null;
     var reportMeta = { report_date: null, holiday_total_flag: "0" };
     var currentTotalFlag = "0";
     var useMock = false;
@@ -1105,15 +1116,20 @@
             currentData = body.subs || [];
             currentData.forEach(row => calculateRow(row));
             reportRemark = body.total_remark || "";
+            holidayRange = (body.holiday_start_date && body.holiday_end_date)
+                ? { start: body.holiday_start_date, end: body.holiday_end_date } : null;
             auditRemark = body.audit_remark || "";
             auditTime = body.audit_time || "";
 
             updateTitle(dateStr);
             applyAuditStatus(body.audit_status);
+            document.getElementById("queryHint").classList.remove("show");
 
             renderTable();
         } catch (error) {
-            showToast(`查询失败: ${error.message}`, "error");
+            const hint = document.getElementById("queryHint");
+            hint.textContent = `查询失败：${error.message}`;
+            hint.classList.add("show");
             currentData = [];
             reportRemark = "";
             renderTable();
@@ -1134,6 +1150,12 @@
         const next = new Date(d);
         next.setDate(next.getDate() + 1);
         const formatCN = date => `${date.getMonth() + 1}月${date.getDate()}日`;
+        if (holidayRange) {
+            const fmt = s => { const sd = new Date(String(s).replace(/\//g, "-") + "T00:00:00"); return `${sd.getMonth() + 1}月${sd.getDate()}日`; };
+            document.getElementById("mainTitle").textContent = `${fmt(holidayRange.start)}-${fmt(holidayRange.end)} 节假日汇总报表现金登记表`;
+            document.getElementById("reportDateDisplay").textContent = `登记时间：${formatCN(next)}`;
+            return;
+        }
         document.getElementById("mainTitle").textContent = `${formatCN(d)} 审核/出纳 报表现金登记表`;
         document.getElementById("reportDateDisplay").textContent = `登记时间：${formatCN(next)}`;
 

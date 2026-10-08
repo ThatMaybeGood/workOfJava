@@ -827,10 +827,14 @@ public class ReportServiceImpl implements ReportService {
 
             //是否节假日汇总
             if (totalFlag.equals(Constant.YES)) {
+                if (!holidayType.equals(Constant.HOLIDAY_AFTER)) {
+                    throw new BusinessException("该日期不是节后首个工作日，无汇总数据；请在节后第一个工作日查询汇总");
+                }
                 if (holidayType.equals(Constant.HOLIDAY_AFTER)) {
                     //已有汇总数据直接返回，不重复生成，避免覆盖审核状态
                     InpCashMainEntity existTotal = queryInpReportByDate(currentDate, Constant.YES);
                     if (existTotal != null && !isInitFlag) {
+                        fillHolidayRange(existTotal);
                         return existTotal;
                     }
 
@@ -875,6 +879,7 @@ public class ReportServiceImpl implements ReportService {
 
                     isInitInsertInp(inpResult, Constant.YES);
                     log.info("住院现金统计-节假日汇总写入成功，报表日期{}", currentDate);
+                    fillHolidayRange(inpResult);
                 }
 
             } else {
@@ -1060,6 +1065,25 @@ public class ReportServiceImpl implements ReportService {
         log.info("住院现金统计-节假日汇总计算，报表日期：{}", reportDate);
 
         return summary;
+    }
+
+    /**
+     * 汇总区间: 从报表日前一天往前连续节假日，填入起止日期供前端标题展示
+     */
+    private void fillHolidayRange(InpCashMainEntity main) {
+        if (main == null || main.getReportDate() == null) {
+            return;
+        }
+        LocalDate end = main.getReportDate().minusDays(1);
+        if (holidayService.findByDate(end).isEmpty()) {
+            return;
+        }
+        LocalDate start = end;
+        while (!holidayService.findByDate(start.minusDays(1)).isEmpty()) {
+            start = start.minusDays(1);
+        }
+        main.setHolidayStartDate(start);
+        main.setHolidayEndDate(end);
     }
 
     /**

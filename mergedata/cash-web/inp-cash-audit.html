@@ -725,6 +725,11 @@
                 border: 1px solid #000;
             }
         }
+
+        /* 审核功能已下线, 隐藏审核状态展示(徽标/水印) */
+        #auditBadge, #watermark { display: none !important; }
+        /* 月初报表功能下线 */
+        .btn-option[data-value="2"] { display: none; }
     </style>
 </head>
 <body>

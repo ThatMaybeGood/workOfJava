@@ -94,4 +94,11 @@ public class InpCashMainEntity {
     @TableField(exist = false)
     private List<InpAuditLogEntity> auditLogs;
 
+    /** 汇总区间起（仅节假日汇总返回，展示用） */
+    @TableField(exist = false)
+    private LocalDate holidayStartDate;
+    /** 汇总区间止 */
+    @TableField(exist = false)
+    private LocalDate holidayEndDate;
+
 }
