@@ -1012,7 +1012,8 @@ public class ReportServiceImpl implements ReportService {
         // 按收费员逐行汇总: 各列=期间每天对应列合计(公式列同样直接加总), 收费员顺序以最近一天报表为准
         Map<String, InpCashSubEntity> grouped = new LinkedHashMap<>();
         for (InpCashSubEntity item : allSubs) {
-            String key = item.getOperatorNo() != null ? item.getOperatorNo() : item.getDbUser();
+            // 按db_user分组(各版本数据都有, 稳定唯一), 避免emp_id新老数据混合把人拆成两行
+            String key = item.getDbUser() != null ? item.getDbUser() : item.getOperatorNo();
             if (key == null) {
                 continue;
             }
