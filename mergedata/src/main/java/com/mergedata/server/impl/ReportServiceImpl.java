@@ -849,8 +849,8 @@ public class ReportServiceImpl implements ReportService {
 
                         startDate = startDate.minusDays(1);  //日期倒减
 
-                        // 到节前最后一个工作日即停, 不纳入汇总窗口(只合计纯假期)
-                        if (holidayService.queryDateType(startDate, Constant.TYPE_INP).equals(Constant.HOLIDAY_PRE)) {
+                        // 到非节假日即停(月末工作日/节前工作日都停), 只合计纯假期; 不依赖queryDateType的PRE判定
+                        if (holidayService.findByDate(startDate).isEmpty()) {
                             break;
                         }
 
