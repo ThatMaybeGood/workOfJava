@@ -217,7 +217,7 @@ public final class ReportTestDataSeeder {
                 "TR_COMMON_DICT", "TR_STAFF_DICT", "TR_SPEC_TREAT_OV",
                 "TR_WIN_STAT_OV", "TR_WIN_STAT_AGE", "TR_WIN_STAT_TM", "TR_WIN_STAT_SRC",
                 "TR_CASH_SETTLE_OV", "TR_CASH_SETTLE_DTL", "TR_CASH_SETTLE_CHT",
-                "TR_DISCH_SETTLE_OV", "TR_DISCH_SETTLE_DTL", "TR_DISCH_SETTLE_CHT",
+                "TR_DISCH_SETTLE_VISIT", "TR_SETTLE_MASTER", "TR_SETTLE_PAYMENTS",
                 "TR_TREAT_STAT_OV", "TR_TREAT_STAT_DTL", "TR_TREAT_STAT_TREND",
                 "TR_INPAT_PREPAY_RCPT",
                 "TR_OUTP_FIN_CLINIC_MASTER", "TR_OUTP_FIN_RCPT_ACCT", "TR_OUTP_FIN_ACCT_MASTER",
@@ -859,74 +859,74 @@ public final class ReportTestDataSeeder {
         out.println("  [收费员结账] OV=" + ov.size() + " DTL=" + dtl.size() + " CHT=" + cht.size());
     }
 
+    /** 出院结算: 出院记录(pat_visit口径) + 结算主表 + 支付方式, 三表按天同造保持可关联 */
     private static void seedDischSettle(Connection conn) throws SQLException {
-        List<Object[]> ov = new ArrayList<Object[]>();
-        List<Object[]> dtl = new ArrayList<Object[]>();
-        List<Object[]> cht = new ArrayList<Object[]>();
-        // 概览表走 selectOne (DischSettleMapper.queryOverview 无聚合), 只能有 1 行
-        int total0 = rnd(30, 200);
-        int discharged0 = rnd(10, total0);
-        ov.add(new Object[]{dayAt(DAYS - 1), Integer.valueOf(total0), Integer.valueOf(rnd(-20, 20)),
-                Integer.valueOf(discharged0), Integer.valueOf(rnd(-20, 20)),
-                Integer.valueOf(total0 - discharged0), Integer.valueOf(rnd(-20, 20)),
-                Double.valueOf(round2(rnd(50000, 500000))), Integer.valueOf(rnd(-20, 20))});
+        List<Object[]> visit = new ArrayList<Object[]>();
+        List<Object[]> master = new ArrayList<Object[]>();
+        List<Object[]> payments = new ArrayList<Object[]>();
+        String[] feeTypes = {"职工医保", "异地职工医保",
+                "居民医保", "自费"};
+        String[] payTypes = {"微信", "支付宝", "银行卡", "现金"};
+        int rcptSeq = 1;
         for (int d = 0; d < DAYS; d++) {
             Date day = dayAt(d);
-            int total = rnd(30, 200);
-            int discharged = rnd(10, total);
-            int notDischarged = total - discharged;
-            dtl.add(new Object[]{day, day,
-                    Integer.valueOf(rnd(30, 180)), Integer.valueOf(total), Integer.valueOf(rnd(-20, 20)),
-                    Integer.valueOf(rnd(10, 150)), Integer.valueOf(discharged), Integer.valueOf(rnd(-20, 20)),
-                    Integer.valueOf(rnd(5, 80)), Integer.valueOf(notDischarged), Integer.valueOf(rnd(-20, 20)),
-                    Double.valueOf(round2(rnd(40000, 400000))), Double.valueOf(round2(rnd(50000, 500000))),
-                    Integer.valueOf(rnd(-20, 20))});
-        }
-
-        // 图表数据是「一次报告一份快照」，不是按天：
-        // 页面把整个数组直接喂给饼图，按天写会出现 124 个同名扇区。
-        // 三种 chart_type 都要有，少一种对应那块图表就是空的。
-        String[] dischChartTypes = {"CHANNEL", "PATIENT_TYPE", "AMOUNT_TYPE"};
-        String[][] dischItems = {
-                {"窗口", "自助机", "掌上医院"},
-                {"职工医保", "异地职工医保", "居民医保", "自费"},
-                {"微信", "支付宝", "银行卡", "现金"},
-        };
-        for (int i = 0; i < dischChartTypes.length; i++) {
-            for (String item : dischItems[i]) {
-                cht.add(new Object[]{dayAt(DAYS - 1), dischChartTypes[i], item,
-                        Integer.valueOf(rnd(10, 500)), Integer.valueOf(rnd(-50, 50))});
+            int discharges = rnd(5, 30);
+            for (int i = 0; i < discharges; i++) {
+                String patientId = "P" + String.format("%06d", Integer.valueOf(d * 100 + i));
+                String visitId = "V" + String.format("%06d", Integer.valueOf(d * 100 + i));
+                // 90%已结算 10%出院未结算, 偶发有余额/欠费
+                int status;
+                int r = rnd(1, 100);
+                if (r <= 86) {
+                    status = 1;
+                } else if (r <= 96) {
+                    status = 2;
+                } else if (r <= 98) {
+                    status = 3;
+                } else {
+                    status = 4;
+                }
+                double costs = round2(rnd(3000, 60000));
+                double totalPayments = round2(costs * (0.5 + rnd(0, 50) / 100.0));
+                visit.add(new Object[]{day, Integer.valueOf(status), patientId, visitId,
+                        new java.sql.Timestamp(day.getTime()), Double.valueOf(costs),
+                        Double.valueOf(totalPayments)});
+                // 已结算的出结算主表 + 支付方式
+                if (status == 1) {
+                    String rcptNo = "S" + String.format("%08d", Integer.valueOf(rcptSeq++));
+                    String operator = rnd(1, 4) == 1 ? "9111" : "9101";
+                    String feeType = feeTypes[rnd(0, feeTypes.length - 1)];
+                    double charges = round2(costs * (0.9 + rnd(0, 20) / 100.0));
+                    master.add(new Object[]{day, rcptNo, patientId, visitId,
+                            new java.sql.Timestamp(day.getTime()), operator, feeType,
+                            Double.valueOf(costs), Double.valueOf(charges),
+                            Double.valueOf(totalPayments)});
+                    // 每单1~2种支付方式, 收为主偶有退
+                    int ways = rnd(1, 2);
+                    double remain = charges;
+                    for (int w = 0; w < ways; w++) {
+                        String moneyType = payTypes[rnd(0, payTypes.length - 1)];
+                        double payAmount = w == ways - 1 ? remain : round2(charges * rnd(30, 70) / 100.0);
+                        remain = round2(remain - payAmount);
+                        double refunded = rnd(1, 10) == 1 ? round2(payAmount * rnd(5, 30) / 100.0) : Double.valueOf(0);
+                        payments.add(new Object[]{day, rcptNo, patientId, visitId,
+                                new java.sql.Timestamp(day.getTime()), moneyType,
+                                Double.valueOf(payAmount), Double.valueOf(refunded)});
+                    }
+                }
             }
         }
-        // 钻取明细：渠道×费别人次、支付方式×收/退金额，item_name 存 分类|明细项
-        String[] dischChannels = dischItems[0];
-        String[] dischFeeTypes = dischItems[1];
-        String[] dischPayTypes = dischItems[2];
-        for (String channel : dischChannels) {
-            for (String feeType : dischFeeTypes) {
-                cht.add(new Object[]{dayAt(DAYS - 1), "CHANNEL_DETAIL", channel + "|" + feeType,
-                        Integer.valueOf(rnd(10, 300)), Integer.valueOf(0)});
-            }
-        }
-        for (String payType : dischPayTypes) {
-            int income = rnd(100, 500);
-            cht.add(new Object[]{dayAt(DAYS - 1), "PAY_DETAIL", payType + "|收",
-                    Integer.valueOf(income), Integer.valueOf(0)});
-            cht.add(new Object[]{dayAt(DAYS - 1), "PAY_DETAIL", payType + "|退",
-                    Integer.valueOf(rnd(10, income / 2)), Integer.valueOf(0)});
-        }
-        batch(conn, "INSERT INTO TR_DISCH_SETTLE_OV (stat_date, total_discharge_count,"
-                + " total_discharge_compare, discharged_count, discharged_compare, not_discharged_count,"
-                + " not_discharged_compare, settlement_amount, settlement_amount_compare)"
-                + " VALUES (?,?,?,?,?,?,?,?,?)", ov);
-        batch(conn, "INSERT INTO TR_DISCH_SETTLE_DTL (stat_date, item_date, total_last, total_current,"
-                + " total_compare, discharged_last, discharged_current, discharged_compare,"
-                + " not_discharged_last, not_discharged_current, not_discharged_compare, amount_last,"
-                + " amount_current, amount_compare)"
-                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", dtl);
-        batch(conn, "INSERT INTO TR_DISCH_SETTLE_CHT (stat_date, chart_type, item_name, item_value,"
-                + " item_compare) VALUES (?,?,?,?,?)", cht);
-        out.println("  [出院结算] OV=" + ov.size() + " DTL=" + dtl.size() + " CHT=" + cht.size());
+        batch(conn, "INSERT INTO TR_DISCH_SETTLE_VISIT (stat_date, settle_status, patient_id,"
+                + " visit_id, discharge_date_time, total_costs, total_payments)"
+                + " VALUES (?,?,?,?,?,?,?)", visit);
+        batch(conn, "INSERT INTO TR_SETTLE_MASTER (stat_date, rcpt_no, patient_id, visit_id,"
+                + " settling_date, operator_no, charge_type, costs, charges, payments)"
+                + " VALUES (?,?,?,?,?,?,?,?,?,?)", master);
+        batch(conn, "INSERT INTO TR_SETTLE_PAYMENTS (stat_date, rcpt_no, patient_id, visit_id,"
+                + " settling_date, money_type, payment_amount, refunded_amount)"
+                + " VALUES (?,?,?,?,?,?,?,?)", payments);
+        out.println("  [出院结算] VISIT=" + visit.size() + " MASTER=" + master.size()
+                + " PAYMENTS=" + payments.size());
     }
 
     private static void seedTreatmentStats(Connection conn) throws SQLException {

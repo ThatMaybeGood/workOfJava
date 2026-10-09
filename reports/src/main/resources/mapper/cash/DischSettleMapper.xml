@@ -3,153 +3,225 @@
 <mapper namespace="com.reports.mapper.DischSettleMapper">
 
     <!-- ============================================================ -->
-    <!-- 查询出院结算概览 -->
+    <!-- 概览: 出院记录出人次(总/已结算/未结算), 结算主表出金额, 同比行内重算 -->
+    <!-- 未出院口径 = settle_status 2(出院未结算) -->
     <!-- ============================================================ -->
-    <select id="queryOverview" resultType="com.reports.entity.DischSettleOvEntity">
+    <select id="queryOverview" resultType="com.reports.dto.response.cash.discharge.settlement.OverviewData">
         SELECT
-        NVL(total_discharge_count, 0) AS totalDischargeCount,
-        NVL(total_discharge_compare, 0) AS totalDischargeCompare,
-        NVL(discharged_count, 0) AS dischargedCount,
-        NVL(discharged_compare, 0) AS dischargedCompare,
-        NVL(not_discharged_count, 0) AS notDischargedCount,
-        NVL(not_discharged_compare, 0) AS notDischargedCompare,
-        NVL(settlement_amount, 0) AS settlementAmount,
-        NVL(settlement_amount_compare, 0) AS settlementAmountCompare
-        FROM TR_DISCH_SETTLE_OV
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-    </select>
-
-    <!-- ============================================================ -->
-    <!-- 查询出院结算日明细 -->
-    <!-- ============================================================ -->
-    <select id="queryDetail" resultType="com.reports.entity.DischSettleDtlEntity">
-        SELECT
-        item_date AS itemDate,
-        NVL(total_last, 0) AS totalLast,
-        NVL(total_current, 0) AS totalCurrent,
-        NVL(total_compare, 0) AS totalCompare,
-        NVL(discharged_last, 0) AS dischargedLast,
-        NVL(discharged_current, 0) AS dischargedCurrent,
-        NVL(discharged_compare, 0) AS dischargedCompare,
-        NVL(not_discharged_last, 0) AS notDischargedLast,
-        NVL(not_discharged_current, 0) AS notDischargedCurrent,
-        NVL(not_discharged_compare, 0) AS notDischargedCompare,
-        NVL(amount_last, 0) AS amountLast,
-        NVL(amount_current, 0) AS amountCurrent,
-        NVL(amount_compare, 0) AS amountCompare
-        FROM TR_DISCH_SETTLE_DTL
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        ORDER BY item_date
-    </select>
-
-    <!-- ============================================================ -->
-    <!-- 查询出院结算图表数据 -->
-    <!-- ============================================================ -->
-    <select id="queryChart" resultType="com.reports.entity.DischSettleChtEntity">
-        SELECT
-        item_name AS itemName,
-        NVL(item_value, 0) AS itemValue,
-        NVL(item_compare, 0) AS itemCompare
-        FROM TR_DISCH_SETTLE_CHT
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        <if test="chartType != null and chartType != ''">
-            AND chart_type = #{chartType}
-        </if>
-        ORDER BY item_name
-    </select>
-
-    <!-- ============================================================ -->
-    <!-- 按月概览：本期与去年同期同范围分别求和后重算同比 -->
-    <!-- ============================================================ -->
-    <select id="queryOverviewMonth" resultType="com.reports.dto.response.cash.discharge.settlement.OverviewData">
-        SELECT
-            totalDischargeCount,
-            CASE WHEN lyTotalDischargeCount = 0 THEN NULL ELSE ROUND((totalDischargeCount - lyTotalDischargeCount) / lyTotalDischargeCount * 100, 0) END AS totalDischargeCompare,
-            dischargedCount,
-            CASE WHEN lyDischargedCount = 0 THEN NULL ELSE ROUND((dischargedCount - lyDischargedCount) / lyDischargedCount * 100, 0) END AS dischargedCompare,
-            notDischargedCount,
-            CASE WHEN lyNotDischargedCount = 0 THEN NULL ELSE ROUND((notDischargedCount - lyNotDischargedCount) / lyNotDischargedCount * 100, 0) END AS notDischargedCompare,
-            settlementAmount,
-            CASE WHEN lySettlementAmount = 0 THEN NULL ELSE ROUND((settlementAmount - lySettlementAmount) / lySettlementAmount * 100, 0) END AS settlementAmountCompare
+            v.totalDischargeCount,
+            CASE WHEN v.totalDischargeLast = 0 THEN NULL
+                 ELSE ROUND((v.totalDischargeCount - v.totalDischargeLast) / v.totalDischargeLast * 100, 0) END AS totalDischargeCompare,
+            v.dischargedCount,
+            CASE WHEN v.dischargedLast = 0 THEN NULL
+                 ELSE ROUND((v.dischargedCount - v.dischargedLast) / v.dischargedLast * 100, 0) END AS dischargedCompare,
+            v.notDischargedCount,
+            CASE WHEN v.notDischargedLast = 0 THEN NULL
+                 ELSE ROUND((v.notDischargedCount - v.notDischargedLast) / v.notDischargedLast * 100, 0) END AS notDischargedCompare,
+            NVL(m.settlementAmount, 0) AS settlementAmount,
+            CASE WHEN NVL(m.settlementAmountLast, 0) = 0 THEN NULL
+                 ELSE ROUND((m.settlementAmount - m.settlementAmountLast) / m.settlementAmountLast * 100, 0) END AS settlementAmountCompare
         FROM (
             SELECT
-                NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN total_discharge_count ELSE 0 END), 0) AS totalDischargeCount,
-                NVL(SUM(CASE WHEN stat_date BETWEEN ADD_MONTHS(#{startDate}, -12) AND ADD_MONTHS(#{endDate}, -12) THEN total_discharge_count ELSE 0 END), 0) AS lyTotalDischargeCount,
-                NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN discharged_count ELSE 0 END), 0) AS dischargedCount,
-                NVL(SUM(CASE WHEN stat_date BETWEEN ADD_MONTHS(#{startDate}, -12) AND ADD_MONTHS(#{endDate}, -12) THEN discharged_count ELSE 0 END), 0) AS lyDischargedCount,
-                NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN not_discharged_count ELSE 0 END), 0) AS notDischargedCount,
-                NVL(SUM(CASE WHEN stat_date BETWEEN ADD_MONTHS(#{startDate}, -12) AND ADD_MONTHS(#{endDate}, -12) THEN not_discharged_count ELSE 0 END), 0) AS lyNotDischargedCount,
-                NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN settlement_amount ELSE 0 END), 0) AS settlementAmount,
-                NVL(SUM(CASE WHEN stat_date BETWEEN ADD_MONTHS(#{startDate}, -12) AND ADD_MONTHS(#{endDate}, -12) THEN settlement_amount ELSE 0 END), 0) AS lySettlementAmount
-            FROM TR_DISCH_SETTLE_OV
-            WHERE stat_date BETWEEN ADD_MONTHS(#{startDate}, -12) AND #{endDate}
+                COUNT(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 END) AS totalDischargeCount,
+                COUNT(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 END) AS totalDischargeLast,
+                COUNT(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} AND settle_status = 1 THEN 1 END) AS dischargedCount,
+                COUNT(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} AND settle_status = 1 THEN 1 END) AS dischargedLast,
+                COUNT(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} AND settle_status = 2 THEN 1 END) AS notDischargedCount,
+                COUNT(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} AND settle_status = 2 THEN 1 END) AS notDischargedLast
+            FROM tr_disch_settle_visit
+            WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
+               OR  stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
+        ) v,
+        (
+            SELECT
+                NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN charges ELSE 0 END), 0) AS settlementAmount,
+                NVL(SUM(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN charges ELSE 0 END), 0) AS settlementAmountLast
+            FROM tr_settle_master
+            WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
+               OR  stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
+        ) m
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 日/月明细: 日期轴本期/同期平移, 出院记录出人次, 结算主表出金额, 两侧按轴LEFT JOIN -->
+    <!-- ============================================================ -->
+    <select id="queryDetail" resultType="com.reports.dto.response.cash.discharge.settlement.TableItem">
+        SELECT
+            <choose>
+                <when test="month">TO_CHAR(v.itemDate, 'YYYY-MM')</when>
+                <otherwise>TO_CHAR(v.itemDate, 'YYYY-MM-DD')</otherwise>
+            </choose> AS "date",
+            NVL(v.totalCurrent, 0)    AS totalCurrent,
+            NVL(v.totalLast, 0)       AS totalLast,
+            CASE WHEN NVL(v.totalLast, 0) = 0 THEN NULL
+                 ELSE ROUND((v.totalCurrent - v.totalLast) / v.totalLast * 100, 0) END AS totalCompare,
+            NVL(v.dischargedCurrent, 0) AS dischargedCurrent,
+            NVL(v.dischargedLast, 0)    AS dischargedLast,
+            CASE WHEN NVL(v.dischargedLast, 0) = 0 THEN NULL
+                 ELSE ROUND((v.dischargedCurrent - v.dischargedLast) / v.dischargedLast * 100, 0) END AS dischargedCompare,
+            NVL(v.notDischargedCurrent, 0) AS notDischargedCurrent,
+            NVL(v.notDischargedLast, 0)    AS notDischargedLast,
+            CASE WHEN NVL(v.notDischargedLast, 0) = 0 THEN NULL
+                 ELSE ROUND((v.notDischargedCurrent - v.notDischargedLast) / v.notDischargedLast * 100, 0) END AS notDischargedCompare,
+            NVL(m.amountCurrent, 0) AS amountCurrent,
+            NVL(m.amountLast, 0)    AS amountLast,
+            CASE WHEN NVL(m.amountLast, 0) = 0 THEN NULL
+                 ELSE ROUND((m.amountCurrent - m.amountLast) / m.amountLast * 100, 0) END AS amountCompare
+        FROM (
+            SELECT
+                <choose>
+                    <when test="month">TRUNC(axis_date, 'MM')</when>
+                    <otherwise>axis_date</otherwise>
+                </choose> AS itemDate,
+                COUNT(CASE WHEN in_current = 1 THEN 1 END) AS totalCurrent,
+                COUNT(CASE WHEN in_last = 1 THEN 1 END)    AS totalLast,
+                COUNT(CASE WHEN in_current = 1 AND settle_status = 1 THEN 1 END) AS dischargedCurrent,
+                COUNT(CASE WHEN in_last = 1 AND settle_status = 1 THEN 1 END)    AS dischargedLast,
+                COUNT(CASE WHEN in_current = 1 AND settle_status = 2 THEN 1 END) AS notDischargedCurrent,
+                COUNT(CASE WHEN in_last = 1 AND settle_status = 2 THEN 1 END)    AS notDischargedLast
+            FROM (
+                SELECT settle_status,
+                       CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate}
+                            THEN ADD_MONTHS(stat_date, 12) ELSE stat_date END AS axis_date,
+                       CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
+                       CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last
+                FROM tr_disch_settle_visit
+                WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
+                   OR  stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
+            )
+            GROUP BY
+                <choose>
+                    <when test="month">TRUNC(axis_date, 'MM')</when>
+                    <otherwise>axis_date</otherwise>
+                </choose>
+        ) v
+        LEFT JOIN (
+            SELECT
+                <choose>
+                    <when test="month">TRUNC(axis_date, 'MM')</when>
+                    <otherwise>axis_date</otherwise>
+                </choose> AS itemDate,
+                SUM(CASE WHEN in_current = 1 THEN charges ELSE 0 END) AS amountCurrent,
+                SUM(CASE WHEN in_last = 1 THEN charges ELSE 0 END)    AS amountLast
+            FROM (
+                SELECT charges,
+                       CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate}
+                            THEN ADD_MONTHS(stat_date, 12) ELSE stat_date END AS axis_date,
+                       CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
+                       CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last
+                FROM tr_settle_master
+                WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
+                   OR  stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
+            )
+            GROUP BY
+                <choose>
+                    <when test="month">TRUNC(axis_date, 'MM')</when>
+                    <otherwise>axis_date</otherwise>
+                </choose>
+        ) m ON m.itemDate = v.itemDate
+        ORDER BY v.itemDate
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 渠道分析: 结算主表按操作员分窗口/自助机, 本期人次+同比 -->
+    <!-- ============================================================ -->
+    <select id="queryChannelChart" resultType="com.reports.dto.response.cash.discharge.settlement.ChartItem">
+        SELECT
+            channel AS name,
+            COUNT(CASE WHEN in_current = 1 THEN 1 END) AS value,
+            NVL(ROUND(
+                (COUNT(CASE WHEN in_current = 1 THEN 1 END) - COUNT(CASE WHEN in_last = 1 THEN 1 END))
+                / NULLIF(COUNT(CASE WHEN in_last = 1 THEN 1 END), 0) * 100, 0), 0) AS compare
+        FROM (
+            SELECT
+                CASE WHEN operator_no = '9111' THEN '自助机' ELSE '窗口' END AS channel,
+                CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
+                CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last
+            FROM tr_settle_master
+            WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
+               OR  stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
         )
+        GROUP BY channel
+        ORDER BY channel
     </select>
 
     <!-- ============================================================ -->
-    <!-- 按月明细：每月一行，对比按聚合后的本期/上期重算 -->
+    <!-- 费别人次分析: 结算主表按结算费别, 本期人次+同比 -->
     <!-- ============================================================ -->
-    <select id="queryDetailMonth" resultType="com.reports.dto.response.cash.discharge.settlement.TableItem">
+    <select id="queryFeeTypeChart" resultType="com.reports.dto.response.cash.discharge.settlement.ChartItem">
         SELECT
-        TO_CHAR(TRUNC(stat_date, 'MM'), 'YYYY-MM') AS "date",
-        NVL(SUM(total_last), 0) AS totalLast,
-        NVL(SUM(total_current), 0) AS totalCurrent,
-        CASE WHEN NVL(SUM(total_last), 0) = 0 THEN NULL ELSE ROUND((SUM(total_current) - SUM(total_last)) / SUM(total_last) * 100, 0) END AS totalCompare,
-        NVL(SUM(discharged_last), 0) AS dischargedLast,
-        NVL(SUM(discharged_current), 0) AS dischargedCurrent,
-        CASE WHEN NVL(SUM(discharged_last), 0) = 0 THEN NULL ELSE ROUND((SUM(discharged_current) - SUM(discharged_last)) / SUM(discharged_last) * 100, 0) END AS dischargedCompare,
-        NVL(SUM(not_discharged_last), 0) AS notDischargedLast,
-        NVL(SUM(not_discharged_current), 0) AS notDischargedCurrent,
-        CASE WHEN NVL(SUM(not_discharged_last), 0) = 0 THEN NULL ELSE ROUND((SUM(not_discharged_current) - SUM(not_discharged_last)) / SUM(not_discharged_last) * 100, 0) END AS notDischargedCompare,
-        NVL(SUM(amount_last), 0) AS amountLast,
-        NVL(SUM(amount_current), 0) AS amountCurrent,
-        CASE WHEN NVL(SUM(amount_last), 0) = 0 THEN NULL ELSE ROUND((SUM(amount_current) - SUM(amount_last)) / SUM(amount_last) * 100, 0) END AS amountCompare
-        FROM TR_DISCH_SETTLE_DTL
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        GROUP BY TRUNC(stat_date, 'MM')
-        ORDER BY TRUNC(stat_date, 'MM')
+            charge_type AS name,
+            COUNT(CASE WHEN in_current = 1 THEN 1 END) AS value,
+            NVL(ROUND(
+                (COUNT(CASE WHEN in_current = 1 THEN 1 END) - COUNT(CASE WHEN in_last = 1 THEN 1 END))
+                / NULLIF(COUNT(CASE WHEN in_last = 1 THEN 1 END), 0) * 100, 0), 0) AS compare
+        FROM (
+            SELECT
+                charge_type,
+                CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
+                CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last
+            FROM tr_settle_master
+            WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
+               OR  stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
+        )
+        GROUP BY charge_type
+        ORDER BY charge_type
     </select>
 
     <!-- ============================================================ -->
-    <!-- 按月图表：构成类按项目汇总，趋势类(AMOUNT_TYPE)按月份汇总 -->
+    <!-- 支付方式金额分析: 支付方式表按支付方式, 本期收金额+同比 -->
     <!-- ============================================================ -->
-    <select id="queryChartMonth" resultType="com.reports.dto.response.cash.discharge.settlement.ChartItem">
+    <select id="queryPayTypeChart" resultType="com.reports.dto.response.cash.discharge.settlement.ChartItem">
         SELECT
-        <choose>
-            <when test="chartType == 'AMOUNT_TYPE'">TO_CHAR(TRUNC(stat_date, 'MM'), 'YYYY-MM')</when>
-            <otherwise>item_name</otherwise>
-        </choose> AS name,
-        NVL(SUM(item_value), 0) AS value,
-        ROUND(NVL(AVG(item_compare), 0), 0) AS compare
-        FROM TR_DISCH_SETTLE_CHT
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        AND chart_type = #{chartType}
-        GROUP BY
-        <choose>
-            <when test="chartType == 'AMOUNT_TYPE'">TRUNC(stat_date, 'MM')</when>
-            <otherwise>item_name</otherwise>
-        </choose>
-        ORDER BY
-        <choose>
-            <when test="chartType == 'AMOUNT_TYPE'">TRUNC(stat_date, 'MM')</when>
-            <otherwise>item_name</otherwise>
-        </choose>
+            money_type AS name,
+            NVL(SUM(CASE WHEN in_current = 1 THEN payment_amount ELSE 0 END), 0) AS value,
+            NVL(ROUND(
+                (SUM(CASE WHEN in_current = 1 THEN payment_amount ELSE 0 END) - SUM(CASE WHEN in_last = 1 THEN payment_amount ELSE 0 END))
+                / NULLIF(SUM(CASE WHEN in_last = 1 THEN payment_amount ELSE 0 END), 0) * 100, 0), 0) AS compare
+        FROM (
+            SELECT
+                money_type,
+                payment_amount,
+                CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
+                CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last
+            FROM tr_settle_payments
+            WHERE money_type IS NOT NULL
+              AND (stat_date BETWEEN #{startDate} AND #{endDate}
+               OR  stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
+        )
+        GROUP BY money_type
+        ORDER BY money_type
     </select>
 
     <!-- ============================================================ -->
-    <!-- 图表钻取明细：item_name 存 分类|明细项（如 窗口|职工医保、微信|收），按明细项汇总 -->
+    <!-- 渠道钻取: 该渠道下各结算费别人次 -->
     <!-- ============================================================ -->
-    <select id="queryChartDetail" resultType="com.reports.dto.response.cash.discharge.settlement.ChartItem">
+    <select id="queryChannelDetail" resultType="com.reports.dto.response.cash.discharge.settlement.ChartItem">
         SELECT
-        SUBSTR(item_name, INSTR(item_name, '|') + 1) AS name,
-        NVL(SUM(item_value), 0) AS value,
-        0 AS compare
-        FROM TR_DISCH_SETTLE_CHT
+            charge_type AS name,
+            COUNT(1) AS value,
+            0 AS compare
+        FROM tr_settle_master
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
-        AND chart_type = #{chartType}
-        AND item_name LIKE #{itemPrefix} || '%'
-        GROUP BY SUBSTR(item_name, INSTR(item_name, '|') + 1)
-        ORDER BY name
+          AND charge_type IS NOT NULL
+          AND CASE WHEN operator_no = '9111' THEN '自助机' ELSE '窗口' END = #{channel}
+        GROUP BY charge_type
+        ORDER BY charge_type
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 支付方式钻取: 该方式的收/退金额 -->
+    <!-- ============================================================ -->
+    <select id="queryPayDetail" resultType="com.reports.dto.response.cash.discharge.settlement.ChartItem">
+        SELECT name, value, 0 AS compare
+        FROM (
+            SELECT '收' AS name, NVL(SUM(payment_amount), 0) AS value, 1 AS ord FROM tr_settle_payments
+            WHERE stat_date BETWEEN #{startDate} AND #{endDate} AND money_type = #{moneyType}
+            UNION ALL
+            SELECT '退' AS name, NVL(SUM(refunded_amount), 0) AS value, 2 AS ord FROM tr_settle_payments
+            WHERE stat_date BETWEEN #{startDate} AND #{endDate} AND money_type = #{moneyType}
+        )
+        ORDER BY ord
     </select>
 
 </mapper>

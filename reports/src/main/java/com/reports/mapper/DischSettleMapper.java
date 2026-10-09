@@ -1,9 +1,5 @@
 package com.reports.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.reports.entity.DischSettleOvEntity;
-import com.reports.entity.DischSettleDtlEntity;
-import com.reports.entity.DischSettleChtEntity;
 import com.reports.dto.response.cash.discharge.settlement.ChartItem;
 import com.reports.dto.response.cash.discharge.settlement.OverviewData;
 import com.reports.dto.response.cash.discharge.settlement.TableItem;
@@ -15,84 +11,66 @@ import java.util.List;
 
 /**
  * 出院结算报表 Mapper
+ * 数据源: tr_disch_settle_visit(出院记录) / tr_settle_master(结算主表) / tr_settle_payments(支付方式)
+ * 本期/同期一次扫描,同期日期 ADD_MONTHS(+12) 平移回本期轴对比
  */
 @Mapper
-public interface DischSettleMapper extends BaseMapper<DischSettleOvEntity> {
+public interface DischSettleMapper {
 
     /**
-     * 查询出院结算概览
-     *
-     * @param startDate 开始日期
-     * @param endDate   结束日期
-     * @return 概览数据
+     * 概览: 本期/同期出院人次(总/已结算/未结算) + 结算金额, 同比行内重算
      */
-    DischSettleOvEntity queryOverview(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    OverviewData queryOverview(@Param("startDate") Date startDate,
+                               @Param("endDate") Date endDate,
+                               @Param("lastStartDate") Date lastStartDate,
+                               @Param("lastEndDate") Date lastEndDate);
 
     /**
-     * 查询出院结算日明细
+     * 日/月明细: 按日期轴聚合出院人次与结算金额
      *
-     * @param startDate 开始日期
-     * @param endDate   结束日期
-     * @return 日明细数据
+     * @param month true=按月聚合, false=按天
      */
-    List<DischSettleDtlEntity> queryDetail(@Param("startDate") Date startDate,
-                                            @Param("endDate") Date endDate);
+    List<TableItem> queryDetail(@Param("startDate") Date startDate,
+                                @Param("endDate") Date endDate,
+                                @Param("lastStartDate") Date lastStartDate,
+                                @Param("lastEndDate") Date lastEndDate,
+                                @Param("month") boolean month);
 
     /**
-     * 查询出院结算图表数据
-     *
-     * @param startDate 开始日期
-     * @param endDate   结束日期
-     * @param chartType 图表类型
-     * @return 图表数据
+     * 渠道分析: 结算主表按操作员分窗口/自助机, 本期人次+同比
      */
-    List<DischSettleChtEntity> queryChart(@Param("startDate") Date startDate,
-                                           @Param("endDate") Date endDate,
-                                           @Param("chartType") String chartType);
+    List<ChartItem> queryChannelChart(@Param("startDate") Date startDate,
+                                      @Param("endDate") Date endDate,
+                                      @Param("lastStartDate") Date lastStartDate,
+                                      @Param("lastEndDate") Date lastEndDate);
 
     /**
-     * 按月概览：本期与去年同期同范围分别求和后重算同比
-     *
-     * @param startDate 开始日期
-     * @param endDate   结束日期
-     * @return 概览数据
+     * 费别人次分析: 结算主表按结算费别, 本期人次+同比
      */
-    OverviewData queryOverviewMonth(@Param("startDate") Date startDate,
-                                    @Param("endDate") Date endDate);
+    List<ChartItem> queryFeeTypeChart(@Param("startDate") Date startDate,
+                                      @Param("endDate") Date endDate,
+                                      @Param("lastStartDate") Date lastStartDate,
+                                      @Param("lastEndDate") Date lastEndDate);
 
     /**
-     * 按月明细：每月一行，对比按聚合后的本期/上期重算
-     *
-     * @param startDate 开始日期
-     * @param endDate   结束日期
-     * @return 月明细数据
+     * 支付方式金额分析: 支付方式表按支付方式, 本期金额(收)+同比
      */
-    List<TableItem> queryDetailMonth(@Param("startDate") Date startDate,
-                                     @Param("endDate") Date endDate);
+    List<ChartItem> queryPayTypeChart(@Param("startDate") Date startDate,
+                                      @Param("endDate") Date endDate,
+                                      @Param("lastStartDate") Date lastStartDate,
+                                      @Param("lastEndDate") Date lastEndDate);
 
     /**
-     * 按月图表：构成类按项目汇总，趋势类(AMOUNT_TYPE)按月份汇总
-     *
-     * @param startDate 开始日期
-     * @param endDate   结束日期
-     * @param chartType 图表类型
-     * @return 图表数据
+     * 渠道钻取: 该渠道下各结算费别的人次
      */
-    List<ChartItem> queryChartMonth(@Param("startDate") Date startDate,
-                                    @Param("endDate") Date endDate,
-                                    @Param("chartType") String chartType);
+    List<ChartItem> queryChannelDetail(@Param("startDate") Date startDate,
+                                       @Param("endDate") Date endDate,
+                                       @Param("channel") String channel);
 
     /**
-     * 图表钻取明细：CHANNEL_DETAIL（渠道|费别人次）、PAY_DETAIL（支付方式|收/退金额）
-     *
-     * @param startDate 开始日期
-     * @param endDate   结束日期
-     * @param chartType 钻取明细类型
-     * @param itemPrefix 分类前缀，如 窗口|、微信|
-     * @return 明细项
+     * 支付方式钻取: 该方式的收/退金额
      */
-    List<ChartItem> queryChartDetail(@Param("startDate") Date startDate,
-                                     @Param("endDate") Date endDate,
-                                     @Param("chartType") String chartType,
-                                     @Param("itemPrefix") String itemPrefix);
+    List<ChartItem> queryPayDetail(@Param("startDate") Date startDate,
+                                   @Param("endDate") Date endDate,
+                                   @Param("moneyType") String moneyType);
 }

@@ -6,21 +6,21 @@ import com.reports.dto.request.CashDischargeSettlementRequest;
 import com.reports.dto.response.cash.discharge.settlement.*;
 import com.reports.service.CashDischargeSettlementService;
 import com.reports.mapper.DischSettleMapper;
-import com.reports.entity.DischSettleOvEntity;
-import com.reports.entity.DischSettleDtlEntity;
-import com.reports.entity.DischSettleChtEntity;
 import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 /**
  * 出院结算报表服务实现
+ * 数据源: tr_disch_settle_visit(出院记录)/tr_settle_master(结算主表)/tr_settle_payments(支付方式)
+ * 本期/同期(去年同范围)一次扫描聚合, 同比查询时算
  */
 @Slf4j
 @Service
@@ -69,10 +69,13 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
             return queryChartDetailMock(request);
         }
         try {
-            // 钻取明细按所选范围整体聚合，与 日/月 维度无关
-            String chartType = "CHANNEL".equals(request.getDrillType()) ? "CHANNEL_DETAIL" : "PAY_DETAIL";
-            return dischSettleMapper.queryChartDetail(request.getStartDate(), request.getEndDate(),
-                    chartType, request.getItemName() + "|");
+            Date start = request.getStartDate();
+            Date end = request.getEndDate();
+            // 钻取只看本期所选范围
+            if ("CHANNEL".equals(request.getDrillType())) {
+                return dischSettleMapper.queryChannelDetail(start, end, request.getItemName());
+            }
+            return dischSettleMapper.queryPayDetail(start, end, request.getItemName());
         } catch (Exception e) {
             log.warn("查询出院结算钻取明细失败", e);
             return new ArrayList<>();
@@ -112,15 +115,15 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
         ChartsData charts = new ChartsData();
 
         List<ChartItem> channelAnalysis = new ArrayList<>();
-        channelAnalysis.add(newChartItem("窗口", 28, 5));
-        channelAnalysis.add(newChartItem("自助机", 72, 10));
+        channelAnalysis.add(newChartItem("窗口", 128, 5));
+        channelAnalysis.add(newChartItem("自助机", 96, 10));
         charts.setChannelAnalysis(channelAnalysis);
 
         List<ChartItem> patientTypeAnalysis = new ArrayList<>();
-        patientTypeAnalysis.add(newChartItem("职工医保", 120, 15));
-        patientTypeAnalysis.add(newChartItem("异地职工医保", 45, 8));
-        patientTypeAnalysis.add(newChartItem("居民医保", 60, 10));
-        patientTypeAnalysis.add(newChartItem("自费", 85, 12));
+        patientTypeAnalysis.add(newChartItem("职工医保", 120, 6));
+        patientTypeAnalysis.add(newChartItem("异地职工医保", 45, 3));
+        patientTypeAnalysis.add(newChartItem("居民医保", 60, -2));
+        patientTypeAnalysis.add(newChartItem("自费", 65, -5));
         charts.setPatientTypeAnalysis(patientTypeAnalysis);
 
         List<ChartItem> amountTypeAnalysis = new ArrayList<>();
@@ -191,11 +194,8 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
 
     private OverviewData queryOverviewByMybatisPlus(CashDischargeSettlementRequest request) {
         try {
-            if (isMonthDimension(request)) {
-                return dischSettleMapper.queryOverviewMonth(request.getStartDate(), request.getEndDate());
-            }
-            DischSettleOvEntity entity = dischSettleMapper.queryOverview(request.getStartDate(), request.getEndDate());
-            return buildOverviewData(entity);
+            Date[] range = currentAndLastRange(request);
+            return dischSettleMapper.queryOverview(range[0], range[1], range[2], range[3]);
         } catch (Exception e) {
             log.warn("查询出院结算概览失败", e);
             return new OverviewData();
@@ -204,24 +204,11 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
 
     private ChartsData queryChartsByMybatisPlus(CashDischargeSettlementRequest request) {
         try {
-            boolean month = isMonthDimension(request);
-            List<DischSettleChtEntity> channelEntities = month
-                    ? null : dischSettleMapper.queryChart(request.getStartDate(), request.getEndDate(), "CHANNEL");
-            List<DischSettleChtEntity> patientTypeEntities = month
-                    ? null : dischSettleMapper.queryChart(request.getStartDate(), request.getEndDate(), "PATIENT_TYPE");
-            List<DischSettleChtEntity> amountTypeEntities = month
-                    ? null : dischSettleMapper.queryChart(request.getStartDate(), request.getEndDate(), "AMOUNT_TYPE");
-
+            Date[] range = currentAndLastRange(request);
             ChartsData charts = new ChartsData();
-            if (month) {
-                charts.setChannelAnalysis(dischSettleMapper.queryChartMonth(request.getStartDate(), request.getEndDate(), "CHANNEL"));
-                charts.setPatientTypeAnalysis(dischSettleMapper.queryChartMonth(request.getStartDate(), request.getEndDate(), "PATIENT_TYPE"));
-                charts.setAmountTypeAnalysis(dischSettleMapper.queryChartMonth(request.getStartDate(), request.getEndDate(), "AMOUNT_TYPE"));
-            } else {
-                charts.setChannelAnalysis(buildChartItemList(channelEntities));
-                charts.setPatientTypeAnalysis(buildChartItemList(patientTypeEntities));
-                charts.setAmountTypeAnalysis(buildChartItemList(amountTypeEntities));
-            }
+            charts.setChannelAnalysis(dischSettleMapper.queryChannelChart(range[0], range[1], range[2], range[3]));
+            charts.setPatientTypeAnalysis(dischSettleMapper.queryFeeTypeChart(range[0], range[1], range[2], range[3]));
+            charts.setAmountTypeAnalysis(dischSettleMapper.queryPayTypeChart(range[0], range[1], range[2], range[3]));
             return charts;
         } catch (Exception e) {
             log.warn("查询出院结算图表失败", e);
@@ -231,20 +218,9 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
 
     private PageResult<TableItem> queryTableByMybatisPlus(CashDischargeSettlementRequest request, Integer page, Integer pageSize) {
         try {
-            if (isMonthDimension(request)) {
-                List<TableItem> allItems = dischSettleMapper.queryDetailMonth(request.getStartDate(), request.getEndDate());
-                int total = allItems.size();
-                int start = (page - 1) * pageSize;
-                int end = Math.min(start + pageSize, total);
-                List<TableItem> pageList = start < total ? allItems.subList(start, end) : new ArrayList<>();
-                return PageResult.of(pageList, (long) total, page, pageSize);
-            }
-            List<DischSettleDtlEntity> rows = dischSettleMapper.queryDetail(request.getStartDate(), request.getEndDate());
-            List<TableItem> allItems = new ArrayList<>();
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            for (DischSettleDtlEntity row : rows) {
-                allItems.add(buildTableItem(row, sdf));
-            }
+            Date[] range = currentAndLastRange(request);
+            List<TableItem> allItems = dischSettleMapper.queryDetail(range[0], range[1], range[2], range[3],
+                    isMonthDimension(request));
             int total = allItems.size();
             int start = (page - 1) * pageSize;
             int end = Math.min(start + pageSize, total);
@@ -256,68 +232,29 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
         }
     }
 
-    /** 按月统计：dimension=month 时表格/图表/概览都按月聚合 */
+    /** 按月统计：dimension=month 时表格/概览都按月聚合 */
     private static boolean isMonthDimension(CashDischargeSettlementRequest request) {
         return "month".equals(request.getDimension());
     }
 
-    // ==================== 实体转换 ====================
-
-    private OverviewData buildOverviewData(DischSettleOvEntity entity) {
-        if (entity == null) {
-            return new OverviewData();
-        }
-        OverviewData overview = new OverviewData();
-        overview.setTotalDischargeCount(entity.getTotalDischargeCount());
-        overview.setTotalDischargeCompare(entity.getTotalDischargeCompare());
-        overview.setDischargedCount(entity.getDischargedCount());
-        overview.setDischargedCompare(entity.getDischargedCompare());
-        overview.setNotDischargedCount(entity.getNotDischargedCount());
-        overview.setNotDischargedCompare(entity.getNotDischargedCompare());
-        overview.setSettlementAmount(entity.getSettlementAmount() != null ? entity.getSettlementAmount().doubleValue() : null);
-        overview.setSettlementAmountCompare(entity.getSettlementAmountCompare());
-        return overview;
+    /** 本期区间 + 去年同期区间(月份减12, 与明细轴平移口径一致) */
+    private static Date[] currentAndLastRange(CashDischargeSettlementRequest request) {
+        Date start = request.getStartDate();
+        Date end = request.getEndDate();
+        return new Date[]{start, end, addMonths(start, -12), addMonths(end, -12)};
     }
 
-    private TableItem buildTableItem(DischSettleDtlEntity entity, SimpleDateFormat sdf) {
-        if (entity == null) {
-            return new TableItem();
-        }
-        TableItem item = new TableItem();
-        item.setDate(sdf.format(entity.getItemDate()));
-        item.setTotalLast(entity.getTotalLast());
-        item.setTotalCurrent(entity.getTotalCurrent());
-        item.setTotalCompare(entity.getTotalCompare());
-        item.setDischargedLast(entity.getDischargedLast());
-        item.setDischargedCurrent(entity.getDischargedCurrent());
-        item.setDischargedCompare(entity.getDischargedCompare());
-        item.setNotDischargedLast(entity.getNotDischargedLast());
-        item.setNotDischargedCurrent(entity.getNotDischargedCurrent());
-        item.setNotDischargedCompare(entity.getNotDischargedCompare());
-        item.setAmountLast(entity.getAmountLast() != null ? entity.getAmountLast().doubleValue() : null);
-        item.setAmountCurrent(entity.getAmountCurrent() != null ? entity.getAmountCurrent().doubleValue() : null);
-        item.setAmountCompare(entity.getAmountCompare());
-        return item;
-    }
-
-    private List<ChartItem> buildChartItemList(List<DischSettleChtEntity> entities) {
-        List<ChartItem> list = new ArrayList<>();
-        if (entities != null) {
-            for (DischSettleChtEntity entity : entities) {
-                ChartItem item = new ChartItem();
-                item.setName(entity.getItemName());
-                item.setValue(entity.getItemValue());
-                item.setCompare(entity.getItemCompare());
-                list.add(item);
-            }
-        }
-        return list;
+    private static Date addMonths(Date date, int months) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.add(Calendar.MONTH, months);
+        return calendar.getTime();
     }
 
     // ==================== 工具方法 ====================
 
-    private com.reports.dto.response.cash.discharge.settlement.ChartItem newChartItem(String name, int value, int compare) {
-        com.reports.dto.response.cash.discharge.settlement.ChartItem item = new com.reports.dto.response.cash.discharge.settlement.ChartItem();
+    private ChartItem newChartItem(String name, int value, int compare) {
+        ChartItem item = new ChartItem();
         item.setName(name);
         item.setValue(value);
         item.setCompare(compare);
