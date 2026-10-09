@@ -203,6 +203,10 @@
             border-radius: 20px;
             font-size: 13px;
             font-weight: 700;
+        }
+
+        /* 标题可换行, 括号序号(7)作为整体不拆散 */
+        .header-num {
             white-space: nowrap;
         }
         .audit-badge.none {
@@ -523,6 +527,11 @@
             font-weight: 700;
         }
 
+        /* 标题可换行, 括号序号(7)作为整体不拆散 */
+        .header-num {
+            white-space: nowrap;
+        }
+
         .cell-input {
             width: 100%;
             border: 2px solid #1890ff;
@@ -712,25 +721,25 @@
                     <tr>
                         <th class="group-morning">序号</th>
                         <th class="group-morning">收费员</th>
-                        <th><span class="header-main">前日暂收款（1）</span><span class="header-note">（自动提取前日暂收数据）</span></th>
-                        <th class="group-morning"><span class="header-main">今日预交金数（2）</span></th>
-                        <th class="group-morning"><span class="header-main">今日结账收入（3）</span></th>
-                        <th class="group-morning"><span class="header-main">今日院前收入（4）</span></th>
-                        <th class="group-morning"><span class="header-main">其它收入（5）</span><span class="header-note">（手工录入）</span></th>
-                        <th class="group-morning"><span class="header-main">备注（6）</span><span class="header-note">（手工录入）</span></th>
-                        <th class="group-morning"><span class="header-main">今日报表数合计（7）</span><span class="header-note">=（2）-（1）+（3）+（4）+（5）（公式）</span></th>
-                        <th class="group-morning"><span class="header-main">前日欠条（8）</span><span class="header-note">（自动提取前日欠条数据）</span></th>
-                        <th class="group-morning"><span class="header-main">今日借款（9）</span><span class="header-note">（手工录入）</span></th>
-                        <th class="group-morning"><span class="header-main">今日应收合计（10）</span><span class="header-note">=（7）+（8）+（9）-（17）（公式）</span></th>
-                        <th class="group-afternoon"><span class="header-main">今日暂收款（11）</span><span class="header-note">（手工录入）</span></th>
-                        <th class="group-afternoon"><span class="header-main">今日报表实收（12）</span><span class="header-note">（手工录入）</span></th>
-                        <th class="group-afternoon"><span class="header-main">今日实收现金合计（13）</span><span class="header-note">=（11）+（12）（公式）</span></th>
-                        <th class="group-afternoon"><span class="header-main">余额（14）</span><span class="header-note">=（12）-（10）（公式）</span></th>
-                        <th class="group-afternoon"><span class="header-main">调整（15）</span><span class="header-note">（手工录入）</span></th>
-                        <th class="group-afternoon"><span class="header-main">今日欠条（16）</span><span class="header-note">=（15）-（14）（公式）</span></th>
-                        <th class="group-afternoon"><span class="header-main">节假日交款（17）</span><span class="header-note">（手机端登记表提取）</span></th>
-                        <th class="group-retain"><span class="header-main">库存现金（18）</span><span class="header-note">（手机端登记表提取）</span></th>
-                        <th class="group-retain"><span class="header-main">差额（19）</span><span class="header-note">=（18）-（10）-（17）（公式）</span></th>
+                        <th><span class="header-main">前日暂收款<span class="header-num">（1）</span></span><span class="header-note">（自动提取前日暂收数据）</span></th>
+                        <th class="group-morning"><span class="header-main">今日预交金数<span class="header-num">（2）</span></span></th>
+                        <th class="group-morning"><span class="header-main">今日结账收入<span class="header-num">（3）</span></span></th>
+                        <th class="group-morning"><span class="header-main">今日院前收入<span class="header-num">（4）</span></span></th>
+                        <th class="group-morning"><span class="header-main">其它收入<span class="header-num">（5）</span></span><span class="header-note">（手工录入）</span></th>
+                        <th class="group-morning"><span class="header-main">备注<span class="header-num">（6）</span></span><span class="header-note">（手工录入）</span></th>
+                        <th class="group-morning"><span class="header-main">今日报表数合计<span class="header-num">（7）</span></span><span class="header-note">=（2）-（1）+（3）+（4）+（5）（公式）</span></th>
+                        <th class="group-morning"><span class="header-main">前日欠条<span class="header-num">（8）</span></span><span class="header-note">（自动提取前日欠条数据）</span></th>
+                        <th class="group-morning"><span class="header-main">今日借款<span class="header-num">（9）</span></span><span class="header-note">（手工录入）</span></th>
+                        <th class="group-morning"><span class="header-main">今日应收合计<span class="header-num">（10）</span></span><span class="header-note">=（7）+（8）+（9）-（17）（公式）</span></th>
+                        <th class="group-afternoon"><span class="header-main">今日暂收款<span class="header-num">（11）</span></span><span class="header-note">（手工录入）</span></th>
+                        <th class="group-afternoon"><span class="header-main">今日报表实收<span class="header-num">（12）</span></span><span class="header-note">（手工录入）</span></th>
+                        <th class="group-afternoon"><span class="header-main">今日实收现金合计<span class="header-num">（13）</span></span><span class="header-note">=（11）+（12）（公式）</span></th>
+                        <th class="group-afternoon"><span class="header-main">余额<span class="header-num">（14）</span></span><span class="header-note">=（12）-（10）（公式）</span></th>
+                        <th class="group-afternoon"><span class="header-main">调整<span class="header-num">（15）</span></span><span class="header-note">（手工录入）</span></th>
+                        <th class="group-afternoon"><span class="header-main">今日欠条<span class="header-num">（16）</span></span><span class="header-note">=（15）-（14）（公式）</span></th>
+                        <th class="group-afternoon"><span class="header-main">节假日交款<span class="header-num">（17）</span></span><span class="header-note">（手机端登记表提取）</span></th>
+                        <th class="group-retain"><span class="header-main">库存现金<span class="header-num">（18）</span></span><span class="header-note">（手机端登记表提取）</span></th>
+                        <th class="group-retain"><span class="header-main">差额<span class="header-num">（19）</span></span><span class="header-note">=（18）-（10）-（17）（公式）</span></th>
                         <th class="group-retain"><span class="header-main">备注</span><span class="header-note">（手工录入）</span></th>
                         </tr>
                 </thead>
