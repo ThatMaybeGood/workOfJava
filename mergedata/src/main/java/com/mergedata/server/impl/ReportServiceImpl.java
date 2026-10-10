@@ -1139,8 +1139,17 @@ public class ReportServiceImpl implements ReportService {
             // 假设 HIS 接口需要 String，则转换
             List<HisInpIncomeResponseDTO> hisInpIncomeResponseDTOList = hisdata.findByDateInp(currtDate.toString());
 
-            // 1. 获取前一天对象
-            InpCashMainEntity preInpResult = queryInpReportByDate(preDate, holidayTotalFlag);
+            // 1. 获取前一天对象: 前一天是节假日汇总时优先取汇总行(如10.09报表前日=10.08汇总10.01-10.07), 无汇总再取正常报表
+            //月初当天是节假日(前一天为上月末)时不提取前日暂收款/前日欠条
+            boolean monthFirstHoliday = currtDate.getDayOfMonth() == 1
+                    && !holidayService.findByDate(currtDate).isEmpty();
+            InpCashMainEntity preInpResult = null;
+            if (!monthFirstHoliday) {
+                preInpResult = queryInpReportByDate(preDate, Constant.YES);
+                if (preInpResult == null) {
+                    preInpResult = queryInpReportByDate(preDate, holidayTotalFlag);
+                }
+            }
             List<InpCashSubEntity> preInpReportSub;
             if (preInpResult != null) {
                 // 2. 如果存在，正常取子表
