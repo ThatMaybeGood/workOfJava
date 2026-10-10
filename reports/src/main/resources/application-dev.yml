@@ -77,6 +77,24 @@ spring:
       test-while-idle: true
       test-on-borrow: false
       test-on-return: false
+    # 服务效能库（与 yq_powerihsp 同库不同用户，mapper 上加 @DataSource("yq_powercfp") 切换）
+    yq_powercfp:
+      driver-class-name: oracle.jdbc.OracleDriver
+      url: jdbc:oracle:thin:@//168.168.235.68:1521/yuanqi?oracle.net.CONNECT_TIMEOUT=5000
+      username: powercfp
+      password: yuanqi
+      # Druid连接池配置
+      type: com.alibaba.druid.pool.DruidDataSource
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 5000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1 FROM DUAL
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
 #    # 第二个数据源实例（示例）
 #    slave:
 #      driver-class-name: oracle.jdbc.OracleDriver

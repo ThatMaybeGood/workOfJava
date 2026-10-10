@@ -47,6 +47,9 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
     private OutpatientFinanceMapper financeMapper;
 
     @Autowired
+    private NoAuditRefundReader noAuditRefundReader;
+
+    @Autowired
     public OutpatientFinanceServiceImpl(ReportDataConfig dataConfig, JdbcTemplate jdbcTemplate) {
         this.dataConfig = dataConfig;
         this.jdbcTemplate = jdbcTemplate;
@@ -352,6 +355,15 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                 map.put("12", buildPie(financeMapper.queryIncomeSumByMoneyType(type, start, end, tt),
                         financeMapper.queryIncomeSumByMoneyType(type, pStart, pEnd, tt), null));
             }
+            // bt14/bt15 仅退项统计-收据张数分析使用：无审退费(yq_powercfp) vs 窗口切片
+            if (types.contains("14")) {
+                log.info("[门诊财务饼图] bt14: 无审退费张数占比 → NoAuditRefundReader + bt6窗口切片");
+                map.put("14", buildNoAuditRatioPie(true, tt, start, end, pStart, pEnd));
+            }
+            if (types.contains("15")) {
+                log.info("[门诊财务饼图] bt15: 无审退费金额占比 → NoAuditRefundReader + bt11窗口切片");
+                map.put("15", buildNoAuditRatioPie(false, tt, start, end, pStart, pEnd));
+            }
         } catch (Exception e) {
             // 不能在这里补空列表了事：库连不上时会伪装成"暂无数据"，
             // 前端弹层显示"暂无数据"、用户以为真没数据，实际是故障。
@@ -362,9 +374,40 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         return map;
     }
 
+    /**
+     * bt14/bt15 无审退费占比饼：一块是无审退费(yq_powercfp)，另一块取渠道饼的"窗口"切片（T3退项口径）
+     *
+     * @param countMode true=张数（bt6 窗口张数 + 无审张数 cnt），false=金额（bt11 窗口金额 + 无审金额 amount）
+     */
+    private List<PieItem> buildNoAuditRatioPie(boolean countMode, Integer tt,
+                                               Date start, Date end, Date pStart, Date pEnd) {
+        String valueKey = countMode ? "cnt" : "amount";
+        List<Map<String, Object>> curr = new ArrayList<>(
+                countMode ? noAuditRefundReader.queryNoAuditCount(start, end)
+                        : noAuditRefundReader.queryNoAuditAmount(start, end));
+        curr.add(windowSlice(
+                countMode ? financeMapper.queryRcptSumByOperator(3, start, end, tt)
+                        : financeMapper.queryIncomeSumByOperator(3, start, end, tt), valueKey));
+        // 只要占比，不做同比
+        return buildPie(curr, new ArrayList<>(), null);
+    }
+
+    /** 渠道分类结果中取"窗口"一行作为占比饼的另一块 */
+    private Map<String, Object> windowSlice(List<Map<String, Object>> rows, String valueKey) {
+        double sum = 0;
+        for (Map<String, Object> row : rows) {
+            if ("窗口".equals(String.valueOf(row.get("name")))) {
+                sum += toMapDouble(row.get(valueKey) != null ? row.get(valueKey) : row.get("amount"));
+            }
+        }
+        Map<String, Object> slice = new HashMap<>();
+        slice.put("name", "窗口");
+        slice.put(valueKey, sum);
+        return slice;
+    }
+
     private List<PieItem> buildPie(List<Map<String, Object>> currRows, List<Map<String, Object>> prevRows,
-                                   Function<String, String> nameMapper) {
-        Map<String, Double> curr = aggregatePie(currRows, nameMapper);
+                                   Function<String, String> nameMapper) {        Map<String, Double> curr = aggregatePie(currRows, nameMapper);
         Map<String, Double> prev = aggregatePie(prevRows, nameMapper);
         List<PieItem> items = new ArrayList<>();
         for (Map.Entry<String, Double> e : curr.entrySet()) {
@@ -569,6 +612,20 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                 items.add(item);
             }
             map.put(String.valueOf(bt), items);
+        }
+        // bt14/bt15 无审退费占比：mock 给两块切片
+        for (String bt : new String[]{"14", "15"}) {
+            if (!types.contains(bt)) continue;
+            List<PieItem> items = new ArrayList<>();
+            String[] cats = {"无审退费", "窗口"};
+            for (int i = 0; i < cats.length; i++) {
+                PieItem item = new PieItem();
+                item.setName(cats[i]);
+                item.setCurrValue(round(1200 + i * 4800));
+                item.setPrevValue(round((1200 + i * 4800) * 0.9));
+                items.add(item);
+            }
+            map.put(bt, items);
         }
         return map;
     }

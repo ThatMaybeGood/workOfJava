@@ -413,7 +413,9 @@ var pieLegendState = {};
 var PIE_LEGEND_PAGE_SIZE = 5;
 
 // 金额类饼图（显示保留两位小数）；人次/张数类（bt1-5）显示整数
-var AMOUNT_BT_MAP = { '5': true, '7': true, '8': true, '9': true, '10': true, '11': true, '12': true };
+var AMOUNT_BT_MAP = { '5': true, '7': true, '8': true, '9': true, '10': true, '11': true, '12': true, '15': true };
+// 只要占比、不做同比的饼图
+var NO_YOY_BT_MAP = { '14': true, '15': true };
 
 // 饼图 DOM ID -> business_type 映射（新增第5个：应收金额 -> 10）
 var pieChartMap = {
@@ -433,6 +435,7 @@ var pieChartMap = {
         'pie-refund-visit-1': '1', 'pie-refund-visit-2': '2', 'pie-refund-visit-3': '3',
         'pie-refund-pay-1': '4', 'pie-refund-pay-2': '5',
         'pie-refund-receipt-1': '6', 'pie-refund-receipt-2': '7',
+        'pie-refund-receipt-3': '14', 'pie-refund-receipt-4': '15',
         'pie-refund-amount-1': '11', 'pie-refund-amount-2': '12', 'pie-refund-amount-3': '8', 'pie-refund-amount-4': '9'
     }
 };
@@ -441,7 +444,7 @@ var pieChartMap = {
 var innerTabPieMap = {
     'visit': ['1', '2', '3'],
     'pay': ['1', '2'],
-    'receipt': ['1', '2'],
+    'receipt': ['1', '2', '3', '4'],
     'net': ['1', '2', '3', '4'],
     'amount': ['1', '2', '3', '4']
 };
@@ -595,7 +598,7 @@ function updatePiesFromList(innerSuffix, pieList) {
                     name: item.name,
                     value: v,
                     disp: AMOUNT_BT_MAP[String(bt)] ? v.toFixed(2) : String(v),
-                    per: calcPer(item.currValue, item.prevValue)
+                    per: NO_YOY_BT_MAP[String(bt)] ? '' : calcPer(item.currValue, item.prevValue)
                 });
             }
         });
@@ -611,7 +614,9 @@ var innerTabPieTypesMap = {
     'pay': '4,5',
     'receipt': '6,7',
     'net': '8,9,11,12',
-    'amount': '8,9,11,12'
+    'amount': '8,9,11,12',
+    // 仅退项统计-收据张数分析多两张无审退费占比饼（bt14 张数 / bt15 金额）
+    'refund-receipt': '6,7,14,15'
 };
 
 // 饼图缓存：outerType|日期范围|innerSuffix -> pieList
@@ -637,7 +642,7 @@ function currentRangeKey() {
 }
 
 async function ensurePies(outerType, innerSuffix) {
-    var types = innerTabPieTypesMap[innerSuffix];
+    var types = innerTabPieTypesMap[outerType + '-' + innerSuffix] || innerTabPieTypesMap[innerSuffix];
     if (!types) return;
     var key = outerType + '|' + currentRangeKey() + '|' + innerSuffix;
     if (pieCache[key]) {

@@ -216,11 +216,11 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
       <div class="stat-card" title="门诊量：总订单数 - 总退号数"><div class="card-icon">📊</div><div><div class="card-value" data-field="outpatient_volume">000</div><div class="card-label"><a href="#">门诊量</a>◎</div></div><div class="card-yoy" data-field="outpatient_volume_yoy">同比</div></div>
       <div class="stat-card" title="缴费人次：收费人次 - 退费人次按收费批次号统计，挂号 / 退号一次算一次，一次缴费 / 退要多张单据算一次"><div class="card-icon">📊</div><div><div class="card-value" data-field="number_charges">000</div><div class="card-label"><a href="#">缴费人次</a>◎</div></div><div class="card-yoy" data-field="number_charges_yoy">同比</div></div>
       <div class="stat-card" title="收据张数：收费单据张数 - 退费单据张数"><div class="card-icon">📊</div><div><div class="card-value" data-field="number_receipt">000</div><div class="card-label"><a href="#">收据张数</a>◎</div></div><div class="card-yoy" data-field="number_receipt_yoy">同比</div></div>
-      <div class="stat-card" title="净收入金额：收费总金额 - 退费总金额"><div class="card-icon">📊</div><div><div class="card-value" data-field="amount">000</div><div class="card-label"><a href="#">净收入金额</a>◎</div></div><div class="card-yoy" data-field="amount_yoy">同比</div></div>
+      <div class="stat-card" title="应收金额：计价 - 医改统筹 - 医院垫支"><div class="card-icon">📊</div><div><div class="card-value" data-field="amount">000</div><div class="card-label"><a href="#">应收金额</a>◎</div></div><div class="card-yoy" data-field="amount_yoy">同比</div></div>
     </div>
     <table class="data-table" id="table-summary">
       <thead>
-      <tr><th rowspan="2">日期</th><th colspan="3">门诊量</th><th colspan="3">缴费人次</th><th colspan="3">收据张数</th><th colspan="3">净收入金额</th></tr>
+      <tr><th rowspan="2">日期</th><th colspan="3">门诊量</th><th colspan="3">缴费人次</th><th colspan="3">收据张数</th><th colspan="3">应收金额</th></tr>
       <tr><th>去年同期</th><th>当前日期</th><th>同比</th><th>去年同期</th><th>当前日期</th><th>同比</th><th>去年同期</th><th>当前日期</th><th>同比</th><th>去年同期</th><th>当前日期</th><th>同比</th></tr>
       </thead>
       <tbody></tbody>
@@ -263,7 +263,8 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
       <div id="chart-summary-receipt" class="chart-box"></div>
       <div class="pie-row">
         <div class="pie-item"><div class="pie-title">收据张数渠道分析</div><div id="pie-summary-receipt-1" class="pie-chart"></div></div>
-        <div class="pie-item"><div class="pie-title">收据张数支付方式分析</div><div id="pie-summary-receipt-2" class="pie-chart"></div></div>
+        <!-- 2026-10-10 沟通后隐藏：收据张数支付方式分析饼图 -->
+        <!-- <div class="pie-item"><div class="pie-title">收据张数支付方式分析</div><div id="pie-summary-receipt-2" class="pie-chart"></div></div> -->
       </div>
     </div>
 
@@ -274,7 +275,8 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
       <div class="pie-row">
         <div class="pie-item"><div class="pie-title">净收入渠道金额分析</div><div id="pie-summary-net-1" class="pie-chart"></div></div>
         <div class="pie-item"><div class="pie-title">净收入支付方式分析</div><div id="pie-summary-net-2" class="pie-chart"></div></div>
-        <div class="pie-item"><div class="pie-title">净收入业务类型金额分析</div><div id="pie-summary-net-3" class="pie-chart"></div></div>
+        <!-- 2026-10-10 沟通后隐藏：净收入业务类型金额分析饼图 -->
+        <!-- <div class="pie-item"><div class="pie-title">净收入业务类型金额分析</div><div id="pie-summary-net-3" class="pie-chart"></div></div> -->
         <div class="pie-item"><div class="pie-title">金额应收/实收分析</div><div id="pie-summary-net-4" class="pie-chart"></div></div>
       </div>
     </div>
@@ -332,7 +334,8 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
       <div id="chart-income-receipt" class="chart-box"></div>
       <div class="pie-row">
         <div class="pie-item"><div class="pie-title">收据张数渠道分析</div><div id="pie-income-receipt-1" class="pie-chart"></div></div>
-        <div class="pie-item"><div class="pie-title">收据张数支付方式分析</div><div id="pie-income-receipt-2" class="pie-chart"></div></div>
+        <!-- 2026-10-10 沟通后隐藏：收据张数支付方式分析饼图 -->
+        <!-- <div class="pie-item"><div class="pie-title">收据张数支付方式分析</div><div id="pie-income-receipt-2" class="pie-chart"></div></div> -->
       </div>
     </div>
 
@@ -343,7 +346,8 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
       <div class="pie-row">
         <div class="pie-item"><div class="pie-title">收入金额渠道分析</div><div id="pie-income-amount-1" class="pie-chart"></div></div>
         <div class="pie-item"><div class="pie-title">收入金额支付方式分析</div><div id="pie-income-amount-2" class="pie-chart"></div></div>
-        <div class="pie-item"><div class="pie-title">收入金额业务类型分析</div><div id="pie-income-amount-3" class="pie-chart"></div></div>
+        <!-- 2026-10-10 沟通后隐藏：收入金额业务类型分析饼图 -->
+        <!-- <div class="pie-item"><div class="pie-title">收入金额业务类型分析</div><div id="pie-income-amount-3" class="pie-chart"></div></div> -->
         <div class="pie-item"><div class="pie-title">金额应收/实收分析</div><div id="pie-income-amount-4" class="pie-chart"></div></div>
       </div>
     </div>
@@ -401,7 +405,10 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
       <div id="chart-refund-receipt" class="chart-box"></div>
       <div class="pie-row">
         <div class="pie-item"><div class="pie-title">收据张数渠道分析</div><div id="pie-refund-receipt-1" class="pie-chart"></div></div>
-        <div class="pie-item"><div class="pie-title">收据张数支付方式分析</div><div id="pie-refund-receipt-2" class="pie-chart"></div></div>
+        <!-- 2026-10-10 沟通后隐藏：收据张数支付方式分析饼图 -->
+        <!-- <div class="pie-item"><div class="pie-title">收据张数支付方式分析</div><div id="pie-refund-receipt-2" class="pie-chart"></div></div> -->
+        <div class="pie-item"><div class="pie-title">无审退费张数占比分析</div><div id="pie-refund-receipt-3" class="pie-chart"></div></div>
+        <div class="pie-item"><div class="pie-title">无审退费金额占比分析</div><div id="pie-refund-receipt-4" class="pie-chart"></div></div>
       </div>
     </div>
 
@@ -412,7 +419,8 @@ body { font-family: "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #
       <div class="pie-row">
         <div class="pie-item"><div class="pie-title">退费金额渠道分析</div><div id="pie-refund-amount-1" class="pie-chart"></div></div>
         <div class="pie-item"><div class="pie-title">退费金额支付方式分析</div><div id="pie-refund-amount-2" class="pie-chart"></div></div>
-        <div class="pie-item"><div class="pie-title">退费金额业务类型分析</div><div id="pie-refund-amount-3" class="pie-chart"></div></div>
+        <!-- 2026-10-10 沟通后隐藏：退费金额业务类型分析饼图 -->
+        <!-- <div class="pie-item"><div class="pie-title">退费金额业务类型分析</div><div id="pie-refund-amount-3" class="pie-chart"></div></div> -->
         <div class="pie-item"><div class="pie-title">金额应收/实收分析</div><div id="pie-refund-amount-4" class="pie-chart"></div></div>
       </div>
     </div>

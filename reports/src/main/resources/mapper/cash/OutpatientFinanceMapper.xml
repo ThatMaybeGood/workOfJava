@@ -48,7 +48,7 @@
         SELECT
         <include refid="periodExpr"><property name="col" value="a.STAT_DATE"/></include> AS "period",
         <choose>
-            <when test="statisticType == 1">SUM(NVL(a.TOTAL_INCOMES, 0) )</when>
+            <when test="statisticType == 1">SUM(NVL(a.TOTAL_INCOMES, 0) - NVL((SELECT SUM(NVL(m.INCOME_AMOUNT,0) - NVL(m.REFUNDED_AMOUNT,0)) FROM TR_OUTP_FIN_ACCT_MONEY m WHERE m.ACCT_NO = a.ACCT_NO AND m.MONEY_TYPE IN ('医改统筹','医院垫支')), 0))</when>
             <when test="statisticType == 2">SUM(NVL(a.TOTAL_COSTS, 0))</when>
             <otherwise>SUM(NVL(a.REFUND_AMOUNT, 0))</otherwise>
         </choose> AS "amount",
@@ -102,7 +102,7 @@
 
     <!-- bt1 门诊量分析： 订单来源分析（口径同 queryClinicCounts：T1汇总=收 T2进项=全部 T3退） -->
     <select id="queryClinicCountBySource" resultType="map">
-         SELECT nvl(q.SOURCE_NAME,decode(c.operator_no,'9101','自助机','窗口')) AS "name",
+         SELECT nvl(q.SOURCE_NAME,decode(c.operator_no,'9101','互联网订单','当日挂号')) AS "name",
                COUNT(1) AS "cnt"
         FROM TR_OUTP_FIN_CLINIC_MASTER c
         LEFT JOIN TR_OUTP_FIN_MOP_QUEUE q
