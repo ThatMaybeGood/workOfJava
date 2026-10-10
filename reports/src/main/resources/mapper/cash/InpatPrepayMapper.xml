@@ -2,14 +2,14 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.reports.mapper.InpatPrepayMapper">
 
-    <!-- 数据范围:结算=退项(金额为负),其余=进项,SUMMARY=全部 -->
+    <!-- 数据范围:退款=退项(金额为负),交款=进项,SUMMARY=全部 -->
     <sql id="scopeFilter">
         <choose>
             <when test="scope == 'INCOME'">
-                AND transact_type &lt;&gt; '结算'
+                AND transact_type = '交款'
             </when>
             <when test="scope == 'REFUND'">
-                AND transact_type = '结算'
+                AND transact_type = '退款'
             </when>
         </choose>
     </sql>
