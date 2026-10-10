@@ -725,7 +725,7 @@
                         <th class="group-morning"><span class="header-main">今日预交金数<span class="header-num">（2）</span></span></th>
                         <th class="group-morning"><span class="header-main">今日结账收入<span class="header-num">（3）</span></span></th>
                         <th class="group-morning"><span class="header-main">今日院前收入<span class="header-num">（4）</span></span></th>
-                        <th class="group-morning"><span class="header-main">其它收入<span class="header-num">（5）</span></span><span class="header-note">（手工录入）</span></th>
+                        <th class="group-morning"><span class="header-main">其它收入-手工报表<span class="header-num">（5）</span></span><span class="header-note">（手工录入）</span></th>
                         <th class="group-morning"><span class="header-main">备注<span class="header-num">（6）</span></span><span class="header-note">（手工录入）</span></th>
                         <th class="group-morning"><span class="header-main">今日报表数合计<span class="header-num">（7）</span></span><span class="header-note">=（2）-（1）+（3）+（4）+（5）（公式）</span></th>
                         <th class="group-morning"><span class="header-main">前日欠条<span class="header-num">（8）</span></span><span class="header-note">（自动提取前日欠条数据）</span></th>
@@ -781,7 +781,7 @@
         { field: "today_advance_payment", title: "今日预交金数（2）", editable: false, computed: false },
         { field: "today_settlement_income", title: "今日结账收入（3）", editable: false, computed: false },
         { field: "today_pre_hospital_income", title: "今日院前收入（4）", editable: false, computed: false },
-        { field: "other_income", title: "其它收入（5）", editable: true, computed: false, note: "（手工录入）" },
+        { field: "other_income", title: "其它收入-手工报表（5）", editable: true, computed: false, note: "（手工录入）" },
         { field: "sub_remark", title: "备注（6）", editable: true, computed: false, isText: true, note: "（手工录入）" },
         { field: "today_report_total", title: "今日报表数合计（7）", editable: false, computed: true, note: "=（2）-（1）+（3）+（4）+（5）（公式）" },
         { field: "previous_day_iou", title: "前日欠条（8）", editable: false, computed: false, note: "（自动提取前日欠条数据）" },
