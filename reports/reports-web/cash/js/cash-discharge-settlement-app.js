@@ -187,20 +187,28 @@ class DischargeSettlementController {
 
     renderOverview(data) {
         document.getElementById('totalDischargeCount').textContent = data.totalDischargeCount.toLocaleString('zh-CN');
-        document.getElementById('totalDischargeCompare').textContent = `同比${data.totalDischargeCompare >= 0 ? '+' : ''}${data.totalDischargeCompare}%`;
-        document.getElementById('totalDischargeCompare').className = `stat-compare ${data.totalDischargeCompare >= 0 ? 'text-up' : 'text-down'}`;
+        this.renderCompare('totalDischargeCompare', data.totalDischargeCompare);
 
         document.getElementById('dischargedCount').textContent = data.dischargedCount.toLocaleString('zh-CN');
-        document.getElementById('dischargedCompare').textContent = `同比${data.dischargedCompare >= 0 ? '+' : ''}${data.dischargedCompare}%`;
-        document.getElementById('dischargedCompare').className = `stat-compare ${data.dischargedCompare >= 0 ? 'text-up' : 'text-down'}`;
+        this.renderCompare('dischargedCompare', data.dischargedCompare);
 
         document.getElementById('notDischargedCount').textContent = data.notDischargedCount.toLocaleString('zh-CN');
-        document.getElementById('notDischargedCompare').textContent = `同比${data.notDischargedCompare >= 0 ? '+' : ''}${data.notDischargedCompare}%`;
-        document.getElementById('notDischargedCompare').className = `stat-compare ${data.notDischargedCompare >= 0 ? 'text-up' : 'text-down'}`;
+        this.renderCompare('notDischargedCompare', data.notDischargedCompare);
 
         document.getElementById('settlementAmount').textContent = data.settlementAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        document.getElementById('settlementAmountCompare').textContent = `同比${data.settlementAmountCompare >= 0 ? '+' : ''}${data.settlementAmountCompare}%`;
-        document.getElementById('settlementAmountCompare').className = `stat-compare ${data.settlementAmountCompare >= 0 ? 'text-up' : 'text-down'}`;
+        this.renderCompare('settlementAmountCompare', data.settlementAmountCompare);
+    }
+
+    /** 同比展示：同期为0无可比数据时后端返回null, 显示—(null>=0为true, 直接拼会错显+null%) */
+    renderCompare(elId, compare) {
+        const el = document.getElementById(elId);
+        if (compare == null) {
+            el.textContent = '同比—';
+            el.className = 'stat-compare';
+            return;
+        }
+        el.textContent = `同比${compare >= 0 ? '+' : ''}${compare}%`;
+        el.className = `stat-compare ${compare >= 0 ? 'text-up' : 'text-down'}`;
     }
 
     async loadCharts() {
@@ -235,7 +243,7 @@ class DischargeSettlementController {
                 trigger: 'item',
                 formatter: (params) => {
                     const item = data[params.dataIndex];
-                    const compareText = item.compare >= 0 ? `+${item.compare}%` : `${item.compare}%`;
+                    const compareText = item.compare == null ? '—' : (item.compare >= 0 ? `+${item.compare}%` : `${item.compare}%`);
                     return `${params.name}: ${params.value} (${params.percent}%)<br/>同比${compareText}`;
                 }
             },
@@ -282,27 +290,40 @@ class DischargeSettlementController {
     }
 
     /**
-     * 饼图右侧图例列表：色块/名称/数值/占比/同比；drillType 非空时项可点钻取
+     * 饼图右侧图例列表：色块/名称/数值/占比/同比；drillType 非空时项可点钻取；超5条分页(同门诊财务)
      */
     renderChartLegend(chart, data, colors, drillType) {
-        const dom = chart.getDom();
-        const wrapper = dom.parentNode;
+        const domId = chart.getDom().id;
+        const wrapper = chart.getDom().parentNode;
         let listEl = wrapper.querySelector('.chart-legend-list');
         if (!listEl) {
             listEl = document.createElement('div');
             listEl.className = 'chart-legend-list';
             wrapper.appendChild(listEl);
         }
+        if (!this.legendState) this.legendState = {};
+        if (!this.legendState[domId]) this.legendState[domId] = { page: 1 };
+        const state = this.legendState[domId];
+        state.data = data;
+        state.colors = colors;
+        state.drillType = drillType;
+
+        const PAGE_SIZE = 5;
         const total = data.reduce((sum, d) => sum + (parseFloat(d.value) || 0), 0);
-        listEl.innerHTML = data.map((item, idx) => {
+        const totalPages = Math.max(1, Math.ceil(data.length / PAGE_SIZE));
+        if (state.page > totalPages) state.page = totalPages;
+        const start = (state.page - 1) * PAGE_SIZE;
+        const pageData = data.slice(start, start + PAGE_SIZE);
+
+        let html = pageData.map((item, idx) => {
             const val = parseFloat(item.value) || 0;
             const pct = total > 0 ? (val / total * 100).toFixed(1) + '%' : '';
-            const perText = (item.compare >= 0 ? '+' : '') + item.compare + '%';
-            const perCls = item.compare >= 0 ? 'up' : 'down';
+            const perText = item.compare == null ? '—' : (item.compare >= 0 ? '+' : '') + item.compare + '%';
+            const perCls = item.compare == null ? '' : (item.compare >= 0 ? 'up' : 'down');
             const drillable = drillType ? ' drillable' : '';
             const drillAttr = drillType ? ` data-drill="${item.name}" title="点击查看明细"` : '';
             return `<div class="chart-legend-item${drillable}"${drillAttr}>
-                <span class="chart-legend-dot" style="background:${colors[idx % colors.length]}"></span>
+                <span class="chart-legend-dot" style="background:${colors[(start + idx) % colors.length]}"></span>
                 <span class="chart-legend-name">${item.name}</span>
                 <span class="chart-legend-val">${val}</span>
                 <span class="chart-legend-pct">${pct}</span>
@@ -310,6 +331,21 @@ class DischargeSettlementController {
             </div>`;
         }).join('');
 
+        if (totalPages > 1) {
+            html += `<div class="chart-legend-pagination">
+                <button type="button" ${state.page <= 1 ? 'disabled' : ''} data-page="${state.page - 1}">上一页</button>
+                <span class="page-info">${state.page}/${totalPages} 页</span>
+                <button type="button" ${state.page >= totalPages ? 'disabled' : ''} data-page="${state.page + 1}">下一页</button>
+            </div>`;
+        }
+        listEl.innerHTML = html;
+
+        listEl.querySelectorAll('button[data-page]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.page = parseInt(btn.getAttribute('data-page'));
+                this.renderChartLegend(chart, state.data, state.colors, state.drillType);
+            });
+        });
         if (drillType) {
             listEl.querySelectorAll('.chart-legend-item.drillable').forEach(el => {
                 el.addEventListener('click', () => this.openDrillModal(drillType, el.getAttribute('data-drill')));
@@ -454,6 +490,12 @@ class DischargeSettlementController {
         }
     }
 
+    /** 同比单元格：同期无数据(null)显示—, 不带涨跌色 */
+    compareCell(compare) {
+        if (compare == null) return '<td>—</td>';
+        return `<td class="${compare >= 0 ? 'text-up' : 'text-down'}">${compare >= 0 ? '+' : ''}${compare}%</td>`;
+    }
+
     renderTable() {
         const tbody = document.getElementById('settlementTableBody');
         let html = '';
@@ -463,16 +505,16 @@ class DischargeSettlementController {
                     <td>${row.date}</td>
                     <td>${row.totalLast}</td>
                     <td>${row.totalCurrent}</td>
-                    <td class="${row.totalCompare >= 0 ? 'text-up' : 'text-down'}">${row.totalCompare >= 0 ? '+' : ''}${row.totalCompare}%</td>
+                    ${this.compareCell(row.totalCompare)}
                     <td>${row.dischargedLast.toLocaleString('zh-CN')}</td>
                     <td>${row.dischargedCurrent.toLocaleString('zh-CN')}</td>
-                    <td class="${row.dischargedCompare >= 0 ? 'text-up' : 'text-down'}">${row.dischargedCompare >= 0 ? '+' : ''}${row.dischargedCompare}%</td>
+                    ${this.compareCell(row.dischargedCompare)}
                     <td>${row.notDischargedLast.toLocaleString('zh-CN')}</td>
                     <td>${row.notDischargedCurrent.toLocaleString('zh-CN')}</td>
-                    <td class="${row.notDischargedCompare >= 0 ? 'text-up' : 'text-down'}">${row.notDischargedCompare >= 0 ? '+' : ''}${row.notDischargedCompare}%</td>
+                    ${this.compareCell(row.notDischargedCompare)}
                     <td>${row.amountLast.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td>${row.amountCurrent.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td class="${row.amountCompare >= 0 ? 'text-up' : 'text-down'}">${row.amountCompare >= 0 ? '+' : ''}${row.amountCompare}%</td>
+                    ${this.compareCell(row.amountCompare)}
                 </tr>
             `;
         });
