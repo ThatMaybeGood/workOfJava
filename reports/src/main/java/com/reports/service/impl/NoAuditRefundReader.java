@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -53,6 +54,6 @@ public class NoAuditRefundReader {
         Map<String, Object> row = new HashMap<>();
         row.put("name", "无审退费");
         row.put(valueKey, 0);
-        return List.of(row);
+        return Collections.singletonList(row);
     }
 }

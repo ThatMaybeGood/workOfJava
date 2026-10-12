@@ -1106,7 +1106,7 @@ public final class ReportTestDataSeeder {
 
         batch(conn, "INSERT INTO TR_OUTP_FIN_CLINIC_MASTER (PATIENT_ID, STAT_DATE, VISIT_DATE, VISIT_NO,"
                 + " RETURNED_DATE, IS_RETURN_TYPE, REGISTRATION_STATUS, REGIST_FEE, CLINIC_FEE, CLINIC_LABEL, VISIT_TIME_DESC,"
-                + " OPERATOR_NO) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", clinic);
+                + " OPERATOR_NO, APPOINTS_INDICATOR) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1)", clinic);
         batch(conn, "INSERT INTO TR_OUTP_FIN_RCPT_ACCT (RCPT_NO, PATIENT_ID, STAT_DATE, VISIT_DATE,"
                 + " TOTAL_CHARGES, TOTAL_COSTS, REFUNDED_RCPT_NO, OPERATOR_NO, BILL_CLASS)"
                 + " VALUES (?,?,?,?,?,?,?,?,?)", rcpt);

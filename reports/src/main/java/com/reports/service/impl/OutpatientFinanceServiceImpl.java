@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -299,7 +300,7 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                         financeMapper.queryQueueCountByOperator(type, pStart, pEnd, tt), null));
             }
              if (types.contains("3")) {
-                log.info("[门诊财务饼图] bt3: 门诊量分析(订单渠道分析) → queryClinicCountByOperator");
+                log.info("[门诊财务饼图] bt3: 门诊量分析(预约订单渠道分析) → queryClinicCountByOperator");
                 map.put("3", buildPie(
                         financeMapper.queryClinicCountByOperator(type, start, end, tt),
                         financeMapper.queryClinicCountByOperator(type, pStart, pEnd, tt), null));
@@ -407,7 +408,8 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
     }
 
     private List<PieItem> buildPie(List<Map<String, Object>> currRows, List<Map<String, Object>> prevRows,
-                                   Function<String, String> nameMapper) {        Map<String, Double> curr = aggregatePie(currRows, nameMapper);
+                                   Function<String, String> nameMapper) {
+        Map<String, Double> curr = aggregatePie(currRows, nameMapper);
         Map<String, Double> prev = aggregatePie(prevRows, nameMapper);
         List<PieItem> items = new ArrayList<>();
         for (Map.Entry<String, Double> e : curr.entrySet()) {
@@ -417,6 +419,8 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             item.setPrevValue(round(prev.getOrDefault(e.getKey(), 0.0)));
             items.add(item);
         }
+        // 统一按分类名称排序，不按数量
+        items.sort(Comparator.comparing(PieItem::getName));
         return items;
     }
 
@@ -613,7 +617,7 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             }
             map.put(String.valueOf(bt), items);
         }
-        // bt14/bt15 无审退费占比：mock 给两块切片
+        // bt14/bt15 无审退费占比：mock 给两块切片（分类名排序后：无审退费、窗口）
         for (String bt : new String[]{"14", "15"}) {
             if (!types.contains(bt)) continue;
             List<PieItem> items = new ArrayList<>();

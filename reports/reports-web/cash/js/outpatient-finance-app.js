@@ -7,12 +7,15 @@
  */
 
 // ===== 日期范围选择器变量 =====
-var pickerMode = 'month';
+// 默认按天模式、日期为当前日期的前一天（2026-10-12 沟通确定）
+var pickerMode = 'day';
 var monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
 var weekDays = ['日', '一', '二', '三', '四', '五', '六'];
 var rangeStep = 'start';
-var rangeStart = { year: 2026, month: 4, day: 1 };
-var rangeEnd = { year: 2026, month: 4, day: 1 };
+var yesterday = new Date();
+yesterday.setDate(yesterday.getDate() - 1);
+var rangeStart = { year: yesterday.getFullYear(), month: yesterday.getMonth() + 1, day: yesterday.getDate() };
+var rangeEnd = { year: yesterday.getFullYear(), month: yesterday.getMonth() + 1, day: yesterday.getDate() };
 
 // ===== 统计类型映射 =====
 var statisticTypeMap = { summary: '1', income: '2', refund: '3' };
@@ -469,7 +472,16 @@ function getOrCreatePieChart(domId) {
 }
 
 function renderPieLegend(domId, pieData) {
-    if (!pieData || pieData.length === 0) return;
+    if (!pieData || pieData.length === 0) {
+        // 当期无数据时也要清掉旧图例，否则切日期范围后残留上一区间的分类数值
+        var oldList = document.getElementById(domId);
+        if (oldList && oldList.parentNode) {
+            var stale = oldList.parentNode.querySelector('.pie-legend-list');
+            if (stale) stale.innerHTML = '';
+        }
+        if (pieLegendState[domId]) pieLegendState[domId].data = [];
+        return;
+    }
     var chartDom = document.getElementById(domId);
     if (!chartDom || !chartDom.parentNode) return;
     var wrapper = chartDom.parentNode;
@@ -1021,5 +1033,14 @@ document.addEventListener('click', function (ev) {
     }
 });
 
-// 页面加载时查询一次
+// 页面加载时查询一次：初始化日期显示与选择器定位（默认按天、前一天）
+(function initDefaultRange() {
+    var dd = document.querySelector('#rangePicker .month-picker-dropdown');
+    if (dd) {
+        dd.dataset.year = rangeStart.year;
+        dd.dataset.month = rangeStart.month;
+        dd.dataset.day = rangeStart.day;
+    }
+    updateRangeDisplay();
+})();
 fetchAll(currentOuter);

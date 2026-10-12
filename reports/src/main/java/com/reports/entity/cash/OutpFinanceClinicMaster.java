@@ -40,6 +40,10 @@ public class OutpFinanceClinicMaster implements Serializable {
     @TableField("operator_no")
     private String operatorNo;
 
+    /** 预约指标：1=门诊数据，2=预留 */
+    @TableField("appoints_indicator")
+    private Integer appointsIndicator;
+
     @TableField("create_time")
     private Date createTime;
 

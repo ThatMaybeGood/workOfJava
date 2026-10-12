@@ -19,6 +19,7 @@
             COUNT(1) AS "cnt"
         FROM TR_OUTP_FIN_CLINIC_MASTER c
         WHERE ${dateCol} BETWEEN #{startDate} AND #{endDate}
+          AND c.APPOINTS_INDICATOR = 1
         <choose>
             <when test="statisticType == 1">
                 AND c.IS_RETURN_TYPE = 1
@@ -40,6 +41,7 @@
         FROM TR_OUTP_FIN_CLINIC_MASTER c
         WHERE c.RETURNED_DATE BETWEEN #{startDate} AND #{endDate}
           AND c.IS_RETURN_TYPE = -1
+          AND c.APPOINTS_INDICATOR = 1
           <![CDATA[AND c.REGISTRATION_STATUS <> 0]]>
     </select>
 
@@ -119,10 +121,11 @@
                 WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
             </otherwise>
         </choose>
+          AND c.APPOINTS_INDICATOR = 1
         <if test="statisticType == 1">
             AND c.IS_RETURN_TYPE = 1
         </if>
-        GROUP BY nvl(q.SOURCE_NAME,decode(c.operator_no,'9101','自助机','窗口'))
+        GROUP BY nvl(q.SOURCE_NAME,decode(c.operator_no,'9101','互联网订单','当日挂号'))
         ORDER BY "cnt" DESC
     </select>
 
@@ -142,6 +145,7 @@
                 WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
             </otherwise>
         </choose>
+          AND c.APPOINTS_INDICATOR = 1
         <if test="statisticType == 1">
             AND c.IS_RETURN_TYPE = 1
         </if>
@@ -149,7 +153,7 @@
         ORDER BY "cnt" DESC
     </select>
 
-    <!-- bt3 门诊量分析： 订单渠道分析 -->
+    <!-- bt3 门诊量分析： 预约订单渠道分析（挂号日≠就诊日即预约号） -->
     <select id="queryClinicCountByOperator" resultType="map">
          SELECT DECODE(r.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
                COUNT(1) AS "cnt"
@@ -165,9 +169,12 @@
                 WHERE r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
             </otherwise>
         </choose>
+          AND r.APPOINTS_INDICATOR = 1
         <if test="statisticType == 1">
             AND r.IS_RETURN_TYPE = 1
         </if>
+        <!-- 预约号：挂号日期与就诊日期不同天 -->
+        <![CDATA[AND TRUNC(r.VISIT_DATE) <> TRUNC(r.REGISTERING_DATE)]]>
         GROUP BY DECODE(r.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口')
         ORDER BY "cnt" DESC
     </select>
@@ -271,6 +278,7 @@
                    NVL(c.REGIST_FEE, 0) + NVL(c.CLINIC_FEE, 0) AS amt
             FROM TR_OUTP_FIN_CLINIC_MASTER c
             WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+              AND c.APPOINTS_INDICATOR = 1
               <![CDATA[ AND c.VISIT_DATE < DATE '2025-02-08' ]]>
             UNION ALL
             SELECT CASE WHEN r.VISIT_DATE >= DATE '2025-02-08' AND r.BILL_CLASS = '1'

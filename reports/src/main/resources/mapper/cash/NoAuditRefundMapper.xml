@@ -6,7 +6,7 @@
     <select id="queryNoAuditRefundCount" resultType="map">
         SELECT '无审退费' AS "name", COUNT(1) AS "cnt"
         FROM t_t_refund_apply
-        WHERE is_return = 1
+        WHERE is_refund = 1
           AND TRUNC(apply_time) BETWEEN #{startDate} AND #{endDate}
     </select>
 
@@ -16,7 +16,7 @@
                NVL(SUM(CASE WHEN REGEXP_LIKE(refund_amount, '^-?[0-9]+(\.[0-9]+)?$')
                             THEN TO_NUMBER(refund_amount) ELSE 0 END), 0) AS "amount"
         FROM t_t_refund_apply
-        WHERE is_return = 1
+        WHERE is_refund = 1
           AND TRUNC(apply_time) BETWEEN #{startDate} AND #{endDate}
     </select>
 </mapper>

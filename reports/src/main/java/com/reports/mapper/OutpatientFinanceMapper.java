@@ -62,7 +62,7 @@ public interface OutpatientFinanceMapper {
                                                          @Param("timeType") Integer timeType);
 
     /**
-     * bt3 订单渠道 ：按操作员净张数（收据表）
+     * bt3 预约订单渠道：挂号日≠就诊日(预约号)按操作员净张数（收据表）
      */
     List<Map<String, Object>> queryClinicCountByOperator(@Param("statisticType") Integer statisticType,
                                                        @Param("startDate") Date startDate,
