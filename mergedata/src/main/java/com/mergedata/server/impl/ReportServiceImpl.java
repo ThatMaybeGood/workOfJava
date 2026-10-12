@@ -24,6 +24,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.BinaryOperator;
@@ -819,7 +820,6 @@ public class ReportServiceImpl implements ReportService {
         Boolean isInitFlag = (initFlag != null && "1".equalsIgnoreCase(initFlag));
 
         InpCashMainEntity inpResult = new InpCashMainEntity();
-        List<InpCashMainEntity> mainList = new ArrayList<>();
 
         try {
             //查询日期类型
@@ -827,61 +827,43 @@ public class ReportServiceImpl implements ReportService {
 
             //是否节假日汇总
             if (totalFlag.equals(Constant.YES)) {
-                if (!holidayType.equals(Constant.HOLIDAY_AFTER)) {
-                    throw new BusinessException("该日期不是节后首个工作日，无汇总数据；请在节后第一个工作日查询汇总");
+                //已有汇总数据直接返回，不重复生成，避免覆盖审核状态
+                InpCashMainEntity existTotal = queryInpReportByDate(currentDate, Constant.YES);
+                if (existTotal != null && !isInitFlag) {
+                    fillHolidayRange(existTotal);
+                    return existTotal;
                 }
-                if (holidayType.equals(Constant.HOLIDAY_AFTER)) {
-                    //已有汇总数据直接返回，不重复生成，避免覆盖审核状态
-                    InpCashMainEntity existTotal = queryInpReportByDate(currentDate, Constant.YES);
-                    if (existTotal != null && !isInitFlag) {
-                        fillHolidayRange(existTotal);
-                        return existTotal;
-                    }
 
-                    //已审核通过的汇总封存，不允许初始化覆盖
-                    if (isInitFlag && existTotal != null && Constant.YES.equals(existTotal.getAuditStatus())) {
-                        throw new BusinessException("该报表已审核通过，已封存不能初始化");
-                    }
+                //已审核通过的汇总封存，不允许初始化覆盖
+                if (isInitFlag && existTotal != null && Constant.YES.equals(existTotal.getAuditStatus())) {
+                    throw new BusinessException("该报表已审核通过，已封存不能初始化");
+                }
 
-                    LocalDate startDate = currentDate;
-                    //开始汇总计算
-                    while (true) {
-
-                        startDate = startDate.minusDays(1);  //日期倒减
-
-                        // 到非节假日即停(月末工作日/节前工作日都停), 只合计纯假期; 不依赖queryDateType的PRE判定
-                        if (holidayService.findByDate(startDate).isEmpty()) {
-                            break;
-                        }
-
-                        inpResult = queryInpReportByDate(startDate, Constant.NOT_TOTAL);
-
-                        // 1. 查主表单条 是否存在
-                        if (inpResult == null) {
-                            //获取初始化的数据
-                            inpResult = getInpReportData(startDate, holidayType, Constant.NOT_TOTAL);
-                            //方法批量插入数据
-                            isInitInsertInp(inpResult, Constant.YES);
-                        }
-
-                        mainList.add(inpResult);
-
+                //2026-10-12 节假日汇总口径: 汇总范围=连续节假日+放假前一天(前一天须非节假日且与该段同月, 跨月舍弃;
+                //  如10.01-10.07放假不含9.30、11.01-11.02放假不含10.31、6.10-6.12放假含6.09);
+                //  连续节假日跨月按月份切段, 每段一条汇总行: 最后一段在节后首个工作日查询, 前月段在对应月末日期查询
+                //  (如8.31-9.02放假: 8.31查[8.30-8.31]段, 9.03查[9.01-9.02]段)
+                //定位连续节假日块: 当天是节假日(月末汇总日)取所在块; 当天是节后首个工作日取前一天往回那块
+                LocalDate blockEnd;
+                if (!holidayService.findByDate(currentDate).isEmpty()) {
+                    blockEnd = currentDate;
+                    while (!holidayService.findByDate(blockEnd.plusDays(1)).isEmpty()) {
+                        blockEnd = blockEnd.plusDays(1);
                         // 防止无限循环
-                        if (currentDate.toEpochDay() - startDate.toEpochDay() > 30) {
-                            log.warn("回溯查找失败，连续节假日超过30天，从{}开始，在 {} 无法找到正常工作日。", currentDate, startDate);
+                        if (blockEnd.toEpochDay() - currentDate.toEpochDay() > 30) {
+                            log.warn("连续节假日超过30天，从{}往后查找中断", currentDate);
                             break;
                         }
-
                     }
-                    // 2. 对主表进行节假日汇总
-                    //汇总的数据插入数据库
-                    inpResult = inpHolidayTotal(mainList, currentDate);
-
-                    isInitInsertInp(inpResult, Constant.YES);
-                    log.info("住院现金统计-节假日汇总写入成功，报表日期{}", currentDate);
-                    fillHolidayRange(inpResult);
+                } else if (Constant.HOLIDAY_AFTER.equals(holidayType)) {
+                    blockEnd = currentDate.minusDays(1);
+                } else {
+                    throw new BusinessException("该日期不是汇总日，无汇总数据；请在月末汇总日或节后第一个工作日查询汇总");
                 }
 
+                // 生成各段汇总并返回查询日期对应的那段
+                inpResult = generateInpHolidayTotals(blockEnd, currentDate);
+                fillHolidayRange(inpResult);
             } else {
                 //查询数据库是否有相关数据
                 inpResult = queryInpReportByDate(currentDate, Constant.NOT_TOTAL);
@@ -993,6 +975,109 @@ public class ReportServiceImpl implements ReportService {
 
 
     /**
+     * 2026-10-12 住院节假日汇总生成: 连续节假日按月份切段，每段=段内节假日+放假前一天(前一天非节假日且同月才加, 跨月舍弃)；
+     * 最后一段展示在节后首个工作日，跨月时的前月段展示在对应月末日期；
+     * 汇总区间(holiday_start_date/holiday_end_date)随汇总行落库, 跨月两段靠(report_date+汇总标志)区分, 审核/保存互不影响
+     *
+     * @param blockEnd  连续节假日块最后一天
+     * @param queryDate 查询日期(节后首个工作日或月末汇总日)
+     * @return 查询日期对应的那一段汇总
+     */
+    private InpCashMainEntity generateInpHolidayTotals(LocalDate blockEnd, LocalDate queryDate) {
+        //块起点: 从块尾回溯到第一个非节假日前一天
+        LocalDate blockStart = blockEnd;
+        while (!holidayService.findByDate(blockStart.minusDays(1)).isEmpty()) {
+            blockStart = blockStart.minusDays(1);
+            // 防止无限循环
+            if (blockEnd.toEpochDay() - blockStart.toEpochDay() > 30) {
+                log.warn("回溯查找失败，连续节假日超过30天，块尾{}，块头{}", blockEnd, blockStart);
+                break;
+            }
+        }
+
+        //按月份切段
+        List<LocalDate[]> monthSegs = new ArrayList<>();
+        LocalDate segStart = blockStart;
+        LocalDate day = blockStart;
+        while (!day.isAfter(blockEnd)) {
+            LocalDate next = day.plusDays(1);
+            if (day.isEqual(blockEnd) || !YearMonth.from(next).equals(YearMonth.from(day))) {
+                monthSegs.add(new LocalDate[]{segStart, day});
+                segStart = next;
+            }
+            day = next;
+        }
+
+        //每段汇总范围与展示日期: 最后一段=节后首个工作日, 其余段=该段最后一天(月末)
+        List<LocalDate[]> ranges = new ArrayList<>();
+        List<LocalDate> displayDates = new ArrayList<>();
+        for (int i = 0; i < monthSegs.size(); i++) {
+            LocalDate start = monthSegs.get(i)[0];
+            LocalDate end = monthSegs.get(i)[1];
+            //2026-10-12 放假前一天: 非节假日且与该段同月才并入, 跨月舍弃
+            LocalDate pre = start.minusDays(1);
+            if (holidayService.findByDate(pre).isEmpty() && YearMonth.from(pre).equals(YearMonth.from(start))) {
+                start = pre;
+            }
+            ranges.add(new LocalDate[]{start, end});
+            displayDates.add(i == monthSegs.size() - 1 ? blockEnd.plusDays(1) : end);
+        }
+
+        //查询日期必须命中某一段的展示日期
+        int target = displayDates.indexOf(queryDate);
+        if (target < 0) {
+            throw new BusinessException("该日期无对应汇总段，请在月末汇总日或节后第一个工作日查询汇总");
+        }
+
+        //已审核封存的段不允许重建
+        for (LocalDate displayDate : displayDates) {
+            InpCashMainEntity exist = queryInpReportByDate(displayDate, Constant.YES);
+            if (exist != null && Constant.YES.equals(exist.getAuditStatus())) {
+                throw new BusinessException(displayDate + " 汇总已审核通过，已封存不能初始化");
+            }
+        }
+
+        //2026-10-12 两段式生成: 先收集全部日报行(逐日查库, 缺则生成落库), 再逐段汇总写入, 避免段间前日取值互相干扰(如9.01的前日应取8.31日报而非上月段汇总)
+        Map<LocalDate, InpCashMainEntity> dailyMap = new LinkedHashMap<>();
+        for (LocalDate[] range : ranges) {
+            LocalDate d = range[0];
+            while (!d.isAfter(range[1])) {
+                if (!dailyMap.containsKey(d)) {
+                    InpCashMainEntity daily = queryInpReportByDate(d, Constant.NOT_TOTAL);
+                    if (daily == null) {
+                        daily = getInpReportData(d, holidayService.queryDateType(d, Constant.TYPE_INP), Constant.NOT_TOTAL);
+                        if (daily == null) {
+                            throw new RuntimeException(d + " 住院日报生成失败");
+                        }
+                        isInitInsertInp(daily, Constant.YES);
+                    }
+                    dailyMap.put(d, daily);
+                }
+                d = d.plusDays(1);
+            }
+        }
+
+        InpCashMainEntity result = null;
+        for (int i = 0; i < ranges.size(); i++) {
+            List<InpCashMainEntity> segRows = new ArrayList<>();
+            LocalDate d = ranges.get(i)[0];
+            while (!d.isAfter(ranges.get(i)[1])) {
+                segRows.add(dailyMap.get(d));
+                d = d.plusDays(1);
+            }
+            InpCashMainEntity summary = inpHolidayTotal(segRows, displayDates.get(i));
+            summary.setHolidayStartDate(ranges.get(i)[0]);
+            summary.setHolidayEndDate(ranges.get(i)[1]);
+            isInitInsertInp(summary, Constant.YES);
+            if (i == target) {
+                result = summary;
+            }
+        }
+        log.info("住院现金统计-节假日汇总写入成功，报表日期{}", queryDate);
+        return result;
+    }
+
+    /**
      * 对住院现金统计主表实体类进行节假日汇总
      *
      * @param allMains   所有住院现金统计主表实体类列表
@@ -1069,10 +1154,13 @@ public class ReportServiceImpl implements ReportService {
     }
 
     /**
-     * 汇总区间: 从报表日前一天往前连续节假日，填入起止日期供前端标题展示
+     * 2026-10-12 汇总区间: 优先取汇总行落库的起止日期；历史汇总行(区间未落库)回算连续节假日区间
      */
     private void fillHolidayRange(InpCashMainEntity main) {
         if (main == null || main.getReportDate() == null) {
+            return;
+        }
+        if (main.getHolidayStartDate() != null && main.getHolidayEndDate() != null) {
             return;
         }
         LocalDate end = main.getReportDate().minusDays(1);

@@ -14,7 +14,9 @@ CREATE TABLE mpp_cash_inp_master (
     audit_status VARCHAR2(1) DEFAULT '0',       -- 审核状态：0-未审核，1-审核通过，2-审核不通过
     audit_by VARCHAR2(50),                      -- 审核人
     audit_time TIMESTAMP,                       -- 审核时间
-    audit_remark VARCHAR2(500)                  -- 审核意见（不通过原因等）
+    audit_remark VARCHAR2(500),                 -- 审核意见（不通过原因等）
+    holiday_start_date DATE,                    -- 节假日汇总区间起（跨月分段汇总时区分各段）
+    holiday_end_date DATE                       -- 节假日汇总区间止
 );
 
 COMMENT ON TABLE mpp_cash_inp_master IS '住院现金统计主表';
@@ -31,6 +33,8 @@ COMMENT ON COLUMN mpp_cash_inp_master.audit_status IS '审核状态：0-未审�
 COMMENT ON COLUMN mpp_cash_inp_master.audit_by IS '审核人';
 COMMENT ON COLUMN mpp_cash_inp_master.audit_time IS '审核时间';
 COMMENT ON COLUMN mpp_cash_inp_master.audit_remark IS '审核意见（不通过原因等）';
+COMMENT ON COLUMN mpp_cash_inp_master.holiday_start_date IS '节假日汇总区间起（跨月分段汇总时区分各段）';
+COMMENT ON COLUMN mpp_cash_inp_master.holiday_end_date IS '节假日汇总区间止';
 
 CREATE INDEX idx_mpp_cash_master_rpt_date ON mpp_cash_inp_master(report_date);
 CREATE INDEX idx_mpp_cash_master_valid_flag ON mpp_cash_inp_master(valid_flag);
