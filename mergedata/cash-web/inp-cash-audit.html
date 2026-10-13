@@ -776,7 +776,7 @@
                     <tr>
                         <th colspan="22" class="table-main-title">
                             <span id="mainTitle">1月1日 审核/出纳 报表现金登记表</span>
-                            <span class="table-main-subtitle" id="reportDateDisplay">登记时间：2026年1月1日</span>
+                            <span class="table-main-subtitle" id="reportDateDisplay">登记时间：2026年1月2日</span>
                         </th>
                     </tr>
                     <tr>
@@ -1207,9 +1207,11 @@
             document.getElementById("reportDateDisplay").textContent = `登记时间：${reportDateStr}`;
             return;
         }
+        const next = new Date(d);
+        next.setDate(next.getDate() + 1);
         const formatCN = date => `${date.getMonth() + 1}月${date.getDate()}日`;
         document.getElementById("mainTitle").textContent = `${formatCN(d)} 审核/出纳 报表现金登记表`;
-        document.getElementById("reportDateDisplay").textContent = `登记时间：${formatCN(d)}`;
+        document.getElementById("reportDateDisplay").textContent = `登记时间：${formatCN(next)}`;
     }
 
     async function saveAudit(auditStatusVal, auditRemarkVal) {
