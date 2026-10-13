@@ -15,6 +15,7 @@ import com.mergedata.model.vo.OutpReportMainVO;
 import com.mergedata.model.vo.OutpReportSubVO;
 import com.mergedata.server.*;
 import com.mergedata.util.PrimaryKeyGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -863,6 +864,10 @@ public class ReportServiceImpl implements ReportService {
 
                 // 生成各段汇总并返回查询日期对应的那段
                 inpResult = generateInpHolidayTotals(blockEnd, currentDate);
+                //2026-10-13 汇总初始化保留手工列: (11)(12)(15)保留旧汇总行录入值, (5)(9)/(6)随区间重新加总/汇集
+                if (isInitFlag && existTotal != null) {
+                    mergeSummaryManualColumns(inpResult, existTotal);
+                }
                 fillHolidayRange(inpResult);
             } else {
                 //查询数据库是否有相关数据
@@ -1117,31 +1122,25 @@ public class ReportServiceImpl implements ReportService {
             totalSub.setTodaySettlementIncome(totalSub.getTodaySettlementIncome().add(item.getTodaySettlementIncome()));
             totalSub.setTodayPreHospitalIncome(totalSub.getTodayPreHospitalIncome().add(item.getTodayPreHospitalIncome()));
             totalSub.setOtherIncome(totalSub.getOtherIncome().add(item.getOtherIncome()));
-            totalSub.setTodayReportTotal(totalSub.getTodayReportTotal().add(item.getTodayReportTotal()));
             totalSub.setPreviousDayIOU(totalSub.getPreviousDayIOU().add(item.getPreviousDayIOU()));
             totalSub.setTodayOutpatientIOU(totalSub.getTodayOutpatientIOU().add(item.getTodayOutpatientIOU()));
-            totalSub.setTodayReportReceivablePayable(totalSub.getTodayReportReceivablePayable().add(item.getTodayReportReceivablePayable()));
 
-            // 下午及留存部分
-            totalSub.setTodayAdvanceReceipt(totalSub.getTodayAdvanceReceipt().add(item.getTodayAdvanceReceipt()));
-            totalSub.setTodayReportCashReceived(totalSub.getTodayReportCashReceived().add(item.getTodayReportCashReceived()));
-            totalSub.setTodayCashReceivedTotal(totalSub.getTodayCashReceivedTotal().add(item.getTodayCashReceivedTotal()));
-            totalSub.setBalance(totalSub.getBalance().add(item.getBalance()));
-            totalSub.setAdjustment(totalSub.getAdjustment().add(item.getAdjustment()));
-            totalSub.setTodayIOU(totalSub.getTodayIOU().add(item.getTodayIOU()));
+            // (11)(12)(15)汇总界面手工录入, 不加总; (17)(18)取各天登记表加总
             totalSub.setHolidayPayment(totalSub.getHolidayPayment().add(item.getHolidayPayment()));
 
             // 收费员留存部分
             totalSub.setCashOnHand(totalSub.getCashOnHand().add(item.getCashOnHand()));
-            totalSub.setDifference(totalSub.getDifference().add(item.getDifference()));
 
-            // 备注(6)拼接非空值
+            // 备注(6)汇集期间非空值, 换行展示
             if (item.getSubRemark() != null && !item.getSubRemark().trim().isEmpty()) {
                 totalSub.setSubRemark(totalSub.getSubRemark() == null || totalSub.getSubRemark().isEmpty()
                         ? item.getSubRemark()
-                        : totalSub.getSubRemark() + "；" + item.getSubRemark());
+                        : totalSub.getSubRemark() + "\n" + item.getSubRemark());
             }
         }
+
+        //公式列(7)(10)(13)(14)(16)(19)按汇总后各列重算
+        grouped.values().forEach(this::calculateInpSubEntityFields);
 
         summary.setHolidayTotalFlag(Constant.YES);
         summary.setReportDate(reportDate);
@@ -1227,15 +1226,15 @@ public class ReportServiceImpl implements ReportService {
             // 假设 HIS 接口需要 String，则转换
             List<HisInpIncomeResponseDTO> hisInpIncomeResponseDTOList = hisdata.findByDateInp(currtDate.toString());
 
-            // 1. 获取前一天对象: 前一天是节假日汇总时优先取汇总行(如10.09报表前日=10.08汇总10.01-10.07), 无汇总再取正常报表
+            //2026-10-13 对应日期有汇总就提汇总优先: 当天是汇总展示日时, 前日取当天汇总行(假期期间合计,当天一次结清), 否则取前一天日报
             //月初当天是节假日(前一天为上月末)时不提取前日暂收款/前日欠条
             boolean monthFirstHoliday = currtDate.getDayOfMonth() == 1
                     && !holidayService.findByDate(currtDate).isEmpty();
             InpCashMainEntity preInpResult = null;
             if (!monthFirstHoliday) {
-                preInpResult = queryInpReportByDate(preDate, Constant.YES);
+                preInpResult = queryInpReportByDate(currtDate, Constant.YES);
                 if (preInpResult == null) {
-                    preInpResult = queryInpReportByDate(preDate, holidayTotalFlag);
+                    preInpResult = queryInpReportByDate(preDate, Constant.NOT_TOTAL);
                 }
             }
             List<InpCashSubEntity> preInpReportSub;
@@ -1355,8 +1354,56 @@ public class ReportServiceImpl implements ReportService {
             sub.setTodayReportCashReceived(old.getTodayReportCashReceived());
             sub.setAdjustment(old.getAdjustment());
             sub.setRemarks(old.getRemarks());
+            sub.setCellFormula(old.getCellFormula());
             //按新提取值+保留的手工值重算公式列
             calculateInpSubEntityFields(sub);
+        }
+    }
+
+    /**
+     * 2026-10-13 汇总初始化合并手工列: (11)(12)(15)及收费员备注保留旧汇总行录入值(不随区间重新加总也不置0), (5)(9)/(6)取新区间加总/汇集, 公式列重算
+     */
+    private void mergeSummaryManualColumns(InpCashMainEntity fresh, InpCashMainEntity exist) {
+        fresh.setTotalRemark(exist.getTotalRemark());
+        if (exist.getSubs() == null || exist.getSubs().isEmpty()) {
+            return;
+        }
+        Map<String, InpCashSubEntity> existByDbUser = exist.getSubs().stream()
+                .filter(s -> s.getDbUser() != null)
+                .collect(Collectors.toMap(InpCashSubEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
+        for (InpCashSubEntity sub : fresh.getSubs()) {
+            InpCashSubEntity old = existByDbUser.get(sub.getDbUser());
+            if (old == null) {
+                continue;
+            }
+            sub.setTodayAdvanceReceipt(old.getTodayAdvanceReceipt());
+            sub.setTodayReportCashReceived(old.getTodayReportCashReceived());
+            sub.setAdjustment(old.getAdjustment());
+            sub.setRemarks(old.getRemarks());
+            //公式文本仅保留(11)(12)(15), (5)(9)重新加总后旧公式已失效
+            sub.setCellFormula(filterCellFormula(old.getCellFormula(),
+                    Arrays.asList("today_advance_receipt", "today_report_cash_received", "adjustment")));
+            //按新提取值+保留的手工值重算公式列
+            calculateInpSubEntityFields(sub);
+        }
+    }
+
+    private static final ObjectMapper CELL_FORMULA_MAPPER = new ObjectMapper();
+
+    /**
+     * 过滤公式JSON仅保留指定字段, 解析失败原样保留
+     */
+    private String filterCellFormula(String cellFormula, List<String> keepFields) {
+        if (cellFormula == null || cellFormula.isEmpty()) {
+            return null;
+        }
+        try {
+            Map<String, Object> formulaMap = CELL_FORMULA_MAPPER.readValue(cellFormula, Map.class);
+            formulaMap.keySet().retainAll(keepFields);
+            return formulaMap.isEmpty() ? null : CELL_FORMULA_MAPPER.writeValueAsString(formulaMap);
+        } catch (Exception e) {
+            log.warn("公式JSON解析失败, 原样保留: {}", cellFormula);
+            return cellFormula;
         }
     }
 

@@ -776,7 +776,7 @@
                     <tr>
                         <th colspan="22" class="table-main-title">
                             <span id="mainTitle">1月1日 审核/出纳 报表现金登记表</span>
-                            <span class="table-main-subtitle" id="reportDateDisplay">登记时间：2026年1月2日</span>
+                            <span class="table-main-subtitle" id="reportDateDisplay">登记时间：2026年1月1日</span>
                         </th>
                     </tr>
                     <tr>
@@ -1114,7 +1114,7 @@
                     html += `<td class="${groupClass}">${idx + 1}</td>`;
                 } else {
                     const val = row[col.field];
-                    const displayVal = col.isText ? escapeHtml(val) : formatMoneyValue(val);
+                    const displayVal = col.isText ? escapeHtml(val).replace(/\n/g, "<br>") : formatMoneyValue(val);
                     const textClass = col.isText ? "text-cell" : "";
                     const alignStyle = col.align && !col.isText ? `text-align:${col.align}` : "";
                     html += `<td class="${textClass} ${groupClass}" data-field="${col.field}" data-row="${idx}" style="${alignStyle}">${displayVal}</td>`;
@@ -1207,11 +1207,9 @@
             document.getElementById("reportDateDisplay").textContent = `登记时间：${reportDateStr}`;
             return;
         }
-        const next = new Date(d);
-        next.setDate(next.getDate() + 1);
         const formatCN = date => `${date.getMonth() + 1}月${date.getDate()}日`;
         document.getElementById("mainTitle").textContent = `${formatCN(d)} 审核/出纳 报表现金登记表`;
-        document.getElementById("reportDateDisplay").textContent = `登记时间：${formatCN(next)}`;
+        document.getElementById("reportDateDisplay").textContent = `登记时间：${formatCN(d)}`;
     }
 
     async function saveAudit(auditStatusVal, auditRemarkVal) {

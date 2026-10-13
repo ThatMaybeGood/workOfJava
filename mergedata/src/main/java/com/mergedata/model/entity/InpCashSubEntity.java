@@ -118,6 +118,9 @@ public class InpCashSubEntity {
     @TableField("remarks")
     private String remarks;                      //备注（手工录入）
 
+    @TableField("cell_formula")
+    private String cellFormula;                  //数字手工列Excel式公式 JSON {字段名:公式文本}
+
 
     /*
      * 其他字段

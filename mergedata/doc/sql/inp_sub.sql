@@ -25,6 +25,7 @@ CREATE TABLE mpp_cash_inp_sub (
     cash_on_hand NUMBER(18,2),                  -- （18）库存现金
     difference NUMBER(18,2),                    -- （19）差额（公式）
     remarks VARCHAR2(500),                      -- 备注（手工录入）
+    cell_formula VARCHAR2(1000),                -- 数字手工列公式（JSON：{字段名:公式文本}，如 {"today_adv_receipt":"=1000-200+100"}）
     created_time TIMESTAMP DEFAULT SYSTIMESTAMP,-- 创建时间
     updated_time TIMESTAMP DEFAULT SYSTIMESTAMP,-- 更新时间
     created_by VARCHAR2(50),                    -- 创建人
@@ -56,10 +57,14 @@ COMMENT ON COLUMN mpp_cash_inp_sub.holiday_payment IS '（17）节假日交款';
 COMMENT ON COLUMN mpp_cash_inp_sub.cash_on_hand IS '（18）库存现金';
 COMMENT ON COLUMN mpp_cash_inp_sub.difference IS '（19）差额（公式）';
 COMMENT ON COLUMN mpp_cash_inp_sub.remarks IS '备注';
+COMMENT ON COLUMN mpp_cash_inp_sub.cell_formula IS '数字手工列公式（JSON：{字段名:公式文本}）';
 COMMENT ON COLUMN mpp_cash_inp_sub.created_time IS '创建时间';
 COMMENT ON COLUMN mpp_cash_inp_sub.updated_time IS '更新时间';
 COMMENT ON COLUMN mpp_cash_inp_sub.created_by IS '创建人';
 COMMENT ON COLUMN mpp_cash_inp_sub.updated_by IS '更新人';
 COMMENT ON COLUMN mpp_cash_inp_sub.db_user IS '操作员数据库账号';
+
+-- 线上已有表加列执行:
+-- ALTER TABLE mpp_cash_inp_sub ADD cell_formula VARCHAR2(1000);
 
 CREATE INDEX idx_mpp_cash_inp_sub_serial ON mpp_cash_inp_sub(serial_no);

@@ -707,7 +707,7 @@
                     <tr>
                         <th colspan="22" class="table-main-title">
                             <span id="mainTitle">1月1日 审核/出纳 报表现金登记表</span>
-                            <span class="table-main-subtitle" id="reportDateDisplay">登记时间：2026年1月2日</span>
+                            <span class="table-main-subtitle" id="reportDateDisplay">登记时间：2026年1月1日</span>
                         </th>
                     </tr>
                     <tr>
@@ -887,6 +887,30 @@
         return String(str).replace(/[&<>]/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[m]));
     }
 
+    // bt4 公式存取: cell_formula为JSON字符串 {字段名:公式文本}
+    function getCellFormula(row, field) {
+        if (!row.cell_formula) return null;
+        try {
+            const map = JSON.parse(row.cell_formula);
+            return map[field] || null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function setCellFormula(row, field, formulaText) {
+        let map = {};
+        if (row.cell_formula) {
+            try { map = JSON.parse(row.cell_formula); } catch (e) { map = {}; }
+        }
+        if (formulaText) {
+            map[field] = formulaText;
+        } else {
+            delete map[field];
+        }
+        row.cell_formula = Object.keys(map).length ? JSON.stringify(map) : null;
+    }
+
     function calculateRow(row) {
         const get = key => parseFloat(row[key] || 0);
 
@@ -982,11 +1006,12 @@
                     html += `<td class="${groupClass}">${idx + 1}</td>`;
                 } else {
                     const val = row[col.field];
-                    const displayVal = col.isText ? escapeHtml(val) : formatMoneyValue(val);
+                    const displayVal = col.isText ? escapeHtml(val).replace(/\n/g, "<br>") : formatMoneyValue(val);
                     const editableClass = col.editable ? "editable-cell" : "";
                     const textClass = col.isText ? "text-cell" : "";
                     const alignStyle = col.align && !col.isText ? `text-align:${col.align}` : "";
-                    html += `<td class="${editableClass} ${textClass} ${groupClass}" data-field="${col.field}" data-row="${idx}" style="${alignStyle}">${displayVal}</td>`;
+                    const formulaTip = col.editable && !col.isText ? (getCellFormula(row, col.field) || "") : "";
+                    html += `<td class="${editableClass} ${textClass} ${groupClass}" data-field="${col.field}" data-row="${idx}" style="${alignStyle}" title="${escapeHtml(formulaTip)}">${displayVal}</td>`;
                 }
             });
             html += "</tr>";
@@ -1069,14 +1094,35 @@
             return;
         }
 
-        cell.innerHTML = `<input type="number" step="0.01" class="cell-input" value="${originalValue}">`;
+        // bt3 公式录入: =开头按算式计算(仅数字与+-*/括号), 展示计算结果, 公式文本留存
+        const formulaText = getCellFormula(row, field);
+        cell.innerHTML = `<input type="text" class="cell-input" value="${escapeHtml(formulaText || originalValue)}" placeholder="支持 =1000-200+100">`;
         const input = cell.querySelector("input");
         input.focus();
         input.select();
 
+        function evalExpr(expr) {
+            if (!/^[0-9+\-*/().\s]+$/.test(expr)) return NaN;
+            try { return Function('"use strict";return (' + expr + ')')(); } catch (e) { return NaN; }
+        }
+
         function finishEdit() {
             const rawValue = input.value.trim();
-            let newValue = parseMoneyValue(rawValue);
+            let newValue;
+            if (rawValue.startsWith("=") || rawValue.startsWith("＝")) {
+                const normalized = "=" + rawValue.slice(1).trim();
+                const result = evalExpr(normalized.slice(1));
+                if (!isFinite(result)) {
+                    showToast("公式无法计算，请输入如 =1000-200+100 的算式", "warning");
+                    renderTable();
+                    return;
+                }
+                newValue = Math.round(result * 100) / 100;
+                setCellFormula(row, field, normalized);
+            } else {
+                newValue = parseMoneyValue(rawValue);
+                setCellFormula(row, field, null);
+            }
             row[field] = newValue;
             calculateRow(row);
             renderTable();
@@ -1156,17 +1202,15 @@
             document.getElementById("reportDateDisplay").textContent = `登记时间：${reportDateStr}`;
             return;
         }
-        const next = new Date(d);
-        next.setDate(next.getDate() + 1);
         const formatCN = date => `${date.getMonth() + 1}月${date.getDate()}日`;
         if (holidayRange) {
             const fmt = s => { const sd = new Date(String(s).replace(/\//g, "-") + "T00:00:00"); return `${sd.getMonth() + 1}月${sd.getDate()}日`; };
             document.getElementById("mainTitle").textContent = `${fmt(holidayRange.start)}-${fmt(holidayRange.end)} 节假日汇总报表现金登记表`;
-            document.getElementById("reportDateDisplay").textContent = `登记时间：${formatCN(next)}`;
+            document.getElementById("reportDateDisplay").textContent = `登记时间：${formatCN(d)}`;
             return;
         }
         document.getElementById("mainTitle").textContent = `${formatCN(d)} 审核/出纳 报表现金登记表`;
-        document.getElementById("reportDateDisplay").textContent = `登记时间：${formatCN(next)}`;
+        document.getElementById("reportDateDisplay").textContent = `登记时间：${formatCN(d)}`;
 
     }
 
@@ -1217,7 +1261,8 @@
                 adjustment: parseFloat(row.adjustment || 0),
                 holiday_payment: parseFloat(row.holiday_payment || 0),
                 cash_on_hand: parseFloat(row.cash_on_hand || 0),
-                remarks: row.remarks || null
+                remarks: row.remarks || null,
+                cell_formula: row.cell_formula || null
             }));
 
             const saveBody = {
