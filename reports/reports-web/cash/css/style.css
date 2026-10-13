@@ -726,6 +726,15 @@ body {
     color: var(--success-color);
 }
 
+/* 表格单元格上的同比涨跌色: .table tbody td 的显式颜色优先级更高, 需提权覆盖 */
+.table td.text-up {
+    color: var(--danger-color);
+}
+
+.table td.text-down {
+    color: var(--success-color);
+}
+
 .charts-row {
     --bs-gutter-x: 16px;
 }

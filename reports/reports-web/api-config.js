@@ -311,6 +311,13 @@ async function fetchData(url, options = {}) {
             GlobalErrorDialog.error('请求超时，请稍后重试或联系系统管理员');
             throw new Error('请求超时，请稍后重试或联系系统管理员');
         }
+        // 服务未启动/网络不通时 fetch 抛 TypeError(如 Failed to fetch), 换成业务能看懂的中文
+        if (error instanceof TypeError) {
+            const netErrMsg = '无法连接报表服务，请联系管理员确认服务是否正常运行';
+            console.error('Fetch error:', error);
+            GlobalErrorDialog.error(netErrMsg);
+            throw new Error(netErrMsg);
+        }
         console.error('Fetch error:', error);
         GlobalErrorDialog.error(error.message || '请求失败，请检查网络或联系系统管理员');
         throw error;

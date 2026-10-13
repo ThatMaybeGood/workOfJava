@@ -19,7 +19,7 @@
             COUNT(1) AS "cnt"
         FROM TR_OUTP_FIN_CLINIC_MASTER c
         WHERE ${dateCol} BETWEEN #{startDate} AND #{endDate}
-          AND c.APPOINTS_INDICATOR = 1
+          AND c.APPOINTS_INDICATOR = 2
         <choose>
             <when test="statisticType == 1">
                 AND c.IS_RETURN_TYPE = 1
@@ -41,7 +41,7 @@
         FROM TR_OUTP_FIN_CLINIC_MASTER c
         WHERE c.RETURNED_DATE BETWEEN #{startDate} AND #{endDate}
           AND c.IS_RETURN_TYPE = -1
-          AND c.APPOINTS_INDICATOR = 1
+          AND c.APPOINTS_INDICATOR = 2
           <![CDATA[AND c.REGISTRATION_STATUS <> 0]]>
     </select>
 
@@ -110,6 +110,7 @@
         LEFT JOIN TR_OUTP_FIN_MOP_QUEUE q
         ON q.STAT_DATE = c.STAT_DATE
         AND q.visit_no  = c.visit_no
+        AND q.APPOINTS_INDICATOR = 2
         <!-- T3退项按退号日归期(STAT_DATE=挂号日,退号可跨天)；其余按挂号日 -->
         <choose>
             <when test="statisticType == 3">
@@ -121,7 +122,7 @@
                 WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
             </otherwise>
         </choose>
-          AND c.APPOINTS_INDICATOR = 1
+          AND c.APPOINTS_INDICATOR = 2
         <if test="statisticType == 1">
             AND c.IS_RETURN_TYPE = 1
         </if>
@@ -145,7 +146,7 @@
                 WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
             </otherwise>
         </choose>
-          AND c.APPOINTS_INDICATOR = 1
+          AND c.APPOINTS_INDICATOR = 2
         <if test="statisticType == 1">
             AND c.IS_RETURN_TYPE = 1
         </if>
@@ -169,7 +170,7 @@
                 WHERE r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
             </otherwise>
         </choose>
-          AND r.APPOINTS_INDICATOR = 1
+          AND r.APPOINTS_INDICATOR = 2
         <if test="statisticType == 1">
             AND r.IS_RETURN_TYPE = 1
         </if>
@@ -278,7 +279,7 @@
                    NVL(c.REGIST_FEE, 0) + NVL(c.CLINIC_FEE, 0) AS amt
             FROM TR_OUTP_FIN_CLINIC_MASTER c
             WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
-              AND c.APPOINTS_INDICATOR = 1
+              AND c.APPOINTS_INDICATOR = 2
               <![CDATA[ AND c.VISIT_DATE < DATE '2025-02-08' ]]>
             UNION ALL
             SELECT CASE WHEN r.VISIT_DATE >= DATE '2025-02-08' AND r.BILL_CLASS = '1'

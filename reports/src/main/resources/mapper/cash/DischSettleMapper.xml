@@ -3,23 +3,55 @@
 <mapper namespace="com.reports.mapper.DischSettleMapper">
 
     <!-- ============================================================ -->
+    <!-- 公共片段: 本期/同期口径                                        -->
+    <!-- 未出院口径 = settle_status 2(出院未结算)                        -->
+    <!-- ============================================================ -->
+
+    <!-- 本期/同期日期范围条件(alias传表别名带., 无别名传空串) -->
+    <sql id="periodRange">
+        ${alias}stat_date BETWEEN #{startDate} AND #{endDate}
+        OR ${alias}stat_date BETWEEN #{lastStartDate} AND #{lastEndDate}
+    </sql>
+
+    <!-- 本期/同期标志列 in_current/in_last: 0/1 -->
+    <sql id="periodFlags">
+        CASE WHEN ${alias}stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
+        CASE WHEN ${alias}stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last
+    </sql>
+
+    <!-- 同期日期平移到本期轴(明细同比对齐) -->
+    <sql id="axisShift">
+        CASE WHEN ${alias}stat_date BETWEEN #{lastStartDate} AND #{lastEndDate}
+             THEN ADD_MONTHS(${alias}stat_date, 12) ELSE ${alias}stat_date END
+    </sql>
+
+    <!-- 日期轴粒度: 按月取月初, 按天取当天 -->
+    <sql id="axisGrain">
+        <choose>
+            <when test="month">TRUNC(axis_date, 'MM')</when>
+            <otherwise>axis_date</otherwise>
+        </choose>
+    </sql>
+
+    <!-- 同比%: 同期为0或无数据返回null(前端显示—), 否则(本期-同期)/同期*100取整 -->
+    <sql id="yoy">
+        CASE WHEN NVL(${last}, 0) = 0 THEN NULL
+             ELSE ROUND((${cur} - ${last}) / ${last} * 100, 0) END
+    </sql>
+
+    <!-- ============================================================ -->
     <!-- 概览: 出院记录出人次(总/已结算/未结算), 结算主表出金额, 同比行内重算 -->
-    <!-- 未出院口径 = settle_status 2(出院未结算) -->
     <!-- ============================================================ -->
     <select id="queryOverview" resultType="com.reports.dto.response.cash.discharge.settlement.OverviewData">
         SELECT
             v.totalDischargeCount,
-            CASE WHEN v.totalDischargeLast = 0 THEN NULL
-                 ELSE ROUND((v.totalDischargeCount - v.totalDischargeLast) / v.totalDischargeLast * 100, 0) END AS totalDischargeCompare,
+            <include refid="yoy"><property name="cur" value="v.totalDischargeCount"/><property name="last" value="v.totalDischargeLast"/></include> AS totalDischargeCompare,
             v.dischargedCount,
-            CASE WHEN v.dischargedLast = 0 THEN NULL
-                 ELSE ROUND((v.dischargedCount - v.dischargedLast) / v.dischargedLast * 100, 0) END AS dischargedCompare,
+            <include refid="yoy"><property name="cur" value="v.dischargedCount"/><property name="last" value="v.dischargedLast"/></include> AS dischargedCompare,
             v.notDischargedCount,
-            CASE WHEN v.notDischargedLast = 0 THEN NULL
-                 ELSE ROUND((v.notDischargedCount - v.notDischargedLast) / v.notDischargedLast * 100, 0) END AS notDischargedCompare,
+            <include refid="yoy"><property name="cur" value="v.notDischargedCount"/><property name="last" value="v.notDischargedLast"/></include> AS notDischargedCompare,
             NVL(m.settlementAmount, 0) AS settlementAmount,
-            CASE WHEN NVL(m.settlementAmountLast, 0) = 0 THEN NULL
-                 ELSE ROUND((m.settlementAmount - m.settlementAmountLast) / m.settlementAmountLast * 100, 0) END AS settlementAmountCompare
+            <include refid="yoy"><property name="cur" value="m.settlementAmount"/><property name="last" value="m.settlementAmountLast"/></include> AS settlementAmountCompare
         FROM (
             SELECT
                 COUNT(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 END) AS totalDischargeCount,
@@ -29,16 +61,14 @@
                 COUNT(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} AND settle_status = 2 THEN 1 END) AS notDischargedCount,
                 COUNT(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} AND settle_status = 2 THEN 1 END) AS notDischargedLast
             FROM tr_disch_settle_visit
-            WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
-               OR  stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
+            WHERE (<include refid="periodRange"><property name="alias" value=""/></include>)
         ) v,
         (
             SELECT
                 NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN charges ELSE 0 END), 0) AS settlementAmount,
                 NVL(SUM(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN charges ELSE 0 END), 0) AS settlementAmountLast
             FROM tr_settle_master
-            WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
-               OR  stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
+            WHERE (<include refid="periodRange"><property name="alias" value=""/></include>)
         ) m
     </select>
 
@@ -53,26 +83,19 @@
             </choose> AS "date",
             NVL(v.totalCurrent, 0)    AS totalCurrent,
             NVL(v.totalLast, 0)       AS totalLast,
-            CASE WHEN NVL(v.totalLast, 0) = 0 THEN NULL
-                 ELSE ROUND((v.totalCurrent - v.totalLast) / v.totalLast * 100, 0) END AS totalCompare,
+            <include refid="yoy"><property name="cur" value="v.totalCurrent"/><property name="last" value="v.totalLast"/></include> AS totalCompare,
             NVL(v.dischargedCurrent, 0) AS dischargedCurrent,
             NVL(v.dischargedLast, 0)    AS dischargedLast,
-            CASE WHEN NVL(v.dischargedLast, 0) = 0 THEN NULL
-                 ELSE ROUND((v.dischargedCurrent - v.dischargedLast) / v.dischargedLast * 100, 0) END AS dischargedCompare,
+            <include refid="yoy"><property name="cur" value="v.dischargedCurrent"/><property name="last" value="v.dischargedLast"/></include> AS dischargedCompare,
             NVL(v.notDischargedCurrent, 0) AS notDischargedCurrent,
             NVL(v.notDischargedLast, 0)    AS notDischargedLast,
-            CASE WHEN NVL(v.notDischargedLast, 0) = 0 THEN NULL
-                 ELSE ROUND((v.notDischargedCurrent - v.notDischargedLast) / v.notDischargedLast * 100, 0) END AS notDischargedCompare,
+            <include refid="yoy"><property name="cur" value="v.notDischargedCurrent"/><property name="last" value="v.notDischargedLast"/></include> AS notDischargedCompare,
             NVL(m.amountCurrent, 0) AS amountCurrent,
             NVL(m.amountLast, 0)    AS amountLast,
-            CASE WHEN NVL(m.amountLast, 0) = 0 THEN NULL
-                 ELSE ROUND((m.amountCurrent - m.amountLast) / m.amountLast * 100, 0) END AS amountCompare
+            <include refid="yoy"><property name="cur" value="m.amountCurrent"/><property name="last" value="m.amountLast"/></include> AS amountCompare
         FROM (
             SELECT
-                <choose>
-                    <when test="month">TRUNC(axis_date, 'MM')</when>
-                    <otherwise>axis_date</otherwise>
-                </choose> AS itemDate,
+                <include refid="axisGrain"/> AS itemDate,
                 COUNT(CASE WHEN in_current = 1 THEN 1 END) AS totalCurrent,
                 COUNT(CASE WHEN in_last = 1 THEN 1 END)    AS totalLast,
                 COUNT(CASE WHEN in_current = 1 AND settle_status = 1 THEN 1 END) AS dischargedCurrent,
@@ -81,43 +104,26 @@
                 COUNT(CASE WHEN in_last = 1 AND settle_status = 2 THEN 1 END)    AS notDischargedLast
             FROM (
                 SELECT settle_status,
-                       CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate}
-                            THEN ADD_MONTHS(stat_date, 12) ELSE stat_date END AS axis_date,
-                       CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
-                       CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last
+                       <include refid="axisShift"><property name="alias" value=""/></include> AS axis_date,
+                       <include refid="periodFlags"><property name="alias" value=""/></include>
                 FROM tr_disch_settle_visit
-                WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
-                   OR  stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
+                WHERE (<include refid="periodRange"><property name="alias" value=""/></include>)
             )
-            GROUP BY
-                <choose>
-                    <when test="month">TRUNC(axis_date, 'MM')</when>
-                    <otherwise>axis_date</otherwise>
-                </choose>
+            GROUP BY <include refid="axisGrain"/>
         ) v
         LEFT JOIN (
             SELECT
-                <choose>
-                    <when test="month">TRUNC(axis_date, 'MM')</when>
-                    <otherwise>axis_date</otherwise>
-                </choose> AS itemDate,
+                <include refid="axisGrain"/> AS itemDate,
                 SUM(CASE WHEN in_current = 1 THEN charges ELSE 0 END) AS amountCurrent,
                 SUM(CASE WHEN in_last = 1 THEN charges ELSE 0 END)    AS amountLast
             FROM (
                 SELECT charges,
-                       CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate}
-                            THEN ADD_MONTHS(stat_date, 12) ELSE stat_date END AS axis_date,
-                       CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
-                       CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last
+                       <include refid="axisShift"><property name="alias" value=""/></include> AS axis_date,
+                       <include refid="periodFlags"><property name="alias" value=""/></include>
                 FROM tr_settle_master
-                WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
-                   OR  stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
+                WHERE (<include refid="periodRange"><property name="alias" value=""/></include>)
             )
-            GROUP BY
-                <choose>
-                    <when test="month">TRUNC(axis_date, 'MM')</when>
-                    <otherwise>axis_date</otherwise>
-                </choose>
+            GROUP BY <include refid="axisGrain"/>
         ) m ON m.itemDate = v.itemDate
         ORDER BY v.itemDate
     </select>
@@ -129,17 +135,16 @@
         SELECT
             channel AS name,
             COUNT(CASE WHEN in_current = 1 THEN 1 END) AS value,
-            NVL(ROUND(
-                (COUNT(CASE WHEN in_current = 1 THEN 1 END) - COUNT(CASE WHEN in_last = 1 THEN 1 END))
-                / NULLIF(COUNT(CASE WHEN in_last = 1 THEN 1 END), 0) * 100, 0), 0) AS compare
+            NVL(<include refid="yoy">
+                    <property name="cur" value="COUNT(CASE WHEN in_current = 1 THEN 1 END)"/>
+                    <property name="last" value="COUNT(CASE WHEN in_last = 1 THEN 1 END)"/>
+                </include>, 0) AS compare
         FROM (
             SELECT
                 CASE WHEN operator_no = '9111' THEN '自助机' ELSE '窗口' END AS channel,
-                CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
-                CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last
+                <include refid="periodFlags"><property name="alias" value=""/></include>
             FROM tr_settle_master
-            WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
-               OR  stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
+            WHERE (<include refid="periodRange"><property name="alias" value=""/></include>)
         )
         GROUP BY channel
         ORDER BY channel
@@ -152,17 +157,17 @@
         SELECT
             charge_type AS name,
             COUNT(CASE WHEN in_current = 1 THEN 1 END) AS value,
-            NVL(ROUND(
-                (COUNT(CASE WHEN in_current = 1 THEN 1 END) - COUNT(CASE WHEN in_last = 1 THEN 1 END))
-                / NULLIF(COUNT(CASE WHEN in_last = 1 THEN 1 END), 0) * 100, 0), 0) AS compare
+            NVL(<include refid="yoy">
+                    <property name="cur" value="COUNT(CASE WHEN in_current = 1 THEN 1 END)"/>
+                    <property name="last" value="COUNT(CASE WHEN in_last = 1 THEN 1 END)"/>
+                </include>, 0) AS compare
         FROM (
             SELECT
                 charge_type,
-                CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
-                CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last
+                <include refid="periodFlags"><property name="alias" value=""/></include>
             FROM tr_settle_master
-            WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
-               OR  stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
+            WHERE charge_type IS NOT NULL
+              AND (<include refid="periodRange"><property name="alias" value=""/></include>)
         )
         GROUP BY charge_type
         ORDER BY charge_type
@@ -175,19 +180,18 @@
         SELECT
             money_type AS name,
             NVL(SUM(CASE WHEN in_current = 1 THEN payment_amount ELSE 0 END), 0) AS value,
-            NVL(ROUND(
-                (SUM(CASE WHEN in_current = 1 THEN payment_amount ELSE 0 END) - SUM(CASE WHEN in_last = 1 THEN payment_amount ELSE 0 END))
-                / NULLIF(SUM(CASE WHEN in_last = 1 THEN payment_amount ELSE 0 END), 0) * 100, 0), 0) AS compare
+            NVL(<include refid="yoy">
+                    <property name="cur" value="SUM(CASE WHEN in_current = 1 THEN payment_amount ELSE 0 END)"/>
+                    <property name="last" value="SUM(CASE WHEN in_last = 1 THEN payment_amount ELSE 0 END)"/>
+                </include>, 0) AS compare
         FROM (
             SELECT
                 money_type,
                 payment_amount,
-                CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
-                CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last
+                <include refid="periodFlags"><property name="alias" value=""/></include>
             FROM tr_settle_payments
             WHERE money_type IS NOT NULL
-              AND (stat_date BETWEEN #{startDate} AND #{endDate}
-               OR  stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
+              AND (<include refid="periodRange"><property name="alias" value=""/></include>)
         )
         GROUP BY money_type
         ORDER BY money_type
