@@ -367,6 +367,20 @@
             border-bottom: 2px solid #9aa8b1;
         }
 
+        /* bt5 列宽拖拽: 表头右缘拖宽, 不改默认宽度逻辑 */
+        .data-table th.col-resizable { position: relative; }
+        .data-table th .col-resizer {
+            position: absolute;
+            top: 0;
+            right: -4px;
+            width: 8px;
+            height: 100%;
+            cursor: col-resize;
+            z-index: 10;
+            user-select: none;
+        }
+        .data-table th .col-resizer:hover { background: rgba(25, 118, 210, 0.25); }
+
         .data-table td {
             padding: 8px 8px;
             border: 1px solid #dce4e9;
@@ -1540,6 +1554,44 @@
         const pad = n => String(n).padStart(2, "0");
         return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     }
+
+    // bt5 列宽拖拽: 默认宽度不变, 拖宽后按列序号持久化到localStorage
+    const COL_WIDTH_STORAGE_KEY = "inp_col_widths";
+    function initColResizers() {
+        const headerCells = document.querySelectorAll("#tableWrapper thead tr:last-child th");
+        if (!headerCells.length) return;
+        let savedWidths = {};
+        try { savedWidths = JSON.parse(localStorage.getItem(COL_WIDTH_STORAGE_KEY) || "{}"); } catch (e) { savedWidths = {}; }
+        const applyWidth = (th, w) => {
+            th.style.width = w + "px";
+            th.style.maxWidth = w + "px";
+        };
+        headerCells.forEach((th, idx) => {
+            th.classList.add("col-resizable");
+            if (savedWidths[idx] != null) applyWidth(th, savedWidths[idx]);
+            const handle = document.createElement("span");
+            handle.className = "col-resizer";
+            th.appendChild(handle);
+            handle.addEventListener("mousedown", ev => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                const startX = ev.clientX;
+                const startW = th.offsetWidth;
+                const onMove = e => applyWidth(th, Math.max(40, startW + e.clientX - startX));
+                const onUp = e => {
+                    document.removeEventListener("mousemove", onMove);
+                    document.removeEventListener("mouseup", onUp);
+                    const w = Math.max(40, startW + e.clientX - startX);
+                    applyWidth(th, w);
+                    savedWidths[idx] = w;
+                    localStorage.setItem(COL_WIDTH_STORAGE_KEY, JSON.stringify(savedWidths));
+                };
+                document.addEventListener("mousemove", onMove);
+                document.addEventListener("mouseup", onUp);
+            });
+        });
+    }
+    window.addEventListener("DOMContentLoaded", initColResizers);
 
     window.addEventListener("DOMContentLoaded", () => {
         const dateStr = formatDate(new Date());

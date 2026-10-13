@@ -381,6 +381,20 @@
             border-bottom: 2px solid #9aa8b1;
         }
 
+        /* bt5 列宽拖拽: 表头右缘拖宽, 不改默认宽度逻辑 */
+        .data-table th.col-resizable { position: relative; }
+        .data-table th .col-resizer {
+            position: absolute;
+            top: 0;
+            right: -4px;
+            width: 8px;
+            height: 100%;
+            cursor: col-resize;
+            z-index: 10;
+            user-select: none;
+        }
+        .data-table th .col-resizer:hover { background: rgba(25, 118, 210, 0.25); }
+
         .data-table td {
             padding: 8px 8px;
             border: 1px solid #dce4e9;
@@ -907,6 +921,7 @@
 
     var currentData = [];
     var reportRemark = "";
+    var holidayRange = null;
     var reportMeta = { report_date: null, holiday_total_flag: "0" };
     var currentTotalFlag = "0";
     var auditStatus = "0";
@@ -1180,6 +1195,8 @@
             currentData = body.subs || [];
             currentData.forEach(row => calculateRow(row));
             reportRemark = body.total_remark || "";
+            holidayRange = (body.holiday_start_date && body.holiday_end_date)
+                ? { start: body.holiday_start_date, end: body.holiday_end_date } : null;
             auditLogs = body.audit_logs || [];
             auditRemarkCurrent = body.audit_remark || "";
 
@@ -1210,6 +1227,12 @@
         const next = new Date(d);
         next.setDate(next.getDate() + 1);
         const formatCN = date => `${date.getMonth() + 1}月${date.getDate()}日`;
+        if (holidayRange) {
+            const fmt = s => { const sd = new Date(String(s).replace(/\//g, "-") + "T00:00:00"); return `${sd.getMonth() + 1}月${sd.getDate()}日`; };
+            document.getElementById("mainTitle").textContent = `${fmt(holidayRange.start)}-${fmt(holidayRange.end)} 节假日汇总报表现金登记表`;
+            document.getElementById("reportDateDisplay").textContent = `登记时间：${formatCN(d)}`;
+            return;
+        }
         document.getElementById("mainTitle").textContent = `${formatCN(d)} 审核/出纳 报表现金登记表`;
         document.getElementById("reportDateDisplay").textContent = `登记时间：${formatCN(next)}`;
     }
@@ -1505,6 +1528,44 @@
         const map = { "0": "正常日", "1": "汇总", "2": "月初报表" };
         return map[currentTotalFlag] || "正常日";
     }
+
+    // bt5 列宽拖拽: 默认宽度不变, 拖宽后按列序号持久化到localStorage
+    const COL_WIDTH_STORAGE_KEY = "inp_col_widths";
+    function initColResizers() {
+        const headerCells = document.querySelectorAll("#tableWrapper thead tr:last-child th");
+        if (!headerCells.length) return;
+        let savedWidths = {};
+        try { savedWidths = JSON.parse(localStorage.getItem(COL_WIDTH_STORAGE_KEY) || "{}"); } catch (e) { savedWidths = {}; }
+        const applyWidth = (th, w) => {
+            th.style.width = w + "px";
+            th.style.maxWidth = w + "px";
+        };
+        headerCells.forEach((th, idx) => {
+            th.classList.add("col-resizable");
+            if (savedWidths[idx] != null) applyWidth(th, savedWidths[idx]);
+            const handle = document.createElement("span");
+            handle.className = "col-resizer";
+            th.appendChild(handle);
+            handle.addEventListener("mousedown", ev => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                const startX = ev.clientX;
+                const startW = th.offsetWidth;
+                const onMove = e => applyWidth(th, Math.max(40, startW + e.clientX - startX));
+                const onUp = e => {
+                    document.removeEventListener("mousemove", onMove);
+                    document.removeEventListener("mouseup", onUp);
+                    const w = Math.max(40, startW + e.clientX - startX);
+                    applyWidth(th, w);
+                    savedWidths[idx] = w;
+                    localStorage.setItem(COL_WIDTH_STORAGE_KEY, JSON.stringify(savedWidths));
+                };
+                document.addEventListener("mousemove", onMove);
+                document.addEventListener("mouseup", onUp);
+            });
+        });
+    }
+    window.addEventListener("DOMContentLoaded", initColResizers);
 
     window.addEventListener("DOMContentLoaded", () => {
         const dateStr = formatDate(new Date());
