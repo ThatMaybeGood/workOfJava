@@ -1116,8 +1116,8 @@ public final class ReportTestDataSeeder {
         batch(conn, "INSERT INTO TR_OUTP_FIN_PAYMENTS_MONEY (RCPT_NO, MONEY_TYPE, PAYMENT_AMOUNT,"
                 + " REFUNDED_AMOUNT) VALUES (?,?,?,?)", pay);
         batch(conn, "INSERT INTO TR_OUTP_FIN_MOP_QUEUE (SCHEDULE_ID, PATIENT_ID, STAT_DATE, VISIT_NO,"
-                + " SOURCE_NAME, QUEUE_TYPE, IS_USED, VISIT_DATE)"
-                + " VALUES (?,?,?,?,?,?,?,?)", queue);
+                + " SOURCE_NAME, QUEUE_TYPE, IS_USED, VISIT_DATE, APPOINTS_INDICATOR)"
+                + " VALUES (?,?,?,?,?,?,?,?,1)", queue);
         batch(conn, "INSERT INTO TR_OUTP_FIN_ACCT_MONEY (ACCT_NO, MONEY_TYPE, INCOME_AMOUNT,"
                 + " REFUNDED_AMOUNT) VALUES (?,?,?,?)", acctMoney);
 

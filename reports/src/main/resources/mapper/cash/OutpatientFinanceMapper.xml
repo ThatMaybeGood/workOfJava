@@ -45,12 +45,12 @@
           <![CDATA[AND c.REGISTRATION_STATUS <> 0]]>
     </select>
 
-    <!-- 收据张数/金额·明细：结账主表按 STAT_DATE 分组（T1小计=TOTAL_INCOMES/T2进项=TOTAL_COSTS/T3退费） -->
+    <!-- 收据张数/金额·明细：结账主表按 STAT_DATE 分组（T1小计=TOTAL_INCOMES/收据张数扣退/T2进项=TOTAL_COSTS/T3退费） -->
     <select id="queryAcctAmounts" resultType="map">
         SELECT
         <include refid="periodExpr"><property name="col" value="a.STAT_DATE"/></include> AS "period",
         <choose>
-            <when test="statisticType == 1">SUM(NVL(a.TOTAL_INCOMES, 0) - NVL((SELECT SUM(NVL(m.INCOME_AMOUNT,0) - NVL(m.REFUNDED_AMOUNT,0)) FROM TR_OUTP_FIN_ACCT_MONEY m WHERE m.ACCT_NO = a.ACCT_NO AND m.MONEY_TYPE IN ('医改统筹','医院垫支')), 0))</when>
+            <when test="statisticType == 1">SUM(NVL(a.TOTAL_INCOMES, 0))</when>
             <when test="statisticType == 2">SUM(NVL(a.TOTAL_COSTS, 0))</when>
             <otherwise>SUM(NVL(a.REFUND_AMOUNT, 0))</otherwise>
         </choose> AS "amount",

@@ -300,7 +300,7 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                         financeMapper.queryQueueCountByOperator(type, pStart, pEnd, tt), null));
             }
              if (types.contains("3")) {
-                log.info("[门诊财务饼图] bt3: 门诊量分析(预约订单渠道分析) → queryClinicCountByOperator");
+                log.info("[门诊财务饼图] bt3: 门诊量分析(预约取号渠道分析) → queryClinicCountByOperator");
                 map.put("3", buildPie(
                         financeMapper.queryClinicCountByOperator(type, start, end, tt),
                         financeMapper.queryClinicCountByOperator(type, pStart, pEnd, tt), null));

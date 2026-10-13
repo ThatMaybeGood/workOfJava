@@ -28,6 +28,10 @@ public class OutpFinanceMopQueue implements Serializable {
     @TableField("visit_date")
     private Date visitDate;
 
+    /** 预约指标：1=预约，2=挂号；bt1关联查询带=2 */
+    @TableField("appoints_indicator")
+    private Integer appointsIndicator;
+
     @TableField("create_time")
     private Date createTime;
 

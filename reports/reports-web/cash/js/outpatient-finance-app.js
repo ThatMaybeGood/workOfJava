@@ -627,6 +627,9 @@ var innerTabPieTypesMap = {
     'receipt': '6,7',
     'net': '8,9,11,12',
     'amount': '8,9,11,12',
+    // 仅小计保留净收入支付方式分析(bt12)和金额应收/实收分析(bt9)：进项/退项的金额tab只查渠道+业务类型
+    'income-amount': '8,11',
+    'refund-amount': '8,11',
     // 仅退项统计-收据张数分析多两张无审退费占比饼（bt14 张数 / bt15 金额）
     'refund-receipt': '6,7,14,15'
 };
