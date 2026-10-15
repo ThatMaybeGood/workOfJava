@@ -26,6 +26,27 @@ public class CashCashierSettlementRequest extends BaseRequestBody {
     private String dimension;
 
     /**
+     * 收费员工号（图表按收费员维度取数时用，如 OPERATOR_NO）
+     */
+    private String cashier;
+
+    /**
+     * 按来源方式统计表格-选定来源渠道（窗口/自助机/线上退费）
+     */
+    private String channel;
+
+    /**
+     * 来源方式图表-选定日期（yyyy-MM-dd，按月维度传该月1号）
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
+    private Date chartDate;
+
+    /**
+     * 来源方式图表-选定指标（9个指标中文标签之一）
+     */
+    private String chartMetric;
+
+    /**
      * 开始日期，格式 yyyy-MM-dd
      */
     @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")

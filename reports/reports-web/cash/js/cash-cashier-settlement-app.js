@@ -2,6 +2,15 @@
  * 收费员结账统计页面主逻辑
  */
 
+/** 按来源方式统计的9个指标列（来源图表指标下拉、导出共用） */
+const SOURCE_METRICS = ['预约挂号量', '预约取号量', '当日挂号量', '退号量', '门诊收费量', '门诊退费量', '收预交金量', '退院量', '出院结算量'];
+
+/** 工作量5指标列（工作量报表页签表格列） */
+const WORKLOAD_METRICS = ['当日挂号', '有效挂号数', '预约挂号', '门诊收费', '门诊退费'];
+
+/** 按收费员统计/按来源方式统计两页签表格的9个业务量指标列（与来源图表指标一致） */
+const TABLE_METRICS = ['预约挂号量', '预约取号量', '当日挂号量', '退号量', '门诊收费量', '门诊退费量', '收预交金量', '退院量', '出院结算量'];
+
 /**
  * 默认统计区间：今天往前 30 天。
  * 原先写死成 2025-09-22 ~ 2025-10-22，是过期的固定日期，
@@ -34,6 +43,12 @@ class CashierSettlementController {
             data: []
         };
         this.chart = null;
+        this.selectedCashier = null;
+        this.selectedSourceDate = null;
+        this.selectedSourceMetric = SOURCE_METRICS[0];
+        this.selectedSourceDim = null;
+        this.tableDims = [];
+        this.chartLoadedKey = undefined;
 
         this.init();
     }
@@ -69,6 +84,123 @@ class CashierSettlementController {
             this.tableState.currentPage = 1;
             this.loadTableData();
         });
+
+        document.getElementById('cashierChartSelect').addEventListener('change', (e) => {
+            this.selectedCashier = e.target.value;
+            this.loadTableData();
+            this.loadChart();
+        });
+
+        document.getElementById('sourceTableDimSelect').addEventListener('change', (e) => {
+            this.selectedSourceDim = e.target.value;
+            this.loadTableData();
+        });
+
+        document.getElementById('sourceChartDateSelect').addEventListener('change', (e) => {
+            this.selectedSourceDate = e.target.value;
+            this.loadChart();
+        });
+
+        document.getElementById('sourceChartMetricSelect').addEventListener('change', (e) => {
+            this.selectedSourceMetric = e.target.value;
+            this.loadChart();
+        });
+    }
+
+    /** 当前图表选择状态键：tab+各选择项，变化即需重刷图表 */
+    chartKey() {
+        if (this.filter.tab === 'source') {
+            return this.filter.tab + '|' + this.selectedSourceDate + '|' + this.selectedSourceMetric;
+        }
+        return this.filter.tab + '|' + this.selectedCashier;
+    }
+
+    /** 翻页/刷新后选中项变化时补一次图表加载（首次加载由loadData统一发起） */
+    maybeReloadChart() {
+        if (this.chartLoadedKey !== undefined && this.chartKey() !== this.chartLoadedKey) {
+            this.loadChart();
+        }
+    }
+
+
+    /** 用接口返回的维度选项刷新收费员下拉（显示姓名, 值为工号）；选中项失效时取第一项并重查表格 */
+    refreshCashierChartSelect() {
+        const select = document.getElementById('cashierChartSelect');
+        if (!select) return;
+        if (this.filter.tab !== 'cashier') {
+            select.style.display = 'none';
+            return;
+        }
+        const dims = this.tableDims;
+        if (!dims || dims.length === 0) {
+            select.style.display = 'none';
+            this.selectedCashier = null;
+            return;
+        }
+        select.style.display = '';
+        select.innerHTML = dims.map(d =>
+            `<option value="${d.value}" ${d.value === this.selectedCashier ? 'selected' : ''}>${d.label}</option>`).join('');
+        if (!this.selectedCashier || !dims.some(d => d.value === this.selectedCashier)) {
+            this.selectedCashier = dims[0].value;
+            select.value = this.selectedCashier;
+            this.loadTableData();
+            return;
+        }
+        this.maybeReloadChart();
+    }
+
+    /** 用接口返回的维度选项刷新来源方式表格的来源下拉 */
+    refreshSourceTableDimSelect() {
+        const select = document.getElementById('sourceTableDimSelect');
+        if (!select) return;
+        if (this.filter.tab !== 'source') {
+            select.style.display = 'none';
+            return;
+        }
+        const dims = this.tableDims;
+        if (!dims || dims.length === 0) {
+            select.style.display = 'none';
+            this.selectedSourceDim = null;
+            return;
+        }
+        select.style.display = '';
+        select.innerHTML = dims.map(d =>
+            `<option value="${d.value}" ${d.value === this.selectedSourceDim ? 'selected' : ''}>${d.label}</option>`).join('');
+        if (!this.selectedSourceDim || !dims.some(d => d.value === this.selectedSourceDim)) {
+            this.selectedSourceDim = dims[0].value;
+            select.value = this.selectedSourceDim;
+            this.loadTableData();
+        }
+    }
+
+    /** 用表格行刷新来源方式图表的日期/指标下拉 */
+    refreshSourceChartSelects() {
+        const dateSelect = document.getElementById('sourceChartDateSelect');
+        const metricSelect = document.getElementById('sourceChartMetricSelect');
+        if (!dateSelect || !metricSelect) return;
+        if (this.filter.tab !== 'source') {
+            dateSelect.style.display = 'none';
+            metricSelect.style.display = 'none';
+            return;
+        }
+        metricSelect.style.display = '';
+        metricSelect.innerHTML = SOURCE_METRICS.map(m =>
+            `<option value="${m}" ${m === this.selectedSourceMetric ? 'selected' : ''}>${m}</option>`).join('');
+        const dates = this.tableState.data.map(row => row.date);
+        if (dates.length === 0) {
+            dateSelect.style.display = 'none';
+            this.selectedSourceDate = null;
+            this.maybeReloadChart();
+            return;
+        }
+        dateSelect.style.display = '';
+        dateSelect.innerHTML = dates.map(d =>
+            `<option value="${d}" ${d === this.selectedSourceDate ? 'selected' : ''}>${d}</option>`).join('');
+        if (!this.selectedSourceDate || !dates.includes(this.selectedSourceDate)) {
+            this.selectedSourceDate = dates[0];
+            dateSelect.value = this.selectedSourceDate;
+        }
+        this.maybeReloadChart();
     }
 
     initDateRangePicker() {
@@ -162,9 +294,10 @@ class CashierSettlementController {
     async loadData() {
         await Promise.all([
             this.loadOverview(),
-            this.loadTableData(),
-            this.loadChart()
+            this.loadTableData()
         ]);
+        // 表格列确定后再按选中收费员出图
+        await this.loadChart();
     }
 
     async loadOverview() {
@@ -220,8 +353,9 @@ class CashierSettlementController {
                 const item = itemMap[key];
                 const value = data[key];
                 const compare = data[key + 'Compare'];
-                const compareClass = compare >= 0 ? 'text-up' : 'text-down';
-                const compareText = `${compare >= 0 ? '+' : ''}${compare}%`;
+                const hasCompare = compare !== null && compare !== undefined;
+                const compareClass = hasCompare ? (compare >= 0 ? 'text-up' : 'text-down') : '';
+                const compareText = hasCompare ? `${compare >= 0 ? '+' : ''}${compare}%` : '—';
 
                 html += `
                     <div class="flex-fill" style="flex: 0 0 calc(20% - 9.6px); max-width: calc(20% - 9.6px);">
@@ -252,14 +386,20 @@ class CashierSettlementController {
                 pageSize: this.tableState.pageSize,
                 dimension: this.filter.dimension,
                 startDate: this.filter.startDate,
-                endDate: this.filter.endDate
+                endDate: this.filter.endDate,
+                cashier: this.filter.tab === 'cashier' ? this.selectedCashier : null,
+                channel: this.filter.tab === 'source' ? this.selectedSourceDim : null
             });
             if (body && body.list) {
                 this.tableState.data = body.list;
                 this.tableState.total = body.total;
+                this.tableDims = body.dims || [];
                 this.renderTable();
                 this.renderPagination();
                 this.updatePageInfo();
+                this.refreshCashierChartSelect();
+                this.refreshSourceTableDimSelect();
+                this.refreshSourceChartSelects();
             }
         } catch (error) {
             console.error('Load table data failed:', error);
@@ -271,10 +411,10 @@ class CashierSettlementController {
         const tbody = document.getElementById('cashierTableBody');
         const dateLabel = this.filter.dimension === 'month' ? '月份' : '日期';
 
-        if (this.filter.tab === 'cashier') {
-            const cashiers = ['收费员1', '收费员2', '收费员3', '收费员4', '收费员5', '收费员6', '收费员7', '收费员8'];
-            let headHtml = `<tr><th>${dateLabel}</th>`;
-            cashiers.forEach(name => {
+        if (this.filter.tab === 'workload') {
+            // 工作量报表：行=时间+操作员(姓名)，列=5个工作量指标
+            let headHtml = `<tr><th>${dateLabel}</th><th>操作员</th>`;
+            WORKLOAD_METRICS.forEach(name => {
                 headHtml += `<th class="text-center">${name}</th>`;
             });
             headHtml += `<th class="text-center">汇总</th></tr>`;
@@ -282,93 +422,50 @@ class CashierSettlementController {
 
             let bodyHtml = '';
             this.tableState.data.forEach(row => {
-                bodyHtml += `<tr><td>${row.date}</td>`;
-                cashiers.forEach(name => {
+                bodyHtml += `<tr><td>${row.date}</td><td>${row['操作员'] || ''}</td>`;
+                WORKLOAD_METRICS.forEach(name => {
                     bodyHtml += `<td class="text-center">${this.formatNumber(row[name])}</td>`;
                 });
                 bodyHtml += `<td class="text-center"><strong>${this.formatNumber(row['汇总'])}</strong></td></tr>`;
             });
-
-            // 汇总行
-            if (this.tableState.data.length > 0) {
-                const summary = {};
-                cashiers.forEach(name => summary[name] = 0);
-                summary['汇总'] = 0;
-                this.tableState.data.forEach(row => {
-                    cashiers.forEach(name => summary[name] += parseFloat(row[name]));
-                    summary['汇总'] += parseFloat(row['汇总']);
-                });
-                bodyHtml += `<tr class="table-active"><td><strong>汇总</strong></td>`;
-                cashiers.forEach(name => {
-                    bodyHtml += `<td class="text-center"><strong>${this.formatNumber(summary[name])}</strong></td>`;
-                });
-                bodyHtml += `<td class="text-center"><strong>${this.formatNumber(summary['汇总'])}</strong></td></tr>`;
-            }
             tbody.innerHTML = bodyHtml;
-
-        } else if (this.filter.tab === 'source') {
-            const columns = ['预约挂号量', '预约取号量', '当日挂号量', '退号量', '门诊收费量', '门诊退费量', '收预交金量', '退院量', '出院结算量'];
-            let headHtml = `<tr><th>${dateLabel}</th>`;
-            columns.forEach(name => {
-                headHtml += `<th class="text-center">${name}</th>`;
-            });
-            headHtml += `<th class="text-center">汇总</th></tr>`;
-            thead.innerHTML = headHtml;
-
-            let bodyHtml = '';
-            this.tableState.data.forEach(row => {
-                bodyHtml += `<tr><td>${row.date}</td>`;
-                columns.forEach(name => {
-                    bodyHtml += `<td class="text-center">${this.formatNumber(row[name])}</td>`;
-                });
-                bodyHtml += `<td class="text-center"><strong>${this.formatNumber(row['汇总'])}</strong></td></tr>`;
-            });
-
-            if (this.tableState.data.length > 0) {
-                const summary = {};
-                columns.forEach(name => summary[name] = 0);
-                summary['汇总'] = 0;
-                this.tableState.data.forEach(row => {
-                    columns.forEach(name => summary[name] += parseFloat(row[name]));
-                    summary['汇总'] += parseFloat(row['汇总']);
-                });
-                bodyHtml += `<tr class="table-active"><td><strong>汇总</strong></td>`;
-                columns.forEach(name => {
-                    bodyHtml += `<td class="text-center"><strong>${this.formatNumber(summary[name])}</strong></td>`;
-                });
-                bodyHtml += `<td class="text-center"><strong>${this.formatNumber(summary['汇总'])}</strong></td></tr>`;
-            }
-            tbody.innerHTML = bodyHtml;
-
-        } else {
-            thead.innerHTML = `
-                <tr>
-                    <th>${dateLabel}</th>
-                    <th>收费员</th>
-                    <th class="text-center">当日挂号</th>
-                    <th class="text-center">有效挂号数</th>
-                    <th class="text-center">预约挂号</th>
-                    <th class="text-center">门诊收费</th>
-                    <th class="text-center">门诊退费</th>
-                </tr>
-            `;
-
-            let bodyHtml = '';
-            this.tableState.data.forEach(row => {
-                bodyHtml += `
-                    <tr>
-                        <td>${row.dateRange}</td>
-                        <td>${row.cashier}</td>
-                        <td class="text-center">${row.todayRegister.toLocaleString('zh-CN')}</td>
-                        <td class="text-center">${row.effectiveRegister.toLocaleString('zh-CN')}</td>
-                        <td class="text-center">${row.appointmentRegister.toLocaleString('zh-CN')}</td>
-                        <td class="text-center">${row.outpatientCharge.toLocaleString('zh-CN')}</td>
-                        <td class="text-center">${row.outpatientRefund.toLocaleString('zh-CN')}</td>
-                    </tr>
-                `;
-            });
-            tbody.innerHTML = bodyHtml;
+            return;
         }
+
+        // 按收费员统计/按来源方式统计：行=日期，列=9个业务量指标，值=所选操作员/来源的笔数
+        const columns = TABLE_METRICS;
+        let headHtml = `<tr><th>${dateLabel}</th>`;
+        columns.forEach(name => {
+            headHtml += `<th class="text-center">${name}</th>`;
+        });
+        headHtml += `<th class="text-center">汇总</th></tr>`;
+        thead.innerHTML = headHtml;
+
+        let bodyHtml = '';
+        this.tableState.data.forEach(row => {
+            bodyHtml += `<tr><td>${row.date}</td>`;
+            columns.forEach(name => {
+                bodyHtml += `<td class="text-center">${this.formatNumber(row[name])}</td>`;
+            });
+            bodyHtml += `<td class="text-center"><strong>${this.formatNumber(row['汇总'])}</strong></td></tr>`;
+        });
+
+        // 汇总行
+        if (this.tableState.data.length > 0) {
+            const summary = {};
+            columns.forEach(name => summary[name] = 0);
+            summary['汇总'] = 0;
+            this.tableState.data.forEach(row => {
+                columns.forEach(name => summary[name] += this.parseAmount(row[name]));
+                summary['汇总'] += this.parseAmount(row['汇总']);
+            });
+            bodyHtml += `<tr class="table-active"><td><strong>汇总</strong></td>`;
+            columns.forEach(name => {
+                bodyHtml += `<td class="text-center"><strong>${this.formatNumber(summary[name])}</strong></td>`;
+            });
+            bodyHtml += `<td class="text-center"><strong>${this.formatNumber(summary['汇总'])}</strong></td></tr>`;
+        }
+        tbody.innerHTML = bodyHtml;
     }
 
     formatNumber(value) {
@@ -376,6 +473,11 @@ class CashierSettlementController {
         const num = parseFloat(value);
         if (num % 1 === 0) return num.toLocaleString('zh-CN');
         return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    parseAmount(value) {
+        const num = parseFloat(value);
+        return isNaN(num) ? 0 : num;
     }
 
     renderPagination() {
@@ -453,10 +555,17 @@ class CashierSettlementController {
                 tab: this.filter.tab,
                 dimension: this.filter.dimension,
                 startDate: this.filter.startDate,
-                endDate: this.filter.endDate
+                endDate: this.filter.endDate,
+                cashier: this.selectedCashier,
+                chartDate: this.filter.tab === 'source'
+                    ? (this.filter.dimension === 'month' && this.selectedSourceDate
+                        ? this.selectedSourceDate + '-01' : this.selectedSourceDate)
+                    : null,
+                chartMetric: this.filter.tab === 'source' ? this.selectedSourceMetric : null
             });
             if (body && body.categories) {
                 this.renderChart(body);
+                this.chartLoadedKey = this.chartKey();
             }
         } catch (error) {
             console.error('Load chart failed:', error);
@@ -524,17 +633,15 @@ function exportCashierReport() {
     const tab = controller.filter.tab;
     const dateLabel = controller.filter.dimension === 'month' ? '月份' : '日期';
 
-    if (tab === 'cashier') {
-        const cashiers = ['收费员1', '收费员2', '收费员3', '收费员4', '收费员5', '收费员6', '收费员7', '收费员8'];
-        headers = [dateLabel, ...cashiers, '汇总'];
-        rows = data.map(row => [row.date, ...cashiers.map(name => row[name]), row['汇总']]);
-    } else if (tab === 'source') {
-        const columns = ['预约挂号量', '预约取号量', '当日挂号量', '退号量', '门诊收费量', '门诊退费量', '收预交金量', '退院量', '出院结算量'];
-        headers = [dateLabel, ...columns, '汇总'];
-        rows = data.map(row => [row.date, ...columns.map(name => row[name]), row['汇总']]);
+    if (tab === 'workload') {
+        // 工作量报表：行=时间+操作员(姓名)，列=5个工作量指标
+        headers = [dateLabel, '操作员', ...WORKLOAD_METRICS, '汇总'];
+        rows = data.map(row => [row.date, row['操作员'] || '',
+            ...WORKLOAD_METRICS.map(name => row[name]), row['汇总']]);
     } else {
-        headers = [dateLabel, '收费员', '当日挂号', '有效挂号数', '预约挂号', '门诊收费', '门诊退费'];
-        rows = data.map(row => [row.dateRange, row.cashier, row.todayRegister, row.effectiveRegister, row.appointmentRegister, row.outpatientCharge, row.outpatientRefund]);
+        // 按收费员统计/按来源方式统计：行=日期，列=9个业务量指标
+        headers = [dateLabel, ...TABLE_METRICS, '汇总'];
+        rows = data.map(row => [row.date, ...TABLE_METRICS.map(name => row[name]), row['汇总']]);
     }
 
     const wb = XLSX.utils.book_new();

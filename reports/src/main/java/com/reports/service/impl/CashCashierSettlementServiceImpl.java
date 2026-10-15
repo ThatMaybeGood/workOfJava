@@ -6,7 +6,6 @@ import com.reports.dto.request.CashCashierSettlementRequest;
 import com.reports.dto.response.cash.cashier.settlement.*;
 import com.reports.service.CashCashierSettlementService;
 import com.reports.mapper.CashSettleMapper;
-import com.reports.entity.CashSettleOvEntity;
 import com.reports.entity.CashSettleDtlEntity;
 import com.reports.entity.CashSettleChtEntity;
 import com.reports.util.SeqUtil;
@@ -16,6 +15,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -158,175 +158,284 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
 
     private OverviewData queryOverviewByMybatisPlus(CashCashierSettlementRequest request) {
         try {
-            CashSettleOvEntity entity = cashSettleMapper.queryOverview(request.getStartDate(), request.getEndDate());
-            return buildOverviewData(entity);
+            Date[] range = currentAndLastRange(request);
+            RegisterOverviewData reg = cashSettleMapper.queryRegisterOverview(range[0], range[1], range[2], range[3]);
+            if (reg == null) {
+                reg = new RegisterOverviewData();
+            }
+            OverviewData overview = new OverviewData();
+            overview.setAppointmentRegister(reg.getAppointmentRegister());
+            overview.setAppointmentRegisterCompare(yoy(reg.getAppointmentRegister(), reg.getAppointmentRegisterLast()));
+            overview.setAppointmentFetch(reg.getAppointmentFetch());
+            overview.setAppointmentFetchCompare(yoy(reg.getAppointmentFetch(), reg.getAppointmentFetchLast()));
+            overview.setTodayRegister(reg.getTodayRegister());
+            overview.setTodayRegisterCompare(yoy(reg.getTodayRegister(), reg.getTodayRegisterLast()));
+            overview.setRefund(reg.getRefund());
+            overview.setRefundCompare(yoy(reg.getRefund(), reg.getRefundLast()));
+            // 收费类2指标: 源表TR_OUTP_FIN_RCPT_ACCT(口径同门诊财务进项/退项)
+            RcptOverviewData rcpt = cashSettleMapper.queryRcptOverview(range[0], range[1], range[2], range[3]);
+            if (rcpt != null) {
+                overview.setOutpatientCharge(rcpt.getOutpatientCharge());
+                overview.setOutpatientChargeCompare(yoy(rcpt.getOutpatientCharge(), rcpt.getOutpatientChargeLast()));
+                overview.setOutpatientRefund(rcpt.getOutpatientRefund());
+                overview.setOutpatientRefundCompare(yoy(rcpt.getOutpatientRefund(), rcpt.getOutpatientRefundLast()));
+            }
+            // 预交金类2指标: 源表tr_inpat_prepay_rcpt(口径同住院预交金统计)
+            PrepayOverviewData prepay = cashSettleMapper.queryPrepayOverview(range[0], range[1], range[2], range[3]);
+            if (prepay != null) {
+                overview.setPrepayment(prepay.getPrepayment());
+                overview.setPrepaymentCompare(yoy(prepay.getPrepayment(), prepay.getPrepaymentLast()));
+                overview.setHospitalRefund(prepay.getHospitalRefund());
+                overview.setHospitalRefundCompare(yoy(prepay.getHospitalRefund(), prepay.getHospitalRefundLast()));
+            }
+            // 出院结算量: 源表tr_disch_settle_visit(口径同出院结算报表已结算人次)
+            DischargeOverviewData disch = cashSettleMapper.queryDischargeOverview(range[0], range[1], range[2], range[3]);
+            if (disch != null) {
+                overview.setDischargeSettlement(disch.getDischargeSettlement());
+                overview.setDischargeSettlementCompare(yoy(disch.getDischargeSettlement(), disch.getDischargeSettlementLast()));
+            }
+            return overview;
         } catch (Exception e) {
             log.warn("查询收费员结账概览失败", e);
             return new OverviewData();
         }
     }
 
-    /**
-     * 「工作量报表」页签：行是「日期范围 + 收费员 + 5 个业务量」，
-     * 页面按 row.todayRegister / effectiveRegister / appointmentRegister /
-     * outpatientCharge / outpatientRefund 这几个固定字段取值（见 renderTable 的 else 分支）。
-     * 数据还是 TR_CASH_SETTLE_DTL，按 (日期, 收费员) 透视 item_type。
-     */
-    private PageResult<TableItem> buildWorkloadTable(List<CashSettleDtlEntity> rows, Integer page, Integer pageSize,
-                                                     boolean month) {
-        SimpleDateFormat sdf = new SimpleDateFormat(month ? "yyyy-MM" : "yyyy-MM-dd");
-        // (日期, 收费员) -> {item_type: 金额}
-        Map<String, Map<String, Double>> cellMap = new LinkedHashMap<>();
-        for (CashSettleDtlEntity row : rows) {
-            if (row.getItemDate() == null || row.getCashierName() == null || row.getItemType() == null) {
-                continue;
-            }
-            String dateStr = sdf.format(row.getItemDate());
-            String key = dateStr + "|" + row.getCashierName();
-            Map<String, Double> cell = cellMap.get(key);
-            if (cell == null) {
-                cell = new LinkedHashMap<>();
-                cellMap.put(key, cell);
-            }
-            double value = row.getItemValue() != null ? row.getItemValue().doubleValue() : 0.0;
-            Double old = cell.get(row.getItemType());
-            cell.put(row.getItemType(), Double.valueOf(old == null ? value : old.doubleValue() + value));
-        }
-
-        List<TableItem> allItems = new ArrayList<>();
-        for (Map.Entry<String, Map<String, Double>> entry : cellMap.entrySet()) {
-            String[] keyParts = entry.getKey().split("\\|", 2);
-            Map<String, Double> cell = entry.getValue();
-            Map<String, Object> columns = new LinkedHashMap<String, Object>();
-            columns.put("dateRange", keyParts[0] + "~" + keyParts[0]);
-            columns.put("cashier", keyParts[1]);
-            columns.put("todayRegister", pick(cell, "当日挂号量"));
-            columns.put("effectiveRegister", pick(cell, "有效挂号量"));
-            columns.put("appointmentRegister", pick(cell, "预约挂号量"));
-            columns.put("outpatientCharge", pick(cell, "门诊收费量"));
-            columns.put("outpatientRefund", pick(cell, "门诊退费量"));
-
-            TableItem item = new TableItem();
-            item.setColumns(columns);
-            allItems.add(item);
-        }
-
-        int totalItems = allItems.size();
-        int start = (page - 1) * pageSize;
-        int end = Math.min(start + pageSize, totalItems);
-        List<TableItem> pageList = start < totalItems ? allItems.subList(start, end) : new ArrayList<>();
-        return PageResult.of(pageList, (long) totalItems, page, pageSize);
+    /** 本期区间 + 去年同期区间(月份减12)，与出院结算口径一致 */
+    private static Date[] currentAndLastRange(CashCashierSettlementRequest request) {
+        Date start = request.getStartDate();
+        Date end = request.getEndDate();
+        return new Date[]{start, end, addMonths(start, -12), addMonths(end, -12)};
     }
 
-    private static double pick(Map<String, Double> cell, String itemType) {
-        Double v = cell.get(itemType);
-        return v == null ? 0.0 : v.doubleValue();
+    private static Date addMonths(Date date, int months) {
+        java.util.Calendar calendar = java.util.Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.add(java.util.Calendar.MONTH, months);
+        return calendar.getTime();
+    }
+
+    /** 同比%：同期为0或无数据返回null(前端显示—)，否则(本期-同期)/同期*100取整 */
+    private static Integer yoy(Integer cur, Integer last) {
+        if (last == null || last == 0) {
+            return null;
+        }
+        int c = cur == null ? 0 : cur;
+        return Math.round((c - last) / (float) last * 100);
     }
 
     private PageResult<TableItem> queryTableByMybatisPlus(CashCashierSettlementRequest request, Integer page, Integer pageSize) {
         try {
             boolean month = "month".equalsIgnoreCase(request.getDimension());
-            List<CashSettleDtlEntity> rows = cashSettleMapper.queryDetail(
-                    request.getStartDate(), request.getEndDate(), null, month);
-            if ("workload".equalsIgnoreCase(request.getTab())) {
-                return buildWorkloadTable(rows, page, pageSize, month);
+            String tab = request.getTab() == null ? "" : request.getTab();
+            // 工作量报表：行=时间+操作员(姓名)，列=5个工作量指标
+            if ("workload".equalsIgnoreCase(tab)) {
+                return buildWorkloadReportTable(request, page, pageSize, month);
             }
-            // 页面两张表都是「行 = 日期，动态列 = 维度名」，所以按日期分组，
-            // 列名看页签：
-            //   tab=cashier（按收费员统计）→ 取 cashier_name
-            //   tab=source （按来源方式统计）→ 取 item_type
-            // 列名必须和页面 JS 里写死的一致（收费员1..8 / 预约挂号量…），否则每列都显示 '-'
-            boolean byCashier = !"source".equalsIgnoreCase(request.getTab());
-            Map<String, Map<String, Double>> dateColMap = new LinkedHashMap<>();
+            // 按收费员统计/按来源方式统计：行=时间，列=9个业务量指标(与来源图表指标一致)，
+            // 维度一律为操作员(staff_dict姓名展示, 值为工号传回筛选)
+            String dimValue = "source".equalsIgnoreCase(tab) ? request.getChannel() : request.getCashier();
+            List<Map<String, Object>> rows = cashSettleMapper.queryMetricPivot(
+                    request.getStartDate(), request.getEndDate(), month, null, dimValue);
+            List<DimOption> dims = toDimOptions(cashSettleMapper.queryWorkloadDims("operator"));
             SimpleDateFormat sdf = new SimpleDateFormat(month ? "yyyy-MM" : "yyyy-MM-dd");
-            for (CashSettleDtlEntity row : rows) {
-                String dateStr = row.getItemDate() == null ? "" : sdf.format(row.getItemDate());
-                String colName = byCashier ? row.getCashierName() : row.getItemType();
-                if (colName == null) {
-                    continue;
-                }
-                double value = row.getItemValue() != null ? row.getItemValue().doubleValue() : 0.0;
-                dateColMap.computeIfAbsent(dateStr, k -> new LinkedHashMap<>());
-                dateColMap.get(dateStr).merge(colName, value, Double::sum);
+            Map<String, Map<String, Object>> periodMap = new LinkedHashMap<>();
+            for (Map<String, Object> row : rows) {
+                String period = row.get("period") == null ? "" : sdf.format((Date) row.get("period"));
+                Map<String, Object> cols = periodMap.computeIfAbsent(period, k -> new LinkedHashMap<>());
+                cols.put(String.valueOf(row.get("metric")), toDouble(row.get("cnt")));
             }
             List<TableItem> allItems = new ArrayList<>();
-            for (Map.Entry<String, Map<String, Double>> entry : dateColMap.entrySet()) {
+            for (Map.Entry<String, Map<String, Object>> entry : periodMap.entrySet()) {
+                Map<String, Object> cols = new LinkedHashMap<>();
+                for (String metric : TABLE_METRICS) {
+                    cols.put(metric, entry.getValue().getOrDefault(metric, 0.0));
+                }
+                double total = cols.values().stream().mapToDouble(v -> (Double) v).sum();
+                cols.put("汇总", total);
                 TableItem item = new TableItem();
                 item.setDate(entry.getKey());
-                Map<String, Object> columns = new LinkedHashMap<>(entry.getValue());
-                double total = entry.getValue().values().stream().mapToDouble(Double::doubleValue).sum();
-                // 页面读的是中文键 '汇总'（见 cash-cashier-settlement-app.js 的 renderTable）
-                columns.put("汇总", total);
-                item.setColumns(columns);
+                item.setColumns(cols);
                 allItems.add(item);
             }
-            int totalItems = allItems.size();
-            int start = (page - 1) * pageSize;
-            int end = Math.min(start + pageSize, totalItems);
-            List<TableItem> pageList = start < totalItems ? allItems.subList(start, end) : new ArrayList<>();
-            return PageResult.of(pageList, (long) totalItems, page, pageSize);
+            return pageResult(allItems, page, pageSize, dims);
         } catch (Exception e) {
             log.warn("查询收费员结账表格失败", e);
             return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
         }
     }
 
+    /** 工作量报表：行=时间+操作员(姓名)，列=5个工作量指标 */
+    private CashierTableResult buildWorkloadReportTable(CashCashierSettlementRequest request,
+                                                        Integer page, Integer pageSize, boolean month) {
+        List<Map<String, Object>> rows = cashSettleMapper.queryWorkloadPivot(
+                request.getStartDate(), request.getEndDate(), month, null, null);
+        List<DimOption> dims = toDimOptions(cashSettleMapper.queryWorkloadDims("operator"));
+        Map<String, String> nameByCode = new HashMap<>();
+        for (DimOption d : dims) {
+            nameByCode.put(d.getValue(), d.getLabel());
+        }
+        SimpleDateFormat sdf = new SimpleDateFormat(month ? "yyyy-MM" : "yyyy-MM-dd");
+        List<TableItem> allItems = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            Map<String, Object> cols = workloadMetricColumns(row);
+            double total = cols.values().stream().mapToDouble(v -> (Double) v).sum();
+            cols.put("汇总", total);
+            cols.put("操作员", nameByCode.getOrDefault(String.valueOf(row.get("dim")), String.valueOf(row.get("dim"))));
+            TableItem item = new TableItem();
+            item.setDate(row.get("period") == null ? "" : sdf.format((Date) row.get("period")));
+            item.setColumns(cols);
+            allItems.add(item);
+        }
+        return pageResult(allItems, page, pageSize, dims);
+    }
+
+    /** 按收费员/按来源两页签表格的9个业务量指标列（与来源图表指标一致） */
+    private static final List<String> TABLE_METRICS = java.util.Arrays.asList(
+            "预约挂号量", "预约取号量", "当日挂号量", "退号量", "门诊收费量",
+            "门诊退费量", "收预交金量", "退院量", "出院结算量");
+
+    /** 5个工作量指标由7个原始分量计算（口径见mapper注释; 回诊/医联暂无字段计0, 当日挂号≡有效挂号数） */
+    /** 5个工作量指标由原始分量计算（口径: 当日挂号=ind2且return=1未退; 有效挂号=ind2全部含退; 退号按退号日归期） */
+    private Map<String, Object> workloadMetricColumns(Map<String, Object> row) {
+        double netCnt = toDouble(row.get("net_cnt"));
+        double allCnt = toDouble(row.get("all_cnt"));
+        double tuihao = toDouble(row.get("tuihao"));
+        double yyOk = toDouble(row.get("yy_ok"));
+        double yyCancel = toDouble(row.get("yy_cancel"));
+        double jf = toDouble(row.get("jf"));
+        double tf = toDouble(row.get("tf"));
+        Map<String, Object> cols = new LinkedHashMap<>();
+        cols.put("当日挂号", netCnt);
+        cols.put("有效挂号数", allCnt);
+        cols.put("预约挂号", yyOk - yyCancel);
+        cols.put("门诊收费", netCnt + jf);
+        cols.put("门诊退费", tuihao + tf);
+        return cols;
+    }
+
+    private double toDouble(Object v) {
+        return v == null ? 0.0 : ((Number) v).doubleValue();
+    }
+
+    private List<DimOption> toDimOptions(List<Map<String, Object>> rows) {
+        List<DimOption> list = new ArrayList<>();
+        if (rows == null) {
+            return list;
+        }
+        for (Map<String, Object> row : rows) {
+            list.add(new DimOption(String.valueOf(row.get("value")), String.valueOf(row.get("label"))));
+        }
+        return list;
+    }
+
+    private CashierTableResult pageResult(List<TableItem> allItems, Integer page, Integer pageSize, List<DimOption> dims) {
+        int totalItems = allItems.size();
+        int start = (page - 1) * pageSize;
+        int end = Math.min(start + pageSize, totalItems);
+        List<TableItem> pageList = start < totalItems ? allItems.subList(start, end) : new ArrayList<>();
+        return new CashierTableResult(pageList, (long) totalItems, page, pageSize, dims);
+    }
+
     private ChartData queryChartByMybatisPlus(CashCashierSettlementRequest request) {
         try {
-            // 两张图共用这张表，用 title 区分；按来源方式统计时标题是「来源方式工作量分析」
-            String chartTitle = "source".equalsIgnoreCase(request.getTab())
-                    ? "来源方式工作量分析" : "收费员业务工作量分析";
-            List<CashSettleChtEntity> entities = cashSettleMapper.queryChart(
-                    request.getStartDate(), request.getEndDate(), chartTitle);
-            if (entities == null || entities.isEmpty()) {
-                return new ChartData();
+            // 按收费员统计：图表按单个收费员维度，9类业务量直取源表
+            if ("cashier".equalsIgnoreCase(request.getTab())) {
+                return buildCashierWorkloadChart(request);
             }
-            ChartData chart = new ChartData();
-            CashSettleChtEntity first = entities.get(0);
-            chart.setTitle(first.getChartTitle());
-            chart.setSubTitle(first.getChartSubtitle());
-            chart.setDateRange(first.getDateRange());
-            List<String> categories = new ArrayList<>();
-            List<Integer> data = new ArrayList<>();
-            for (CashSettleChtEntity entity : entities) {
-                categories.add(entity.getCategory());
-                data.add(entity.getDataValue());
+            // 按来源方式统计：图表=选定日/月+选定指标按工号拆
+            if ("source".equalsIgnoreCase(request.getTab())) {
+                return buildSourceChart(request);
             }
-            chart.setCategories(categories);
-            chart.setData(data);
-            return chart;
+            return new ChartData();
         } catch (Exception e) {
             log.warn("查询收费员结账图表失败", e);
             return new ChartData();
         }
     }
 
-    // ==================== 实体转换 ====================
+    /**
+     * 收费员业务工作量分析：按单个收费员维度出9类业务量，
+     * 挂号类4项直取源表（口径同概览），其余5项口径待给先占坑0
+     */
+    private ChartData buildCashierWorkloadChart(CashCashierSettlementRequest request) {
+        ChartData chart = new ChartData();
+        chart.setTitle("收费员业务工作量分析");
+        chart.setSubTitle(request.getCashier());
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        chart.setDateRange(dateFormat.format(request.getStartDate()) + "~" + dateFormat.format(request.getEndDate()));
+        chart.setCategories(new ArrayList<>(java.util.Arrays.asList(
+                "预约挂号", "预约取号", "当日挂号", "退号", "门诊收费", "门诊退费", "收预交金", "退院", "出院结算")));
 
-    private OverviewData buildOverviewData(CashSettleOvEntity entity) {
-        if (entity == null) {
-            return new OverviewData();
+        List<Integer> data = new ArrayList<>(java.util.Arrays.asList(0, 0, 0, 0, 0, 0, 0, 0, 0));
+        String cashier = request.getCashier();
+        if (cashier != null && !cashier.isEmpty()) {
+            Date[] range = currentAndLastRange(request);
+            RegisterOverviewData reg = cashSettleMapper.queryCashierWorkload(range[0], range[1], range[2], range[3], cashier);
+            if (reg != null) {
+                data.set(0, reg.getAppointmentRegister() != null ? reg.getAppointmentRegister() : 0);
+                data.set(1, reg.getAppointmentFetch() != null ? reg.getAppointmentFetch() : 0);
+                data.set(2, reg.getTodayRegister() != null ? reg.getTodayRegister() : 0);
+                data.set(3, reg.getRefund() != null ? reg.getRefund() : 0);
+            }
+            RcptOverviewData rcpt = cashSettleMapper.queryCashierCharge(range[0], range[1], range[2], range[3], cashier);
+            if (rcpt != null) {
+                data.set(4, rcpt.getOutpatientCharge() != null ? rcpt.getOutpatientCharge() : 0);
+                data.set(5, rcpt.getOutpatientRefund() != null ? rcpt.getOutpatientRefund() : 0);
+            }
+            PrepayOverviewData prepay = cashSettleMapper.queryCashierPrepay(range[0], range[1], range[2], range[3], cashier);
+            if (prepay != null) {
+                data.set(6, prepay.getPrepayment() != null ? prepay.getPrepayment() : 0);
+                data.set(7, prepay.getHospitalRefund() != null ? prepay.getHospitalRefund() : 0);
+            }
+            DischargeOverviewData disch = cashSettleMapper.queryCashierDischarge(range[0], range[1], range[2], range[3], cashier);
+            if (disch != null) {
+                data.set(8, disch.getDischargeSettlement() != null ? disch.getDischargeSettlement() : 0);
+            }
         }
-        OverviewData overview = new OverviewData();
-        overview.setAppointmentRegister(entity.getAppointmentRegister());
-        overview.setAppointmentRegisterCompare(entity.getAppointmentRegisterCompare());
-        overview.setAppointmentFetch(entity.getAppointmentFetch());
-        overview.setAppointmentFetchCompare(entity.getAppointmentFetchCompare());
-        overview.setTodayRegister(entity.getTodayRegister());
-        overview.setTodayRegisterCompare(entity.getTodayRegisterCompare());
-        overview.setRefund(entity.getRefund());
-        overview.setRefundCompare(entity.getRefundCompare());
-        overview.setOutpatientCharge(entity.getOutpatientCharge());
-        overview.setOutpatientChargeCompare(entity.getOutpatientChargeCompare());
-        overview.setOutpatientRefund(entity.getOutpatientRefund());
-        overview.setOutpatientRefundCompare(entity.getOutpatientRefundCompare());
-        overview.setPrepayment(entity.getPrepayment());
-        overview.setPrepaymentCompare(entity.getPrepaymentCompare());
-        overview.setHospitalRefund(entity.getHospitalRefund());
-        overview.setHospitalRefundCompare(entity.getHospitalRefundCompare());
-        overview.setDischargeSettlement(entity.getDischargeSettlement());
-        overview.setDischargeSettlementCompare(entity.getDischargeSettlementCompare());
-        return overview;
+        chart.setData(data);
+        return chart;
+    }
+
+    /**
+     * 来源方式工作量分析：选定日/月+选定指标，按工号出柱
+     */
+    private ChartData buildSourceChart(CashCashierSettlementRequest request) {
+        ChartData chart = new ChartData();
+        chart.setTitle("来源方式工作量分析");
+        chart.setSubTitle(request.getChartMetric());
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        chart.setDateRange(request.getChartDate() != null ? dateFormat.format(request.getChartDate()) : "");
+        List<String> categories = new ArrayList<>();
+        List<Integer> data = new ArrayList<>();
+        if (request.getChartDate() != null && request.getChartMetric() != null && !request.getChartMetric().isEmpty()) {
+            Date[] dayRange = chartDayRange(request);
+            List<CashSettleDtlEntity> rows = cashSettleMapper.querySourceChart(
+                    dayRange[0], dayRange[1], request.getChartMetric());
+            if (rows != null) {
+                for (CashSettleDtlEntity row : rows) {
+                    categories.add(row.getCashierName());
+                    data.add(row.getItemValue() != null ? row.getItemValue().intValue() : 0);
+                }
+            }
+        }
+        chart.setCategories(categories);
+        chart.setData(data);
+        return chart;
+    }
+
+    /** 来源方式图表选定日/月的[起,止)区间：按天=当天~次日，按月=月初~次月 */
+    private static Date[] chartDayRange(CashCashierSettlementRequest request) {
+        java.util.Calendar calendar = java.util.Calendar.getInstance();
+        calendar.setTime(request.getChartDate());
+        Date start = calendar.getTime();
+        if ("month".equalsIgnoreCase(request.getDimension())) {
+            calendar.set(java.util.Calendar.DAY_OF_MONTH, 1);
+            start = calendar.getTime();
+        }
+        calendar.add(java.util.Calendar.MONTH, "month".equalsIgnoreCase(request.getDimension()) ? 1 : 0);
+        calendar.add(java.util.Calendar.DAY_OF_MONTH, "month".equalsIgnoreCase(request.getDimension()) ? 0 : 1);
+        return new Date[]{start, calendar.getTime()};
     }
 
     // ==================== 工具方法 ====================

@@ -89,7 +89,7 @@ COMMENT ON COLUMN tr_common_dict.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_common_dict.ext3 IS '扩展字段3';
 COMMENT ON TABLE tr_staff_dict IS '人员字典表';
 COMMENT ON COLUMN tr_staff_dict.id IS '主键ID';
-COMMENT ON COLUMN tr_staff_dict.staff_code IS '人员工号';
+COMMENT ON COLUMN tr_staff_dict.staff_code IS '人员工号(不唯一, 关联查询取 ROWNUM=1 任意一条)';
 COMMENT ON COLUMN tr_staff_dict.staff_name IS '人员姓名';
 COMMENT ON COLUMN tr_staff_dict.login_account IS '登录账号(源表主键db_user)';
 COMMENT ON COLUMN tr_staff_dict.xq_id IS '本院数字ID';
@@ -145,3 +145,6 @@ WHERE u.user_id IS NOT NULL;
 
 -- 第4步 清理暂存表:
 DROP TABLE tmp_staff_import;
+
+-- 2026-10-15 追加: staff_code 查询索引（收费员结账等报表按工号关联姓名; 字典表小, 索引可建可不建）
+-- CREATE INDEX IDX_STAFF_DICT_CODE ON tr_staff_dict(staff_code);
