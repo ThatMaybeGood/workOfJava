@@ -41,6 +41,13 @@ reports:
     default-page: 1
     # 默认每页条数
     default-page-size: 10
+  # 人次日汇总(TR_OUTP_FIN_VISIT_DAY)自动维护
+  visit-summary:
+    # true=自动维护: 每日cron时刻滚动重算近7天+补齐缺失日(历史已手动回填, 全量重建见人次日汇总手册)
+    # false=纯查询不维护, 补数全靠手动跑 docs/ddl/19_门诊财务-人次日汇总.sql
+    task-enabled: true
+    # 每日例行时刻, 必须在ETL抽数完成之后(默认03:00; 提前则昨天数据可能还没抽完)
+    cron: "0 0 3 * * ?"
 
 # 日志配置
 logging:

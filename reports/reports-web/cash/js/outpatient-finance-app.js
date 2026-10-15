@@ -67,14 +67,7 @@ function toQueryDateRange() {
         };
     }
     var startDate = rangeStart.year + '-' + pad2(rangeStart.month) + '-01';
-    var endDate;
-    if (rangeStart.year === rangeEnd.year && rangeStart.month === rangeEnd.month) {
-        endDate = rangeEnd.year + '-' + pad2(rangeEnd.month) + '-' + getDaysInMonth(rangeEnd.year, rangeEnd.month);
-    } else {
-        var ly = rangeEnd.month === 1 ? rangeEnd.year - 1 : rangeEnd.year;
-        var lm = rangeEnd.month === 1 ? 12 : rangeEnd.month - 1;
-        endDate = ly + '-' + pad2(lm) + '-' + getDaysInMonth(ly, lm);
-    }
+    var endDate = rangeEnd.year + '-' + pad2(rangeEnd.month) + '-' + getDaysInMonth(rangeEnd.year, rangeEnd.month);
     return { startDate: startDate, endDate: endDate };
 }
 

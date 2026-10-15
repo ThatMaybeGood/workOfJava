@@ -149,4 +149,13 @@ public interface OutpatientFinanceMapper {
                                                         @Param("endDate") Date endDate,
                                                         @Param("timeType") Integer timeType);
 
+    /** 人次日汇总：按天重算前先清当天（幂等） */
+    int deleteVisitDay(@Param("day") Date day);
+
+    /** 人次日汇总：单天窗口合并落表（全量/进项两种口径一次算完） */
+    int insertVisitDay(@Param("day") Date day);
+
+    /** 人次日汇总：明细表已有但汇总缺失的日期（不含当天），用于历史回填/断档补齐 */
+    List<Date> selectMissingSummaryDates();
+
 }

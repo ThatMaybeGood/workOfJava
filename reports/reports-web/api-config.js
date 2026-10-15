@@ -193,8 +193,8 @@ async function apiRequest(methodKey, endpointKey, requestBody = null) {
 
 // 接口超时（毫秒）。后端连不上库时请求会长时间挂起（Oracle 建连重试），
 // 没有这个超时前端会一直转圈、弹层一片空白，看不出是"加载中"还是"没数据"。
-// 设为 0 表示不超时。
-const API_TIMEOUT_MS = 30000;
+// 设为 0 表示不超时。5min: 与后端 socket-timeout 2min 对齐留余量, 大跨度查询不再被前端误杀
+const API_TIMEOUT_MS = 300000;
 
 /* ==================== 全局加载中遮罩 ====================
  * 所有报表页共用：请求发出即显示转圈，全部响应后消失。

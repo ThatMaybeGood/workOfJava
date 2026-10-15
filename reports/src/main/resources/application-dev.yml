@@ -5,7 +5,10 @@ spring:
       driver-class-name: oracle.jdbc.OracleDriver
       # CONNECT_TIMEOUT：建连超时(毫秒)。不设的话库不可达时 Oracle 会长时间重试，
       # 请求一直不返回，前端只能干等（页面/弹层一直转圈）
-      url: jdbc:oracle:thin:@//168.168.235.105:1521/yuanqi?oracle.net.CONNECT_TIMEOUT=5000
+      # ReadTimeout：查询读超时兜底。按月查询为秒级~十秒级，显式给 2min
+      # 注意: Druid 的 socketTimeout 不配时 init() 会强制设成 10000(10s) 并注入连接属性压过 URL, 必须显式配置
+      url: jdbc:oracle:thin:@//168.168.235.105:1521/yuanqi?oracle.net.CONNECT_TIMEOUT=5000&oracle.jdbc.ReadTimeout=120000
+      socket-timeout: 120000
       username: powerihsp
       password: yuanqi
       # Druid连接池配置

@@ -65,41 +65,120 @@
         ORDER BY "period"
     </select>
 
-    <!-- 人次·明细/柱图：同患者+同日+同前缀+票号连续合并一人次（纯数字票号用 '#' 哨兵防 Oracle 空串=NULL） -->
+    <!-- 人次·明细/柱图：全部读日汇总表(VisitDaySummaryTask 维护, 毫秒级); 当天由 live_today UNION 实时算; 口径: T1=CNT_ALL T2=CNT_IN T3=CNT_REFUND -->
     <select id="queryVisitCounts" resultType="map">
-        WITH extracted AS (
-            SELECT
-                r.PATIENT_ID AS patient_id,
-                TO_CHAR(r.STAT_DATE, 'YYYY-MM-DD') AS day_str,
-                <include refid="periodExpr"><property name="col" value="r.STAT_DATE"/></include> AS period,
-                NVL(SUBSTR(r.RCPT_NO, 1, LENGTH(r.RCPT_NO) - NVL(LENGTH(REGEXP_SUBSTR(r.RCPT_NO, '[0-9]+$')), 0)), '#') AS prefix,
-                TO_NUMBER(REGEXP_SUBSTR(r.RCPT_NO, '[0-9]+$')) AS num_part
-            FROM TR_OUTP_FIN_RCPT_ACCT r
-            WHERE r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
-            <choose>
-                <when test="statisticType == 2">
-                    AND NVL(r.TOTAL_CHARGES, 0) >= 0
-                </when>
-                <when test="statisticType == 3">
-                    <![CDATA[ AND r.REFUNDED_RCPT_NO IS NOT NULL AND r.TOTAL_CHARGES < 0 ]]>
-                </when>
-            </choose>
-        ),
-        ordered AS (
-            SELECT period,
-                CASE
-                    WHEN patient_id = LAG(patient_id) OVER (ORDER BY patient_id, day_str, prefix, num_part)
-                     AND day_str = LAG(day_str) OVER (ORDER BY patient_id, day_str, prefix, num_part)
-                     AND prefix = LAG(prefix) OVER (ORDER BY patient_id, day_str, prefix, num_part)
-                     AND num_part = LAG(num_part) OVER (ORDER BY patient_id, day_str, prefix, num_part) + 1
-                    THEN 0 ELSE 1
-                END AS is_new_visit
-            FROM extracted
+        WITH live_today AS (
+            SELECT <include refid="periodExpr"><property name="col" value="TRUNC(SYSDATE)"/></include> AS period,
+                   SUM(flag) AS cnt
+            FROM (
+                SELECT CASE
+                           WHEN PATIENT_ID IS NOT NULL
+                            AND num_part = LAG(num_part) OVER (PARTITION BY PATIENT_ID, prefix ORDER BY num_part) + 1
+                           THEN 0 ELSE 1 END AS flag
+                FROM (
+                    SELECT r.PATIENT_ID,
+                           NVL(RTRIM(r.RCPT_NO, '0123456789'), '#') AS prefix,
+                           TO_NUMBER(SUBSTR(r.RCPT_NO, NVL(LENGTH(RTRIM(r.RCPT_NO, '0123456789')), 0) + 1)) AS num_part
+                    FROM TR_OUTP_FIN_RCPT_ACCT r
+                    WHERE r.STAT_DATE >= TRUNC(SYSDATE)
+                    <choose>
+                        <when test="statisticType == 2">
+                            AND NVL(r.TOTAL_CHARGES, 0) >= 0
+                        </when>
+                        <when test="statisticType == 3">
+                            <![CDATA[ AND r.REFUNDED_RCPT_NO IS NOT NULL AND r.TOTAL_CHARGES < 0 ]]>
+                        </when>
+                    </choose>
+                      AND TRUNC(SYSDATE) BETWEEN #{startDate} AND #{endDate}
+                )
+            )
+            GROUP BY <include refid="periodExpr"><property name="col" value="TRUNC(SYSDATE)"/></include>
         )
-        SELECT period AS "period", SUM(is_new_visit) AS "cnt"
-        FROM ordered
+        SELECT period AS "period", SUM(cnt) AS "cnt"
+        FROM (
+            SELECT
+                <include refid="periodExpr"><property name="col" value="d.STAT_DATE"/></include> AS period,
+                <choose>
+                    <when test="statisticType == 2">SUM(d.CNT_IN)</when>
+                    <when test="statisticType == 3">SUM(d.CNT_REFUND)</when>
+                    <otherwise>SUM(d.CNT_ALL)</otherwise>
+                </choose> AS cnt
+            FROM TR_OUTP_FIN_VISIT_DAY d
+            WHERE d.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+            GROUP BY <include refid="periodExpr"><property name="col" value="d.STAT_DATE"/></include>
+            UNION ALL
+            SELECT period, cnt FROM live_today
+        )
         GROUP BY period
         ORDER BY period
+    </select>
+
+    <!-- 人次日汇总维护：清当天 -->
+    <delete id="deleteVisitDay">
+        DELETE FROM TR_OUTP_FIN_VISIT_DAY WHERE STAT_DATE = #{day}
+    </delete>
+
+    <!-- 人次日汇总维护：单天三种口径一次算完（全量/先过滤进项/先过滤退费红冲，各自再窗口合并），先删后插幂等 -->
+    <insert id="insertVisitDay">
+        INSERT INTO TR_OUTP_FIN_VISIT_DAY (STAT_DATE, OPERATOR_NO, CNT_ALL, CNT_IN, CNT_REFUND, UPDATE_TIME)
+        WITH src AS (
+            SELECT
+                NVL(r.OPERATOR_NO, '-') AS OPERATOR_NO,
+                r.PATIENT_ID,
+                NVL(RTRIM(r.RCPT_NO, '0123456789'), '#') AS prefix,
+                TO_NUMBER(SUBSTR(r.RCPT_NO, NVL(LENGTH(RTRIM(r.RCPT_NO, '0123456789')), 0) + 1)) AS num_part,
+                NVL(r.TOTAL_CHARGES, 0) AS charges,
+                r.REFUNDED_RCPT_NO
+            FROM TR_OUTP_FIN_RCPT_ACCT r
+            WHERE r.STAT_DATE = #{day}
+        ),
+        all_ranked AS (
+            SELECT OPERATOR_NO,
+                CASE
+                    WHEN PATIENT_ID IS NOT NULL
+                     AND num_part = LAG(num_part) OVER (PARTITION BY PATIENT_ID, prefix ORDER BY num_part) + 1
+                    THEN 0 ELSE 1
+                END AS flag
+            FROM src
+        ),
+        in_ranked AS (
+            SELECT OPERATOR_NO,
+                CASE
+                    WHEN PATIENT_ID IS NOT NULL
+                     AND num_part = LAG(num_part) OVER (PARTITION BY PATIENT_ID, prefix ORDER BY num_part) + 1
+                    THEN 0 ELSE 1
+                END AS flag
+            FROM src
+            WHERE charges >= 0
+        ),
+        refund_ranked AS (
+            SELECT OPERATOR_NO,
+                CASE
+                    WHEN PATIENT_ID IS NOT NULL
+                     AND num_part = LAG(num_part) OVER (PARTITION BY PATIENT_ID, prefix ORDER BY num_part) + 1
+                    THEN 0 ELSE 1
+                END AS flag
+            FROM src
+            <![CDATA[WHERE REFUNDED_RCPT_NO IS NOT NULL AND charges < 0]]>
+        )
+        SELECT #{day}, a.OPERATOR_NO, a.cnt_all, NVL(b.cnt_in, 0), NVL(c.cnt_refund, 0), SYSDATE
+        FROM (SELECT OPERATOR_NO, SUM(flag) AS cnt_all FROM all_ranked GROUP BY OPERATOR_NO) a
+        LEFT JOIN (SELECT OPERATOR_NO, SUM(flag) AS cnt_in FROM in_ranked GROUP BY OPERATOR_NO) b
+            ON b.OPERATOR_NO = a.OPERATOR_NO
+        LEFT JOIN (SELECT OPERATOR_NO, SUM(flag) AS cnt_refund FROM refund_ranked GROUP BY OPERATOR_NO) c
+            ON c.OPERATOR_NO = a.OPERATOR_NO
+    </insert>
+
+    <!-- 人次日汇总维护：明细已有但汇总缺失的日期（不含当天，当天数据未抽完），历史回填/断档补齐用 -->
+    <select id="selectMissingSummaryDates" resultType="java.util.Date">
+        SELECT DISTINCT TRUNC(r.STAT_DATE) AS dt
+        FROM TR_OUTP_FIN_RCPT_ACCT r
+        <![CDATA[WHERE TRUNC(r.STAT_DATE) < TRUNC(SYSDATE)]]>
+          AND NOT EXISTS (
+              SELECT 1 FROM TR_OUTP_FIN_VISIT_DAY d
+              WHERE d.STAT_DATE = TRUNC(r.STAT_DATE)
+          )
+        ORDER BY dt
     </select>
 
     <!-- bt1 门诊量分析： 订单来源分析（口径同 queryClinicCounts：T1汇总=收 T2进项=全部 T3退） -->
@@ -180,41 +259,51 @@
         ORDER BY "cnt" DESC
     </select>
 
-    <!-- bt4 缴费人次分析： 渠道分析 -->
+    <!-- bt4 缴费人次分析： 渠道分析（全部读日汇总表; 当天 live_today UNION 实时算; 口径同 queryVisitCounts） -->
     <select id="queryRcptCountByOperator" resultType="map">
-        WITH extracted AS (
-            SELECT
-                r.PATIENT_ID,
-                TO_CHAR(r.STAT_DATE, 'YYYY-MM-DD') AS day_str,
-                r.OPERATOR_NO,
-                NVL(SUBSTR(r.RCPT_NO, 1, LENGTH(r.RCPT_NO) - NVL(LENGTH(REGEXP_SUBSTR(r.RCPT_NO, '[0-9]+$')), 0)), '#') AS prefix,
-                TO_NUMBER(REGEXP_SUBSTR(r.RCPT_NO, '[0-9]+$')) AS num_part
-            FROM TR_OUTP_FIN_RCPT_ACCT r
-            WHERE r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
-            <choose>
-                <when test="statisticType == 2">
-                    AND NVL(r.TOTAL_CHARGES, 0) >= 0
-                </when>
-                <when test="statisticType == 3">
-                    <![CDATA[ AND r.REFUNDED_RCPT_NO IS NOT NULL AND r.TOTAL_CHARGES < 0 ]]>
-                </when>
-            </choose>
-        ),
-        ordered AS (
-            SELECT OPERATOR_NO,
-                CASE
-                    WHEN patient_id = LAG(patient_id) OVER (ORDER BY patient_id, day_str, prefix, num_part)
-                     AND day_str = LAG(day_str) OVER (ORDER BY patient_id, day_str, prefix, num_part)
-                     AND prefix = LAG(prefix) OVER (ORDER BY patient_id, day_str, prefix, num_part)
-                     AND num_part = LAG(num_part) OVER (ORDER BY patient_id, day_str, prefix, num_part) + 1
-                    THEN 0 ELSE 1
-                END AS is_new_visit
-            FROM extracted
+        WITH live_today AS (
+            SELECT NVL(OPERATOR_NO, '-') AS OPERATOR_NO, SUM(flag) AS cnt
+            FROM (
+                SELECT OPERATOR_NO,
+                    CASE
+                        WHEN PATIENT_ID IS NOT NULL
+                         AND num_part = LAG(num_part) OVER (PARTITION BY PATIENT_ID, prefix ORDER BY num_part) + 1
+                        THEN 0 ELSE 1 END AS flag
+                FROM (
+                    SELECT r.OPERATOR_NO, r.PATIENT_ID,
+                           NVL(RTRIM(r.RCPT_NO, '0123456789'), '#') AS prefix,
+                           TO_NUMBER(SUBSTR(r.RCPT_NO, NVL(LENGTH(RTRIM(r.RCPT_NO, '0123456789')), 0) + 1)) AS num_part
+                    FROM TR_OUTP_FIN_RCPT_ACCT r
+                    WHERE r.STAT_DATE >= TRUNC(SYSDATE)
+                    <choose>
+                        <when test="statisticType == 2">
+                            AND NVL(r.TOTAL_CHARGES, 0) >= 0
+                        </when>
+                        <when test="statisticType == 3">
+                            <![CDATA[ AND r.REFUNDED_RCPT_NO IS NOT NULL AND r.TOTAL_CHARGES < 0 ]]>
+                        </when>
+                    </choose>
+                      AND TRUNC(SYSDATE) BETWEEN #{startDate} AND #{endDate}
+                )
+            )
+            GROUP BY NVL(OPERATOR_NO, '-')
         )
-        SELECT DECODE(OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
-               SUM(is_new_visit) AS "cnt"
-        FROM ordered
-        GROUP BY DECODE(OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口')
+        SELECT "name", SUM(cnt) AS "cnt"
+        FROM (
+            SELECT DECODE(d.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
+                <choose>
+                    <when test="statisticType == 2">SUM(d.CNT_IN)</when>
+                    <when test="statisticType == 3">SUM(d.CNT_REFUND)</when>
+                    <otherwise>SUM(d.CNT_ALL)</otherwise>
+                </choose> AS cnt
+            FROM TR_OUTP_FIN_VISIT_DAY d
+            WHERE d.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+            GROUP BY DECODE(d.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口')
+            UNION ALL
+            SELECT DECODE(OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name", cnt
+            FROM live_today
+        )
+        GROUP BY "name"
         ORDER BY "cnt" DESC
     </select>
 
