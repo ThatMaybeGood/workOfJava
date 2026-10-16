@@ -95,10 +95,18 @@ const MockService = {
                 const total = allData.length;
                 const startIndex = (page - 1) * pageSize;
                 const list = allData.slice(startIndex, startIndex + pageSize);
+                // 新接口形状: 表格响应附维度下拉选项(value=工号, label=姓名), 操作员维度三页签共用
+                const dims = [
+                    { value: 'OP001', label: '张敏' },
+                    { value: 'OP002', label: '李强' },
+                    { value: 'OP003', label: '王芳' },
+                    { value: '9101', label: '自助机' },
+                    { value: 'C746', label: '线上退费' }
+                ];
 
                 resolve({
                     code: 200,
-                    data: { list, total, page, pageSize }
+                    data: { list, total, page, pageSize, dims }
                 });
             }, 300);
         });
@@ -207,14 +215,14 @@ const MockService = {
     },
 
     /**
-     * 按收费员统计表格数据
+     * 按收费员统计表格数据: 行=日期, 列=全部操作员(姓名), 单元格=9个业务量指标之和
      */
     generateCashierByCashierData(params = {}) {
         const dimension = params.dimension || 'day';
-        const count = dimension === 'month' ? 12 : 55;
+        const count = dimension === 'month' ? 12 : 31;
         const data = [];
         const baseDate = new Date('2025-01-12');
-        const cashiers = ['收费员1', '收费员2', '收费员3', '收费员4', '收费员5', '收费员6', '收费员7', '收费员8'];
+        const cashiers = ['张敏', '李强', '王芳', '赵磊', '陈静', '刘洋', '自助机', '线上退费'];
 
         for (let i = 0; i < count; i++) {
             let dateStr;
@@ -231,9 +239,7 @@ const MockService = {
             const row = { date: dateStr };
             let total = 0;
             cashiers.forEach((name, index) => {
-                const value = index < 4
-                    ? (index % 2 === 0 ? 1000 : 1100)
-                    : (index === 4 || index === 5 ? 500000.00 : (index === 6 ? 1000 : 1100));
+                const value = 3000 + index * 120 + ((i * 7 + index * 13) % 60);
                 row[name] = value;
                 total += value;
             });
@@ -245,13 +251,14 @@ const MockService = {
     },
 
     /**
-     * 按来源方式统计表格数据
+     * 按来源方式统计表格数据: 行=日期, 列=同9个业务量指标(笔数)+汇总
      */
     generateCashierBySourceData(params = {}) {
         const dimension = params.dimension || 'day';
-        const count = dimension === 'month' ? 12 : 55;
+        const count = dimension === 'month' ? 12 : 31;
         const data = [];
         const baseDate = new Date('2025-01-12');
+        const METRICS = ['预约挂号量', '预约取号量', '当日挂号量', '退号量', '门诊收费量', '门诊退费量', '收预交金量', '退院量', '出院结算量'];
 
         for (let i = 0; i < count; i++) {
             let dateStr;
@@ -267,8 +274,8 @@ const MockService = {
 
             const row = { date: dateStr };
             let total = 0;
-            ['预约挂号量', '预约取号量', '当日挂号量', '退号量', '门诊收费量', '门诊退费量', '收预交金量', '退院量', '出院结算量'].forEach((name, index) => {
-                const value = index < 4 ? 1100 : (index === 4 || index === 5 ? 500000.00 : (index === 6 ? 1000000.00 : 1100));
+            METRICS.forEach((name, index) => {
+                const value = [760, 280, 1420, 35, 1500, 18, 38, 5, 10][index] + ((i * 11 + index * 5) % 20);
                 row[name] = value;
                 total += value;
             });
@@ -280,14 +287,15 @@ const MockService = {
     },
 
     /**
-     * 工作量报表表格数据
+     * 工作量报表表格数据: 行=日期+操作员(姓名), 列=5个工作量指标+汇总
      */
     generateCashierWorkloadData(params = {}) {
         const dimension = params.dimension || 'day';
-        const count = dimension === 'month' ? 12 : 55;
+        const count = dimension === 'month' ? 6 : 10;
         const data = [];
         const baseDate = new Date('2025-01-12');
-        const cashiers = ['收费员1', '收费员2', '收费员3', '收费员4', '收费员5', '收费员6', '收费员7', '收费员8', '收费员9', '收费员10'];
+        const cashiers = ['张敏', '李强', '王芳'];
+        const WORKLOAD = ['当日挂号', '有效挂号数', '预约挂号', '门诊收费', '门诊退费'];
 
         for (let i = 0; i < count; i++) {
             let dateStr;
@@ -301,16 +309,16 @@ const MockService = {
                 dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             }
 
-            cashiers.forEach(name => {
-                data.push({
-                    dateRange: `${dateStr}~${dateStr}`,
-                    cashier: name,
-                    todayRegister: 1000,
-                    effectiveRegister: 1000,
-                    appointmentRegister: 1000,
-                    outpatientCharge: 1000,
-                    outpatientRefund: 1000
+            cashiers.forEach((name, cIdx) => {
+                const row = { date: dateStr, '操作员': name };
+                let total = 0;
+                WORKLOAD.forEach((m, mIdx) => {
+                    const value = [520, 540, 260, 1100, 15][mIdx] + ((i * 3 + cIdx * 17 + mIdx * 7) % 18);
+                    row[m] = value;
+                    total += value;
                 });
+                row['汇总'] = total;
+                data.push(row);
             });
         }
 

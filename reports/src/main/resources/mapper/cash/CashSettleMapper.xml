@@ -17,7 +17,8 @@
     <!-- 归期: 预约/取号/当日挂号按STAT_DATE, 退号按RETURNED_DATE -->
     <!-- 口径: IS_RETURN_TYPE=-1为退号剔除(!=-1即正常/取号成功), 退号另要求REGISTRATION_STATUS!=0, 一律APPOINTS_INDICATOR=2 -->
     <!-- ============================================================ -->
-    <sql id="regWorkloadCounts">
+    <!-- 挂号类6个STAT_DATE归期指标(本期+同期), UNION ALL 的 STAT 分支用 -->
+    <sql id="regWorkloadCountsStat">
         COUNT(CASE WHEN c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
                     AND TRUNC(c.VISIT_DATE) != TRUNC(c.REGISTERING_DATE) AND c.IS_RETURN_TYPE != -1 THEN 1 END) AS appointmentRegister,
         COUNT(CASE WHEN c.STAT_DATE BETWEEN #{lastStartDate} AND #{lastEndDate}
@@ -29,39 +30,66 @@
         COUNT(CASE WHEN c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
                     AND TRUNC(c.VISIT_DATE) != TRUNC(c.REGISTERING_DATE) AND c.IS_RETURN_TYPE != -1 THEN 1 END) AS appointmentFetch,
         COUNT(CASE WHEN c.STAT_DATE BETWEEN #{lastStartDate} AND #{lastEndDate}
-                    AND TRUNC(c.VISIT_DATE) != TRUNC(c.REGISTERING_DATE) AND c.IS_RETURN_TYPE != -1 THEN 1 END) AS appointmentFetchLast,
+                    AND TRUNC(c.VISIT_DATE) != TRUNC(c.REGISTERING_DATE) AND c.IS_RETURN_TYPE != -1 THEN 1 END) AS appointmentFetchLast
+    </sql>
+
+    <!-- 退号2个RETURNED_DATE归期指标(本期+同期), UNION ALL 的 RETURNED 分支用 -->
+    <sql id="regWorkloadCountsRet">
         COUNT(CASE WHEN c.RETURNED_DATE BETWEEN #{startDate} AND #{endDate}
                     AND c.IS_RETURN_TYPE = -1 AND c.REGISTRATION_STATUS != 0 THEN 1 END) AS refund,
         COUNT(CASE WHEN c.RETURNED_DATE BETWEEN #{lastStartDate} AND #{lastEndDate}
                     AND c.IS_RETURN_TYPE = -1 AND c.REGISTRATION_STATUS != 0 THEN 1 END) AS refundLast
     </sql>
 
-    <!-- 扫描范围: 本期+同期归期列(STAT_DATE/RETURNED_DATE)并集(去年同月开始到本期结束) -->
-    <sql id="regWorkloadScope">
-        c.APPOINTS_INDICATOR = 2
-        AND (c.STAT_DATE BETWEEN #{lastStartDate} AND #{endDate}
-             OR c.RETURNED_DATE BETWEEN #{lastStartDate} AND #{endDate})
-    </sql>
-
     <!-- ============================================================ -->
     <!-- 概览·挂号类4指标: 源表直取，合计维度 -->
     <!-- ============================================================ -->
+    <!-- 归期列OR会让索引失效全表扫(概览一次4-6s); 改写为 STAT/RETURNED 两段 UNION ALL 各自走索引范围扫 -->
     <select id="queryRegisterOverview" resultType="com.reports.dto.response.cash.cashier.settlement.RegisterOverviewData">
+        SELECT SUM(appointmentRegister) AS appointmentRegister, SUM(appointmentRegisterLast) AS appointmentRegisterLast,
+               SUM(todayRegister) AS todayRegister, SUM(todayRegisterLast) AS todayRegisterLast,
+               SUM(appointmentFetch) AS appointmentFetch, SUM(appointmentFetchLast) AS appointmentFetchLast,
+               SUM(refund) AS refund, SUM(refundLast) AS refundLast
+        FROM (
         SELECT
-        <include refid="regWorkloadCounts"/>
+        <include refid="regWorkloadCountsStat"/>,
+        0 AS refund, 0 AS refundLast
         FROM TR_OUTP_FIN_CLINIC_MASTER c
-        WHERE <include refid="regWorkloadScope"/>
+        WHERE c.APPOINTS_INDICATOR = 2 AND c.STAT_DATE BETWEEN #{lastStartDate} AND #{endDate}
+        UNION ALL
+        SELECT 0 AS appointmentRegister, 0 AS appointmentRegisterLast,
+               0 AS todayRegister, 0 AS todayRegisterLast,
+               0 AS appointmentFetch, 0 AS appointmentFetchLast,
+        <include refid="regWorkloadCountsRet"/>
+        FROM TR_OUTP_FIN_CLINIC_MASTER c
+        WHERE c.APPOINTS_INDICATOR = 2 AND c.RETURNED_DATE BETWEEN #{lastStartDate} AND #{endDate}
+        )
     </select>
 
     <!-- ============================================================ -->
     <!-- 图表·按收费员维度: 同口径加OPERATOR_NO过滤 -->
     <!-- ============================================================ -->
     <select id="queryCashierWorkload" resultType="com.reports.dto.response.cash.cashier.settlement.RegisterOverviewData">
+        SELECT SUM(appointmentRegister) AS appointmentRegister, SUM(appointmentRegisterLast) AS appointmentRegisterLast,
+               SUM(todayRegister) AS todayRegister, SUM(todayRegisterLast) AS todayRegisterLast,
+               SUM(appointmentFetch) AS appointmentFetch, SUM(appointmentFetchLast) AS appointmentFetchLast,
+               SUM(refund) AS refund, SUM(refundLast) AS refundLast
+        FROM (
         SELECT
-        <include refid="regWorkloadCounts"/>
+        <include refid="regWorkloadCountsStat"/>,
+        0 AS refund, 0 AS refundLast
         FROM TR_OUTP_FIN_CLINIC_MASTER c
-        WHERE <include refid="regWorkloadScope"/>
+        WHERE c.APPOINTS_INDICATOR = 2 AND c.STAT_DATE BETWEEN #{lastStartDate} AND #{endDate}
           AND c.OPERATOR_NO = #{cashier}
+        UNION ALL
+        SELECT 0 AS appointmentRegister, 0 AS appointmentRegisterLast,
+               0 AS todayRegister, 0 AS todayRegisterLast,
+               0 AS appointmentFetch, 0 AS appointmentFetchLast,
+        <include refid="regWorkloadCountsRet"/>
+        FROM TR_OUTP_FIN_CLINIC_MASTER c
+        WHERE c.APPOINTS_INDICATOR = 2 AND c.RETURNED_DATE BETWEEN #{lastStartDate} AND #{endDate}
+          AND c.OPERATOR_NO = #{cashier}
+        )
     </select>
 
     <!-- ============================================================ -->
@@ -328,9 +356,9 @@
         SELECT op AS "value",
                NVL((SELECT s.staff_name FROM tr_staff_dict s WHERE s.staff_code = op AND ROWNUM = 1), op) AS "label"
         FROM (
-            SELECT DISTINCT c.OPERATOR_NO AS op FROM TR_OUTP_FIN_CLINIC_MASTER c
+            SELECT DISTINCT c.OPERATOR_NO AS op FROM TR_OUTP_FIN_CLINIC_MASTER c WHERE c.OPERATOR_NO IS NOT NULL
             UNION
-            SELECT DISTINCT r.OPERATOR_NO FROM TR_OUTP_FIN_RCPT_ACCT r
+            SELECT DISTINCT r.OPERATOR_NO FROM TR_OUTP_FIN_RCPT_ACCT r WHERE r.OPERATOR_NO IS NOT NULL
         ) ORDER BY op
     </select>
 

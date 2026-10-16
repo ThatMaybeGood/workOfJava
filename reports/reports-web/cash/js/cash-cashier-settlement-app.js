@@ -432,8 +432,19 @@ class CashierSettlementController {
             return;
         }
 
-        // 按收费员统计/按来源方式统计：行=日期，列=9个业务量指标，值=所选操作员/来源的笔数
-        const columns = TABLE_METRICS;
+        // 按收费员统计：行=日期，列=全部操作员(姓名)，单元格=9个业务量指标之和
+        // 按来源方式统计：行=日期，列=9个业务量指标，值=所选操作员的笔数
+        let columns;
+        if (this.filter.tab === 'cashier') {
+            columns = [];
+            this.tableState.data.forEach(row => {
+                Object.keys(row).forEach(k => {
+                    if (k !== 'date' && k !== '汇总' && !columns.includes(k)) columns.push(k);
+                });
+            });
+        } else {
+            columns = TABLE_METRICS;
+        }
         let headHtml = `<tr><th>${dateLabel}</th>`;
         columns.forEach(name => {
             headHtml += `<th class="text-center">${name}</th>`;
@@ -574,8 +585,20 @@ class CashierSettlementController {
 
     renderChart(data) {
         document.getElementById('chartTitle').textContent = data.title;
-        document.getElementById('chartDateRange').textContent = data.dateRange;
-        document.getElementById('chartSubTitle').textContent = data.subTitle;
+        // 来源页签头部已有日期/指标两个下拉, 日期文本与副标题多余, 隐藏;
+        // 收费员页签副标题显示所选操作员姓名(下拉选中项), 日期范围保留
+        const isSource = this.filter.tab === 'source';
+        const rangeEl = document.getElementById('chartDateRange');
+        const subEl = document.getElementById('chartSubTitle');
+        rangeEl.style.display = isSource ? 'none' : '';
+        if (isSource) {
+            subEl.style.display = 'none';
+        } else {
+            subEl.style.display = '';
+            rangeEl.textContent = data.dateRange;
+            const dim = (this.tableDims || []).find(d => d.value === this.selectedCashier);
+            subEl.textContent = dim ? dim.label : (data.subTitle || '');
+        }
 
         const option = {
             tooltip: {
@@ -638,8 +661,19 @@ function exportCashierReport() {
         headers = [dateLabel, '操作员', ...WORKLOAD_METRICS, '汇总'];
         rows = data.map(row => [row.date, row['操作员'] || '',
             ...WORKLOAD_METRICS.map(name => row[name]), row['汇总']]);
+    }
+    if (tab === 'cashier') {
+        // 按收费员统计：行=日期，列=全部操作员(姓名)，单元格=9指标之和
+        const cashiers = [];
+        data.forEach(row => {
+            Object.keys(row).forEach(k => {
+                if (k !== 'date' && k !== '汇总' && !cashiers.includes(k)) cashiers.push(k);
+            });
+        });
+        headers = [dateLabel, ...cashiers, '汇总'];
+        rows = data.map(row => [row.date, ...cashiers.map(name => row[name]), row['汇总']]);
     } else {
-        // 按收费员统计/按来源方式统计：行=日期，列=9个业务量指标
+        // 按来源方式统计：行=日期，列=9个业务量指标
         headers = [dateLabel, ...TABLE_METRICS, '汇总'];
         rows = data.map(row => [row.date, ...TABLE_METRICS.map(name => row[name]), row['汇总']]);
     }

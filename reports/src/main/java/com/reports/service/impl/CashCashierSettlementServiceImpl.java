@@ -232,12 +232,16 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
             if ("workload".equalsIgnoreCase(tab)) {
                 return buildWorkloadReportTable(request, page, pageSize, month);
             }
-            // 按收费员统计/按来源方式统计：行=时间，列=9个业务量指标(与来源图表指标一致)，
-            // 维度一律为操作员(staff_dict姓名展示, 值为工号传回筛选)
-            String dimValue = "source".equalsIgnoreCase(tab) ? request.getChannel() : request.getCashier();
+            // 按收费员统计：行=时间，列=全部操作员(姓名)，单元格=该天该操作员9个业务量指标之和
+            if ("cashier".equalsIgnoreCase(tab)) {
+                return buildCashierTotalTable(request, page, pageSize, month);
+            }
+            // 按来源方式统计：行=时间，列=9个业务量指标(与来源图表指标一致)，值=所选操作员的笔数
+            String dimValue = request.getChannel() != null && !request.getChannel().isEmpty()
+                    ? request.getChannel() : request.getCashier();
             List<Map<String, Object>> rows = cashSettleMapper.queryMetricPivot(
                     request.getStartDate(), request.getEndDate(), month, null, dimValue);
-            List<DimOption> dims = toDimOptions(cashSettleMapper.queryWorkloadDims("operator"));
+            List<DimOption> dims = queryDimsCached();
             SimpleDateFormat sdf = new SimpleDateFormat(month ? "yyyy-MM" : "yyyy-MM-dd");
             Map<String, Map<String, Object>> periodMap = new LinkedHashMap<>();
             for (Map<String, Object> row : rows) {
@@ -265,12 +269,49 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
         }
     }
 
+    /** 按收费员统计：行=时间，列=全部操作员(staff_dict姓名)，单元格=9个业务量指标笔数之和 */
+    private CashierTableResult buildCashierTotalTable(CashCashierSettlementRequest request,
+                                                      Integer page, Integer pageSize, boolean month) {
+        List<Map<String, Object>> rows = cashSettleMapper.queryMetricPivot(
+                request.getStartDate(), request.getEndDate(), month, null, null);
+        List<DimOption> dims = queryDimsCached();
+        Map<String, String> nameByCode = new HashMap<>();
+        for (DimOption d : dims) {
+            nameByCode.put(d.getValue(), d.getLabel());
+        }
+        SimpleDateFormat sdf = new SimpleDateFormat(month ? "yyyy-MM" : "yyyy-MM-dd");
+        // period -> 操作员姓名 -> 9指标之和
+        Map<String, Map<String, Double>> periodMap = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String period = row.get("period") == null ? "" : sdf.format((Date) row.get("period"));
+            Object dim = row.get("dim");
+            if (dim == null) {
+                continue;
+            }
+            String name = nameByCode.getOrDefault(String.valueOf(dim), String.valueOf(dim));
+            double value = toDouble(row.get("cnt"));
+            periodMap.computeIfAbsent(period, k -> new LinkedHashMap<>());
+            periodMap.get(period).merge(name, value, Double::sum);
+        }
+        List<TableItem> allItems = new ArrayList<>();
+        for (Map.Entry<String, Map<String, Double>> entry : periodMap.entrySet()) {
+            Map<String, Object> cols = new LinkedHashMap<>(entry.getValue());
+            double total = entry.getValue().values().stream().mapToDouble(Double::doubleValue).sum();
+            cols.put("汇总", total);
+            TableItem item = new TableItem();
+            item.setDate(entry.getKey());
+            item.setColumns(cols);
+            allItems.add(item);
+        }
+        return pageResult(allItems, page, pageSize, dims);
+    }
+
     /** 工作量报表：行=时间+操作员(姓名)，列=5个工作量指标 */
     private CashierTableResult buildWorkloadReportTable(CashCashierSettlementRequest request,
                                                         Integer page, Integer pageSize, boolean month) {
         List<Map<String, Object>> rows = cashSettleMapper.queryWorkloadPivot(
                 request.getStartDate(), request.getEndDate(), month, null, null);
-        List<DimOption> dims = toDimOptions(cashSettleMapper.queryWorkloadDims("operator"));
+        List<DimOption> dims = queryDimsCached();
         Map<String, String> nameByCode = new HashMap<>();
         for (DimOption d : dims) {
             nameByCode.put(d.getValue(), d.getLabel());
@@ -324,9 +365,30 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
             return list;
         }
         for (Map<String, Object> row : rows) {
-            list.add(new DimOption(String.valueOf(row.get("value")), String.valueOf(row.get("label"))));
+            if (row == null) {
+                continue;
+            }
+            Object value = row.get("value");
+            if (value == null) {
+                continue;   // 工号为空的维度行无法筛选, 跳过
+            }
+            Object label = row.get("label");
+            list.add(new DimOption(String.valueOf(value), label == null ? "" : String.valueOf(label)));
         }
         return list;
+    }
+
+    /** 维度下拉缓存：dims 一天内基本不变, 避免每次表格请求全表扫(10min TTL) */
+    private volatile List<DimOption> cachedDims;
+    private volatile long cachedDimsAt;
+
+    private List<DimOption> queryDimsCached() {
+        long now = System.currentTimeMillis();
+        if (cachedDims == null || now - cachedDimsAt > 10 * 60 * 1000L) {
+            cachedDims = toDimOptions(cashSettleMapper.queryWorkloadDims("operator"));
+            cachedDimsAt = now;
+        }
+        return cachedDims;
     }
 
     private CashierTableResult pageResult(List<TableItem> allItems, Integer page, Integer pageSize, List<DimOption> dims) {
