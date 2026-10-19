@@ -1102,6 +1102,20 @@ public class ReportServiceImpl implements ReportService {
         List<InpCashSubEntity> allSubs = allMains.stream()
                 .flatMap(m -> m.getSubs().stream()).collect(Collectors.toList());
 
+        //2026-10-19 汇总(1)前日暂收款/(8)前日欠条不加总: 取段第一天前一日日报同收费员的(11)今日暂收款/(16)今日欠条, 无则0
+        //如10.17/10.18放假, 段=[10.16..10.18], 取10.15日报; 节假日与节假日前一天的日报这两个值为0, 不会重复计入
+        LocalDate preSegDate = allMains.get(0).getReportDate().minusDays(1);
+        Map<String, InpCashSubEntity> preSegMap = new HashMap<>();
+        InpCashMainEntity preSegMain = queryInpReportByDate(preSegDate, Constant.NOT_TOTAL);
+        if (preSegMain != null) {
+            for (InpCashSubEntity s : preSegMain.getSubs()) {
+                String k = s.getDbUser() != null ? s.getDbUser() : s.getOperatorNo();
+                if (k != null) {
+                    preSegMap.putIfAbsent(k, s);
+                }
+            }
+        }
+
         // 按收费员逐行汇总: 各列=期间每天对应列合计(公式列同样直接加总), 收费员顺序以最近一天报表为准
         Map<String, InpCashSubEntity> grouped = new LinkedHashMap<>();
         for (InpCashSubEntity item : allSubs) {
@@ -1119,13 +1133,14 @@ public class ReportServiceImpl implements ReportService {
                 totalSub.setCreatedTime(LocalDateTime.now());
                 grouped.put(key, totalSub);
             }
-            // 上午部分
-            totalSub.setPreviousDayAdvanceReceipt(totalSub.getPreviousDayAdvanceReceipt().add(item.getPreviousDayAdvanceReceipt()));
+            // 上午部分: (1)(8)取段前一日对应值(同人重复赋值结果一致), 其余列段内加总
+            InpCashSubEntity preSegSub = preSegMap.get(key);
+            totalSub.setPreviousDayAdvanceReceipt(preSegSub != null ? getSafeBigDecimal(preSegSub.getTodayAdvanceReceipt()) : BigDecimal.ZERO);
             totalSub.setTodayAdvancePayment(totalSub.getTodayAdvancePayment().add(item.getTodayAdvancePayment()));
             totalSub.setTodaySettlementIncome(totalSub.getTodaySettlementIncome().add(item.getTodaySettlementIncome()));
             totalSub.setTodayPreHospitalIncome(totalSub.getTodayPreHospitalIncome().add(item.getTodayPreHospitalIncome()));
             totalSub.setOtherIncome(totalSub.getOtherIncome().add(item.getOtherIncome()));
-            totalSub.setPreviousDayIOU(totalSub.getPreviousDayIOU().add(item.getPreviousDayIOU()));
+            totalSub.setPreviousDayIOU(preSegSub != null ? getSafeBigDecimal(preSegSub.getTodayIOU()) : BigDecimal.ZERO);
             totalSub.setTodayOutpatientIOU(totalSub.getTodayOutpatientIOU().add(item.getTodayOutpatientIOU()));
 
             // (11)(12)(15)汇总界面手工录入, 不加总; (17)(18)取各天登记表加总
@@ -1229,12 +1244,12 @@ public class ReportServiceImpl implements ReportService {
             // 假设 HIS 接口需要 String，则转换
             List<HisInpIncomeResponseDTO> hisInpIncomeResponseDTOList = hisdata.findByDateInp(currtDate.toString());
 
-            //2026-10-13 对应日期有汇总就提汇总优先: 当天是汇总展示日时, 前日取当天汇总行(假期期间合计,当天一次结清), 否则取前一天日报
-            //月初当天是节假日(前一天为上月末)时不提取前日暂收款/前日欠条
-            boolean monthFirstHoliday = currtDate.getDayOfMonth() == 1
-                    && !holidayService.findByDate(currtDate).isEmpty();
+            //2026-10-19 节假日当天与节假日前一天不提取前日暂收款/前日欠条(置0), 节假日汇总行的这两个值由inpHolidayTotal另取
+            //非节假日: 当天是汇总展示日时提当天汇总行(当天一次结清), 否则提前一天日报
+            boolean holidayNoExtract = !holidayService.findByDate(currtDate).isEmpty()
+                    || !holidayService.findByDate(currtDate.plusDays(1)).isEmpty();
             InpCashMainEntity preInpResult = null;
-            if (!monthFirstHoliday) {
+            if (!holidayNoExtract) {
                 preInpResult = queryInpReportByDate(currtDate, Constant.YES);
                 if (preInpResult == null) {
                     preInpResult = queryInpReportByDate(preDate, Constant.NOT_TOTAL);
