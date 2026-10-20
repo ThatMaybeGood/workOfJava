@@ -28,7 +28,6 @@
             min-height: 560px;
             display: flex;
             flex-direction: column;
-            gap: 16px;
         }
 
         /* 顶栏 */
@@ -38,14 +37,15 @@
             padding: 12px 24px;
             display: flex;
             align-items: center;
-            gap: 14px;
             box-shadow: 0 2px 10px rgba(30, 41, 59, 0.05);
             flex: 0 0 auto;
+            margin-bottom: 16px;
         }
 
         .app-logo {
             width: 40px;
             height: 40px;
+            margin-right: 14px;
             border-radius: 12px;
             background: linear-gradient(145deg, #334155, #0f172a);
             display: flex;
@@ -72,7 +72,6 @@
             flex: 1;
             min-height: 0;
             display: flex;
-            gap: 16px;
         }
 
         /* 左侧控制栏：与日历同高，刷新按钮沉底对齐 */
@@ -85,6 +84,7 @@
             display: flex;
             flex-direction: column;
             min-height: 0;
+            margin-right: 16px;
         }
 
         .side-label {
@@ -130,9 +130,10 @@
 
         .stats-row {
             display: flex;
-            gap: 10px;
             margin: 6px 0 18px;
         }
+
+        .stat-card + .stat-card { margin-left: 10px; }
 
         .stat-card {
             flex: 1;
@@ -162,13 +163,13 @@
         .legend {
             display: flex;
             flex-direction: column;
-            gap: 10px;
         }
+
+        .legend-item + .legend-item { margin-top: 10px; }
 
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 10px;
             font-size: 0.76rem;
             color: #475569;
         }
@@ -184,6 +185,7 @@
             font-size: 0.72rem;
             font-weight: 800;
             position: relative;
+            margin-right: 10px;
         }
 
         .side-spacer { flex: 1; }
@@ -217,6 +219,7 @@
             display: flex;
             flex-direction: column;
             min-height: 0;
+            margin-left: 16px;
         }
 
         .calendar-header {
@@ -236,7 +239,6 @@
             transform: translateX(-50%);
             display: flex;
             align-items: center;
-            gap: 14px;
             z-index: 70;
         }
 
@@ -251,6 +253,7 @@
         /* bt6 年月下拉：点标题选月份/切年份 */
         .title-wrap {
             position: relative;
+            margin: 0 14px;
         }
 
         .year-month-title {
@@ -334,8 +337,7 @@
         }
 
         .nav-buttons {
-            display: flex;
-            gap: 8px;
+            display: none;
         }
 
         .nav-btn {
@@ -398,7 +400,6 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 3px;
             min-height: 0;
             overflow: hidden;
         }
@@ -524,8 +525,8 @@
             body { padding: 10px; }
             .app { height: auto; min-height: 0; }
             .main { flex-direction: column; }
-            .sidebar { flex: none; width: 100%; }
-            .calendar-card { padding: 14px; }
+            .sidebar { flex: none; width: 100%; margin-right: 0; margin-bottom: 16px; }
+            .calendar-card { padding: 14px; margin-left: 0; }
             .calendar-grid { grid-template-rows: none; }
             .calendar-day { min-height: 72px; aspect-ratio: 1 / 0.85; }
             .day-number { font-size: 0.85rem; }
@@ -593,19 +594,23 @@
         .type-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
             margin-bottom: 12px;
         }
+
+        .type-option + .type-option { margin-top: 8px; }
 
         .type-option {
             display: flex;
             align-items: center;
-            gap: 10px;
             border: 1.5px solid #e2e8f0;
             border-radius: 12px;
             padding: 9px 12px;
             cursor: pointer;
             transition: all 0.15s;
+        }
+
+        .type-radio {
+            margin-right: 10px;
         }
 
         .type-option:hover { border-color: #cbd5e1; }
@@ -680,8 +685,9 @@
 
         .mark-actions {
             display: flex;
-            gap: 10px;
         }
+
+        .mark-btn + .mark-btn { margin-left: 10px; }
 
         .mark-btn {
             flex: 1;
@@ -707,6 +713,14 @@
         }
 
         .mark-btn.primary:hover { background: #dc2626; }
+
+        /* bt8 确认弹窗文案 */
+        .confirm-text {
+            font-size: 0.92rem;
+            color: #334155;
+            line-height: 1.7;
+            margin-bottom: 18px;
+        }
 
         @media (prefers-reduced-motion: reduce) {
             .mark-card { animation: none; }
@@ -824,6 +838,15 @@
         <div class="mark-actions">
             <button class="mark-btn ghost" id="markCancelBtn">取消</button>
             <button class="mark-btn primary" id="markOkBtn">确定标记</button>
+        </div>
+    </div>
+</div>
+<div class="mark-modal" id="confirmModal" style="display:none;">
+    <div class="mark-card">
+        <div class="confirm-text" id="confirmText"></div>
+        <div class="mark-actions">
+            <button class="mark-btn ghost" id="confirmCancelBtn">再想想</button>
+            <button class="mark-btn primary" id="confirmOkBtn">确定取消</button>
         </div>
     </div>
 </div>
@@ -1143,12 +1166,45 @@
         });
     }
 
+    // bt8 确认弹窗：替代原生confirm，风格与标记弹窗一致
+    let confirmResolve = null;
+
+    function openConfirm(message) {
+        return new Promise(resolve => {
+            confirmResolve = resolve;
+            document.getElementById('confirmText').textContent = message;
+            document.getElementById('confirmModal').style.display = 'flex';
+        });
+    }
+
+    function closeConfirm(result) {
+        document.getElementById('confirmModal').style.display = 'none';
+        if (confirmResolve) {
+            const r = confirmResolve;
+            confirmResolve = null;
+            r(result);
+        }
+    }
+
+    function initConfirmModal() {
+        document.getElementById('confirmOkBtn').addEventListener('click', () => closeConfirm(true));
+        document.getElementById('confirmCancelBtn').addEventListener('click', () => closeConfirm(false));
+        document.getElementById('confirmModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeConfirm(false);
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('confirmModal').style.display !== 'none') {
+                closeConfirm(false);
+            }
+        });
+    }
+
     // 处理点击日期
     async function handleDayClick(dateStr) {
         const isHoliday = holidaySet.has(dateStr);
 
         if (isHoliday) {
-            if (!confirm(`日期 ${dateStr} 当前标记为“休”，确定要取消吗？`)) return;
+            if (!await openConfirm(`日期 ${dateStr} 当前标记为“休”，确定要取消吗？`)) return;
             let holidayItem = holidayFullMap.get(dateStr);
             // bt2 serial_no缺失或非服务端值时先重拉该月，保证取消可用
             if (!holidayItem || !holidayItem.serial_no || String(holidayItem.serial_no).indexOf('temp_') === 0) {
@@ -1356,6 +1412,7 @@
 
         initMarkModal();
         initYmDropdown();
+        initConfirmModal();
 
         loadDataAndRender();
     }
