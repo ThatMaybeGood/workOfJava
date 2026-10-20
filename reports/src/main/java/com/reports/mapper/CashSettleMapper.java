@@ -7,7 +7,7 @@ import com.reports.entity.CashSettleChtEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import java.util.Date;
+import java.sql.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -42,20 +42,16 @@ public interface CashSettleMapper extends BaseMapper<CashSettleOvEntity> {
             @Param("lastEndDate") Date lastEndDate);
 
     /**
-     * 图表按收费员维度：挂号类4指标按工号过滤，口径同queryRegisterOverview
+     * 图表按收费员维度：挂号类4指标按工号过滤只出本期(图表无同比展示)
      *
-     * @param startDate    本期开始日期
-     * @param endDate      本期结束日期
-     * @param lastStartDate 同期开始日期
-     * @param lastEndDate   同期结束日期
-     * @param cashier      收费员工号(OPERATOR_NO)
-     * @return 该收费员挂号类指标本期/同期计数
+     * @param startDate 本期开始日期
+     * @param endDate   本期结束日期
+     * @param cashier   收费员工号(OPERATOR_NO)
+     * @return 该收费员挂号类指标本期计数
      */
     com.reports.dto.response.cash.cashier.settlement.RegisterOverviewData queryCashierWorkload(
             @Param("startDate") Date startDate,
             @Param("endDate") Date endDate,
-            @Param("lastStartDate") Date lastStartDate,
-            @Param("lastEndDate") Date lastEndDate,
             @Param("cashier") String cashier);
 
     /**
@@ -74,20 +70,16 @@ public interface CashSettleMapper extends BaseMapper<CashSettleOvEntity> {
             @Param("lastEndDate") Date lastEndDate);
 
     /**
-     * 图表按收费员维度-收费类2指标：源表TR_OUTP_FIN_RCPT_ACCT按工号过滤
+     * 图表按收费员维度-收费类2指标：只出本期(图表无同比展示)
      *
-     * @param startDate    本期开始日期
-     * @param endDate      本期结束日期
-     * @param lastStartDate 同期开始日期
-     * @param lastEndDate   同期结束日期
-     * @param cashier      收费员工号(OPERATOR_NO)
-     * @return 该收费员收费类指标本期/同期计数
+     * @param startDate 本期开始日期
+     * @param endDate   本期结束日期
+     * @param cashier   收费员工号(OPERATOR_NO)
+     * @return 该收费员收费类指标本期计数
      */
     com.reports.dto.response.cash.cashier.settlement.RcptOverviewData queryCashierCharge(
             @Param("startDate") Date startDate,
             @Param("endDate") Date endDate,
-            @Param("lastStartDate") Date lastStartDate,
-            @Param("lastEndDate") Date lastEndDate,
             @Param("cashier") String cashier);
 
     /**
@@ -106,20 +98,16 @@ public interface CashSettleMapper extends BaseMapper<CashSettleOvEntity> {
             @Param("lastEndDate") Date lastEndDate);
 
     /**
-     * 图表按收费员维度-预交金类2指标：源表tr_inpat_prepay_rcpt按工号过滤
+     * 图表按收费员维度-预交金类2指标：只出本期(图表无同比展示)
      *
-     * @param startDate    本期开始日期
-     * @param endDate      本期结束日期
-     * @param lastStartDate 同期开始日期
-     * @param lastEndDate   同期结束日期
-     * @param cashier      收费员工号(OPERATOR_NO)
-     * @return 该收费员预交金类指标本期/同期计数
+     * @param startDate 本期开始日期
+     * @param endDate   本期结束日期
+     * @param cashier   收费员工号(OPERATOR_NO)
+     * @return 该收费员预交金类指标本期计数
      */
     com.reports.dto.response.cash.cashier.settlement.PrepayOverviewData queryCashierPrepay(
             @Param("startDate") Date startDate,
             @Param("endDate") Date endDate,
-            @Param("lastStartDate") Date lastStartDate,
-            @Param("lastEndDate") Date lastEndDate,
             @Param("cashier") String cashier);
 
     /**
@@ -138,20 +126,16 @@ public interface CashSettleMapper extends BaseMapper<CashSettleOvEntity> {
             @Param("lastEndDate") Date lastEndDate);
 
     /**
-     * 图表按收费员维度-出院结算量：源表tr_settle_master按工号计数（每笔结算唯一）
+     * 图表按收费员维度-出院结算量：只出本期(图表无同比展示)
      *
-     * @param startDate    本期开始日期
-     * @param endDate      本期结束日期
-     * @param lastStartDate 同期开始日期
-     * @param lastEndDate   同期结束日期
-     * @param cashier      收费员工号(OPERATOR_NO)
-     * @return 该收费员出院结算量本期/同期计数
+     * @param startDate 本期开始日期
+     * @param endDate   本期结束日期
+     * @param cashier   收费员工号(OPERATOR_NO)
+     * @return 该收费员出院结算量本期计数
      */
     com.reports.dto.response.cash.cashier.settlement.DischargeOverviewData queryCashierDischarge(
             @Param("startDate") Date startDate,
             @Param("endDate") Date endDate,
-            @Param("lastStartDate") Date lastStartDate,
-            @Param("lastEndDate") Date lastEndDate,
             @Param("cashier") String cashier);
 
 
@@ -196,8 +180,8 @@ public interface CashSettleMapper extends BaseMapper<CashSettleOvEntity> {
                                                  @Param("dimType") String dimType,
                                                  @Param("dimValue") String dimValue);
 
-    /** 维度下拉选项：工号 + staff_dict姓名(查不到回退工号) */
-    List<Map<String, Object>> queryWorkloadDims(@Param("dimType") String dimType);
+    /** 工号批量取姓名(staff_code不唯一取MIN): 维度下拉从透视结果派生后回关联, 查不到由调用方回退工号 */
+    List<Map<String, Object>> queryStaffNames(@Param("codes") List<String> codes);
 
     /**
      * 9业务量指标·按时间+操作员出每指标笔数（按收费员统计/按来源方式统计表格共用;

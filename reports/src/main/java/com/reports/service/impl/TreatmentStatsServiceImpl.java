@@ -60,7 +60,7 @@ public class TreatmentStatsServiceImpl implements TreatmentStatsService {
         }
         try {
             TreatmentStatsOvEntity e =
-                    treatmentStatsMapper.queryOverview(request.getStartDate(), request.getEndDate());
+                    treatmentStatsMapper.queryOverview(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
             if (e != null) {
                 overview.put("patientCount", nvl(e.getPatientCount()));
                 overview.put("treatmentCount", nvl(e.getTreatmentCount()));
@@ -84,7 +84,7 @@ public class TreatmentStatsServiceImpl implements TreatmentStatsService {
             try {
                 // queryTrend 已按 trend_date 分组升序返回
                 List<TreatmentStatsTrendEntity> rows =
-                        treatmentStatsMapper.queryTrend(request.getStartDate(), request.getEndDate());
+                        treatmentStatsMapper.queryTrend(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
                 SimpleDateFormat sdf = new SimpleDateFormat("MM-dd");
                 for (TreatmentStatsTrendEntity row : rows) {
                     dates.add(row.getTrendDate() == null ? "" : sdf.format(row.getTrendDate()));
@@ -109,7 +109,7 @@ public class TreatmentStatsServiceImpl implements TreatmentStatsService {
         }
         try {
             List<Map<String, Object>> rows =
-                    treatmentStatsMapper.queryTopItems(request.getStartDate(), request.getEndDate());
+                    treatmentStatsMapper.queryTopItems(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
             for (Map<String, Object> row : rows) {
                 if (list.size() >= TOP_N) {
                     break;
@@ -134,7 +134,7 @@ public class TreatmentStatsServiceImpl implements TreatmentStatsService {
             try {
                 // deptCode / deptName 传 null：页面这张表是全科室排名，不做科室过滤
                 List<TreatmentStatsDtlEntity> rows =
-                        treatmentStatsMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(),
+                        treatmentStatsMapper.queryDeptDetail(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()),
                                 null, null);
                 int rank = 1;
                 for (TreatmentStatsDtlEntity r : rows) {
@@ -175,5 +175,10 @@ public class TreatmentStatsServiceImpl implements TreatmentStatsService {
 
     private static int nvl(Integer v) {
         return v == null ? 0 : v.intValue();
+    }
+
+    /** java.util.Date→java.sql.Date：绑定按DATE类型发送， 避免TIMESTAMP绑定触发的列隐式转换致索引失效 */
+    private static java.sql.Date sqlDay(java.util.Date d) {
+        return d == null ? null : new java.sql.Date(d.getTime());
     }
 }

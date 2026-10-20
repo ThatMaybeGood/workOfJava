@@ -148,3 +148,21 @@ DROP TABLE tmp_staff_import;
 
 -- 2026-10-15 追加: staff_code 查询索引（收费员结账等报表按工号关联姓名; 字典表小, 索引可建可不建）
 -- CREATE INDEX IDX_STAFF_DICT_CODE ON tr_staff_dict(staff_code);
+
+-- ============================================================
+-- 2026-10-19 追加: tr_staff_dict.staff_code 查询索引
+--   背景: 收费员结账等报表按工号关联姓名, 每行一次ROWNUM=1标量子查询;
+--   生产库该表为HIS comm.users全量抽取(含历史账号远超预期), 无索引致
+--   维度下拉queryWorkloadDims固定~2.7s(与日期范围/行数无关), 建索引后毫秒级
+-- 幂等创建(已存在则跳过):
+DECLARE
+    v_cnt NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_cnt FROM user_indexes WHERE index_name = 'IDX_STAFF_DICT_CODE';
+    IF v_cnt = 0 THEN
+        EXECUTE IMMEDIATE 'CREATE INDEX IDX_STAFF_DICT_CODE ON tr_staff_dict(staff_code)';
+    END IF;
+END;
+/
+-- 验证: 执行计划中 tr_staff_dict 应为 INDEX RANGE SCAN, 维度下拉<0.1s
+-- SELECT index_name FROM user_indexes WHERE index_name = 'IDX_STAFF_DICT_CODE';

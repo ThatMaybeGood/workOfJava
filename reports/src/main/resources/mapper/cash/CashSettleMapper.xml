@@ -13,184 +13,177 @@
     
 
     <!-- ============================================================ -->
-    <!-- 概览/图表·挂号类4指标计数: 本期+同期(月份-12)各4个COUNT CASE -->
-    <!-- 归期: 预约/取号/当日挂号按STAT_DATE, 退号按RETURNED_DATE -->
-    <!-- 口径: IS_RETURN_TYPE=-1为退号剔除(!=-1即正常/取号成功), 退号另要求REGISTRATION_STATUS!=0, 一律APPOINTS_INDICATOR=2 -->
+    <!-- 概览/图表·各指标计数片段: 本期/同期拆两段UNION ALL, 各自WHERE圈定区间, CASE不带日期条件 -->
+    <!-- 短区间只扫2倍查询天数(原本期+同期合一BETWEEN跨年扫13个月, 查5天也要4-6s) -->
     <!-- ============================================================ -->
-    <!-- 挂号类6个STAT_DATE归期指标(本期+同期), UNION ALL 的 STAT 分支用 -->
-    <sql id="regWorkloadCountsStat">
-        COUNT(CASE WHEN c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
-                    AND TRUNC(c.VISIT_DATE) != TRUNC(c.REGISTERING_DATE) AND c.IS_RETURN_TYPE != -1 THEN 1 END) AS appointmentRegister,
-        COUNT(CASE WHEN c.STAT_DATE BETWEEN #{lastStartDate} AND #{lastEndDate}
-                    AND TRUNC(c.VISIT_DATE) != TRUNC(c.REGISTERING_DATE) AND c.IS_RETURN_TYPE != -1 THEN 1 END) AS appointmentRegisterLast,
-        COUNT(CASE WHEN c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
-                    AND TRUNC(c.VISIT_DATE) = TRUNC(c.REGISTERING_DATE) AND c.IS_RETURN_TYPE != -1 THEN 1 END) AS todayRegister,
-        COUNT(CASE WHEN c.STAT_DATE BETWEEN #{lastStartDate} AND #{lastEndDate}
-                    AND TRUNC(c.VISIT_DATE) = TRUNC(c.REGISTERING_DATE) AND c.IS_RETURN_TYPE != -1 THEN 1 END) AS todayRegisterLast,
-        COUNT(CASE WHEN c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
-                    AND TRUNC(c.VISIT_DATE) != TRUNC(c.REGISTERING_DATE) AND c.IS_RETURN_TYPE != -1 THEN 1 END) AS appointmentFetch,
-        COUNT(CASE WHEN c.STAT_DATE BETWEEN #{lastStartDate} AND #{lastEndDate}
-                    AND TRUNC(c.VISIT_DATE) != TRUNC(c.REGISTERING_DATE) AND c.IS_RETURN_TYPE != -1 THEN 1 END) AS appointmentFetchLast
+    <!-- 挂号类STAT归期3指标: 预约挂号=ind1预约登记+ind2就诊日!=挂号日(取号), 当日挂号=ind2同日, 预约取号=ind2取号; 均剔退号 -->
+    <sql id="regCountsStat3">
+        COUNT(CASE WHEN (c.APPOINTS_INDICATOR = 1 OR (c.APPOINTS_INDICATOR = 2 AND TRUNC(c.VISIT_DATE) != TRUNC(c.REGISTERING_DATE))) AND c.IS_RETURN_TYPE != -1 THEN 1 END) AS appointmentRegister${s},
+        COUNT(CASE WHEN c.APPOINTS_INDICATOR = 2 AND TRUNC(c.VISIT_DATE) = TRUNC(c.REGISTERING_DATE) AND c.IS_RETURN_TYPE != -1 THEN 1 END) AS todayRegister${s},
+        COUNT(CASE WHEN c.APPOINTS_INDICATOR = 2 AND TRUNC(c.VISIT_DATE) != TRUNC(c.REGISTERING_DATE) AND c.IS_RETURN_TYPE != -1 THEN 1 END) AS appointmentFetch${s}
     </sql>
-
-    <!-- 退号2个RETURNED_DATE归期指标(本期+同期), UNION ALL 的 RETURNED 分支用 -->
-    <sql id="regWorkloadCountsRet">
-        COUNT(CASE WHEN c.RETURNED_DATE BETWEEN #{startDate} AND #{endDate}
-                    AND c.IS_RETURN_TYPE = -1 AND c.REGISTRATION_STATUS != 0 THEN 1 END) AS refund,
-        COUNT(CASE WHEN c.RETURNED_DATE BETWEEN #{lastStartDate} AND #{lastEndDate}
-                    AND c.IS_RETURN_TYPE = -1 AND c.REGISTRATION_STATUS != 0 THEN 1 END) AS refundLast
+    <!-- 退号1指标: RETURNED_DATE归期, IS_RETURN_TYPE=-1且REGISTRATION_STATUS!=0 -->
+    <sql id="regCountsRet1">
+        COUNT(CASE WHEN c.IS_RETURN_TYPE = -1 AND c.REGISTRATION_STATUS != 0 THEN 1 END) AS refund${s}
+    </sql>
+    <!-- 收费类2指标: 进项NVL(TOTAL_CHARGES,0)>=0, 退项REFUNDED_RCPT_NO非空且TOTAL_CHARGES<0(口径同门诊财务) -->
+    <sql id="rcptChargeCounts2">
+        COUNT(CASE WHEN NVL(r.TOTAL_CHARGES, 0) >= 0 THEN 1 END) AS outpatientCharge${s},
+        COUNT(CASE WHEN r.REFUNDED_RCPT_NO IS NOT NULL AND r.TOTAL_CHARGES <![CDATA[<]]> 0 THEN 1 END) AS outpatientRefund${s}
+    </sql>
+    <!-- 预交金类2指标: 交款=收预交金, 退款=退院(口径同住院预交金统计) -->
+    <sql id="prepayCounts2">
+        COUNT(CASE WHEN p.transact_type = '交款' THEN 1 END) AS prepayment${s},
+        COUNT(CASE WHEN p.transact_type = '退款' THEN 1 END) AS hospitalRefund${s}
+    </sql>
+    <!-- 出院结算量1指标: settle_status=1已出院结算(口径同出院结算报表) -->
+    <sql id="dischargeCounts1">
+        COUNT(CASE WHEN v.settle_status = 1 THEN 1 END) AS dischargeSettlement${s}
     </sql>
 
     <!-- ============================================================ -->
     <!-- 概览·挂号类4指标: 源表直取，合计维度 -->
     <!-- ============================================================ -->
-    <!-- 归期列OR会让索引失效全表扫(概览一次4-6s); 改写为 STAT/RETURNED 两段 UNION ALL 各自走索引范围扫 -->
     <select id="queryRegisterOverview" resultType="com.reports.dto.response.cash.cashier.settlement.RegisterOverviewData">
         SELECT SUM(appointmentRegister) AS appointmentRegister, SUM(appointmentRegisterLast) AS appointmentRegisterLast,
                SUM(todayRegister) AS todayRegister, SUM(todayRegisterLast) AS todayRegisterLast,
                SUM(appointmentFetch) AS appointmentFetch, SUM(appointmentFetchLast) AS appointmentFetchLast,
                SUM(refund) AS refund, SUM(refundLast) AS refundLast
         FROM (
-        SELECT
-        <include refid="regWorkloadCountsStat"/>,
-        0 AS refund, 0 AS refundLast
+        SELECT <include refid="regCountsStat3"><property name="s" value=""/></include>,
+               0 AS appointmentRegisterLast, 0 AS todayRegisterLast, 0 AS appointmentFetchLast,
+               0 AS refund, 0 AS refundLast
         FROM TR_OUTP_FIN_CLINIC_MASTER c
-        WHERE c.APPOINTS_INDICATOR = 2 AND c.STAT_DATE BETWEEN #{lastStartDate} AND #{endDate}
+        WHERE c.APPOINTS_INDICATOR IN (1, 2) AND c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
         UNION ALL
-        SELECT 0 AS appointmentRegister, 0 AS appointmentRegisterLast,
-               0 AS todayRegister, 0 AS todayRegisterLast,
-               0 AS appointmentFetch, 0 AS appointmentFetchLast,
-        <include refid="regWorkloadCountsRet"/>
+        SELECT 0 AS appointmentRegister, 0 AS todayRegister, 0 AS appointmentFetch,
+               <include refid="regCountsStat3"><property name="s" value="Last"/></include>,
+               0 AS refund, 0 AS refundLast
         FROM TR_OUTP_FIN_CLINIC_MASTER c
-        WHERE c.APPOINTS_INDICATOR = 2 AND c.RETURNED_DATE BETWEEN #{lastStartDate} AND #{endDate}
+        WHERE c.APPOINTS_INDICATOR IN (1, 2) AND c.STAT_DATE BETWEEN #{lastStartDate} AND #{lastEndDate}
+        UNION ALL
+        SELECT 0 AS appointmentRegister, 0 AS todayRegister, 0 AS appointmentFetch,
+               0 AS appointmentRegisterLast, 0 AS todayRegisterLast, 0 AS appointmentFetchLast,
+               <include refid="regCountsRet1"><property name="s" value=""/></include>,
+               0 AS refundLast
+        FROM TR_OUTP_FIN_CLINIC_MASTER c
+        WHERE c.APPOINTS_INDICATOR = 2 AND c.RETURNED_DATE BETWEEN #{startDate} AND #{endDate}
+        UNION ALL
+        SELECT 0 AS appointmentRegister, 0 AS todayRegister, 0 AS appointmentFetch,
+               0 AS appointmentRegisterLast, 0 AS todayRegisterLast, 0 AS appointmentFetchLast,
+               0 AS refund,
+               <include refid="regCountsRet1"><property name="s" value="Last"/></include>
+        FROM TR_OUTP_FIN_CLINIC_MASTER c
+        WHERE c.APPOINTS_INDICATOR = 2 AND c.RETURNED_DATE BETWEEN #{lastStartDate} AND #{lastEndDate}
         )
     </select>
 
     <!-- ============================================================ -->
-    <!-- 图表·按收费员维度: 同口径加OPERATOR_NO过滤 -->
+    <!-- 图表·按收费员维度: 同口径加OPERATOR_NO过滤; 只出本期(图表无同比展示, 删同期分支免扫同期13个月) -->
     <!-- ============================================================ -->
     <select id="queryCashierWorkload" resultType="com.reports.dto.response.cash.cashier.settlement.RegisterOverviewData">
-        SELECT SUM(appointmentRegister) AS appointmentRegister, SUM(appointmentRegisterLast) AS appointmentRegisterLast,
-               SUM(todayRegister) AS todayRegister, SUM(todayRegisterLast) AS todayRegisterLast,
-               SUM(appointmentFetch) AS appointmentFetch, SUM(appointmentFetchLast) AS appointmentFetchLast,
-               SUM(refund) AS refund, SUM(refundLast) AS refundLast
+        SELECT SUM(appointmentRegister) AS appointmentRegister,
+               SUM(todayRegister) AS todayRegister,
+               SUM(appointmentFetch) AS appointmentFetch,
+               SUM(refund) AS refund
         FROM (
-        SELECT
-        <include refid="regWorkloadCountsStat"/>,
-        0 AS refund, 0 AS refundLast
+        SELECT <include refid="regCountsStat3"><property name="s" value=""/></include>,
+               0 AS refund
         FROM TR_OUTP_FIN_CLINIC_MASTER c
-        WHERE c.APPOINTS_INDICATOR = 2 AND c.STAT_DATE BETWEEN #{lastStartDate} AND #{endDate}
+        WHERE c.APPOINTS_INDICATOR IN (1, 2) AND c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
           AND c.OPERATOR_NO = #{cashier}
         UNION ALL
-        SELECT 0 AS appointmentRegister, 0 AS appointmentRegisterLast,
-               0 AS todayRegister, 0 AS todayRegisterLast,
-               0 AS appointmentFetch, 0 AS appointmentFetchLast,
-        <include refid="regWorkloadCountsRet"/>
+        SELECT 0 AS appointmentRegister, 0 AS todayRegister, 0 AS appointmentFetch,
+               <include refid="regCountsRet1"><property name="s" value=""/></include>
         FROM TR_OUTP_FIN_CLINIC_MASTER c
-        WHERE c.APPOINTS_INDICATOR = 2 AND c.RETURNED_DATE BETWEEN #{lastStartDate} AND #{endDate}
+        WHERE c.APPOINTS_INDICATOR = 2 AND c.RETURNED_DATE BETWEEN #{startDate} AND #{endDate}
           AND c.OPERATOR_NO = #{cashier}
         )
     </select>
-
-    <!-- ============================================================ -->
-    <!-- 按收费员统计·预约挂号量：源表直取，列为OPERATOR_NO(姓名字典暂不接) -->
-    <!-- ============================================================ -->
-    
-
-    <!-- ============================================================ -->
-    <!-- 概览/图表·收费类2指标计数: 本期+同期各2个COUNT CASE，按STAT_DATE归期(口径同门诊财务进项/退项) -->
-    <!-- 进项(收费): NVL(TOTAL_CHARGES,0)>=0；退项(退费): REFUNDED_RCPT_NO IS NOT NULL AND TOTAL_CHARGES<0 -->
-    <!-- ============================================================ -->
-    <sql id="rcptChargeCounts">
-        COUNT(CASE WHEN r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
-                    AND NVL(r.TOTAL_CHARGES, 0) >= 0 THEN 1 END) AS outpatientCharge,
-        COUNT(CASE WHEN r.STAT_DATE BETWEEN #{lastStartDate} AND #{lastEndDate}
-                    AND NVL(r.TOTAL_CHARGES, 0) >= 0 THEN 1 END) AS outpatientChargeLast,
-        COUNT(CASE WHEN r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
-                    <![CDATA[AND r.REFUNDED_RCPT_NO IS NOT NULL AND r.TOTAL_CHARGES < 0]]> THEN 1 END) AS outpatientRefund,
-        COUNT(CASE WHEN r.STAT_DATE BETWEEN #{lastStartDate} AND #{lastEndDate}
-                    <![CDATA[AND r.REFUNDED_RCPT_NO IS NOT NULL AND r.TOTAL_CHARGES < 0]]> THEN 1 END) AS outpatientRefundLast
-    </sql>
 
     <!-- ============================================================ -->
     <!-- 概览·收费类2指标: 源表TR_OUTP_FIN_RCPT_ACCT直取，合计维度 -->
     <!-- ============================================================ -->
     <select id="queryRcptOverview" resultType="com.reports.dto.response.cash.cashier.settlement.RcptOverviewData">
-        SELECT
-        <include refid="rcptChargeCounts"/>
+        SELECT SUM(outpatientCharge) AS outpatientCharge, SUM(outpatientRefund) AS outpatientRefund,
+               SUM(outpatientChargeLast) AS outpatientChargeLast, SUM(outpatientRefundLast) AS outpatientRefundLast
+        FROM (
+        SELECT <include refid="rcptChargeCounts2"><property name="s" value=""/></include>,
+               0 AS outpatientChargeLast, 0 AS outpatientRefundLast
         FROM TR_OUTP_FIN_RCPT_ACCT r
-        WHERE r.STAT_DATE BETWEEN #{lastStartDate} AND #{endDate}
+        WHERE r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+        UNION ALL
+        SELECT 0 AS outpatientCharge, 0 AS outpatientRefund,
+               <include refid="rcptChargeCounts2"><property name="s" value="Last"/></include>
+        FROM TR_OUTP_FIN_RCPT_ACCT r
+        WHERE r.STAT_DATE BETWEEN #{lastStartDate} AND #{lastEndDate}
+        )
     </select>
 
     <!-- ============================================================ -->
-    <!-- 图表·按收费员维度-收费类2指标: 同口径加OPERATOR_NO过滤 -->
+    <!-- 图表·按收费员维度-收费类2指标: 只出本期(图表无同比展示) -->
     <!-- ============================================================ -->
     <select id="queryCashierCharge" resultType="com.reports.dto.response.cash.cashier.settlement.RcptOverviewData">
-        SELECT
-        <include refid="rcptChargeCounts"/>
+        SELECT <include refid="rcptChargeCounts2"><property name="s" value=""/></include>
         FROM TR_OUTP_FIN_RCPT_ACCT r
-        WHERE r.STAT_DATE BETWEEN #{lastStartDate} AND #{endDate}
+        WHERE r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
           AND r.OPERATOR_NO = #{cashier}
     </select>
-
-    <!-- ============================================================ -->
-    <!-- 概览/图表·预交金类2指标计数: 收预交金=transact_type'交款', 退院='退款', 按stat_date归期(口径同住院预交金统计) -->
-    <!-- ============================================================ -->
-    <sql id="prepayCounts">
-        COUNT(CASE WHEN p.stat_date BETWEEN #{startDate} AND #{endDate} AND p.transact_type = '交款' THEN 1 END) AS prepayment,
-        COUNT(CASE WHEN p.stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} AND p.transact_type = '交款' THEN 1 END) AS prepaymentLast,
-        COUNT(CASE WHEN p.stat_date BETWEEN #{startDate} AND #{endDate} AND p.transact_type = '退款' THEN 1 END) AS hospitalRefund,
-        COUNT(CASE WHEN p.stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} AND p.transact_type = '退款' THEN 1 END) AS hospitalRefundLast
-    </sql>
 
     <!-- ============================================================ -->
     <!-- 概览·预交金类2指标: 源表tr_inpat_prepay_rcpt直取，合计维度 -->
     <!-- ============================================================ -->
     <select id="queryPrepayOverview" resultType="com.reports.dto.response.cash.cashier.settlement.PrepayOverviewData">
-        SELECT
-        <include refid="prepayCounts"/>
+        SELECT SUM(prepayment) AS prepayment, SUM(hospitalRefund) AS hospitalRefund,
+               SUM(prepaymentLast) AS prepaymentLast, SUM(hospitalRefundLast) AS hospitalRefundLast
+        FROM (
+        SELECT <include refid="prepayCounts2"><property name="s" value=""/></include>,
+               0 AS prepaymentLast, 0 AS hospitalRefundLast
         FROM tr_inpat_prepay_rcpt p
-        WHERE p.stat_date BETWEEN #{lastStartDate} AND #{endDate}
+        WHERE p.stat_date BETWEEN #{startDate} AND #{endDate}
+        UNION ALL
+        SELECT 0 AS prepayment, 0 AS hospitalRefund,
+               <include refid="prepayCounts2"><property name="s" value="Last"/></include>
+        FROM tr_inpat_prepay_rcpt p
+        WHERE p.stat_date BETWEEN #{lastStartDate} AND #{lastEndDate}
+        )
     </select>
 
     <!-- ============================================================ -->
-    <!-- 图表·按收费员维度-预交金类2指标: 同口径加operator_no过滤 -->
+    <!-- 图表·按收费员维度-预交金类2指标: 只出本期(图表无同比展示) -->
     <!-- ============================================================ -->
     <select id="queryCashierPrepay" resultType="com.reports.dto.response.cash.cashier.settlement.PrepayOverviewData">
-        SELECT
-        <include refid="prepayCounts"/>
+        SELECT <include refid="prepayCounts2"><property name="s" value=""/></include>
         FROM tr_inpat_prepay_rcpt p
-        WHERE p.stat_date BETWEEN #{lastStartDate} AND #{endDate}
+        WHERE p.stat_date BETWEEN #{startDate} AND #{endDate}
           AND p.operator_no = #{cashier}
     </select>
-
-    <!-- ============================================================ -->
-    <!-- 概览/图表·出院结算量计数: settle_status=1已出院结算, 按stat_date归期(口径同出院结算报表) -->
-    <!-- ============================================================ -->
-    <sql id="dischargeCounts">
-        COUNT(CASE WHEN v.stat_date BETWEEN #{startDate} AND #{endDate} AND v.settle_status = 1 THEN 1 END) AS dischargeSettlement,
-        COUNT(CASE WHEN v.stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} AND v.settle_status = 1 THEN 1 END) AS dischargeSettlementLast
-    </sql>
 
     <!-- ============================================================ -->
     <!-- 概览·出院结算量: 源表tr_disch_settle_visit直取，合计维度 -->
     <!-- ============================================================ -->
     <select id="queryDischargeOverview" resultType="com.reports.dto.response.cash.cashier.settlement.DischargeOverviewData">
-        SELECT
-        <include refid="dischargeCounts"/>
+        SELECT SUM(dischargeSettlement) AS dischargeSettlement, SUM(dischargeSettlementLast) AS dischargeSettlementLast
+        FROM (
+        SELECT <include refid="dischargeCounts1"><property name="s" value=""/></include>,
+               0 AS dischargeSettlementLast
         FROM tr_disch_settle_visit v
-        WHERE v.stat_date BETWEEN #{lastStartDate} AND #{endDate}
+        WHERE v.stat_date BETWEEN #{startDate} AND #{endDate}
+        UNION ALL
+        SELECT 0 AS dischargeSettlement,
+               <include refid="dischargeCounts1"><property name="s" value="Last"/></include>
+        FROM tr_disch_settle_visit v
+        WHERE v.stat_date BETWEEN #{lastStartDate} AND #{lastEndDate}
+        )
     </select>
 
     <!-- ============================================================ -->
-    <!-- 图表·按收费员维度-出院结算量: 结算主表tr_settle_master按工号计数(每笔结算唯一rcpt_no) -->
+    <!-- 图表·按收费员维度-出院结算量: 只出本期(图表无同比展示) -->
     <!-- ============================================================ -->
     <select id="queryCashierDischarge" resultType="com.reports.dto.response.cash.cashier.settlement.DischargeOverviewData">
-        SELECT
-        COUNT(CASE WHEN m.stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 END) AS dischargeSettlement,
-        COUNT(CASE WHEN m.stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 END) AS dischargeSettlementLast
+        SELECT COUNT(1) AS dischargeSettlement
         FROM tr_settle_master m
-        WHERE m.stat_date BETWEEN #{lastStartDate} AND #{endDate}
+        WHERE m.stat_date BETWEEN #{startDate} AND #{endDate}
           AND m.operator_no = #{cashier}
     </select>
 
@@ -222,8 +215,8 @@
             <when test="metric == '预约挂号量'">
                 SELECT c.OPERATOR_NO AS cashierName, COUNT(1) AS itemValue
                 FROM TR_OUTP_FIN_CLINIC_MASTER c
-                WHERE c.APPOINTS_INDICATOR = 2 AND c.IS_RETURN_TYPE != -1
-                  AND TRUNC(c.VISIT_DATE) != TRUNC(c.REGISTERING_DATE)
+                WHERE c.IS_RETURN_TYPE != -1
+                  AND (c.APPOINTS_INDICATOR = 1 OR (c.APPOINTS_INDICATOR = 2 AND TRUNC(c.VISIT_DATE) != TRUNC(c.REGISTERING_DATE)))
                   <![CDATA[AND c.STAT_DATE >= #{chartStartDate} AND c.STAT_DATE < #{chartEndDate}]]>
                 GROUP BY c.OPERATOR_NO ORDER BY itemValue DESC
             </when>
@@ -351,15 +344,15 @@
         ORDER BY period, dim
     </select>
 
-    <!-- 维度下拉选项：工号 + staff_dict姓名(查不到回退工号) -->
-    <select id="queryWorkloadDims" resultType="map">
-        SELECT op AS "value",
-               NVL((SELECT s.staff_name FROM tr_staff_dict s WHERE s.staff_code = op AND ROWNUM = 1), op) AS "label"
-        FROM (
-            SELECT DISTINCT c.OPERATOR_NO AS op FROM TR_OUTP_FIN_CLINIC_MASTER c WHERE c.OPERATOR_NO IS NOT NULL
-            UNION
-            SELECT DISTINCT r.OPERATOR_NO FROM TR_OUTP_FIN_RCPT_ACCT r WHERE r.OPERATOR_NO IS NOT NULL
-        ) ORDER BY op
+    <!-- 工号批量取姓名(staff_code不唯一取MIN): 维度下拉从透视结果派生后回关联 -->
+    <select id="queryStaffNames" resultType="map">
+        SELECT staff_code AS "value", MIN(staff_name) AS "label"
+        FROM tr_staff_dict
+        WHERE staff_code IN
+        <foreach collection="codes" item="code" open="(" separator="," close=")">
+            #{code}
+        </foreach>
+        GROUP BY staff_code
     </select>
 
     <sql id="metricDimFilterC">
@@ -382,87 +375,110 @@
             AND m.operator_no = #{dimValue}
         </if>
     </sql>
+    <!-- dimType传入时内层按操作员出列并分组(按收费员统计表用)，不传则保持时间+指标两列形状 -->
+    <sql id="metricDimColC"><if test="dimType != null and dimType != ''">, c.OPERATOR_NO AS dim</if></sql>
+    <sql id="metricDimColR"><if test="dimType != null and dimType != ''">, r.OPERATOR_NO AS dim</if></sql>
+    <sql id="metricDimColP"><if test="dimType != null and dimType != ''">, p.operator_no AS dim</if></sql>
+    <sql id="metricDimColM"><if test="dimType != null and dimType != ''">, m.operator_no AS dim</if></sql>
+    <sql id="metricDimGrpC"><if test="dimType != null and dimType != ''">, c.OPERATOR_NO</if></sql>
+    <sql id="metricDimGrpR"><if test="dimType != null and dimType != ''">, r.OPERATOR_NO</if></sql>
+    <sql id="metricDimGrpP"><if test="dimType != null and dimType != ''">, p.operator_no</if></sql>
+    <sql id="metricDimGrpM"><if test="dimType != null and dimType != ''">, m.operator_no</if></sql>
 
+    <!-- 同表同日期段多指标合并一次扫描+条件聚合,行转列输出; 末层HAVING剔除0值行保持原输出形状 -->
     <select id="queryMetricPivot" resultType="map">
-        SELECT period AS "period", metric AS "metric", SUM(cnt) AS "cnt"
+        SELECT period AS "period",
+               <if test="dimType != null and dimType != ''">dim AS "dim",</if>
+               metric AS "metric", SUM(cnt) AS "cnt"
         FROM (
-            SELECT <choose><when test="month">TRUNC(c.STAT_DATE, 'MM')</when><otherwise>TRUNC(c.STAT_DATE)</otherwise></choose> AS period,
-                   '预约挂号量' AS metric, COUNT(1) AS cnt
-            FROM TR_OUTP_FIN_CLINIC_MASTER c
-            WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
-              AND c.APPOINTS_INDICATOR = 1 AND c.IS_RETURN_TYPE != -1
-            <include refid="metricDimFilterC"/>
-            GROUP BY <choose><when test="month">TRUNC(c.STAT_DATE, 'MM')</when><otherwise>TRUNC(c.STAT_DATE)</otherwise></choose>
+            SELECT a.period AS period,
+                   <if test="dimType != null and dimType != ''">a.dim AS dim,</if>
+                   mm.metric AS metric,
+                   CASE mm.metric
+                       WHEN '预约挂号量' THEN a.yy_cnt
+                       WHEN '预约取号量' THEN a.qh_cnt
+                       ELSE a.dr_cnt
+                   END AS cnt
+            FROM (
+                SELECT <choose><when test="month">TRUNC(c.STAT_DATE, 'MM')</when><otherwise>TRUNC(c.STAT_DATE)</otherwise></choose> AS period<include refid="metricDimColC"/>,
+                       SUM(CASE WHEN c.APPOINTS_INDICATOR = 1 OR TRUNC(c.VISIT_DATE) != TRUNC(c.REGISTERING_DATE) THEN 1 ELSE 0 END) AS yy_cnt,
+                       SUM(CASE WHEN c.APPOINTS_INDICATOR = 2 AND TRUNC(c.VISIT_DATE) != TRUNC(c.REGISTERING_DATE) THEN 1 ELSE 0 END) AS qh_cnt,
+                       SUM(CASE WHEN c.APPOINTS_INDICATOR = 2 AND TRUNC(c.VISIT_DATE) = TRUNC(c.REGISTERING_DATE) THEN 1 ELSE 0 END) AS dr_cnt
+                FROM TR_OUTP_FIN_CLINIC_MASTER c
+                WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+                  AND c.APPOINTS_INDICATOR IN (1, 2) AND c.IS_RETURN_TYPE != -1
+                <include refid="metricDimFilterC"/>
+                GROUP BY <choose><when test="month">TRUNC(c.STAT_DATE, 'MM')</when><otherwise>TRUNC(c.STAT_DATE)</otherwise></choose><include refid="metricDimGrpC"/>
+            ) a
+            CROSS JOIN (
+                SELECT '预约挂号量' AS metric FROM DUAL UNION ALL
+                SELECT '预约取号量' FROM DUAL UNION ALL
+                SELECT '当日挂号量' FROM DUAL
+            ) mm
             UNION ALL
-            SELECT <choose><when test="month">TRUNC(c.STAT_DATE, 'MM')</when><otherwise>TRUNC(c.STAT_DATE)</otherwise></choose> AS period,
-                   '预约取号量' AS metric, COUNT(1) AS cnt
-            FROM TR_OUTP_FIN_CLINIC_MASTER c
-            WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
-              AND c.APPOINTS_INDICATOR = 2 AND c.IS_RETURN_TYPE != -1
-              AND TRUNC(c.VISIT_DATE) != TRUNC(c.REGISTERING_DATE)
-            <include refid="metricDimFilterC"/>
-            GROUP BY <choose><when test="month">TRUNC(c.STAT_DATE, 'MM')</when><otherwise>TRUNC(c.STAT_DATE)</otherwise></choose>
-            UNION ALL
-            SELECT <choose><when test="month">TRUNC(c.STAT_DATE, 'MM')</when><otherwise>TRUNC(c.STAT_DATE)</otherwise></choose> AS period,
-                   '当日挂号量' AS metric, COUNT(1) AS cnt
-            FROM TR_OUTP_FIN_CLINIC_MASTER c
-            WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
-              AND c.APPOINTS_INDICATOR = 2 AND c.IS_RETURN_TYPE != -1
-              AND TRUNC(c.VISIT_DATE) = TRUNC(c.REGISTERING_DATE)
-            <include refid="metricDimFilterC"/>
-            GROUP BY <choose><when test="month">TRUNC(c.STAT_DATE, 'MM')</when><otherwise>TRUNC(c.STAT_DATE)</otherwise></choose>
-            UNION ALL
-            SELECT <choose><when test="month">TRUNC(c.RETURNED_DATE, 'MM')</when><otherwise>TRUNC(c.RETURNED_DATE)</otherwise></choose> AS period,
+            SELECT <choose><when test="month">TRUNC(c.RETURNED_DATE, 'MM')</when><otherwise>TRUNC(c.RETURNED_DATE)</otherwise></choose> AS period<include refid="metricDimColC"/>,
                    '退号量' AS metric, COUNT(1) AS cnt
             FROM TR_OUTP_FIN_CLINIC_MASTER c
             WHERE c.RETURNED_DATE BETWEEN #{startDate} AND #{endDate}
               AND c.APPOINTS_INDICATOR = 2 AND c.IS_RETURN_TYPE = -1
               <![CDATA[AND c.REGISTRATION_STATUS <> 0]]>
             <include refid="metricDimFilterC"/>
-            GROUP BY <choose><when test="month">TRUNC(c.RETURNED_DATE, 'MM')</when><otherwise>TRUNC(c.RETURNED_DATE)</otherwise></choose>
+            GROUP BY <choose><when test="month">TRUNC(c.RETURNED_DATE, 'MM')</when><otherwise>TRUNC(c.RETURNED_DATE)</otherwise></choose><include refid="metricDimGrpC"/>
             UNION ALL
-            SELECT <choose><when test="month">TRUNC(r.STAT_DATE, 'MM')</when><otherwise>TRUNC(r.STAT_DATE)</otherwise></choose> AS period,
-                   '门诊收费量' AS metric, COUNT(1) AS cnt
-            FROM TR_OUTP_FIN_RCPT_ACCT r
-            WHERE r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
-              AND NVL(r.TOTAL_CHARGES, 0) >= 0
-            <include refid="metricDimFilterR"/>
-            GROUP BY <choose><when test="month">TRUNC(r.STAT_DATE, 'MM')</when><otherwise>TRUNC(r.STAT_DATE)</otherwise></choose>
+            SELECT a.period AS period,
+                   <if test="dimType != null and dimType != ''">a.dim AS dim,</if>
+                   mm.metric AS metric,
+                   CASE mm.metric
+                       WHEN '门诊收费量' THEN a.jf_cnt
+                       ELSE a.tf_cnt
+                   END AS cnt
+            FROM (
+                SELECT <choose><when test="month">TRUNC(r.STAT_DATE, 'MM')</when><otherwise>TRUNC(r.STAT_DATE)</otherwise></choose> AS period<include refid="metricDimColR"/>,
+                       SUM(CASE WHEN NVL(r.TOTAL_CHARGES, 0) >= 0 THEN 1 ELSE 0 END) AS jf_cnt,
+                       SUM(CASE WHEN r.REFUNDED_RCPT_NO IS NOT NULL <![CDATA[AND r.TOTAL_CHARGES < 0]]> THEN 1 ELSE 0 END) AS tf_cnt
+                FROM TR_OUTP_FIN_RCPT_ACCT r
+                WHERE r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
+                  AND (NVL(r.TOTAL_CHARGES, 0) >= 0 OR (r.REFUNDED_RCPT_NO IS NOT NULL <![CDATA[AND r.TOTAL_CHARGES < 0]]>))
+                <include refid="metricDimFilterR"/>
+                GROUP BY <choose><when test="month">TRUNC(r.STAT_DATE, 'MM')</when><otherwise>TRUNC(r.STAT_DATE)</otherwise></choose><include refid="metricDimGrpR"/>
+            ) a
+            CROSS JOIN (
+                SELECT '门诊收费量' AS metric FROM DUAL UNION ALL
+                SELECT '门诊退费量' FROM DUAL
+            ) mm
             UNION ALL
-            SELECT <choose><when test="month">TRUNC(r.STAT_DATE, 'MM')</when><otherwise>TRUNC(r.STAT_DATE)</otherwise></choose> AS period,
-                   '门诊退费量' AS metric, COUNT(1) AS cnt
-            FROM TR_OUTP_FIN_RCPT_ACCT r
-            WHERE r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
-              AND r.REFUNDED_RCPT_NO IS NOT NULL
-              <![CDATA[AND r.TOTAL_CHARGES < 0]]>
-            <include refid="metricDimFilterR"/>
-            GROUP BY <choose><when test="month">TRUNC(r.STAT_DATE, 'MM')</when><otherwise>TRUNC(r.STAT_DATE)</otherwise></choose>
+            SELECT a.period AS period,
+                   <if test="dimType != null and dimType != ''">a.dim AS dim,</if>
+                   mm.metric AS metric,
+                   CASE mm.metric
+                       WHEN '收预交金量' THEN a.jk_cnt
+                       ELSE a.tk_cnt
+                   END AS cnt
+            FROM (
+                SELECT <choose><when test="month">TRUNC(p.stat_date, 'MM')</when><otherwise>TRUNC(p.stat_date)</otherwise></choose> AS period<include refid="metricDimColP"/>,
+                       SUM(CASE WHEN p.transact_type = '交款' THEN 1 ELSE 0 END) AS jk_cnt,
+                       SUM(CASE WHEN p.transact_type = '退款' THEN 1 ELSE 0 END) AS tk_cnt
+                FROM tr_inpat_prepay_rcpt p
+                WHERE p.stat_date BETWEEN #{startDate} AND #{endDate}
+                  AND p.transact_type IN ('交款', '退款')
+                <include refid="metricDimFilterP"/>
+                GROUP BY <choose><when test="month">TRUNC(p.stat_date, 'MM')</when><otherwise>TRUNC(p.stat_date)</otherwise></choose><include refid="metricDimGrpP"/>
+            ) a
+            CROSS JOIN (
+                SELECT '收预交金量' AS metric FROM DUAL UNION ALL
+                SELECT '退院量' FROM DUAL
+            ) mm
             UNION ALL
-            SELECT <choose><when test="month">TRUNC(p.stat_date, 'MM')</when><otherwise>TRUNC(p.stat_date)</otherwise></choose> AS period,
-                   '收预交金量' AS metric, COUNT(1) AS cnt
-            FROM tr_inpat_prepay_rcpt p
-            WHERE p.stat_date BETWEEN #{startDate} AND #{endDate}
-              AND p.transact_type = '交款'
-            <include refid="metricDimFilterP"/>
-            GROUP BY <choose><when test="month">TRUNC(p.stat_date, 'MM')</when><otherwise>TRUNC(p.stat_date)</otherwise></choose>
-            UNION ALL
-            SELECT <choose><when test="month">TRUNC(p.stat_date, 'MM')</when><otherwise>TRUNC(p.stat_date)</otherwise></choose> AS period,
-                   '退院量' AS metric, COUNT(1) AS cnt
-            FROM tr_inpat_prepay_rcpt p
-            WHERE p.stat_date BETWEEN #{startDate} AND #{endDate}
-              AND p.transact_type = '退款'
-            <include refid="metricDimFilterP"/>
-            GROUP BY <choose><when test="month">TRUNC(p.stat_date, 'MM')</when><otherwise>TRUNC(p.stat_date)</otherwise></choose>
-            UNION ALL
-            SELECT <choose><when test="month">TRUNC(m.stat_date, 'MM')</when><otherwise>TRUNC(m.stat_date)</otherwise></choose> AS period,
+            SELECT <choose><when test="month">TRUNC(m.stat_date, 'MM')</when><otherwise>TRUNC(m.stat_date)</otherwise></choose> AS period<include refid="metricDimColM"/>,
                    '出院结算量' AS metric, COUNT(1) AS cnt
             FROM tr_settle_master m
             WHERE m.stat_date BETWEEN #{startDate} AND #{endDate}
             <include refid="metricDimFilterM"/>
-            GROUP BY <choose><when test="month">TRUNC(m.stat_date, 'MM')</when><otherwise>TRUNC(m.stat_date)</otherwise></choose>
+            GROUP BY <choose><when test="month">TRUNC(m.stat_date, 'MM')</when><otherwise>TRUNC(m.stat_date)</otherwise></choose><include refid="metricDimGrpM"/>
         )
-        GROUP BY period, metric
-        ORDER BY period, metric
+        GROUP BY period, <if test="dimType != null and dimType != ''">dim,</if> metric
+        HAVING SUM(cnt) > 0
+        ORDER BY period, <if test="dimType != null and dimType != ''">dim,</if> metric
     </select>
 
 </mapper>

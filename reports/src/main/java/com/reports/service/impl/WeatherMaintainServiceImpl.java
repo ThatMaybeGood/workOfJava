@@ -41,7 +41,7 @@ public class WeatherMaintainServiceImpl implements WeatherMaintainService {
             return PageResult.of(new ArrayList<>(), 0L, page, pageSize);
         }
         try {
-            List<WeatherEntity> rows = weatherMaintainMapper.queryWeatherByDate(request.getStartDate(), request.getEndDate());
+            List<WeatherEntity> rows = weatherMaintainMapper.queryWeatherByDate(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
             List<WeatherItem> allItems = new ArrayList<>();
             for (WeatherEntity row : rows) {
                 allItems.add(buildWeatherItem(row));
@@ -86,7 +86,7 @@ public class WeatherMaintainServiceImpl implements WeatherMaintainService {
         // 登记日往前推30天为统计窗口
         Date end = new Date(weatherDate.getTime() - 24L * 3600 * 1000);
         Date start = new Date(end.getTime() - 29L * 24 * 3600 * 1000);
-        Double rate = weatherMaintainMapper.queryNoShowRateByWeather(weatherType, start, end);
+        Double rate = weatherMaintainMapper.queryNoShowRateByWeather(weatherType, sqlDay(start), sqlDay(end));
         if (rate == null) {
             return null;
         }
@@ -99,7 +99,7 @@ public class WeatherMaintainServiceImpl implements WeatherMaintainService {
         if (!dataConfig.isMybatisPlus() || request.getWeatherDate() == null) {
             return 0;
         }
-        return weatherMaintainMapper.deleteWeatherByDate(request.getWeatherDate());
+        return weatherMaintainMapper.deleteWeatherByDate(sqlDay(request.getWeatherDate()));
     }
 
     private WeatherItem buildWeatherItem(WeatherEntity entity) {
@@ -110,4 +110,11 @@ public class WeatherMaintainServiceImpl implements WeatherMaintainService {
         item.setWeatherSource(entity.getWeatherSource());
         return item;
     }
+
+    /** java.util.Date→java.sql.Date：绑定按DATE类型发送， 避免TIMESTAMP绑定触发的列隐式转换致索引失效 */
+    private static java.sql.Date sqlDay(java.util.Date d) {
+        return d == null ? null : new java.sql.Date(d.getTime());
+    }
 }
+
+

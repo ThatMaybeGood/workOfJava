@@ -87,7 +87,7 @@ class CashierSettlementController {
 
         document.getElementById('cashierChartSelect').addEventListener('change', (e) => {
             this.selectedCashier = e.target.value;
-            this.loadTableData();
+            // 该页签表格=全部操作员透视, 与所选操作员无关, 只重刷图表
             this.loadChart();
         });
 

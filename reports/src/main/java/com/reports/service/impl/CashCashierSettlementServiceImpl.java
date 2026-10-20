@@ -15,11 +15,19 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 import java.text.SimpleDateFormat;
 
 /**
@@ -28,6 +36,25 @@ import java.text.SimpleDateFormat;
 @Slf4j
 @Service
 public class CashCashierSettlementServiceImpl implements CashCashierSettlementService {
+
+    /** 概览/图表多源表查询并行执行(Spring代理Mapper线程安全,各调用独立连接); 池max-active=20足够4路并发 */
+    private static final ExecutorService QUERY_EXECUTOR = Executors.newFixedThreadPool(4, r -> {
+        Thread t = new Thread(r, "cashier-settle-query");
+        t.setDaemon(true);
+        return t;
+    });
+
+    /** 单查询失败降级空结果, 不拖垮整页 */
+    private <T> CompletableFuture<T> supplyQuery(Supplier<T> query, T fallback) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return query.get();
+            } catch (Exception e) {
+                log.warn("收费员结账并行子查询失败,降级空结果", e);
+                return fallback;
+            }
+        }, QUERY_EXECUTOR);
+    }
 
     private final ReportDataConfig dataConfig;
     private final JdbcTemplate jdbcTemplate;
@@ -158,11 +185,17 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
 
     private OverviewData queryOverviewByMybatisPlus(CashCashierSettlementRequest request) {
         try {
-            Date[] range = currentAndLastRange(request);
-            RegisterOverviewData reg = cashSettleMapper.queryRegisterOverview(range[0], range[1], range[2], range[3]);
-            if (reg == null) {
-                reg = new RegisterOverviewData();
-            }
+            java.sql.Date[] range = currentAndLastRange(request);
+            CompletableFuture<RegisterOverviewData> regF = supplyQuery(
+                    () -> cashSettleMapper.queryRegisterOverview(range[0], range[1], range[2], range[3]), new RegisterOverviewData());
+            CompletableFuture<RcptOverviewData> rcptF = supplyQuery(
+                    () -> cashSettleMapper.queryRcptOverview(range[0], range[1], range[2], range[3]), new RcptOverviewData());
+            CompletableFuture<PrepayOverviewData> prepayF = supplyQuery(
+                    () -> cashSettleMapper.queryPrepayOverview(range[0], range[1], range[2], range[3]), new PrepayOverviewData());
+            CompletableFuture<DischargeOverviewData> dischF = supplyQuery(
+                    () -> cashSettleMapper.queryDischargeOverview(range[0], range[1], range[2], range[3]), new DischargeOverviewData());
+            CompletableFuture.allOf(regF, rcptF, prepayF, dischF).join();
+            RegisterOverviewData reg = regF.join();
             OverviewData overview = new OverviewData();
             overview.setAppointmentRegister(reg.getAppointmentRegister());
             overview.setAppointmentRegisterCompare(yoy(reg.getAppointmentRegister(), reg.getAppointmentRegisterLast()));
@@ -173,27 +206,21 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
             overview.setRefund(reg.getRefund());
             overview.setRefundCompare(yoy(reg.getRefund(), reg.getRefundLast()));
             // 收费类2指标: 源表TR_OUTP_FIN_RCPT_ACCT(口径同门诊财务进项/退项)
-            RcptOverviewData rcpt = cashSettleMapper.queryRcptOverview(range[0], range[1], range[2], range[3]);
-            if (rcpt != null) {
-                overview.setOutpatientCharge(rcpt.getOutpatientCharge());
-                overview.setOutpatientChargeCompare(yoy(rcpt.getOutpatientCharge(), rcpt.getOutpatientChargeLast()));
-                overview.setOutpatientRefund(rcpt.getOutpatientRefund());
-                overview.setOutpatientRefundCompare(yoy(rcpt.getOutpatientRefund(), rcpt.getOutpatientRefundLast()));
-            }
+            RcptOverviewData rcpt = rcptF.join();
+            overview.setOutpatientCharge(rcpt.getOutpatientCharge());
+            overview.setOutpatientChargeCompare(yoy(rcpt.getOutpatientCharge(), rcpt.getOutpatientChargeLast()));
+            overview.setOutpatientRefund(rcpt.getOutpatientRefund());
+            overview.setOutpatientRefundCompare(yoy(rcpt.getOutpatientRefund(), rcpt.getOutpatientRefundLast()));
             // 预交金类2指标: 源表tr_inpat_prepay_rcpt(口径同住院预交金统计)
-            PrepayOverviewData prepay = cashSettleMapper.queryPrepayOverview(range[0], range[1], range[2], range[3]);
-            if (prepay != null) {
-                overview.setPrepayment(prepay.getPrepayment());
-                overview.setPrepaymentCompare(yoy(prepay.getPrepayment(), prepay.getPrepaymentLast()));
-                overview.setHospitalRefund(prepay.getHospitalRefund());
-                overview.setHospitalRefundCompare(yoy(prepay.getHospitalRefund(), prepay.getHospitalRefundLast()));
-            }
+            PrepayOverviewData prepay = prepayF.join();
+            overview.setPrepayment(prepay.getPrepayment());
+            overview.setPrepaymentCompare(yoy(prepay.getPrepayment(), prepay.getPrepaymentLast()));
+            overview.setHospitalRefund(prepay.getHospitalRefund());
+            overview.setHospitalRefundCompare(yoy(prepay.getHospitalRefund(), prepay.getHospitalRefundLast()));
             // 出院结算量: 源表tr_disch_settle_visit(口径同出院结算报表已结算人次)
-            DischargeOverviewData disch = cashSettleMapper.queryDischargeOverview(range[0], range[1], range[2], range[3]);
-            if (disch != null) {
-                overview.setDischargeSettlement(disch.getDischargeSettlement());
-                overview.setDischargeSettlementCompare(yoy(disch.getDischargeSettlement(), disch.getDischargeSettlementLast()));
-            }
+            DischargeOverviewData disch = dischF.join();
+            overview.setDischargeSettlement(disch.getDischargeSettlement());
+            overview.setDischargeSettlementCompare(yoy(disch.getDischargeSettlement(), disch.getDischargeSettlementLast()));
             return overview;
         } catch (Exception e) {
             log.warn("查询收费员结账概览失败", e);
@@ -202,10 +229,15 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
     }
 
     /** 本期区间 + 去年同期区间(月份减12)，与出院结算口径一致 */
-    private static Date[] currentAndLastRange(CashCashierSettlementRequest request) {
+    private static java.sql.Date[] currentAndLastRange(CashCashierSettlementRequest request) {
         Date start = request.getStartDate();
         Date end = request.getEndDate();
-        return new Date[]{start, end, addMonths(start, -12), addMonths(end, -12)};
+        return new java.sql.Date[]{sqlDay(start), sqlDay(end), sqlDay(addMonths(start, -12)), sqlDay(addMonths(end, -12))};
+    }
+
+    /** java.util.Date→java.sql.Date：绑定按DATE类型发送, 避免TIMESTAMP绑定触发的列隐式转换致索引失效 */
+    private static java.sql.Date sqlDay(Date d) {
+        return d == null ? null : new java.sql.Date(d.getTime());
     }
 
     private static Date addMonths(Date date, int months) {
@@ -239,15 +271,25 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
             // 按来源方式统计：行=时间，列=9个业务量指标(与来源图表指标一致)，值=所选操作员的笔数
             String dimValue = request.getChannel() != null && !request.getChannel().isEmpty()
                     ? request.getChannel() : request.getCashier();
-            List<Map<String, Object>> rows = cashSettleMapper.queryMetricPivot(
-                    request.getStartDate(), request.getEndDate(), month, null, dimValue);
-            List<DimOption> dims = queryDimsCached();
+            List<Map<String, Object>> pivotRows = queryOperatorPivotCached(
+                    sqlDay(request.getStartDate()), sqlDay(request.getEndDate()), month);
+            List<DimOption> dims = dimsFromRows(pivotRows);
+            // 选定操作员时Java侧过滤(dimValue非空时NULL工号行本就不计入,与原SQL过滤等价)
+            List<Map<String, Object>> rows = pivotRows;
+            if (dimValue != null && !dimValue.isEmpty()) {
+                rows = new ArrayList<>();
+                for (Map<String, Object> row : pivotRows) {
+                    if (dimValue.equals(String.valueOf(row.get("dim")))) {
+                        rows.add(row);
+                    }
+                }
+            }
             SimpleDateFormat sdf = new SimpleDateFormat(month ? "yyyy-MM" : "yyyy-MM-dd");
             Map<String, Map<String, Object>> periodMap = new LinkedHashMap<>();
             for (Map<String, Object> row : rows) {
                 String period = row.get("period") == null ? "" : sdf.format((Date) row.get("period"));
                 Map<String, Object> cols = periodMap.computeIfAbsent(period, k -> new LinkedHashMap<>());
-                cols.put(String.valueOf(row.get("metric")), toDouble(row.get("cnt")));
+                cols.merge(String.valueOf(row.get("metric")), toDouble(row.get("cnt")), (a, b) -> toDouble(a) + toDouble(b));
             }
             List<TableItem> allItems = new ArrayList<>();
             for (Map.Entry<String, Map<String, Object>> entry : periodMap.entrySet()) {
@@ -272,9 +314,9 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
     /** 按收费员统计：行=时间，列=全部操作员(staff_dict姓名)，单元格=9个业务量指标笔数之和 */
     private CashierTableResult buildCashierTotalTable(CashCashierSettlementRequest request,
                                                       Integer page, Integer pageSize, boolean month) {
-        List<Map<String, Object>> rows = cashSettleMapper.queryMetricPivot(
-                request.getStartDate(), request.getEndDate(), month, null, null);
-        List<DimOption> dims = queryDimsCached();
+        List<Map<String, Object>> rows = queryOperatorPivotCached(
+                sqlDay(request.getStartDate()), sqlDay(request.getEndDate()), month);
+        List<DimOption> dims = dimsFromRows(rows);
         Map<String, String> nameByCode = new HashMap<>();
         for (DimOption d : dims) {
             nameByCode.put(d.getValue(), d.getLabel());
@@ -285,10 +327,9 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
         for (Map<String, Object> row : rows) {
             String period = row.get("period") == null ? "" : sdf.format((Date) row.get("period"));
             Object dim = row.get("dim");
-            if (dim == null) {
-                continue;
-            }
-            String name = nameByCode.getOrDefault(String.valueOf(dim), String.valueOf(dim));
+            // 无工号记录归入固定列，避免笔数丢失导致与来源页签汇总对不上
+            String name = dim == null ? "（无工号）"
+                    : nameByCode.getOrDefault(String.valueOf(dim), String.valueOf(dim));
             double value = toDouble(row.get("cnt"));
             periodMap.computeIfAbsent(period, k -> new LinkedHashMap<>());
             periodMap.get(period).merge(name, value, Double::sum);
@@ -310,8 +351,8 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
     private CashierTableResult buildWorkloadReportTable(CashCashierSettlementRequest request,
                                                         Integer page, Integer pageSize, boolean month) {
         List<Map<String, Object>> rows = cashSettleMapper.queryWorkloadPivot(
-                request.getStartDate(), request.getEndDate(), month, null, null);
-        List<DimOption> dims = queryDimsCached();
+                sqlDay(request.getStartDate()), sqlDay(request.getEndDate()), month, null, null);
+        List<DimOption> dims = dimsFromRows(rows);
         Map<String, String> nameByCode = new HashMap<>();
         for (DimOption d : dims) {
             nameByCode.put(d.getValue(), d.getLabel());
@@ -359,36 +400,61 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
         return v == null ? 0.0 : ((Number) v).doubleValue();
     }
 
-    private List<DimOption> toDimOptions(List<Map<String, Object>> rows) {
-        List<DimOption> list = new ArrayList<>();
-        if (rows == null) {
-            return list;
+    /** 按收费员透视缓存：结果与所选收费员无关(收费员下拉只驱动图表), 10min TTL避免切人/翻页重扫全量 */
+    private static final long PIVOT_TTL = 10 * 60 * 1000L;
+    private static final int PIVOT_CACHE_MAX = 20;
+    private final Map<String, long[]> pivotCacheAt = new ConcurrentHashMap<>();
+    private final Map<String, List<Map<String, Object>>> pivotCache = new ConcurrentHashMap<>();
+
+    private List<Map<String, Object>> queryOperatorPivotCached(java.sql.Date start, java.sql.Date end, boolean month) {
+        String key = start.getTime() + "-" + end.getTime() + "-" + month;
+        long now = System.currentTimeMillis();
+        long[] at = pivotCacheAt.get(key);
+        if (at != null && now - at[0] <= PIVOT_TTL) {
+            return pivotCache.get(key);
         }
-        for (Map<String, Object> row : rows) {
-            if (row == null) {
-                continue;
-            }
-            Object value = row.get("value");
-            if (value == null) {
-                continue;   // 工号为空的维度行无法筛选, 跳过
-            }
-            Object label = row.get("label");
-            list.add(new DimOption(String.valueOf(value), label == null ? "" : String.valueOf(label)));
+        List<Map<String, Object>> rows = cashSettleMapper.queryMetricPivot(start, end, month, "operator", null);
+        if (pivotCache.size() >= PIVOT_CACHE_MAX) {
+            pivotCache.clear();
+            pivotCacheAt.clear();
         }
-        return list;
+        pivotCacheAt.put(key, new long[]{now});
+        pivotCache.put(key, rows);
+        return rows;
     }
 
-    /** 维度下拉缓存：dims 一天内基本不变, 避免每次表格请求全表扫(10min TTL) */
-    private volatile List<DimOption> cachedDims;
-    private volatile long cachedDimsAt;
-
-    private List<DimOption> queryDimsCached() {
-        long now = System.currentTimeMillis();
-        if (cachedDims == null || now - cachedDimsAt > 10 * 60 * 1000L) {
-            cachedDims = toDimOptions(cashSettleMapper.queryWorkloadDims("operator"));
-            cachedDimsAt = now;
+    /** 维度下拉从透视行派生：distinct工号并集(9指标覆盖同4张表), staff_dict批量取姓名(查不到回退工号) */
+    private List<DimOption> dimsFromRows(List<Map<String, Object>> rows) {
+        Set<String> codes = new LinkedHashSet<>();
+        for (Map<String, Object> row : rows) {
+            Object dim = row.get("dim");
+            if (dim != null) {
+                codes.add(String.valueOf(dim));
+            }
         }
-        return cachedDims;
+        List<String> sorted = new ArrayList<>(codes);
+        Collections.sort(sorted);
+        Map<String, String> nameByCode = queryStaffNameMap(sorted);
+        List<DimOption> dims = new ArrayList<>();
+        for (String code : sorted) {
+            dims.add(new DimOption(code, nameByCode.getOrDefault(code, code)));
+        }
+        return dims;
+    }
+
+    private Map<String, String> queryStaffNameMap(List<String> codes) {
+        Map<String, String> map = new HashMap<>();
+        if (codes.isEmpty()) {
+            return map;
+        }
+        for (Map<String, Object> row : cashSettleMapper.queryStaffNames(codes)) {
+            Object value = row.get("value");
+            Object label = row.get("label");
+            if (value != null && label != null) {
+                map.put(String.valueOf(value), String.valueOf(label));
+            }
+        }
+        return map;
     }
 
     private CashierTableResult pageResult(List<TableItem> allItems, Integer page, Integer pageSize, List<DimOption> dims) {
@@ -432,28 +498,30 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
         List<Integer> data = new ArrayList<>(java.util.Arrays.asList(0, 0, 0, 0, 0, 0, 0, 0, 0));
         String cashier = request.getCashier();
         if (cashier != null && !cashier.isEmpty()) {
-            Date[] range = currentAndLastRange(request);
-            RegisterOverviewData reg = cashSettleMapper.queryCashierWorkload(range[0], range[1], range[2], range[3], cashier);
-            if (reg != null) {
-                data.set(0, reg.getAppointmentRegister() != null ? reg.getAppointmentRegister() : 0);
-                data.set(1, reg.getAppointmentFetch() != null ? reg.getAppointmentFetch() : 0);
-                data.set(2, reg.getTodayRegister() != null ? reg.getTodayRegister() : 0);
-                data.set(3, reg.getRefund() != null ? reg.getRefund() : 0);
-            }
-            RcptOverviewData rcpt = cashSettleMapper.queryCashierCharge(range[0], range[1], range[2], range[3], cashier);
-            if (rcpt != null) {
-                data.set(4, rcpt.getOutpatientCharge() != null ? rcpt.getOutpatientCharge() : 0);
-                data.set(5, rcpt.getOutpatientRefund() != null ? rcpt.getOutpatientRefund() : 0);
-            }
-            PrepayOverviewData prepay = cashSettleMapper.queryCashierPrepay(range[0], range[1], range[2], range[3], cashier);
-            if (prepay != null) {
-                data.set(6, prepay.getPrepayment() != null ? prepay.getPrepayment() : 0);
-                data.set(7, prepay.getHospitalRefund() != null ? prepay.getHospitalRefund() : 0);
-            }
-            DischargeOverviewData disch = cashSettleMapper.queryCashierDischarge(range[0], range[1], range[2], range[3], cashier);
-            if (disch != null) {
-                data.set(8, disch.getDischargeSettlement() != null ? disch.getDischargeSettlement() : 0);
-            }
+            java.sql.Date start = sqlDay(request.getStartDate());
+            java.sql.Date end = sqlDay(request.getEndDate());
+            CompletableFuture<RegisterOverviewData> regF = supplyQuery(
+                    () -> cashSettleMapper.queryCashierWorkload(start, end, cashier), new RegisterOverviewData());
+            CompletableFuture<RcptOverviewData> rcptF = supplyQuery(
+                    () -> cashSettleMapper.queryCashierCharge(start, end, cashier), new RcptOverviewData());
+            CompletableFuture<PrepayOverviewData> prepayF = supplyQuery(
+                    () -> cashSettleMapper.queryCashierPrepay(start, end, cashier), new PrepayOverviewData());
+            CompletableFuture<DischargeOverviewData> dischF = supplyQuery(
+                    () -> cashSettleMapper.queryCashierDischarge(start, end, cashier), new DischargeOverviewData());
+            CompletableFuture.allOf(regF, rcptF, prepayF, dischF).join();
+            RegisterOverviewData reg = regF.join();
+            data.set(0, reg.getAppointmentRegister() != null ? reg.getAppointmentRegister() : 0);
+            data.set(1, reg.getAppointmentFetch() != null ? reg.getAppointmentFetch() : 0);
+            data.set(2, reg.getTodayRegister() != null ? reg.getTodayRegister() : 0);
+            data.set(3, reg.getRefund() != null ? reg.getRefund() : 0);
+            RcptOverviewData rcpt = rcptF.join();
+            data.set(4, rcpt.getOutpatientCharge() != null ? rcpt.getOutpatientCharge() : 0);
+            data.set(5, rcpt.getOutpatientRefund() != null ? rcpt.getOutpatientRefund() : 0);
+            PrepayOverviewData prepay = prepayF.join();
+            data.set(6, prepay.getPrepayment() != null ? prepay.getPrepayment() : 0);
+            data.set(7, prepay.getHospitalRefund() != null ? prepay.getHospitalRefund() : 0);
+            DischargeOverviewData disch = dischF.join();
+            data.set(8, disch.getDischargeSettlement() != null ? disch.getDischargeSettlement() : 0);
         }
         chart.setData(data);
         return chart;
@@ -471,7 +539,7 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
         List<String> categories = new ArrayList<>();
         List<Integer> data = new ArrayList<>();
         if (request.getChartDate() != null && request.getChartMetric() != null && !request.getChartMetric().isEmpty()) {
-            Date[] dayRange = chartDayRange(request);
+            java.sql.Date[] dayRange = chartDayRange(request);
             List<CashSettleDtlEntity> rows = cashSettleMapper.querySourceChart(
                     dayRange[0], dayRange[1], request.getChartMetric());
             if (rows != null) {
@@ -487,7 +555,7 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
     }
 
     /** 来源方式图表选定日/月的[起,止)区间：按天=当天~次日，按月=月初~次月 */
-    private static Date[] chartDayRange(CashCashierSettlementRequest request) {
+    private static java.sql.Date[] chartDayRange(CashCashierSettlementRequest request) {
         java.util.Calendar calendar = java.util.Calendar.getInstance();
         calendar.setTime(request.getChartDate());
         Date start = calendar.getTime();
@@ -497,7 +565,7 @@ public class CashCashierSettlementServiceImpl implements CashCashierSettlementSe
         }
         calendar.add(java.util.Calendar.MONTH, "month".equalsIgnoreCase(request.getDimension()) ? 1 : 0);
         calendar.add(java.util.Calendar.DAY_OF_MONTH, "month".equalsIgnoreCase(request.getDimension()) ? 0 : 1);
-        return new Date[]{start, calendar.getTime()};
+        return new java.sql.Date[]{sqlDay(start), sqlDay(calendar.getTime())};
     }
 
     // ==================== 工具方法 ====================
