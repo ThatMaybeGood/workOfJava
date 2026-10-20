@@ -3,57 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>节假日维护系统 - 日历视图</title>
+    <title>节假日维护系统</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, #f0f2f5 0%, #e4e9ef 100%);
-            min-height: 100vh;
-            padding: 24px 20px;
+            background: #eef1f5;
+            min-height: 100dvh;
+            padding: 16px;
         }
 
-        .container {
-            max-width: 1400px;
+        /* 整页一屏布局：不滚动，左右等高对齐 */
+        .app {
+            max-width: 1440px;
             margin: 0 auto;
-        }
-
-        .main-layout {
+            height: calc(100dvh - 32px);
+            min-height: 560px;
             display: flex;
-            gap: 24px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 16px;
         }
 
-        .control-panel {
-            flex: 0 0 280px;
+        /* 顶栏 */
+        .app-header {
             background: white;
-            border-radius: 28px;
-            padding: 24px 20px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
-            height: fit-content;
-            position: sticky;
-            top: 20px;
-        }
-
-        .panel-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 24px;
+            border-radius: 20px;
+            padding: 12px 24px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            border-left: 4px solid #ef4444;
-            padding-left: 14px;
+            gap: 14px;
+            box-shadow: 0 2px 10px rgba(30, 41, 59, 0.05);
+            flex: 0 0 auto;
+        }
+
+        .app-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: linear-gradient(145deg, #f87171, #dc2626);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
+        }
+
+        .app-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #1e293b;
+            letter-spacing: 0.02em;
+        }
+
+        .app-subtitle {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .main {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            gap: 16px;
+        }
+
+        /* 左侧控制栏：与日历同高，刷新按钮沉底对齐 */
+        .sidebar {
+            flex: 0 0 268px;
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(30, 41, 59, 0.05);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .side-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #94a3b8;
+            letter-spacing: 0.12em;
+            margin-bottom: 14px;
         }
 
         .select-group {
-            margin-bottom: 20px;
+            margin-bottom: 14px;
         }
 
         .select-group label {
@@ -66,225 +107,394 @@
 
         .select-group select {
             width: 100%;
-            padding: 10px 14px;
+            padding: 9px 12px;
             border: 1.5px solid #e2e8f0;
-            border-radius: 16px;
-            font-size: 0.9rem;
-            background: white;
+            border-radius: 12px;
+            font-size: 0.88rem;
+            color: #1e293b;
+            background: #f8fafc;
             cursor: pointer;
             transition: all 0.2s;
             outline: none;
         }
 
+        .select-group select:hover { border-color: #cbd5e1; }
+
         .select-group select:focus {
             border-color: #ef4444;
-            box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+            background: white;
         }
 
-        .info-stats {
-            background: #fef2f2;
-            border-radius: 20px;
-            padding: 14px;
-            margin: 16px 0;
+        .stats-row {
+            display: flex;
+            gap: 10px;
+            margin: 6px 0 18px;
+        }
+
+        .stat-card {
+            flex: 1;
+            border-radius: 14px;
+            padding: 12px 8px;
             text-align: center;
         }
 
-        .stats-number {
-            font-size: 1.8rem;
+        .stat-card.red { background: #fef2f2; }
+        .stat-card.gray { background: #f1f5f9; }
+
+        .stat-number {
+            font-size: 1.5rem;
             font-weight: 800;
-            color: #ef4444;
+            line-height: 1.2;
         }
 
-        .stats-label {
-            font-size: 0.7rem;
-            color: #64748b;
-            margin-top: 4px;
+        .stat-card.red .stat-number { color: #dc2626; }
+        .stat-card.gray .stat-number { color: #475569; }
+
+        .stat-label {
+            font-size: 0.68rem;
+            color: #94a3b8;
+            margin-top: 3px;
         }
 
         .legend {
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            margin-top: 20px;
-            padding-top: 16px;
-            border-top: 1px solid #e2e8f0;
+            gap: 10px;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            font-size: 0.75rem;
-            color: #334155;
+            gap: 10px;
+            font-size: 0.76rem;
+            color: #475569;
         }
 
-        .legend-color {
-            width: 32px;
-            height: 32px;
-            border-radius: 10px;
+        .legend-swatch {
+            width: 34px;
+            height: 30px;
+            border-radius: 9px;
+            flex: 0 0 34px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.75rem;
-            font-weight: bold;
+            font-size: 0.72rem;
+            font-weight: 800;
+            position: relative;
         }
+
+        .side-spacer { flex: 1; }
 
         .btn-refresh {
             width: 100%;
-            margin-top: 20px;
-            background: #ef4444;
+            background: #1e293b;
             border: none;
-            padding: 10px;
-            border-radius: 40px;
+            padding: 11px;
+            border-radius: 12px;
             font-weight: 600;
             color: white;
             cursor: pointer;
-            transition: 0.2s;
+            transition: all 0.2s;
             font-size: 0.85rem;
         }
 
         .btn-refresh:hover {
-            background: #dc2626;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(239,68,68,0.3);
+            background: #0f172a;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
         }
 
-        .calendar-container {
+        /* 日历区 */
+        .calendar-card {
             flex: 1;
+            min-width: 0;
             background: white;
-            border-radius: 28px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-            padding: 24px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(30, 41, 59, 0.05);
+            padding: 18px 24px 14px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
         }
 
         .calendar-header {
+            position: relative;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 12px;
+            justify-content: flex-end;
+            height: 42px;
+            margin-bottom: 12px;
+            flex: 0 0 auto;
+        }
+
+        /* 年月标题绝对居中，左右箭头在标题两边 */
+        .nav-group {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            z-index: 70;
         }
 
         .year-month-title {
-            font-size: 1.6rem;
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #1e293b;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+        }
+
+        /* bt6 年月下拉：点标题选月份/切年份 */
+        .title-wrap {
+            position: relative;
+        }
+
+        .year-month-title {
+            cursor: pointer;
+            user-select: none;
+            padding: 4px 12px;
+            border-radius: 10px;
+            transition: background 0.15s;
+        }
+
+        .year-month-title:hover { background: #f1f5f9; }
+
+        /* 下拉箭头标识 */
+        .ym-caret {
+            display: inline-block;
+            font-size: 0.62em;
+            color: #94a3b8;
+            margin-left: 5px;
+            transition: transform 0.2s;
+        }
+
+        .year-month-title.open .ym-caret { transform: rotate(180deg); }
+
+        .ym-dropdown {
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 60;
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #eef2f6;
+            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+            padding: 14px;
+            width: 268px;
+        }
+
+        .ym-dropdown-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .ym-dropdown-header span {
+            font-size: 0.95rem;
             font-weight: 800;
             color: #1e293b;
         }
 
+        .ym-month-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+
+        .ym-month-item {
+            border: none;
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 9px 0;
+            font-size: 0.8rem;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .ym-month-item:hover { background: #e2e8f0; }
+
+        .ym-month-item.active {
+            background: #ef4444;
+            color: white;
+            font-weight: 700;
+        }
+
+        .year-month-title .ym-sub {
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: #94a3b8;
+            margin-left: 8px;
+        }
+
         .nav-buttons {
             display: flex;
-            gap: 12px;
+            gap: 8px;
         }
 
         .nav-btn {
             background: #f1f5f9;
             border: none;
-            width: 42px;
-            height: 42px;
-            border-radius: 30px;
-            font-size: 1.2rem;
+            min-width: 36px;
+            height: 36px;
+            padding: 0 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            color: #334155;
             cursor: pointer;
-            transition: 0.2s;
-            font-weight: bold;
+            transition: all 0.2s;
+            font-weight: 600;
         }
 
         .nav-btn:hover {
             background: #e2e8f0;
-            transform: scale(1.02);
+        }
+
+        .nav-btn.icon {
+            width: 36px;
+            padding: 0;
+            font-size: 1.2rem;
+            font-weight: 800;
         }
 
         .weekdays {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             text-align: center;
-            margin-bottom: 12px;
-            padding: 12px 0;
+            margin-bottom: 8px;
+            flex: 0 0 30px;
+            align-items: center;
             font-weight: 600;
-            font-size: 0.85rem;
-            color: #475569;
-            background: #f8fafc;
-            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #94a3b8;
         }
 
+        /* 六行网格撑满剩余高度，整页不滚动 */
         .calendar-grid {
+            flex: 1;
+            min-height: 0;
             display: grid;
             grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(6, 1fr);
             gap: 8px;
         }
 
         .calendar-day {
-            aspect-ratio: 1 / 0.9;
             background: white;
-            border-radius: 16px;
-            padding: 8px 6px;
+            border-radius: 14px;
             cursor: pointer;
-            transition: all 0.2s;
-            border: 1.5px solid #eef2f6;
+            transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+            border: 1.5px solid #edf1f5;
             position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
+            gap: 3px;
+            min-height: 0;
+            overflow: hidden;
         }
 
         .calendar-day:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 16px -6px rgba(0, 0, 0, 0.15);
-            border-color: #ef4444;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px -6px rgba(30, 41, 59, 0.18);
+            border-color: #cbd5e1;
         }
 
         .day-number {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 600;
             color: #1e293b;
-            margin-top: 4px;
+            line-height: 1.2;
         }
 
-        /* 节假日标记（红色角标） */
-        .holiday-mark {
-            position: absolute;
-            top: 6px;
-            right: 8px;
-            font-size: 0.7rem;
-            font-weight: 800;
+        .day-badge {
+            min-width: 30px;
+            height: 19px;
+            padding: 0 7px;
             border-radius: 20px;
-            padding: 2px 8px;
-            background: #fee2e2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.68rem;
+            font-weight: 800;
+            flex: 0 0 auto;
+        }
+
+        /* 节假日：实心红块 + 白字 + 白底红休徽章 */
+        .calendar-day.holiday-bg {
+            background: linear-gradient(150deg, #f87171 0%, #dc2626 100%);
+            border-color: transparent;
+            box-shadow: 0 4px 10px -3px rgba(220, 38, 38, 0.35);
+        }
+
+        .calendar-day.holiday-bg .day-number {
+            color: white;
+            font-weight: 800;
+        }
+
+        .calendar-day.holiday-bg:hover {
+            box-shadow: 0 8px 16px -5px rgba(220, 38, 38, 0.45);
+        }
+
+        .day-badge.holiday-badge {
+            background: white;
             color: #dc2626;
         }
 
-        /* 节假日背景 */
-        .calendar-day.holiday-bg {
-            background: #fff5f5;
-            border-color: #fecaca;
+        .holiday-remark {
+            font-size: 0.62rem;
+            color: rgba(255, 255, 255, 0.92);
+            max-width: 92%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 0 0 auto;
         }
 
-        /* 周末背景（浅灰色） */
+        /* 周末：浅灰蓝块 */
         .calendar-day.weekend-bg {
-            background: #f5f5f5;
-            border-color: #e5e7eb;
+            background: #f1f5f9;
+            border-color: #e6ecf2;
         }
 
-        /* 今日边框 */
+        .calendar-day.weekend-bg .day-number {
+            color: #7c8ba1;
+        }
+
+        .day-badge.weekend-badge {
+            background: transparent;
+            color: #a8b6c8;
+            font-weight: 500;
+            font-size: 0.64rem;
+        }
+
+        /* 今日：蓝色描边，与红色节假日明显区分 */
         .calendar-day.today {
-            border: 2px solid #ef4444;
-            background: #fff5f0;
-            box-shadow: 0 2px 8px rgba(239,68,68,0.15);
+            border: 2px solid #3b82f6;
+            background: #eff6ff;
+        }
+
+        .calendar-day.today .day-number {
+            color: #1d4ed8;
+            font-weight: 800;
+        }
+
+        .day-badge.today-badge {
+            background: #3b82f6;
+            color: white;
+            font-size: 0.64rem;
         }
 
         .calendar-day.other-month {
-            opacity: 0.4;
+            opacity: 0.32;
         }
 
-        .calendar-footer {
-            margin-top: 20px;
-            padding-top: 16px;
-            border-top: 1px solid #eef2f6;
-            text-align: center;
-            font-size: 0.75rem;
-            color: #64748b;
-        }
-
+        /* toast */
         .status-toast {
             position: fixed;
             bottom: 30px;
@@ -305,28 +515,231 @@
         .toast-error { background: #ef4444; }
         .toast-info { background: #3b82f6; }
 
-        @media (max-width: 780px) {
-            .control-panel { flex: auto; position: static; }
-            .calendar-day { padding: 4px; }
+        /* 窄屏：恢复自然高度可滚动 */
+        @media (max-width: 860px) {
+            body { padding: 10px; }
+            .app { height: auto; min-height: 0; }
+            .main { flex-direction: column; }
+            .sidebar { flex: none; width: 100%; }
+            .calendar-card { padding: 14px; }
+            .calendar-grid { grid-template-rows: none; }
+            .calendar-day { aspect-ratio: 1 / 0.85; }
             .day-number { font-size: 0.85rem; }
-            .holiday-mark { font-size: 0.6rem; top: 3px; right: 4px; padding: 1px 5px; }
+            .holiday-remark { display: none; }
+            .calendar-footer { flex-wrap: wrap; gap: 6px 12px; padding: 6px 0 2px; }
             .status-toast { white-space: normal; max-width: 85%; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .calendar-day, .nav-btn, .btn-refresh { transition: none; }
+            .calendar-day:hover, .nav-btn:hover { transform: none; }
+        }
+
+        /* bt4 班徽章：周末未标记休=上班，右上角琥珀色小标 */
+        .day-badge.ban-badge {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            margin-top: 0;
+            min-width: 22px;
+            height: 16px;
+            padding: 0 5px;
+            background: #f59e0b;
+            color: white;
+            font-size: 0.6rem;
+            box-shadow: 0 2px 5px rgba(245, 158, 11, 0.4);
+        }
+
+        /* bt4 标记弹窗 */
+        .mark-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 900;
+        }
+
+        .mark-card {
+            background: white;
+            border-radius: 18px;
+            padding: 22px 22px 18px;
+            width: 330px;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+            animation: markPop 0.18s ease-out;
+        }
+
+        @keyframes markPop {
+            from { transform: scale(0.94); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .mark-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 14px;
+        }
+
+        .mark-title span { color: #dc2626; }
+
+        .type-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .type-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 9px 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .type-option:hover { border-color: #cbd5e1; }
+
+        /* bt7 与日期不符的类型不可选（如工作日不能选"周末"） */
+        .type-option.disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .type-option.disabled:hover {
+            border-color: #e2e8f0;
+            background: white;
+        }
+
+        .type-option.disabled .type-desc,
+        .type-option.disabled .type-name { color: #94a3b8; }
+
+        .type-option.selected {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .type-radio {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #cbd5e1;
+            flex: 0 0 16px;
+            position: relative;
+        }
+
+        .type-option.selected .type-radio {
+            border-color: #ef4444;
+        }
+
+        .type-option.selected .type-radio::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+
+        .type-name {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .type-desc {
+            font-size: 0.68rem;
+            color: #94a3b8;
+            margin-top: 1px;
+        }
+
+        .mark-remark {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 0.82rem;
+            outline: none;
+            margin-bottom: 14px;
+            transition: all 0.2s;
+        }
+
+        .mark-remark:focus {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
+
+        .mark-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .mark-btn {
+            flex: 1;
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mark-btn.ghost {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .mark-btn.ghost:hover { background: #e2e8f0; }
+
+        .mark-btn.primary {
+            background: #ef4444;
+            color: white;
+        }
+
+        .mark-btn.primary:hover { background: #dc2626; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .mark-card { animation: none; }
+            .day-badge.ban-badge { box-shadow: none; }
+        }
+
+        /* mock预览横幅 */
+        .mock-banner {
+            max-width: 1440px;
+            margin: 0 auto 12px;
+            background: #fef3c7;
+            border: 1.5px solid #f59e0b;
+            color: #92400e;
+            border-radius: 12px;
+            padding: 7px 14px;
+            font-size: 0.76rem;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="main-layout">
-        <div class="control-panel">
-            <div class="panel-title">
-                📅 节假日参数维护
-            </div>
+<div class="app">
+    <div class="app-header">
+        <div class="app-logo">📅</div>
+        <div>
+            <div class="app-title">节假日参数维护</div>
+            <div class="app-subtitle">点击日历日期，标记或取消「休」</div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="sidebar">
+            <div class="side-label">查询条件</div>
             <div class="select-group">
-                <label>📆 年份</label>
+                <label>年份</label>
                 <select id="yearSelect"></select>
             </div>
             <div class="select-group">
-                <label>🗓️ 月份</label>
+                <label>月份</label>
                 <select id="monthSelect">
                     <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
                     <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
@@ -334,35 +747,90 @@
                     <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
                 </select>
             </div>
-            <div class="info-stats">
-                <div class="stats-number" id="holidayCount">0</div>
-                <div class="stats-label">本月节假日数量</div>
+
+            <div class="side-label">本月统计</div>
+            <div class="stats-row">
+                <div class="stat-card red">
+                    <div class="stat-number" id="holidayCount">0</div>
+                    <div class="stat-label">节假日</div>
+                </div>
+                <div class="stat-card gray">
+                    <div class="stat-number" id="weekendCount">0</div>
+                    <div class="stat-label">周末</div>
+                </div>
             </div>
+
+            <div class="side-label">图例</div>
             <div class="legend">
-                <div class="legend-item"><div class="legend-color" style="background: #fee2e2; color:#dc2626;">休</div><span>节假日(接口返回或手动标记)</span></div>
-                <div class="legend-item"><div class="legend-color" style="background: #f5f5f5; border:1px solid #e5e7eb;"></div><span>周末</span></div>
-                <div class="legend-item"><div class="legend-color" style="background: white; border:1px solid #cbd5e1;"></div><span>工作日</span></div>
-                <div class="legend-item"><div class="legend-color" style="background: #fff5f0; border:2px solid #ef4444;"></div><span>今日</span></div>
+                <div class="legend-item">
+                    <div class="legend-swatch" style="background: linear-gradient(150deg, #f87171, #dc2626); color: white; border: 1.5px solid #dc2626;"><span style="background:white;color:#dc2626;border-radius:12px;padding:0 6px;font-size:0.66rem;line-height:16px;height:16px;">休</span></div>
+                    <span>节假日（点击取消）</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-swatch" style="background:#f1f5f9;border:1.5px solid #e6ecf2;color:#a8b6c8;font-weight:500;">周末<span style="position:absolute;top:-6px;right:-6px;background:#f59e0b;color:white;border-radius:10px;padding:0 4px;font-size:0.56rem;line-height:14px;height:14px;">班</span></div>
+                    <span>周末未标休（上班）</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-swatch" style="background:white;border:1.5px solid #edf1f5;color:#cbd5e1;">1</div>
+                    <span>工作日（点击标记为休）</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-swatch" style="background:#eff6ff;border:2px solid #3b82f6;color:#1d4ed8;font-size:0.66rem;">今日</div>
+                    <span>今天</span>
+                </div>
             </div>
+
+            <div class="side-spacer"></div>
             <button class="btn-refresh" id="refreshBtn">🔄 刷新数据</button>
         </div>
 
-        <div class="calendar-container">
+        <div class="calendar-card">
             <div class="calendar-header">
-                <div class="year-month-title" id="currentYearMonth">2026年3月</div>
-                <div class="nav-buttons">
-                    <button class="nav-btn" id="prevMonthBtn">◀</button>
-                    <button class="nav-btn" id="nextMonthBtn">▶</button>
+                <div class="nav-group">
+                    <button class="nav-btn icon" id="prevMonthBtn">‹</button>
+                    <div class="title-wrap">
+                        <div class="year-month-title" id="currentYearMonth"></div>
+                        <div class="ym-dropdown" id="ymDropdown" style="display:none;">
+                            <div class="ym-dropdown-header">
+                                <button class="nav-btn icon" id="ddPrevYear">‹</button>
+                                <span id="ddYearLabel">2026年</span>
+                                <button class="nav-btn icon" id="ddNextYear">›</button>
+                            </div>
+                            <div class="ym-month-grid" id="ddMonthGrid"></div>
+                        </div>
+                    </div>
+                    <button class="nav-btn icon" id="nextMonthBtn">›</button>
                 </div>
+                <button class="nav-btn" id="todayBtn">今天</button>
             </div>
             <div class="weekdays">
                 <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
             </div>
             <div class="calendar-grid" id="calendarGrid"></div>
-            <div class="calendar-footer">
-                💡 操作说明：<br>
-                • 点击任意日期可添加或取消“休”标记。（周末恢复灰色，工作日白色）
+        </div>
+    </div>
+</div>
+<div class="mark-modal" id="markModal" style="display:none;">
+    <div class="mark-card">
+        <div class="mark-title">标记 <span id="markDateTitle"></span> 为休</div>
+        <div class="type-list">
+            <div class="type-option" data-type="1">
+                <span class="type-radio"></span>
+                <div><div class="type-name">节假日</div><div class="type-desc">法定节假日（国庆、春节等）</div></div>
             </div>
+            <div class="type-option" data-type="2">
+                <span class="type-radio"></span>
+                <div><div class="type-name">调休</div><div class="type-desc">调休补休的假</div></div>
+            </div>
+            <div class="type-option" data-type="0">
+                <span class="type-radio"></span>
+                <div><div class="type-name">周末</div><div class="type-desc">周六周日</div></div>
+            </div>
+        </div>
+        <input id="markRemark" class="mark-remark" placeholder="备注（选填，如：国庆节）" maxlength="20">
+        <div class="mark-actions">
+            <button class="mark-btn ghost" id="markCancelBtn">取消</button>
+            <button class="mark-btn primary" id="markOkBtn">确定标记</button>
         </div>
     </div>
 </div>
@@ -371,10 +839,83 @@
 <script>
     // API配置
     const BASE_URL = "http://168.168.235.209:18081/paltform/holidays";
-    
-    // 全局状态
-    let currentYear = 2026;
-    let currentMonth = 3;
+
+    // btM mock模式：url带?mock=1时启用本地模拟数据，仅供预览，不影响正式使用
+    const IS_MOCK = location.search.indexOf('mock=1') >= 0;
+
+    // btM mock数据中心：模拟服务端节假日表
+    let mockSerial = 1001;
+    const mockStore = {};
+    function seedHoliday(dateStr, remark, htype) {
+        const [y, m] = dateStr.split('-');
+        if (!mockStore[y]) mockStore[y] = {};
+        if (!mockStore[y][m]) mockStore[y][m] = [];
+        mockStore[y][m].push({
+            serial_no: mockSerial++,
+            holiday_date: dateStr,
+            valid_flag: "1",
+            holiday_type: htype || "1",
+            holiday_year: y,
+            holiday_month: m,
+            creator: null,
+            create_time: null,
+            update_time: null,
+            update_count: null,
+            remark: remark,
+            category: "1"
+        });
+    }
+    if (IS_MOCK) {
+        // 2026年模拟数据：国庆7天 + 调休1天 + 其他月份零星节日；10月部分周末留空验证"班"
+        ['2026-10-01','2026-10-02','2026-10-03','2026-10-04','2026-10-05','2026-10-06','2026-10-07'].forEach(d => seedHoliday(d, '国庆节', '1'));
+        seedHoliday('2026-10-15', '设备检修调休', '2');
+        seedHoliday('2026-01-01', '元旦', '1');
+        seedHoliday('2026-02-17', '春节', '1');
+        seedHoliday('2026-04-05', '清明节', '1');
+        seedHoliday('2026-05-01', '劳动节', '1');
+        seedHoliday('2026-06-19', '端午节', '1');
+        seedHoliday('2026-09-25', '中秋节', '1');
+    }
+
+    // btM mock版请求：按url分发到本地模拟逻辑
+    function mockApiRequest(url, bodyData) {
+        return new Promise(resolve => setTimeout(() => {
+            const ok = { result: { code: "10000", success: true } };
+            if (url.indexOf('/findall') > -1) {
+                const y = bodyData.extend_params1, m = bodyData.extend_params2;
+                const list = (mockStore[y] && mockStore[y][m]) || [];
+                resolve({ ...ok, body: { list: JSON.parse(JSON.stringify(list)) } });
+                return;
+            }
+            if (url.indexOf('/insert') > -1) {
+                const item = { ...bodyData, serial_no: mockSerial++ };
+                const y = item.holiday_year, m = item.holiday_month;
+                if (!mockStore[y]) mockStore[y] = {};
+                if (!mockStore[y][m]) mockStore[y][m] = [];
+                mockStore[y][m].push(item);
+                resolve({ ...ok, body: { serial_no: item.serial_no } });
+                return;
+            }
+            if (url.indexOf('/update') > -1) {
+                const serial = bodyData.serial_no;
+                outer: for (const y of Object.keys(mockStore)) {
+                    for (const m of Object.keys(mockStore[y])) {
+                        const arr = mockStore[y][m];
+                        const idx = arr.findIndex(it => it.serial_no === serial);
+                        if (idx >= 0) { arr.splice(idx, 1); break outer; }
+                    }
+                }
+                resolve({ ...ok, body: {} });
+                return;
+            }
+            resolve({ ...ok, body: {} });
+        }, 200));
+    }
+
+    // bt1 默认打开系统当天所在年月
+    const now = new Date();
+    let currentYear = now.getFullYear();
+    let currentMonth = now.getMonth() + 1;
     let holidaySet = new Set();       // 所有节假日日期 YYYY-MM-DD
     let holidayFullMap = new Map();   // 存储完整对象，用于删除
     let isLoading = false;
@@ -405,6 +946,7 @@
     }
 
     async function apiRequest(url, bodyData) {
+        if (IS_MOCK) return mockApiRequest(url, bodyData);
         const payload = { head: getBaseHead(), body: bodyData };
         try {
             const response = await fetch(url, {
@@ -427,14 +969,14 @@
             extend_params1: year ? year.toString() : ""
         };
         const response = await apiRequest(`${BASE_URL}/findall`, bodyParams);
-        if (response.result && (response.result.code === "10000" || response.result.success === true) && response.body&&response.body.list) {
+        if (response.result && (response.result.code === "10000" || response.result.success === true) && response.body && response.body.list) {
             return { success: true, list: response.body.list };
         }
-        return { success: false, list: [], msg: (response.result&&response.sub_msg) || "查询失败" };
+        return { success: false, list: [], msg: (response.result && response.sub_msg) || "查询失败" };
     }
 
-    // 新增休标记
-    async function addHolidayApi(holidayDate, category = "2", remark = "") {
+    // 新增休标记：holidayType 1=节假日 2=调休 0=周末，随记录存入后端表
+    async function addHolidayApi(holidayDate, holidayType, category, remark) {
         const dateObj = new Date(holidayDate);
         if (isNaN(dateObj.getTime())) return { success: false, msg: "日期无效" };
         const year = dateObj.getFullYear().toString();
@@ -443,7 +985,7 @@
             serial_no: null,
             holiday_date: holidayDate,
             valid_flag: "1",
-            holiday_type: "0",
+            holiday_type: holidayType,
             holiday_year: year,
             holiday_month: month,
             creator: null,
@@ -457,7 +999,7 @@
         if (response.result && (response.result.code === "10000" || response.result.success === true)) {
             return { success: true, msg: "标记为休成功", data: response.body };
         }
-        return { success: false, msg: (response.result&&response.sub_msg) || "操作失败" };
+        return { success: false, msg: (response.result && response.sub_msg) || "操作失败" };
     }
 
     // 删除休标记
@@ -467,7 +1009,7 @@
         if (response.result && (response.result.code === "10000" || response.result.success === true)) {
             return { success: true, msg: "取消标记成功" };
         }
-        return { success: false, msg: (response.result&&response.sub_msg) || "删除失败" };
+        return { success: false, msg: (response.result && response.sub_msg) || "删除失败" };
     }
 
     function showToast(message, type = "info") {
@@ -486,7 +1028,7 @@
         return day === 0 || day === 6;
     }
 
-    // 获取当前月份周末数量（用于统计，可保留）
+    // 统计某月周末天数
     function getWeekendCountInMonth(year, month) {
         let count = 0;
         const daysInMonth = new Date(year, month, 0).getDate();
@@ -495,6 +1037,28 @@
             if (isWeekend(dateStr)) count++;
         }
         return count;
+    }
+
+    // bt1 重新拉取某月的节假日数据并合并到本地（确保serial_no为服务端真实值，取消立即可用）
+    async function syncMonth(dateStr) {
+        const [y, m] = dateStr.split('-').map(Number);
+        const res = await fetchHolidays(y, m);
+        if (!res.success) return false;
+        // 先清掉该月本地旧记录，再以服务端返回为准
+        for (const d of Array.from(holidaySet)) {
+            const [dy, dm] = d.split('-').map(Number);
+            if (dy === y && dm === m) {
+                holidaySet.delete(d);
+                holidayFullMap.delete(d);
+            }
+        }
+        res.list.forEach(item => {
+            if (item.holiday_date) {
+                holidaySet.add(item.holiday_date);
+                holidayFullMap.set(item.holiday_date, item);
+            }
+        });
+        return true;
     }
 
     // 渲染日历
@@ -506,14 +1070,14 @@
         const daysInPrevMonth = prevMonthDate.getDate();
         const calendarGrid = document.getElementById('calendarGrid');
         calendarGrid.innerHTML = '';
-        
+
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-        
+
         for (let i = 0; i < 42; i++) {
             let displayDay, isCurrentMonth = true;
             let cellYear = year, cellMonth = month;
-            
+
             if (i < startWeekday) {
                 displayDay = daysInPrevMonth - (startWeekday - i) + 1;
                 isCurrentMonth = false;
@@ -532,37 +1096,60 @@
                 displayDay = i - startWeekday + 1;
                 isCurrentMonth = true;
             }
-            
+
             const fullDateStr = `${cellYear}-${String(cellMonth).padStart(2,'0')}-${String(displayDay).padStart(2,'0')}`;
             const isToday = fullDateStr === todayStr;
             const isHoliday = holidaySet.has(fullDateStr);
             const isWeekendDay = isWeekend(fullDateStr);
-            
-            // 决定样式类
+
+            // 优先级：节假日 > 今日 > 周末 > 工作日
             let dayClass = 'calendar-day';
             if (!isCurrentMonth) dayClass += ' other-month';
-            if (isToday) dayClass += ' today';
             if (isHoliday) {
-                dayClass += ' holiday-bg';      // 节假日背景
+                dayClass += ' holiday-bg';
+            } else if (isToday) {
+                dayClass += ' today';
             } else if (isWeekendDay && isCurrentMonth) {
-                dayClass += ' weekend-bg';       // 周末背景（仅当前月份周末）
+                dayClass += ' weekend-bg';
             }
-            
+
             const dayDiv = document.createElement('div');
             dayDiv.className = dayClass;
-            
+
             const dayNumber = document.createElement('div');
             dayNumber.className = 'day-number';
             dayNumber.innerText = displayDay;
             dayDiv.appendChild(dayNumber);
-            
+
             if (isHoliday) {
-                const holidayMark = document.createElement('div');
-                holidayMark.className = 'holiday-mark';
-                holidayMark.innerText = '休';
-                dayDiv.appendChild(holidayMark);
+                const badge = document.createElement('div');
+                badge.className = 'day-badge holiday-badge';
+                badge.innerText = '休';
+                dayDiv.appendChild(badge);
+                const item = holidayFullMap.get(fullDateStr);
+                if (item && item.remark && item.remark !== '手动标记' && item.remark !== '节假日标记') {
+                    const remark = document.createElement('div');
+                    remark.className = 'holiday-remark';
+                    remark.innerText = item.remark;
+                    dayDiv.appendChild(remark);
+                }
+            } else if (isToday) {
+                const badge = document.createElement('div');
+                badge.className = 'day-badge today-badge';
+                badge.innerText = '今日';
+                dayDiv.appendChild(badge);
+            } else if (isWeekendDay && isCurrentMonth) {
+                const badge = document.createElement('div');
+                badge.className = 'day-badge weekend-badge';
+                badge.innerText = '周末';
+                dayDiv.appendChild(badge);
+                // bt4 周末未标记休=上班，右上角"班"（纯前端推导，不落库）
+                const banBadge = document.createElement('div');
+                banBadge.className = 'day-badge ban-badge';
+                banBadge.innerText = '班';
+                dayDiv.appendChild(banBadge);
             }
-            
+
             dayDiv.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 if (isLoading) {
@@ -571,21 +1158,84 @@
                 }
                 await handleDayClick(fullDateStr);
             });
-            
+
             calendarGrid.appendChild(dayDiv);
         }
-        
-        document.getElementById('currentYearMonth').innerHTML = `${year}年 ${month}月`;
+
+        document.getElementById('currentYearMonth').innerHTML = `${year}年 ${month}月<span class="ym-caret">▾</span>`;
+    }
+
+    // bt4 标记类型弹窗：类型仅存入后端holiday_type，前端统一显示"休"
+    let markResolve = null;
+
+    function openMarkModal(dateStr, isWeekendDay) {
+        return new Promise(resolve => {
+            markResolve = resolve;
+            document.getElementById('markDateTitle').textContent = dateStr;
+            document.getElementById('markRemark').value = '';
+            // bt7 非周末日期"周末"类型置灰，防存脏数据
+            const weekendOpt = document.querySelector('.type-option[data-type="0"]');
+            weekendOpt.classList.toggle('disabled', !isWeekendDay);
+            selectMarkType(isWeekendDay ? '0' : '1');
+            document.getElementById('markModal').style.display = 'flex';
+        });
+    }
+
+    function selectMarkType(type) {
+        document.querySelectorAll('.type-option').forEach(el => {
+            el.classList.toggle('selected', el.getAttribute('data-type') === type);
+        });
+    }
+
+    function closeMarkModal(result) {
+        document.getElementById('markModal').style.display = 'none';
+        if (markResolve) {
+            const r = markResolve;
+            markResolve = null;
+            r(result);
+        }
+    }
+
+    function initMarkModal() {
+        document.querySelectorAll('.type-option').forEach(el => {
+            el.addEventListener('click', () => {
+                if (el.classList.contains('disabled')) return;
+                selectMarkType(el.getAttribute('data-type'));
+            });
+        });
+        document.getElementById('markCancelBtn').addEventListener('click', () => closeMarkModal(null));
+        document.getElementById('markOkBtn').addEventListener('click', () => {
+            const selected = document.querySelector('.type-option.selected');
+            if (!selected) { showToast("请选择休假类型", "error"); return; }
+            const type = selected.getAttribute('data-type');
+            const remarkInput = document.getElementById('markRemark').value.trim();
+            closeMarkModal({ type, remark: remarkInput });
+        });
+        // 点遮罩关闭
+        document.getElementById('markModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeMarkModal(null);
+        });
+        // Esc关闭
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('markModal').style.display !== 'none') {
+                closeMarkModal(null);
+            }
+        });
     }
 
     // 处理点击日期
     async function handleDayClick(dateStr) {
         const isHoliday = holidaySet.has(dateStr);
-        
+
         if (isHoliday) {
             if (!confirm(`日期 ${dateStr} 当前标记为“休”，确定要取消吗？`)) return;
-            const holidayItem = holidayFullMap.get(dateStr);
-            if (!holidayItem) {
+            let holidayItem = holidayFullMap.get(dateStr);
+            // bt2 serial_no缺失或非服务端值时先重拉该月，保证取消可用
+            if (!holidayItem || !holidayItem.serial_no || String(holidayItem.serial_no).indexOf('temp_') === 0) {
+                await syncMonth(dateStr);
+                holidayItem = holidayFullMap.get(dateStr);
+            }
+            if (!holidayItem || !holidayItem.serial_no) {
                 showToast("错误：找不到对应的节假日记录", "error");
                 return;
             }
@@ -600,21 +1250,14 @@
                 showToast(`取消失败: ${delRes.msg}`, "error");
             }
         } else {
-            if (!confirm(`确认将 ${dateStr} 标记为【休】(节假日)吗？`)) return;
-            const addRes = await addHolidayApi(dateStr, "2", "手动标记");
+            // bt4 弹窗选休假类型：周末默认"周末"，工作日默认"节假日"
+            const choice = await openMarkModal(dateStr, isWeekend(dateStr));
+            if (!choice) return;
+            // bt4 类型只存后端，备注留空时落"手动标记"（前端不展示类型）
+            const addRes = await addHolidayApi(dateStr, choice.type, "2", choice.remark || "手动标记");
             if (addRes.success) {
-                const newItem = {
-                    serial_no: (addRes.data&&addRes.serial_no) || `temp_${Date.now()}`,
-                    holiday_date: dateStr,
-                    holiday_type: "0",
-                    valid_flag: "1",
-                    holiday_year: dateStr.split('-')[0],
-                    holiday_month: dateStr.split('-')[1],
-                    category: "2",
-                    remark: "手动标记"
-                };
-                holidaySet.add(dateStr);
-                holidayFullMap.set(dateStr, newItem);
+                // bt3 新增成功后重拉该月，写入服务端真实serial_no，取消无需再刷新
+                await syncMonth(dateStr);
                 showToast(`✅ 已标记 ${dateStr} 为休`, "success");
                 updateStats();
                 renderCalendar(currentYear, currentMonth);
@@ -624,13 +1267,14 @@
         }
     }
 
-    // 更新统计（当前月份节假日数量）
+    // 更新统计
     function updateStats() {
         const monthHolidays = Array.from(holidaySet).filter(date => {
             const [y, m] = date.split('-');
             return parseInt(y) === currentYear && parseInt(m) === currentMonth;
         });
         document.getElementById('holidayCount').innerText = monthHolidays.length;
+        document.getElementById('weekendCount').innerText = getWeekendCountInMonth(currentYear, currentMonth);
     }
 
     // 加载数据（包含当前月、上个月、下个月，确保跨月日期也能正确显示节假日）
@@ -640,22 +1284,22 @@
         const grid = document.getElementById('calendarGrid');
         grid.style.opacity = '0.5';
         grid.style.pointerEvents = 'none';
-        
+
         try {
             let prevYear = currentYear, prevMonth = currentMonth - 1;
             if (prevMonth < 1) { prevMonth = 12; prevYear--; }
             let nextYear = currentYear, nextMonth = currentMonth + 1;
             if (nextMonth > 12) { nextMonth = 1; nextYear++; }
-            
+
             const [currentRes, prevRes, nextRes] = await Promise.all([
                 fetchHolidays(currentYear, currentMonth),
                 fetchHolidays(prevYear, prevMonth),
                 fetchHolidays(nextYear, nextMonth)
             ]);
-            
+
             holidaySet.clear();
             holidayFullMap.clear();
-            
+
             const mergeData = (res) => {
                 if (res.success && res.list) {
                     res.list.forEach(item => {
@@ -669,12 +1313,12 @@
             mergeData(currentRes);
             mergeData(prevRes);
             mergeData(nextRes);
-            
+
             updateStats();
             renderCalendar(currentYear, currentMonth);
-            
+
             let msg = `加载成功`;
-            if (currentRes.success) msg += `，当前月 ${(currentRes.list&&currentRes.length) || 0} 个节假日`;
+            if (currentRes.success) msg += `，当前月 ${(currentRes.list && currentRes.list.length) || 0} 个节假日`;
             if (!currentRes.success) msg += `，当前月查询失败: ${currentRes.msg}`;
             showToast(msg, currentRes.success ? "success" : "error");
         } catch (err) {
@@ -697,10 +1341,73 @@
         loadDataAndRender();
     }
 
+    // bt6 年月下拉面板：点标题弹出，‹›切年份，选月份跳转
+    let ddYear = currentYear;
+
+    function renderYmDropdown() {
+        document.getElementById('ddYearLabel').textContent = `${ddYear}年`;
+        document.querySelectorAll('.ym-month-item').forEach(el => {
+            const m = parseInt(el.getAttribute('data-month'));
+            el.classList.toggle('active', ddYear === currentYear && m === currentMonth);
+        });
+    }
+
+    function toggleYmDropdown(show) {
+        document.getElementById('currentYearMonth').classList.toggle('open', show);
+        if (show) {
+            ddYear = currentYear;
+            renderYmDropdown();
+            document.getElementById('ymDropdown').style.display = 'block';
+        } else {
+            document.getElementById('ymDropdown').style.display = 'none';
+        }
+    }
+
+    function initYmDropdown() {
+        const grid = document.getElementById('ddMonthGrid');
+        for (let m = 1; m <= 12; m++) {
+            const btn = document.createElement('button');
+            btn.className = 'ym-month-item';
+            btn.setAttribute('data-month', m);
+            btn.textContent = `${m}月`;
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleYmDropdown(false);
+                changeYearMonth(ddYear, m);
+            });
+            grid.appendChild(btn);
+        }
+        document.getElementById('currentYearMonth').addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleYmDropdown(document.getElementById('ymDropdown').style.display === 'none');
+        });
+        document.getElementById('ddPrevYear').addEventListener('click', (e) => {
+            e.stopPropagation();
+            ddYear--;
+            renderYmDropdown();
+        });
+        document.getElementById('ddNextYear').addEventListener('click', (e) => {
+            e.stopPropagation();
+            ddYear++;
+            renderYmDropdown();
+        });
+        // 点面板外关闭
+        document.addEventListener('click', () => toggleYmDropdown(false));
+    }
+
     // 初始化
     function init() {
+        // btM mock模式展示提示横幅并压缩高度
+        if (IS_MOCK) {
+            const banner = document.createElement('div');
+            banner.className = 'mock-banner';
+            banner.textContent = '⚠️ MOCK预览环境：数据全部为本地模拟（含10月国庆节、调休、今日状态），标记/取消操作不会写入真实服务器';
+            document.body.insertBefore(banner, document.body.firstChild);
+            document.querySelector('.app').style.height = 'calc(100dvh - 32px - 46px)';
+        }
+
         const yearSelect = document.getElementById('yearSelect');
-        for (let y = 2020; y <= 2032; y++) {
+        for (let y = currentYear - 6; y <= currentYear + 6; y++) {
             const option = document.createElement('option');
             option.value = y;
             option.textContent = `${y}年`;
@@ -710,29 +1417,46 @@
         yearSelect.addEventListener('change', (e) => {
             changeYearMonth(parseInt(e.target.value), currentMonth);
         });
-        
+
         document.getElementById('monthSelect').value = currentMonth;
         document.getElementById('monthSelect').addEventListener('change', (e) => {
             changeYearMonth(currentYear, parseInt(e.target.value));
         });
-        
+
         document.getElementById('prevMonthBtn').addEventListener('click', () => {
             let newMonth = currentMonth - 1, newYear = currentYear;
             if (newMonth < 1) { newMonth = 12; newYear--; }
             changeYearMonth(newYear, newMonth);
         });
-        
+
         document.getElementById('nextMonthBtn').addEventListener('click', () => {
             let newMonth = currentMonth + 1, newYear = currentYear;
             if (newMonth > 12) { newMonth = 1; newYear++; }
             changeYearMonth(newYear, newMonth);
         });
-        
+
+        // 回到今天所在月份
+        document.getElementById('todayBtn').addEventListener('click', () => {
+            const t = new Date();
+            changeYearMonth(t.getFullYear(), t.getMonth() + 1);
+        });
+
         document.getElementById('refreshBtn').addEventListener('click', () => loadDataAndRender());
-        
+
+        initMarkModal();
+        initYmDropdown();
+
+        // btM mock演示钩子：url带demoModal=1时自动弹出标记窗，便于预览
+        if (IS_MOCK && location.search.indexOf('demoModal=1') >= 0) {
+            setTimeout(() => { openMarkModal(`${currentYear}-${String(currentMonth).padStart(2,'0')}-21`, false); }, 800);
+        }
+        if (IS_MOCK && location.search.indexOf('demoDropdown=1') >= 0) {
+            setTimeout(() => toggleYmDropdown(true), 800);
+        }
+
         loadDataAndRender();
     }
-    
+
     init();
 </script>
 </body>

@@ -110,7 +110,7 @@ public class DischSettleCntServiceImpl implements DischSettleCntService {
         return SELF.equals(code) ? CHANNEL_SELF : CHANNEL_WINDOW;
     }
 
-    /** 费别按原始CHARGE_TYPE分组，映射后按(日期+费别+结算类别)合并人次 */
+    /** 费别按原始CHARGE_TYPE分组，映射后按(日期+费别+结算类别)合并收据量/人次 */
     private static List<PersonCountItem> mergeByFeeChannel(List<PersonCountItem> raw) {
         Map<String, PersonCountItem> merged = new LinkedHashMap<>();
         for (PersonCountItem r : raw) {
@@ -123,9 +123,12 @@ public class DischSettleCntServiceImpl implements DischSettleCntService {
                 it.setFeeType(feeType);
                 it.setSettleChannel(channel);
                 it.setCnt(0);
+                it.setPersonCnt(0);
                 return it;
             });
             item.setCnt(item.getCnt() + (r.getCnt() == null ? 0 : r.getCnt()));
+            // 人次=各原始组去重人次之和; 同一患者跨多个原始费别组会重复计(极少, 与原宽表口径一致)
+            item.setPersonCnt(item.getPersonCnt() + (r.getPersonCnt() == null ? 0 : r.getPersonCnt()));
         }
         return new ArrayList<>(merged.values());
     }
@@ -146,9 +149,11 @@ public class DischSettleCntServiceImpl implements DischSettleCntService {
                 it.setOperatorNo(r.getOperatorNo());
                 it.setOperatorName(operatorName);
                 it.setCnt(0);
+                it.setPersonCnt(0);
                 return it;
             });
             item.setCnt(item.getCnt() + (r.getCnt() == null ? 0 : r.getCnt()));
+            item.setPersonCnt(item.getPersonCnt() + (r.getPersonCnt() == null ? 0 : r.getPersonCnt()));
         }
         return new ArrayList<>(merged.values());
     }
@@ -167,6 +172,7 @@ public class DischSettleCntServiceImpl implements DischSettleCntService {
             item.setSettleChannel(channelOf(r.getSettleChannel()));
             item.setPayType(payType);
             item.setCnt(r.getCnt());
+            item.setPersonCnt(r.getPersonCnt());
             result.add(item);
         }
         return result;

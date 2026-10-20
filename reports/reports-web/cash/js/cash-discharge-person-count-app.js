@@ -14,7 +14,8 @@ const TABLE_COLUMNS = {
         { key: 'itemDate', label: '日期' },
         { key: 'feeType', label: '费别' },
         { key: 'settleChannel', label: '结算类别' },
-        { key: 'cnt', label: '人次' }
+        { key: 'cnt', label: '收据量' },
+        { key: 'personCnt', label: '人次' }
     ],
     operator: [
         { key: 'itemDate', label: '日期' },
@@ -22,14 +23,16 @@ const TABLE_COLUMNS = {
         { key: 'settleChannel', label: '结算类别' },
         { key: 'operatorNo', label: '操作员工号' },
         { key: 'operatorName', label: '操作员姓名' },
-        { key: 'cnt', label: '人次' }
+        { key: 'cnt', label: '收据量' },
+        { key: 'personCnt', label: '人次' }
     ],
     payType: [
         { key: 'itemDate', label: '日期' },
         { key: 'feeType', label: '费别' },
         { key: 'settleChannel', label: '结算类别' },
         { key: 'payType', label: '支付类别' },
-        { key: 'cnt', label: '人次' }
+        { key: 'cnt', label: '收据量' },
+        { key: 'personCnt', label: '人次' }
     ]
 };
 
@@ -103,7 +106,7 @@ class PersonCountApp {
             this.state.page = 1;
             this.renderBody();
         });
-        // 按费别视图点人次钻取按操作员明细
+        // 按费别视图点收据量钻取按操作员明细
         document.getElementById('tableBody').addEventListener('click', (e) => {
             if (this.state.dimension !== 'summary') return;
             const td = e.target.closest('td.drill-cnt');
@@ -254,17 +257,18 @@ class PersonCountApp {
         document.getElementById('tableEmpty').classList.toggle('d-none', all.length > 0);
         const clickable = this.state.dimension === 'summary' ? 'cnt' : null;
         let html = this.buildRowsHtml(list, columns, mergeKeys, clickable);
-        // 合计行：本页合计(当前页行求和) + 总计(筛选结果集求和)
-        const pageCnt = list.reduce((sum, row) => sum + (Number(row.cnt) || 0), 0);
-        const totalCnt = all.reduce((sum, row) => sum + (Number(row.cnt) || 0), 0);
-        const totalRow = (label, value, cls) =>
+        // 合计行：本页合计(当前页行求和) + 总计(筛选结果集求和)，收据量/人次两列各自求和
+        const sumKeys = ['cnt', 'personCnt'];
+        const pageSum = sumKeys.reduce((m, k) => (m[k] = list.reduce((s, r) => s + (Number(r[k]) || 0), 0), m), {});
+        const totalSum = sumKeys.reduce((m, k) => (m[k] = all.reduce((s, r) => s + (Number(r[k]) || 0), 0), m), {});
+        const totalRow = (label, sums, cls) =>
             `<tr class="${cls} fw-bold">` + columns.map(c => {
-                if (c.key === 'cnt') return `<td>${value}</td>`;
+                if (sums[c.key] !== undefined) return `<td>${sums[c.key]}</td>`;
                 if (c.key === 'itemDate') return `<td>${label}</td>`;
                 return '<td></td>';
             }).join('') + '</tr>';
-        html += totalRow('本页合计', pageCnt, 'table-light');
-        html += totalRow('总计', totalCnt, 'table-secondary');
+        html += totalRow('本页合计', pageSum, 'table-light');
+        html += totalRow('总计', totalSum, 'table-secondary');
         tbody.innerHTML = html;
         this.renderPagination();
     }
@@ -305,7 +309,7 @@ class PersonCountApp {
         this.drillList = [];
         this.drillPage = 1;
         document.getElementById('drillModalTitle').textContent =
-            `人次明细（按操作员）：${row.itemDate} ${row.feeType} ${row.settleChannel}`;
+            ${`收据量明细（按操作员）：${row.itemDate} ${row.feeType} ${row.settleChannel}`;
         document.getElementById('drillTableBody').innerHTML = '';
         document.getElementById('drillEmpty').classList.remove('d-none');
         bootstrap.Modal.getOrCreateInstance(document.getElementById('drillModal')).show();
@@ -339,8 +343,10 @@ class PersonCountApp {
         const list = all.slice((this.drillPage - 1) * this.drillPageSize, this.drillPage * this.drillPageSize);
         let html = this.buildRowsHtml(list, columns, MERGE_KEYS.operator, null);
         const total = all.reduce((sum, row) => sum + (Number(row.cnt) || 0), 0);
+        const totalPerson = all.reduce((sum, row) => sum + (Number(row.personCnt) || 0), 0);
         html += `<tr class="table-secondary fw-bold">` + columns.map(c =>
-            c.key === 'cnt' ? `<td>${total}</td>` : c.key === 'itemDate' ? '<td>总计</td>' : '<td></td>'
+            c.key === 'cnt' ? `<td>${total}</td>` : c.key === 'personCnt' ? `<td>${totalPerson}</td>`
+                : c.key === 'itemDate' ? '<td>总计</td>' : '<td></td>'
         ).join('') + '</tr>';
         document.getElementById('drillTableBody').innerHTML = html;
         this.renderDrillPagination(pages, all.length);

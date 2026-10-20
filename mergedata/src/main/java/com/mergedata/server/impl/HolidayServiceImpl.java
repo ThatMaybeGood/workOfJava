@@ -238,9 +238,13 @@ public class HolidayServiceImpl implements YQHolidayService {
     @Override
     @Transactional
     public Boolean update(YQHolidayEntity entity) {
-        //作废标志
-        entity.setValidFlag("0");
-        return Db.updateById(entity);
+        // bt5 作废：置无效+写更新时间+次数+1，只动这三列，避免回传实体覆盖其他字段
+        return Db.lambdaUpdate(YQHolidayEntity.class)
+                .eq(YQHolidayEntity::getSerialNo, entity.getSerialNo())
+                .set(YQHolidayEntity::getValidFlag, "0")
+                .set(YQHolidayEntity::getUpdateTime, LocalDate.now())
+                .setSql("update_count = NVL(update_count, 0) + 1")
+                .update();
     }
 
     /**

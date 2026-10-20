@@ -43,7 +43,12 @@ public class PersonCountItem implements Serializable {
     private String payType;
 
     /**
-     * 人次
+     * 收据量（结算笔数）
      */
     private Integer cnt;
+
+    /**
+     * 人次（count distinct patient_id）
+     */
+    private Integer personCnt;
 }

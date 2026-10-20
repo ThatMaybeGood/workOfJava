@@ -19,7 +19,7 @@ public interface DischSettleCntMapper {
      * @param startDate     开始日期
      * @param endDate       结束日期
      * @param timeDimension 时间粒度(day/month)
-     * @return 人次统计行
+     * @return 收据量/人次统计行
      */
     List<PersonCountItem> queryByFeeChannel(@Param("startDate") java.sql.Date startDate,
                                             @Param("endDate") java.sql.Date endDate,
@@ -31,7 +31,7 @@ public interface DischSettleCntMapper {
      * @param startDate     开始日期
      * @param endDate       结束日期
      * @param timeDimension 时间粒度(day/month)
-     * @return 人次统计行
+     * @return 收据量/人次统计行
      */
     List<PersonCountItem> queryByOperator(@Param("startDate") java.sql.Date startDate,
                                           @Param("endDate") java.sql.Date endDate,
@@ -43,7 +43,7 @@ public interface DischSettleCntMapper {
      * @param startDate     开始日期
      * @param endDate       结束日期
      * @param timeDimension 时间粒度(day/month)
-     * @return 人次统计行
+     * @return 收据量/人次统计行
      */
     List<PersonCountItem> queryByPayType(@Param("startDate") java.sql.Date startDate,
                                          @Param("endDate") java.sql.Date endDate,
