@@ -309,7 +309,7 @@ class PersonCountApp {
         this.drillList = [];
         this.drillPage = 1;
         document.getElementById('drillModalTitle').textContent =
-            ${`收据量明细（按操作员）：${row.itemDate} ${row.feeType} ${row.settleChannel}`;
+            `收据量明细（按操作员）：${row.itemDate} ${row.feeType} ${row.settleChannel}`;
         document.getElementById('drillTableBody').innerHTML = '';
         document.getElementById('drillEmpty').classList.remove('d-none');
         bootstrap.Modal.getOrCreateInstance(document.getElementById('drillModal')).show();
