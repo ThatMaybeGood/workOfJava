@@ -3,125 +3,158 @@
 <mapper namespace="com.reports.mapper.NoShowMapper">
 
     <!-- ============================================================ -->
-    <!-- 查询爽约退号概览 -->
+    <!-- 爽约退号全度量·一次查询出就诊日×科室的全部35项度量(源表直查TR_OUTP_FIN_CLINIC_MASTER/MOP_QUEUE, 不再读宽表) -->
+    <!-- 口径同原宽表: 退号按就诊日归期(returned_date非空); 爽约=情况一(预约queue未到诊,限appoints_indicator=1,科室NULL) -->
+    <!-- +情况二(registration_status<=1), 两种情况各自按身份证去重(COUNT DISTINCT); 年龄=就诊日年-身份证出生年,证件<15位不计 -->
+    <!-- 性能: 服务层10min缓存(按区间), 区间只算一次; 抽取需按日覆盖(同一就诊号单一快照,否则重复计数) -->
     <!-- ============================================================ -->
-    <select id="queryOverview" resultType="com.reports.entity.NoShowOvEntity">
-        SELECT
-            NVL(SUM(tui_hao_shu), 0) AS refundCount,
-            ROUND(NVL(SUM(tui_hao_shu), 0) / NULLIF(SUM(total_guahao), 0) * 100, 2) || '%' AS refundRate,
-            NVL(SUM(shuang_yue_shu), 0) AS noShowCount,
-            ROUND(NVL(SUM(shuang_yue_shu), 0) / NULLIF(SUM(total_guahao), 0) * 100, 2) || '%' AS noShowRate
-        FROM TR_OUTPATIENT_STATS_DAY_RESULT
-        WHERE stats_date BETWEEN #{startDate} AND #{endDate}
+    <select id="queryMeasureRange" resultType="map">
+        SELECT stat_day AS "statDay",
+               dept_code AS "deptCode",
+               SUM(total_guahao) AS "totalGuahao",
+               SUM(tui_hao_shu) AS "tuiHaoShu",
+               SUM(shuang_yue_shu) AS "shuangYueShu",
+               SUM(tui_hao_chong_qing) AS "tuiHaoChongqing",
+               SUM(tui_hao_si_chuan) AS "tuiHaoSichuan",
+               SUM(tui_hao_gui_zhou) AS "tuiHaoGuizhou",
+               SUM(tui_hao_yun_nan) AS "tuiHaoYunnan",
+               SUM(tui_hao_qi_ta) AS "tuiHaoQiTa",
+               SUM(shuang_yue_chong_qing) AS "shuangYueChongqing",
+               SUM(shuang_yue_si_chuan) AS "shuangYueSichuan",
+               SUM(shuang_yue_gui_zhou) AS "shuangYueGuizhou",
+               SUM(shuang_yue_yun_nan) AS "shuangYueYunnan",
+               SUM(shuang_yue_qi_ta) AS "shuangYueQiTa",
+               SUM(tui_hao_chuang_kou) AS "tuiHaoChuangKou",
+               SUM(tui_hao_zi_zhu_ji) AS "tuiHaoZiZhuJi",
+               SUM(tui_hao_age_0_14) AS "tuiHaoAge0_14",
+               SUM(tui_hao_age_15_19) AS "tuiHaoAge15_19",
+               SUM(tui_hao_age_20_29) AS "tuiHaoAge20_29",
+               SUM(tui_hao_age_30_39) AS "tuiHaoAge30_39",
+               SUM(tui_hao_age_40_49) AS "tuiHaoAge40_49",
+               SUM(tui_hao_age_50_59) AS "tuiHaoAge50_59",
+               SUM(tui_hao_age_60_69) AS "tuiHaoAge60_69",
+               SUM(tui_hao_age_70_79) AS "tuiHaoAge70_79",
+               SUM(tui_hao_age_80_89) AS "tuiHaoAge80_89",
+               SUM(tui_hao_age_90_up) AS "tuiHaoAge90Up",
+               SUM(shuang_yue_age_0_14) AS "shuangYueAge0_14",
+               SUM(shuang_yue_age_15_19) AS "shuangYueAge15_19",
+               SUM(shuang_yue_age_20_29) AS "shuangYueAge20_29",
+               SUM(shuang_yue_age_30_39) AS "shuangYueAge30_39",
+               SUM(shuang_yue_age_40_49) AS "shuangYueAge40_49",
+               SUM(shuang_yue_age_50_59) AS "shuangYueAge50_59",
+               SUM(shuang_yue_age_60_69) AS "shuangYueAge60_69",
+               SUM(shuang_yue_age_70_79) AS "shuangYueAge70_79",
+               SUM(shuang_yue_age_80_89) AS "shuangYueAge80_89",
+               SUM(shuang_yue_age_90_up) AS "shuangYueAge90Up"
+        FROM (
+            -- A. 总挂号(分母) + 退号全维度: clinic一次扫描, 退号=returned_date非空按就诊日归期
+            SELECT TRUNC(c.stat_date) AS stat_day,
+                   c.dept_code,
+                   COUNT(1) AS total_guahao,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL THEN 1 ELSE 0 END) AS tui_hao_shu,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL AND c.returned_operator = '自助机' THEN 1 ELSE 0 END) AS tui_hao_zi_zhu_ji,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL AND (c.returned_operator != '自助机' OR c.returned_operator IS NULL) THEN 1 ELSE 0 END) AS tui_hao_chuang_kou,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL AND (SUBSTR(c.id_no, 1, 2) = '50' OR SUBSTR(c.id_no, 1, 4) = '5122') THEN 1 ELSE 0 END) AS tui_hao_chong_qing,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL AND (SUBSTR(c.id_no, 1, 2) = '51' AND SUBSTR(c.id_no, 1, 4) != '5122') THEN 1 ELSE 0 END) AS tui_hao_si_chuan,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL AND SUBSTR(c.id_no, 1, 2) = '52' THEN 1 ELSE 0 END) AS tui_hao_gui_zhou,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL AND SUBSTR(c.id_no, 1, 2) = '53' THEN 1 ELSE 0 END) AS tui_hao_yun_nan,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL AND (SUBSTR(c.id_no, 1, 2) NOT IN ('50','51','52','53') OR c.id_no IS NULL) THEN 1 ELSE 0 END) AS tui_hao_qi_ta,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL AND LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) <![CDATA[<]]> 15 THEN 1 ELSE 0 END) AS tui_hao_age_0_14,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL AND LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) BETWEEN 15 AND 19 THEN 1 ELSE 0 END) AS tui_hao_age_15_19,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL AND LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) BETWEEN 20 AND 29 THEN 1 ELSE 0 END) AS tui_hao_age_20_29,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL AND LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) BETWEEN 30 AND 39 THEN 1 ELSE 0 END) AS tui_hao_age_30_39,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL AND LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) BETWEEN 40 AND 49 THEN 1 ELSE 0 END) AS tui_hao_age_40_49,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL AND LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) BETWEEN 50 AND 59 THEN 1 ELSE 0 END) AS tui_hao_age_50_59,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL AND LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) BETWEEN 60 AND 69 THEN 1 ELSE 0 END) AS tui_hao_age_60_69,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL AND LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) BETWEEN 70 AND 79 THEN 1 ELSE 0 END) AS tui_hao_age_70_79,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL AND LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) BETWEEN 80 AND 89 THEN 1 ELSE 0 END) AS tui_hao_age_80_89,
+                   SUM(CASE WHEN c.returned_date IS NOT NULL AND LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) >= 90 THEN 1 ELSE 0 END) AS tui_hao_age_90_up,
+                   0 AS shuang_yue_shu,
+                   0 AS shuang_yue_chong_qing, 0 AS shuang_yue_si_chuan, 0 AS shuang_yue_gui_zhou,
+                   0 AS shuang_yue_yun_nan, 0 AS shuang_yue_qi_ta,
+                   0 AS shuang_yue_age_0_14, 0 AS shuang_yue_age_15_19, 0 AS shuang_yue_age_20_29,
+                   0 AS shuang_yue_age_30_39, 0 AS shuang_yue_age_40_49, 0 AS shuang_yue_age_50_59,
+                   0 AS shuang_yue_age_60_69, 0 AS shuang_yue_age_70_79, 0 AS shuang_yue_age_80_89,
+                   0 AS shuang_yue_age_90_up
+            FROM TR_OUTP_FIN_CLINIC_MASTER c
+            WHERE c.stat_date BETWEEN #{startDate} AND #{endDate}
+            GROUP BY TRUNC(c.stat_date), c.dept_code
+            UNION ALL
+            -- B. 爽约情况二: 门诊表状态直标(registration_status小于等于1), 按(日,科室,身份证)去重
+            SELECT TRUNC(c.stat_date) AS stat_day,
+                   c.dept_code,
+                   0 AS total_guahao,
+                   0 AS tui_hao_shu,
+                   0 AS tui_hao_zi_zhu_ji, 0 AS tui_hao_chuang_kou,
+                   0 AS tui_hao_chong_qing, 0 AS tui_hao_si_chuan, 0 AS tui_hao_gui_zhou,
+                   0 AS tui_hao_yun_nan, 0 AS tui_hao_qi_ta,
+                   0 AS tui_hao_age_0_14, 0 AS tui_hao_age_15_19, 0 AS tui_hao_age_20_29,
+                   0 AS tui_hao_age_30_39, 0 AS tui_hao_age_40_49, 0 AS tui_hao_age_50_59,
+                   0 AS tui_hao_age_60_69, 0 AS tui_hao_age_70_79, 0 AS tui_hao_age_80_89,
+                   0 AS tui_hao_age_90_up,
+                   COUNT(DISTINCT NVL(c.id_no, 'V' || c.visit_no)) AS shuang_yue_shu,
+                   COUNT(DISTINCT CASE WHEN SUBSTR(c.id_no, 1, 2) = '50' OR SUBSTR(c.id_no, 1, 4) = '5122' THEN NVL(c.id_no, 'V' || c.visit_no) END) AS shuang_yue_chong_qing,
+                   COUNT(DISTINCT CASE WHEN SUBSTR(c.id_no, 1, 2) = '51' AND SUBSTR(c.id_no, 1, 4) != '5122' THEN NVL(c.id_no, 'V' || c.visit_no) END) AS shuang_yue_si_chuan,
+                   COUNT(DISTINCT CASE WHEN SUBSTR(c.id_no, 1, 2) = '52' THEN NVL(c.id_no, 'V' || c.visit_no) END) AS shuang_yue_gui_zhou,
+                   COUNT(DISTINCT CASE WHEN SUBSTR(c.id_no, 1, 2) = '53' THEN NVL(c.id_no, 'V' || c.visit_no) END) AS shuang_yue_yun_nan,
+                   COUNT(DISTINCT CASE WHEN SUBSTR(c.id_no, 1, 2) NOT IN ('50','51','52','53') OR c.id_no IS NULL THEN NVL(c.id_no, 'V' || c.visit_no) END) AS shuang_yue_qi_ta,
+                   COUNT(DISTINCT CASE WHEN LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) <![CDATA[<]]> 15 THEN NVL(c.id_no, 'V' || c.visit_no) END) AS shuang_yue_age_0_14,
+                   COUNT(DISTINCT CASE WHEN LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) BETWEEN 15 AND 19 THEN NVL(c.id_no, 'V' || c.visit_no) END) AS shuang_yue_age_15_19,
+                   COUNT(DISTINCT CASE WHEN LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) BETWEEN 20 AND 29 THEN NVL(c.id_no, 'V' || c.visit_no) END) AS shuang_yue_age_20_29,
+                   COUNT(DISTINCT CASE WHEN LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) BETWEEN 30 AND 39 THEN NVL(c.id_no, 'V' || c.visit_no) END) AS shuang_yue_age_30_39,
+                   COUNT(DISTINCT CASE WHEN LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) BETWEEN 40 AND 49 THEN NVL(c.id_no, 'V' || c.visit_no) END) AS shuang_yue_age_40_49,
+                   COUNT(DISTINCT CASE WHEN LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) BETWEEN 50 AND 59 THEN NVL(c.id_no, 'V' || c.visit_no) END) AS shuang_yue_age_50_59,
+                   COUNT(DISTINCT CASE WHEN LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) BETWEEN 60 AND 69 THEN NVL(c.id_no, 'V' || c.visit_no) END) AS shuang_yue_age_60_69,
+                   COUNT(DISTINCT CASE WHEN LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) BETWEEN 70 AND 79 THEN NVL(c.id_no, 'V' || c.visit_no) END) AS shuang_yue_age_70_79,
+                   COUNT(DISTINCT CASE WHEN LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) BETWEEN 80 AND 89 THEN NVL(c.id_no, 'V' || c.visit_no) END) AS shuang_yue_age_80_89,
+                   COUNT(DISTINCT CASE WHEN LENGTH(c.id_no) >= 15 AND (EXTRACT(YEAR FROM c.stat_date) - TO_NUMBER(SUBSTR(c.id_no, 7, 4))) >= 90 THEN NVL(c.id_no, 'V' || c.visit_no) END) AS shuang_yue_age_90_up
+            FROM TR_OUTP_FIN_CLINIC_MASTER c
+            WHERE c.registration_status <![CDATA[<=]]> 1
+              AND c.stat_date BETWEEN #{startDate} AND #{endDate}
+            GROUP BY TRUNC(c.stat_date), c.dept_code
+            UNION ALL
+            -- C. 爽约情况一: 预约了未到诊(queue当日预约行关联不上挂号记录), 科室NULL只进合计
+            SELECT TRUNC(q.stat_date) AS stat_day,
+                   CAST(NULL AS VARCHAR2(100)) AS dept_code,
+                   0 AS total_guahao,
+                   0 AS tui_hao_shu,
+                   0 AS tui_hao_zi_zhu_ji, 0 AS tui_hao_chuang_kou,
+                   0 AS tui_hao_chong_qing, 0 AS tui_hao_si_chuan, 0 AS tui_hao_gui_zhou,
+                   0 AS tui_hao_yun_nan, 0 AS tui_hao_qi_ta,
+                   0 AS tui_hao_age_0_14, 0 AS tui_hao_age_15_19, 0 AS tui_hao_age_20_29,
+                   0 AS tui_hao_age_30_39, 0 AS tui_hao_age_40_49, 0 AS tui_hao_age_50_59,
+                   0 AS tui_hao_age_60_69, 0 AS tui_hao_age_70_79, 0 AS tui_hao_age_80_89,
+                   0 AS tui_hao_age_90_up,
+                   COUNT(DISTINCT NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no)) AS shuang_yue_shu,
+                   COUNT(DISTINCT CASE WHEN SUBSTR(TO_CHAR(q.id_no), 1, 2) = '50' OR SUBSTR(TO_CHAR(q.id_no), 1, 4) = '5122' THEN NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) END) AS shuang_yue_chong_qing,
+                   COUNT(DISTINCT CASE WHEN SUBSTR(TO_CHAR(q.id_no), 1, 2) = '51' AND SUBSTR(TO_CHAR(q.id_no), 1, 4) != '5122' THEN NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) END) AS shuang_yue_si_chuan,
+                   COUNT(DISTINCT CASE WHEN SUBSTR(TO_CHAR(q.id_no), 1, 2) = '52' THEN NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) END) AS shuang_yue_gui_zhou,
+                   COUNT(DISTINCT CASE WHEN SUBSTR(TO_CHAR(q.id_no), 1, 2) = '53' THEN NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) END) AS shuang_yue_yun_nan,
+                   COUNT(DISTINCT CASE WHEN SUBSTR(TO_CHAR(q.id_no), 1, 2) NOT IN ('50','51','52','53') OR q.id_no IS NULL THEN NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) END) AS shuang_yue_qi_ta,
+                   COUNT(DISTINCT CASE WHEN LENGTH(TO_CHAR(q.id_no)) >= 15 AND (EXTRACT(YEAR FROM q.stat_date) - TO_NUMBER(SUBSTR(TO_CHAR(q.id_no), 7, 4))) <![CDATA[<]]> 15 THEN NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) END) AS shuang_yue_age_0_14,
+                   COUNT(DISTINCT CASE WHEN LENGTH(TO_CHAR(q.id_no)) >= 15 AND (EXTRACT(YEAR FROM q.stat_date) - TO_NUMBER(SUBSTR(TO_CHAR(q.id_no), 7, 4))) BETWEEN 15 AND 19 THEN NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) END) AS shuang_yue_age_15_19,
+                   COUNT(DISTINCT CASE WHEN LENGTH(TO_CHAR(q.id_no)) >= 15 AND (EXTRACT(YEAR FROM q.stat_date) - TO_NUMBER(SUBSTR(TO_CHAR(q.id_no), 7, 4))) BETWEEN 20 AND 29 THEN NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) END) AS shuang_yue_age_20_29,
+                   COUNT(DISTINCT CASE WHEN LENGTH(TO_CHAR(q.id_no)) >= 15 AND (EXTRACT(YEAR FROM q.stat_date) - TO_NUMBER(SUBSTR(TO_CHAR(q.id_no), 7, 4))) BETWEEN 30 AND 39 THEN NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) END) AS shuang_yue_age_30_39,
+                   COUNT(DISTINCT CASE WHEN LENGTH(TO_CHAR(q.id_no)) >= 15 AND (EXTRACT(YEAR FROM q.stat_date) - TO_NUMBER(SUBSTR(TO_CHAR(q.id_no), 7, 4))) BETWEEN 40 AND 49 THEN NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) END) AS shuang_yue_age_40_49,
+                   COUNT(DISTINCT CASE WHEN LENGTH(TO_CHAR(q.id_no)) >= 15 AND (EXTRACT(YEAR FROM q.stat_date) - TO_NUMBER(SUBSTR(TO_CHAR(q.id_no), 7, 4))) BETWEEN 50 AND 59 THEN NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) END) AS shuang_yue_age_50_59,
+                   COUNT(DISTINCT CASE WHEN LENGTH(TO_CHAR(q.id_no)) >= 15 AND (EXTRACT(YEAR FROM q.stat_date) - TO_NUMBER(SUBSTR(TO_CHAR(q.id_no), 7, 4))) BETWEEN 60 AND 69 THEN NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) END) AS shuang_yue_age_60_69,
+                   COUNT(DISTINCT CASE WHEN LENGTH(TO_CHAR(q.id_no)) >= 15 AND (EXTRACT(YEAR FROM q.stat_date) - TO_NUMBER(SUBSTR(TO_CHAR(q.id_no), 7, 4))) BETWEEN 70 AND 79 THEN NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) END) AS shuang_yue_age_70_79,
+                   COUNT(DISTINCT CASE WHEN LENGTH(TO_CHAR(q.id_no)) >= 15 AND (EXTRACT(YEAR FROM q.stat_date) - TO_NUMBER(SUBSTR(TO_CHAR(q.id_no), 7, 4))) BETWEEN 80 AND 89 THEN NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) END) AS shuang_yue_age_80_89,
+                   COUNT(DISTINCT CASE WHEN LENGTH(TO_CHAR(q.id_no)) >= 15 AND (EXTRACT(YEAR FROM q.stat_date) - TO_NUMBER(SUBSTR(TO_CHAR(q.id_no), 7, 4))) >= 90 THEN NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) END) AS shuang_yue_age_90_up
+            FROM TR_OUTP_FIN_MOP_QUEUE q
+            LEFT JOIN TR_OUTP_FIN_CLINIC_MASTER cm
+              ON cm.patient_id = q.patient_id AND cm.queue_num = q.queue_num
+            WHERE q.appoints_indicator = 1
+              AND q.stat_date BETWEEN #{startDate} AND #{endDate}
+              AND cm.patient_id IS NULL
+        )
+        GROUP BY stat_day, dept_code
+        ORDER BY stat_day, dept_code
     </select>
 
-    <!-- ============================================================ -->
-    <!-- 查询爽约退号科室明细 -->
-    <!-- ============================================================ -->
-    <!-- 科室明细：页面这张表除了退号/爽约数量，还要按科室给出「患者归属地」和「退号渠道」的细分，
-         这些列宽表里本来就有，一起 SUM 出来供 service 拼成嵌套结构 -->
-    <select id="queryDeptDetail" resultType="com.reports.entity.NoShowDtlEntity">
-        SELECT
-            d.dept_name AS deptName,
-            NVL(SUM(tui_hao_shu), 0) AS refundCount,
-            ROUND(NVL(SUM(tui_hao_shu), 0) / NULLIF(SUM(total_guahao), 0) * 100, 2) || '%' AS refundRate,
-            NVL(SUM(tui_hao_chong_qing), 0) AS refundChongqing,
-            NVL(SUM(tui_hao_si_chuan), 0) AS refundSichuan,
-            NVL(SUM(tui_hao_gui_zhou), 0) AS refundGuizhou,
-            NVL(SUM(tui_hao_yun_nan), 0) AS refundYunnan,
-            NVL(SUM(tui_hao_qi_ta), 0) AS refundOther,
-            NVL(SUM(tui_hao_chuang_kou), 0) AS refundWindow,
-            NVL(SUM(tui_hao_zi_zhu_ji), 0) AS refundMiniprogram,
-            NVL(SUM(shuang_yue_shu), 0) AS noShowCount,
-            ROUND(NVL(SUM(shuang_yue_shu), 0) / NULLIF(SUM(total_guahao), 0) * 100, 2) || '%' AS noShowRate,
-            NVL(SUM(shuang_yue_chong_qing), 0) AS noShowChongqing,
-            NVL(SUM(shuang_yue_si_chuan), 0) AS noShowSichuan,
-            NVL(SUM(shuang_yue_gui_zhou), 0) AS noShowGuizhou,
-            NVL(SUM(shuang_yue_yun_nan), 0) AS noShowYunnan,
-            NVL(SUM(shuang_yue_qi_ta), 0) AS noShowOther
-        FROM TR_OUTPATIENT_STATS_DAY_RESULT s
-        INNER JOIN TR_DEPT_DICT d ON s.dept_code = d.dept_code
-        WHERE s.stats_date BETWEEN #{startDate} AND #{endDate}
-         <if test="deptCode != null and deptCode != ''">
-            AND d.dept_code = #{deptCode}
-        </if>
-        <if test="deptName != null and deptName != ''">
-            AND d.dept_name LIKE '%' || #{deptName} || '%'
-        </if>
-        GROUP BY d.dept_name
-        ORDER BY refundCount DESC
-    </select>
-
-    <!-- ============================================================ -->
-    <!-- 查询退号/爽约来源分析（地域分布） -->
-    <!-- ============================================================ -->
-    <select id="queryOriginAnalysis" resultType="com.reports.entity.NoShowOrgEntity">
-        <choose>
-            <when test="originType == 'NO_SHOW'">
-                SELECT '重庆' AS itemName, NVL(SUM(shuang_yue_chong_qing), 0) AS itemValue FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND shuang_yue_chong_qing > 0
-                UNION ALL
-                SELECT '四川', NVL(SUM(shuang_yue_si_chuan), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND shuang_yue_si_chuan > 0
-                UNION ALL
-                SELECT '贵州', NVL(SUM(shuang_yue_gui_zhou), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND shuang_yue_gui_zhou > 0
-                UNION ALL
-                SELECT '云南', NVL(SUM(shuang_yue_yun_nan), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND shuang_yue_yun_nan > 0
-                UNION ALL
-                SELECT '其他', NVL(SUM(shuang_yue_qi_ta), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND shuang_yue_qi_ta > 0
-            </when>
-            <otherwise>
-                SELECT '重庆' AS itemName, NVL(SUM(tui_hao_chong_qing), 0) AS itemValue FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND tui_hao_chong_qing > 0
-                UNION ALL
-                SELECT '四川', NVL(SUM(tui_hao_si_chuan), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND tui_hao_si_chuan > 0
-                UNION ALL
-                SELECT '贵州', NVL(SUM(tui_hao_gui_zhou), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND tui_hao_gui_zhou > 0
-                UNION ALL
-                SELECT '云南', NVL(SUM(tui_hao_yun_nan), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND tui_hao_yun_nan > 0
-                UNION ALL
-                SELECT '其他', NVL(SUM(tui_hao_qi_ta), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND tui_hao_qi_ta > 0
-            </otherwise>
-        </choose>
-        <!-- 注意: 不能写 ORDER BY itemValue。
-             各 UNION ALL 分支里只有第一个分支带 itemName/itemValue 别名, 而 Oracle 11g 对复合查询
-             的 ORDER BY 名称解析要求每个分支都有该别名, 否则报 ORA-00904。
-             这里按输出列序号排序 (第 2 列即 itemValue), 语义完全一致。 -->
-        ORDER BY 2 DESC
-    </select>
-
-    <!-- ============================================================ -->
-    <!-- 查询退号渠道分析（宽表中无爽约渠道数据） -->
-    <!-- ============================================================ -->
-    <select id="queryChannelAnalysis" resultType="com.reports.entity.NoShowChnEntity">
-        SELECT '窗口' AS itemName, NVL(SUM(tui_hao_chuang_kou), 0) AS itemValue FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND tui_hao_chuang_kou > 0
-        UNION ALL
-        SELECT '自助机', NVL(SUM(tui_hao_zi_zhu_ji), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate} AND tui_hao_zi_zhu_ji > 0
-        ORDER BY itemValue DESC
-    </select>
-
-    <!-- ============================================================ -->
-    <!-- 查询爽约退号年龄分析 -->
-    <!-- ============================================================ -->
-    <select id="queryAgeAnalysis" resultType="com.reports.entity.NoShowAgeEntity">
-        SELECT '0-14' AS ageGroup, NVL(SUM(tui_hao_age_0_14), 0) AS refundCount, NVL(SUM(shuang_yue_age_0_14), 0) AS noShowCount FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
-        UNION ALL
-        SELECT '15-19', NVL(SUM(tui_hao_age_15_19), 0), NVL(SUM(shuang_yue_age_15_19), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
-        UNION ALL
-        SELECT '20-29', NVL(SUM(tui_hao_age_20_29), 0), NVL(SUM(shuang_yue_age_20_29), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
-        UNION ALL
-        SELECT '30-39', NVL(SUM(tui_hao_age_30_39), 0), NVL(SUM(shuang_yue_age_30_39), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
-        UNION ALL
-        SELECT '40-49', NVL(SUM(tui_hao_age_40_49), 0), NVL(SUM(shuang_yue_age_40_49), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
-        UNION ALL
-        SELECT '50-59', NVL(SUM(tui_hao_age_50_59), 0), NVL(SUM(shuang_yue_age_50_59), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
-        UNION ALL
-        SELECT '60-69', NVL(SUM(tui_hao_age_60_69), 0), NVL(SUM(shuang_yue_age_60_69), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
-        UNION ALL
-        SELECT '70-79', NVL(SUM(tui_hao_age_70_79), 0), NVL(SUM(shuang_yue_age_70_79), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
-        UNION ALL
-        SELECT '80-89', NVL(SUM(tui_hao_age_80_89), 0), NVL(SUM(shuang_yue_age_80_89), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
-        UNION ALL
-        SELECT '90+', NVL(SUM(tui_hao_age_90_up), 0), NVL(SUM(shuang_yue_age_90_up), 0) FROM TR_OUTPATIENT_STATS_DAY_RESULT WHERE stats_date BETWEEN #{startDate} AND #{endDate}
-        <!-- 同上: 只有第一个分支带 ageGroup 别名, 改按输出列序号 (第 1 列) 排序 -->
-        ORDER BY 1
+    <!-- 科室字典: 度量行的dept_code转科室名(INNER JOIN语义, 无字典行的科室不出现在科室表) -->
+    <select id="queryDeptDict" resultType="map">
+        SELECT dept_code AS "deptCode", dept_name AS "deptName" FROM TR_DEPT_DICT
     </select>
 
 </mapper>

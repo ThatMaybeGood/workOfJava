@@ -12,16 +12,23 @@
         </if>
     </sql>
 
+    <!-- ============================================================ -->
+    <!-- 2026-10-21 直查改造: 门诊量/退号/爽约不再读 TR_OUTPATIENT_STATS_DAY_RESULT 宽表, -->
+    <!-- 直接按就诊日聚合 TR_OUTP_FIN_CLINIC_MASTER(总挂号=COUNT(1)含后退, 退号=returned_date非空), -->
+    <!-- 爽约=情况一(queue预约未到诊,限appoints_indicator=1) + 情况二(registration_status<=1), -->
+    <!-- 与原宽表口径一致; 前提: 抽取按日覆盖(同一就诊号单一快照,否则重复计数) -->
+    <!-- ============================================================ -->
+
     <!-- 近30天挂号量日均 -->
     <select id="queryAvgReg" resultType="java.lang.Double">
         SELECT AVG(daily_reg)
         FROM (
-            SELECT s.stats_date, SUM(s.total_guahao) AS daily_reg
-            FROM TR_OUTPATIENT_STATS_DAY_RESULT s
-            INNER JOIN TR_DEPT_DICT d ON s.dept_code = d.dept_code
-            WHERE s.stats_date BETWEEN #{startDate} AND #{endDate}
+            SELECT TRUNC(c.stat_date) AS dd, COUNT(1) AS daily_reg
+            FROM TR_OUTP_FIN_CLINIC_MASTER c
+            INNER JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
+            WHERE c.stat_date BETWEEN #{startDate} AND #{endDate}
             <include refid="deptFilter"/>
-            GROUP BY s.stats_date
+            GROUP BY TRUNC(c.stat_date)
         )
     </select>
 
@@ -47,13 +54,42 @@
         <include refid="deptFilter"/>
     </select>
 
-    <!-- 近30天就诊系数 = 1 - 爽约退号率 -->
+    <!-- 近30天就诊系数 = 1 - 爽约退号率(退号按就诊日归期; 爽约两种情况和原宽表一致按身份证去重, 科室NULL的情况一不计入科室维度) -->
     <select id="queryVisitCoef" resultType="java.lang.Double">
-        SELECT 1 - SUM(s.tui_hao_shu + s.shuang_yue_shu) / NULLIF(SUM(s.total_guahao), 0)
-        FROM TR_OUTPATIENT_STATS_DAY_RESULT s
-        INNER JOIN TR_DEPT_DICT d ON s.dept_code = d.dept_code
-        WHERE s.stats_date BETWEEN #{startDate} AND #{endDate}
-        <include refid="deptFilter"/>
+        SELECT 1 - (refund_cnt + no_show_cnt) / NULLIF(total_cnt, 0)
+        FROM (
+            SELECT
+                (SELECT COUNT(1) FROM TR_OUTP_FIN_CLINIC_MASTER c
+                    INNER JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
+                    WHERE c.stat_date BETWEEN #{startDate} AND #{endDate}
+                    <include refid="deptFilter"/>) AS total_cnt,
+                (SELECT COUNT(1) FROM TR_OUTP_FIN_CLINIC_MASTER c
+                    INNER JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
+                    WHERE c.stat_date BETWEEN #{startDate} AND #{endDate}
+                      AND c.returned_date IS NOT NULL
+                    <include refid="deptFilter"/>) AS refund_cnt,
+                (SELECT COUNT(1) FROM (
+                    SELECT dd, k FROM (
+                        SELECT TRUNC(q.stat_date) AS dd, NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) AS k
+                        FROM TR_OUTP_FIN_MOP_QUEUE q
+                        LEFT JOIN TR_OUTP_FIN_CLINIC_MASTER cm
+                          ON cm.patient_id = q.patient_id AND cm.queue_num = q.queue_num
+                        WHERE q.appoints_indicator = 1
+                          AND q.stat_date BETWEEN #{startDate} AND #{endDate}
+                          AND cm.patient_id IS NULL
+                    ) GROUP BY dd, k
+                    UNION ALL
+                    SELECT dd, k FROM (
+                        SELECT TRUNC(c2.stat_date) AS dd, NVL(c2.id_no, 'V' || c2.visit_no) AS k
+                        FROM TR_OUTP_FIN_CLINIC_MASTER c2
+                        INNER JOIN TR_DEPT_DICT d ON c2.dept_code = d.dept_code
+                        WHERE c2.registration_status <![CDATA[<=]]> 1
+                          AND c2.stat_date BETWEEN #{startDate} AND #{endDate}
+                        <include refid="deptFilter"/>
+                    ) GROUP BY dd, k
+                )) AS no_show_cnt
+            FROM DUAL
+        )
     </select>
 
     <!-- 某日天气出勤系数(无数据返回空,按1处理) -->
@@ -79,42 +115,42 @@
         ORDER BY hol_date DESC
     </select>
 
-    <!-- 某日之前的最近一个正常工作日(排除周末和节假日) -->
+    <!-- 某日之前最近一个正常工作日(排除周末和节假日; 有挂号记录的日期即工作日) -->
     <select id="queryPrevWorkday" resultType="java.util.Date">
-        SELECT MAX(s.stats_date)
-        FROM TR_OUTPATIENT_STATS_DAY_RESULT s
-        WHERE s.stats_date &lt; #{beforeDate}
-          AND TO_CHAR(s.stats_date, 'DY', 'NLS_DATE_LANGUAGE=AMERICAN') NOT IN ('SAT', 'SUN')
-          AND NOT EXISTS (SELECT 1 FROM tr_fc_holiday h WHERE h.hol_date = s.stats_date)
+        SELECT MAX(c.stat_date)
+        FROM TR_OUTP_FIN_CLINIC_MASTER c
+        WHERE c.stat_date <![CDATA[<]]> #{beforeDate}
+          AND TO_CHAR(c.stat_date, 'DY', 'NLS_DATE_LANGUAGE=AMERICAN') NOT IN ('SAT', 'SUN')
+          AND NOT EXISTS (SELECT 1 FROM tr_fc_holiday h WHERE h.hol_date = c.stat_date)
     </select>
 
     <!-- 某日门诊量 -->
     <select id="queryVolume" resultType="java.lang.Integer">
-        SELECT NVL(SUM(s.total_guahao), 0)
-        FROM TR_OUTPATIENT_STATS_DAY_RESULT s
-        INNER JOIN TR_DEPT_DICT d ON s.dept_code = d.dept_code
-        WHERE s.stats_date = #{statDate}
+        SELECT COUNT(1)
+        FROM TR_OUTP_FIN_CLINIC_MASTER c
+        INNER JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
+        WHERE c.stat_date = #{statDate}
         <include refid="deptFilter"/>
     </select>
 
     <!-- 某年各月门诊量(年度预测用) -->
     <select id="queryMonthlyVolume" resultType="com.reports.entity.OutpatientForecastYearEntity">
-        SELECT TO_CHAR(s.stats_date, 'MM') AS forecastMonth,
-               SUM(s.total_guahao) AS forecastValue
-        FROM TR_OUTPATIENT_STATS_DAY_RESULT s
-        INNER JOIN TR_DEPT_DICT d ON s.dept_code = d.dept_code
-        WHERE TO_CHAR(s.stats_date, 'YYYY') = #{year}
+        SELECT TO_CHAR(c.stat_date, 'MM') AS forecastMonth,
+               COUNT(1) AS forecastValue
+        FROM TR_OUTP_FIN_CLINIC_MASTER c
+        INNER JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
+        WHERE TO_CHAR(c.stat_date, 'YYYY') = #{year}
         <include refid="deptFilter"/>
-        GROUP BY TO_CHAR(s.stats_date, 'MM')
+        GROUP BY TO_CHAR(c.stat_date, 'MM')
         ORDER BY forecastMonth
     </select>
 
     <!-- 今年截至昨日门诊量(预测全年用) -->
     <select id="queryYtdVolume" resultType="java.lang.Integer">
-        SELECT NVL(SUM(s.total_guahao), 0)
-        FROM TR_OUTPATIENT_STATS_DAY_RESULT s
-        INNER JOIN TR_DEPT_DICT d ON s.dept_code = d.dept_code
-        WHERE s.stats_date BETWEEN #{startDate} AND #{endDate}
+        SELECT COUNT(1)
+        FROM TR_OUTP_FIN_CLINIC_MASTER c
+        INNER JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
+        WHERE c.stat_date BETWEEN #{startDate} AND #{endDate}
         <include refid="deptFilter"/>
     </select>
 

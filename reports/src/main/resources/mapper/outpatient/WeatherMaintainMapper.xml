@@ -17,14 +17,45 @@
     </select>
 
     <!-- ============================================================ -->
-    <!-- 天气数据维护：近30天同天气日期的爽约退号率                          -->
+    <!-- 天气数据维护：近30天同天气日期的爽约退号率(直查tr源表, 口径同原宽表, 不过滤科室) -->
     <!-- ============================================================ -->
     <select id="queryNoShowRateByWeather" resultType="java.lang.Double">
-        SELECT SUM(s.tui_hao_shu + s.shuang_yue_shu) / NULLIF(SUM(s.total_guahao), 0)
-        FROM TR_OUTPATIENT_STATS_DAY_RESULT s
-        INNER JOIN tr_fc_weather w ON s.stats_date = w.weather_date
-        WHERE w.weather_type = #{weatherType}
-          AND s.stats_date BETWEEN #{startDate} AND #{endDate}
+        SELECT (refund_cnt + no_show_cnt) / NULLIF(total_cnt, 0)
+        FROM (
+            SELECT
+                (SELECT COUNT(1) FROM TR_OUTP_FIN_CLINIC_MASTER c
+                    INNER JOIN tr_fc_weather w ON c.stat_date = w.weather_date
+                    WHERE w.weather_type = #{weatherType}
+                      AND c.stat_date BETWEEN #{startDate} AND #{endDate}) AS total_cnt,
+                (SELECT COUNT(1) FROM TR_OUTP_FIN_CLINIC_MASTER c
+                    INNER JOIN tr_fc_weather w ON c.stat_date = w.weather_date
+                    WHERE w.weather_type = #{weatherType}
+                      AND c.stat_date BETWEEN #{startDate} AND #{endDate}
+                      AND c.returned_date IS NOT NULL) AS refund_cnt,
+                (SELECT COUNT(1) FROM (
+                    SELECT dd, k FROM (
+                        SELECT TRUNC(q.stat_date) AS dd, NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) AS k
+                        FROM TR_OUTP_FIN_MOP_QUEUE q
+                        LEFT JOIN TR_OUTP_FIN_CLINIC_MASTER cm
+                          ON cm.patient_id = q.patient_id AND cm.queue_num = q.queue_num
+                        INNER JOIN tr_fc_weather w ON q.stat_date = w.weather_date
+                        WHERE w.weather_type = #{weatherType}
+                          AND q.appoints_indicator = 1
+                          AND q.stat_date BETWEEN #{startDate} AND #{endDate}
+                          AND cm.patient_id IS NULL
+                    ) GROUP BY dd, k
+                    UNION ALL
+                    SELECT dd, k FROM (
+                        SELECT TRUNC(c2.stat_date) AS dd, NVL(c2.id_no, 'V' || c2.visit_no) AS k
+                        FROM TR_OUTP_FIN_CLINIC_MASTER c2
+                        INNER JOIN tr_fc_weather w ON c2.stat_date = w.weather_date
+                        WHERE w.weather_type = #{weatherType}
+                          AND c2.registration_status <![CDATA[<=]]> 1
+                          AND c2.stat_date BETWEEN #{startDate} AND #{endDate}
+                    ) GROUP BY dd, k
+                )) AS no_show_cnt
+            FROM DUAL
+        )
     </select>
 
     <!-- ============================================================ -->

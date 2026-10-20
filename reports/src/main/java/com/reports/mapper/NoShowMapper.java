@@ -2,15 +2,11 @@ package com.reports.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.reports.entity.NoShowOvEntity;
-import com.reports.entity.NoShowDtlEntity;
-import com.reports.entity.NoShowOrgEntity;
-import com.reports.entity.NoShowChnEntity;
-import com.reports.entity.NoShowAgeEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 爽约退号分析 Mapper
@@ -19,57 +15,15 @@ import java.util.List;
 public interface NoShowMapper extends BaseMapper<NoShowOvEntity> {
 
     /**
-     * 查询爽约退号概览
+     * 爽约退号全度量: 就诊日×科室出全部35项度量, 源表直查(口径同原宽表), 服务层10min缓存
      *
      * @param startDate 开始日期
      * @param endDate   结束日期
-     * @return 概览数据
+     * @return (statDay, deptCode, totalGuahao, tuiHaoShu, shuangYueShu, 属地/渠道/年龄...) 行
      */
-    NoShowOvEntity queryOverview(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
+    List<Map<String, Object>> queryMeasureRange(@Param("startDate") java.sql.Date startDate,
+                                                @Param("endDate") java.sql.Date endDate);
 
-    /**
-     * 查询爽约退号科室明细
-     *
-     * @param startDate 开始日期
-     * @param endDate   结束日期
-     * @param deptName  科室名称
-     * @return 科室明细数据列表
-     */
-    List<NoShowDtlEntity> queryDeptDetail(@Param("startDate") java.sql.Date startDate,
-                                           @Param("endDate") java.sql.Date endDate,
-                                           @Param("deptCode") String deptCode,
-                                           @Param("deptName") String deptName);
-
-    /**
-     * 查询爽约退号来源分析
-     *
-     * @param startDate  开始日期
-     * @param endDate    结束日期
-     * @param originType 来源类型
-     * @return 来源分析数据列表
-     */
-    List<NoShowOrgEntity> queryOriginAnalysis(@Param("startDate") java.sql.Date startDate,
-                                               @Param("endDate") java.sql.Date endDate,
-                                               @Param("originType") String originType);
-
-    /**
-     * 查询爽约退号渠道分析
-     *
-     * @param startDate   开始日期
-     * @param endDate     结束日期
-     * @param channelType 渠道类型
-     * @return 渠道分析数据列表
-     */
-    List<NoShowChnEntity> queryChannelAnalysis(@Param("startDate") java.sql.Date startDate,
-                                                @Param("endDate") java.sql.Date endDate,
-                                                @Param("channelType") String channelType);
-
-    /**
-     * 查询爽约退号年龄分析
-     *
-     * @param startDate 开始日期
-     * @param endDate   结束日期
-     * @return 年龄分析数据列表
-     */
-    List<NoShowAgeEntity> queryAgeAnalysis(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
+    /** 科室字典: dept_code→dept_name(科室表INNER JOIN语义, 无字典的科室不展示) */
+    List<Map<String, Object>> queryDeptDict();
 }

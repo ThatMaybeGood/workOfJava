@@ -6,21 +6,20 @@ import com.reports.dto.request.OutpatientNoShowRequest;
 import com.reports.dto.response.outpatient.no.show.*;
 import com.reports.service.OutpatientNoShowService;
 import com.reports.mapper.NoShowMapper;
-import com.reports.entity.NoShowOvEntity;
-import com.reports.entity.NoShowAgeEntity;
-import com.reports.entity.NoShowOrgEntity;
-import com.reports.entity.NoShowChnEntity;
-import com.reports.entity.NoShowDtlEntity;
 import com.reports.util.SeqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 爽约退号分析服务实现
@@ -191,10 +190,43 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
 
     // ==================== MyBatis-Plus 模式 ====================
 
+    /** 全度量缓存: 同一区间10min只算一次, 概览/科室表/属地/渠道/年龄五处共用(源表直查较重) */
+    private static final long MEASURE_TTL = 10 * 60 * 1000L;
+    private static final int MEASURE_CACHE_MAX = 20;
+    private final Map<String, long[]> measureCacheAt = new ConcurrentHashMap<>();
+    private final Map<String, List<Map<String, Object>>> measureCache = new ConcurrentHashMap<>();
+
+    private List<Map<String, Object>> queryMeasuresCached(OutpatientNoShowRequest request) {
+        java.sql.Date start = sqlDay(request.getStartDate());
+        java.sql.Date end = sqlDay(request.getEndDate());
+        String key = start.getTime() + "-" + end.getTime();
+        long now = System.currentTimeMillis();
+        long[] at = measureCacheAt.get(key);
+        if (at != null && now - at[0] <= MEASURE_TTL) {
+            return measureCache.get(key);
+        }
+        List<Map<String, Object>> rows = noShowMapper.queryMeasureRange(start, end);
+        if (measureCache.size() >= MEASURE_CACHE_MAX) {
+            measureCache.clear();
+            measureCacheAt.clear();
+        }
+        measureCacheAt.put(key, new long[]{now});
+        measureCache.put(key, rows);
+        return rows;
+    }
+
     private OverviewData queryOverviewByMybatisPlus(OutpatientNoShowRequest request) {
         try {
-            NoShowOvEntity entity = noShowMapper.queryOverview(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
-            return buildOverviewData(entity);
+            List<Map<String, Object>> rows = queryMeasuresCached(request);
+            double total = sumOf(rows, "totalGuahao");
+            double refund = sumOf(rows, "tuiHaoShu");
+            double noShow = sumOf(rows, "shuangYueShu");
+            OverviewData dto = new OverviewData();
+            dto.setRefundCount((int) refund);
+            dto.setRefundRate(pct(refund, total));
+            dto.setNoShowCount((int) noShow);
+            dto.setNoShowRate(pct(noShow, total));
+            return dto;
         } catch (Exception e) {
             log.warn("查询爽约退号概览数据失败", e);
             return new OverviewData();
@@ -203,8 +235,18 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
 
     private AgeAnalysis queryAgeAnalysisByMybatisPlus(OutpatientNoShowRequest request) {
         try {
-            List<NoShowAgeEntity> list = noShowMapper.queryAgeAnalysis(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
-            return buildAgeAnalysis(list);
+            List<Map<String, Object>> rows = queryMeasuresCached(request);
+            // 与原有行为一致: 年龄图只展示爽约侧(refundCount列原本就未上图)
+            AgeAnalysis analysis = new AgeAnalysis();
+            List<String> categories = new ArrayList<>();
+            List<Integer> data = new ArrayList<>();
+            for (int i = 0; i < AGE_GROUPS.length; i++) {
+                categories.add(AGE_GROUPS[i]);
+                data.add((int) sumOf(rows, AGE_KEYS[i]));
+            }
+            analysis.setCategories(categories);
+            analysis.setData(data);
+            return analysis;
         } catch (Exception e) {
             log.warn("查询爽约退号年龄分析失败", e);
             return new AgeAnalysis();
@@ -213,11 +255,16 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
 
     private List<AnalysisItem> queryRefundOriginByMybatisPlus(OutpatientNoShowRequest request) {
         try {
-            List<NoShowOrgEntity> list = noShowMapper.queryOriginAnalysis(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()), null);
+            List<Map<String, Object>> rows = queryMeasuresCached(request);
+            // 退号属地(原有行为只出退号侧); 与原SQL一致: 合计为0的属地不出项
             List<AnalysisItem> result = new ArrayList<>();
-            for (NoShowOrgEntity entity : list) {
-                result.add(newAnalysisItem(entity.getItemName(), entity.getItemValue()));
+            for (int i = 0; i < ORIGIN_NAMES.length; i++) {
+                int v = (int) sumOf(rows, REFUND_ORIGIN_KEYS[i]);
+                if (v > 0) {
+                    result.add(newAnalysisItem(ORIGIN_NAMES[i], v));
+                }
             }
+            result.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
             return result;
         } catch (Exception e) {
             log.warn("查询爽约退号来源分析失败", e);
@@ -227,11 +274,17 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
 
     private List<AnalysisItem> queryRefundChannelByMybatisPlus(OutpatientNoShowRequest request) {
         try {
-            List<NoShowChnEntity> list = noShowMapper.queryChannelAnalysis(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()), null);
+            List<Map<String, Object>> rows = queryMeasuresCached(request);
             List<AnalysisItem> result = new ArrayList<>();
-            for (NoShowChnEntity entity : list) {
-                result.add(newAnalysisItem(entity.getItemName(), entity.getItemValue()));
+            int window = (int) sumOf(rows, "tuiHaoChuangKou");
+            int mini = (int) sumOf(rows, "tuiHaoZiZhuJi");
+            if (window > 0) {
+                result.add(newAnalysisItem("窗口", window));
             }
+            if (mini > 0) {
+                result.add(newAnalysisItem("自助机", mini));
+            }
+            result.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
             return result;
         } catch (Exception e) {
             log.warn("查询爽约退号渠道分析失败", e);
@@ -241,11 +294,48 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
 
     private PageResult<TableItem> queryTableByMybatisPlus(OutpatientNoShowRequest request, Integer page, Integer pageSize) {
         try {
-            List<NoShowDtlEntity> list = noShowMapper.queryDeptDetail(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()), request.getDeptCode(), request.getDeptName());
-            List<TableItem> allItems = new ArrayList<>();
-            for (NoShowDtlEntity entity : list) {
-                allItems.add(buildTableItem(entity));
+            List<Map<String, Object>> rows = queryMeasuresCached(request);
+            Map<String, String> nameByCode = deptNameMap();
+            // 按科室累计: deptCode为NULL(爽约情况一)不入科室表, 无字典的科室同INNER JOIN丢弃
+            Map<String, double[]> acc = new LinkedHashMap<>();
+            Map<String, String> codeName = new LinkedHashMap<>();
+            String deptCodeFilter = request.getDeptCode() == null ? "" : request.getDeptCode().trim();
+            String deptNameFilter = request.getDeptName() == null ? "" : request.getDeptName().trim();
+            for (Map<String, Object> row : rows) {
+                Object dc = row.get("deptCode");
+                if (dc == null) {
+                    continue;
+                }
+                String code = String.valueOf(dc);
+                String name = nameByCode.get(code);
+                if (name == null) {
+                    continue;
+                }
+                if (!deptCodeFilter.isEmpty() && !code.equals(deptCodeFilter)) {
+                    continue;
+                }
+                if (!deptNameFilter.isEmpty() && !name.contains(deptNameFilter)) {
+                    continue;
+                }
+                codeName.put(code, name);
+                double[] a = acc.computeIfAbsent(code, k -> new double[REFUND_ORIGIN_KEYS.length * 2 + 5]);
+                a[0] += toDouble(row.get("tuiHaoShu"));
+                a[1] += toDouble(row.get("shuangYueShu"));
+                a[2] += toDouble(row.get("totalGuahao"));
+                a[3] += toDouble(row.get("tuiHaoChuangKou"));
+                a[4] += toDouble(row.get("tuiHaoZiZhuJi"));
+                for (int i = 0; i < REFUND_ORIGIN_KEYS.length; i++) {
+                    a[5 + i] += toDouble(row.get(REFUND_ORIGIN_KEYS[i]));
+                    a[10 + i] += toDouble(row.get(NO_SHOW_ORIGIN_KEYS[i]));
+                }
             }
+            List<TableItem> allItems = new ArrayList<>();
+            for (Map.Entry<String, double[]> entry : acc.entrySet()) {
+                allItems.add(buildTableItem(codeName.get(entry.getKey()), entry.getValue()));
+            }
+            allItems.sort((x, y) -> Integer.compare(
+                    y.getRefundCount() == null ? 0 : y.getRefundCount(),
+                    x.getRefundCount() == null ? 0 : x.getRefundCount()));
             int total = allItems.size();
             int start = (page - 1) * pageSize;
             int end = Math.min(start + pageSize, total);
@@ -257,51 +347,65 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
         }
     }
 
-    // ==================== Entity-DTO 转换方法 ====================
+    // ==================== 度量行聚合工具 ====================
 
-    private OverviewData buildOverviewData(NoShowOvEntity entity) {
-        if (entity == null) return new OverviewData();
-        OverviewData dto = new OverviewData();
-        dto.setRefundCount(entity.getRefundCount());
-        dto.setRefundRate(entity.getRefundRate());
-        dto.setNoShowCount(entity.getNoShowCount());
-        dto.setNoShowRate(entity.getNoShowRate());
-        return dto;
-    }
+    private static final String[] ORIGIN_NAMES = {"重庆", "四川", "贵州", "云南", "其他"};
+    private static final String[] REFUND_ORIGIN_KEYS =
+            {"tuiHaoChongqing", "tuiHaoSichuan", "tuiHaoGuizhou", "tuiHaoYunnan", "tuiHaoQiTa"};
+    private static final String[] NO_SHOW_ORIGIN_KEYS =
+            {"shuangYueChongqing", "shuangYueSichuan", "shuangYueGuizhou", "shuangYueYunnan", "shuangYueQiTa"};
+    private static final String[] AGE_GROUPS = {"0-14", "15-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+"};
+    private static final String[] AGE_KEYS =
+            {"shuangYueAge0_14", "shuangYueAge15_19", "shuangYueAge20_29", "shuangYueAge30_39", "shuangYueAge40_49",
+             "shuangYueAge50_59", "shuangYueAge60_69", "shuangYueAge70_79", "shuangYueAge80_89", "shuangYueAge90Up"};
 
-    private AgeAnalysis buildAgeAnalysis(List<NoShowAgeEntity> list) {
-        AgeAnalysis analysis = new AgeAnalysis();
-        List<String> categories = new ArrayList<>();
-        List<Integer> data = new ArrayList<>();
-        for (NoShowAgeEntity entity : list) {
-            categories.add(entity.getAgeGroup());
-            data.add(entity.getNoShowCount());
+    private double sumOf(List<Map<String, Object>> rows, String key) {
+        double s = 0;
+        for (Map<String, Object> row : rows) {
+            s += toDouble(row.get(key));
         }
-        analysis.setCategories(categories);
-        analysis.setData(data);
-        return analysis;
+        return s;
     }
 
-    private TableItem buildTableItem(NoShowDtlEntity entity) {
-        if (entity == null) return null;
+    private double toDouble(Object v) {
+        return v == null ? 0.0 : ((Number) v).doubleValue();
+    }
+
+    /** 百分比: 与原SQL ROUND(x/NULLIF(sum,0)*100,2)||'%' 一致(分母0给0%) */
+    private static String pct(double num, double den) {
+        if (den <= 0) {
+            return "0%";
+        }
+        return BigDecimal.valueOf(num / den * 100).setScale(2, RoundingMode.HALF_UP)
+                .stripTrailingZeros().toPlainString() + "%";
+    }
+
+    private Map<String, String> deptNameMap() {
+        Map<String, String> map = new HashMap<>();
+        for (Map<String, Object> row : noShowMapper.queryDeptDict()) {
+            Object code = row.get("deptCode");
+            Object name = row.get("deptName");
+            if (code != null) {
+                map.put(String.valueOf(code), name == null ? "" : String.valueOf(name));
+            }
+        }
+        return map;
+    }
+
+    private TableItem buildTableItem(String deptName, double[] a) {
         TableItem item = new TableItem();
-        item.setDeptName(entity.getDeptName());
-        item.setRefundCount(entity.getRefundCount());
-        item.setRefundRate(entity.getRefundRate());
-        item.setNoShowCount(entity.getNoShowCount());
-        item.setNoShowRate(entity.getNoShowRate());
+        item.setDeptName(deptName);
+        item.setRefundCount((int) a[0]);
+        item.setRefundRate(pct(a[0], a[2]));
+        item.setNoShowCount((int) a[1]);
+        item.setNoShowRate(pct(a[1], a[2]));
         // 页面的科室表读的是嵌套结构（row.refundOrigin.chongqing 等），
         // 不填这三个 Map 的话前端会抛 TypeError 导致整张表渲染不出来
-        int refundTotal = entity.getRefundCount() == null ? 0 : entity.getRefundCount().intValue();
-        int noShowTotal = entity.getNoShowCount() == null ? 0 : entity.getNoShowCount().intValue();
-        item.setRefundOrigin(originMap(entity.getRefundChongqing(), entity.getRefundSichuan(),
-                entity.getRefundGuizhou(), entity.getRefundYunnan(), entity.getRefundOther(), refundTotal));
-        item.setNoShowOrigin(originMap(entity.getNoShowChongqing(), entity.getNoShowSichuan(),
-                entity.getNoShowGuizhou(), entity.getNoShowYunnan(), entity.getNoShowOther(), noShowTotal));
-
+        item.setRefundOrigin(originMap((int) a[5], (int) a[6], (int) a[7], (int) a[8], (int) a[9], (int) a[0]));
+        item.setNoShowOrigin(originMap((int) a[10], (int) a[11], (int) a[12], (int) a[13], (int) a[14], (int) a[1]));
         Map<String, Integer> channel = new LinkedHashMap<String, Integer>();
-        channel.put("window", nvlInt(entity.getRefundWindow()));
-        channel.put("miniprogram", nvlInt(entity.getRefundMiniprogram()));
+        channel.put("window", (int) a[3]);
+        channel.put("miniprogram", (int) a[4]);
         item.setRefundChannel(channel);
         return item;
     }
