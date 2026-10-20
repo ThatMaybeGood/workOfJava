@@ -45,12 +45,12 @@
             width: 40px;
             height: 40px;
             border-radius: 12px;
-            background: linear-gradient(145deg, #f87171, #dc2626);
+            background: linear-gradient(145deg, #334155, #0f172a);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.15rem;
-            box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.25);
         }
 
         .app-title {
@@ -357,8 +357,10 @@
         .nav-btn.icon {
             width: 36px;
             padding: 0;
-            font-size: 1.2rem;
-            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #334155;
         }
 
         .weekdays {
@@ -706,19 +708,6 @@
             .mark-card { animation: none; }
             .day-badge.ban-badge { box-shadow: none; }
         }
-
-        /* mock预览横幅 */
-        .mock-banner {
-            max-width: 1440px;
-            margin: 0 auto 12px;
-            background: #fef3c7;
-            border: 1.5px solid #f59e0b;
-            color: #92400e;
-            border-radius: 12px;
-            padding: 7px 14px;
-            font-size: 0.76rem;
-            font-weight: 600;
-        }
     </style>
 </head>
 <body>
@@ -787,19 +776,19 @@
         <div class="calendar-card">
             <div class="calendar-header">
                 <div class="nav-group">
-                    <button class="nav-btn icon" id="prevMonthBtn">‹</button>
+                    <button class="nav-btn icon" id="prevMonthBtn" title="上一月"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
                     <div class="title-wrap">
                         <div class="year-month-title" id="currentYearMonth"></div>
                         <div class="ym-dropdown" id="ymDropdown" style="display:none;">
                             <div class="ym-dropdown-header">
-                                <button class="nav-btn icon" id="ddPrevYear">‹</button>
+                                <button class="nav-btn icon" id="ddPrevYear" title="上一年"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
                                 <span id="ddYearLabel">2026年</span>
-                                <button class="nav-btn icon" id="ddNextYear">›</button>
+                                <button class="nav-btn icon" id="ddNextYear" title="下一年"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
                             </div>
                             <div class="ym-month-grid" id="ddMonthGrid"></div>
                         </div>
                     </div>
-                    <button class="nav-btn icon" id="nextMonthBtn">›</button>
+                    <button class="nav-btn icon" id="nextMonthBtn" title="下一月"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
                 </div>
                 <button class="nav-btn" id="todayBtn">今天</button>
             </div>
@@ -840,78 +829,6 @@
     // API配置
     const BASE_URL = "http://168.168.235.209:18081/paltform/holidays";
 
-    // btM mock模式：url带?mock=1时启用本地模拟数据，仅供预览，不影响正式使用
-    const IS_MOCK = location.search.indexOf('mock=1') >= 0;
-
-    // btM mock数据中心：模拟服务端节假日表
-    let mockSerial = 1001;
-    const mockStore = {};
-    function seedHoliday(dateStr, remark, htype) {
-        const [y, m] = dateStr.split('-');
-        if (!mockStore[y]) mockStore[y] = {};
-        if (!mockStore[y][m]) mockStore[y][m] = [];
-        mockStore[y][m].push({
-            serial_no: mockSerial++,
-            holiday_date: dateStr,
-            valid_flag: "1",
-            holiday_type: htype || "1",
-            holiday_year: y,
-            holiday_month: m,
-            creator: null,
-            create_time: null,
-            update_time: null,
-            update_count: null,
-            remark: remark,
-            category: "1"
-        });
-    }
-    if (IS_MOCK) {
-        // 2026年模拟数据：国庆7天 + 调休1天 + 其他月份零星节日；10月部分周末留空验证"班"
-        ['2026-10-01','2026-10-02','2026-10-03','2026-10-04','2026-10-05','2026-10-06','2026-10-07'].forEach(d => seedHoliday(d, '国庆节', '1'));
-        seedHoliday('2026-10-15', '设备检修调休', '2');
-        seedHoliday('2026-01-01', '元旦', '1');
-        seedHoliday('2026-02-17', '春节', '1');
-        seedHoliday('2026-04-05', '清明节', '1');
-        seedHoliday('2026-05-01', '劳动节', '1');
-        seedHoliday('2026-06-19', '端午节', '1');
-        seedHoliday('2026-09-25', '中秋节', '1');
-    }
-
-    // btM mock版请求：按url分发到本地模拟逻辑
-    function mockApiRequest(url, bodyData) {
-        return new Promise(resolve => setTimeout(() => {
-            const ok = { result: { code: "10000", success: true } };
-            if (url.indexOf('/findall') > -1) {
-                const y = bodyData.extend_params1, m = bodyData.extend_params2;
-                const list = (mockStore[y] && mockStore[y][m]) || [];
-                resolve({ ...ok, body: { list: JSON.parse(JSON.stringify(list)) } });
-                return;
-            }
-            if (url.indexOf('/insert') > -1) {
-                const item = { ...bodyData, serial_no: mockSerial++ };
-                const y = item.holiday_year, m = item.holiday_month;
-                if (!mockStore[y]) mockStore[y] = {};
-                if (!mockStore[y][m]) mockStore[y][m] = [];
-                mockStore[y][m].push(item);
-                resolve({ ...ok, body: { serial_no: item.serial_no } });
-                return;
-            }
-            if (url.indexOf('/update') > -1) {
-                const serial = bodyData.serial_no;
-                outer: for (const y of Object.keys(mockStore)) {
-                    for (const m of Object.keys(mockStore[y])) {
-                        const arr = mockStore[y][m];
-                        const idx = arr.findIndex(it => it.serial_no === serial);
-                        if (idx >= 0) { arr.splice(idx, 1); break outer; }
-                    }
-                }
-                resolve({ ...ok, body: {} });
-                return;
-            }
-            resolve({ ...ok, body: {} });
-        }, 200));
-    }
-
     // bt1 默认打开系统当天所在年月
     const now = new Date();
     let currentYear = now.getFullYear();
@@ -946,7 +863,6 @@
     }
 
     async function apiRequest(url, bodyData) {
-        if (IS_MOCK) return mockApiRequest(url, bodyData);
         const payload = { head: getBaseHead(), body: bodyData };
         try {
             const response = await fetch(url, {
@@ -1397,15 +1313,6 @@
 
     // 初始化
     function init() {
-        // btM mock模式展示提示横幅并压缩高度
-        if (IS_MOCK) {
-            const banner = document.createElement('div');
-            banner.className = 'mock-banner';
-            banner.textContent = '⚠️ MOCK预览环境：数据全部为本地模拟（含10月国庆节、调休、今日状态），标记/取消操作不会写入真实服务器';
-            document.body.insertBefore(banner, document.body.firstChild);
-            document.querySelector('.app').style.height = 'calc(100dvh - 32px - 46px)';
-        }
-
         const yearSelect = document.getElementById('yearSelect');
         for (let y = currentYear - 6; y <= currentYear + 6; y++) {
             const option = document.createElement('option');
@@ -1445,14 +1352,6 @@
 
         initMarkModal();
         initYmDropdown();
-
-        // btM mock演示钩子：url带demoModal=1时自动弹出标记窗，便于预览
-        if (IS_MOCK && location.search.indexOf('demoModal=1') >= 0) {
-            setTimeout(() => { openMarkModal(`${currentYear}-${String(currentMonth).padStart(2,'0')}-21`, false); }, 800);
-        }
-        if (IS_MOCK && location.search.indexOf('demoDropdown=1') >= 0) {
-            setTimeout(() => toggleYmDropdown(true), 800);
-        }
 
         loadDataAndRender();
     }
