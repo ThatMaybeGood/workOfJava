@@ -57,9 +57,26 @@ public class InpatPrepayServiceImpl implements InpatPrepayService {
         }
         try {
             String scope = scopeOf(request.getType(), "INCOME");
-            Date[] lastRange = lastYearRange(request);
-            InpatPrepayOvEntity e = inpatPrepayMapper.queryOverview(
-                    day(request.getStartDate()), day(request.getEndDate()), lastRange[0], lastRange[1], scope);
+            java.sql.Date[] lastRange = lastYearRange(request);
+            Date start = day(request.getStartDate());
+            Date end = day(request.getEndDate());
+            if ("SUMMARY".equals(scope)) {
+                // 汇总页签两净额卡: 预缴-退院 的人次与金额(原型口径), 各带同比
+                InpatPrepayOvEntity income = inpatPrepayMapper.queryOverview(sqlDay(start), sqlDay(end), lastRange[0], lastRange[1], "INCOME");
+                InpatPrepayOvEntity refund = inpatPrepayMapper.queryOverview(sqlDay(start), sqlDay(end), lastRange[0], lastRange[1], "REFUND");
+                double netCount = nvl(income == null ? null : income.getCountCurrent()) - nvl(refund == null ? null : refund.getCountCurrent());
+                double netCountLast = nvl(income == null ? null : income.getCountLast()) - nvl(refund == null ? null : refund.getCountLast());
+                double netAmount = amountOf(income == null ? null : income.getAmountCurrent(), false)
+                        - amountOf(refund == null ? null : refund.getAmountCurrent(), true);
+                double netAmountLast = amountOf(income == null ? null : income.getAmountLast(), false)
+                        - amountOf(refund == null ? null : refund.getAmountLast(), true);
+                result.put("prepaymentCount", (long) Math.round(netCount));
+                result.put("prepaymentCountCompare", comparePct(netCount, netCountLast));
+                result.put("prepaymentAmount", netAmount);
+                result.put("prepaymentAmountCompare", comparePct(netAmount, netAmountLast));
+                return result;
+            }
+            InpatPrepayOvEntity e = inpatPrepayMapper.queryOverview(sqlDay(start), sqlDay(end), lastRange[0], lastRange[1], scope);
             if (e != null) {
                 boolean refund = "REFUND".equals(scope);
                 double amountCurrent = amountOf(e.getAmountCurrent(), refund);
@@ -84,7 +101,7 @@ public class InpatPrepayServiceImpl implements InpatPrepayService {
             try {
                 boolean refund = "REFUND".equals(dataType);
                 boolean month = isMonthDimension(request);
-                Date[] lastRange = lastYearRange(request);
+                java.sql.Date[] lastRange = lastYearRange(request);
                 List<InpatPrepayDtlEntity> rows = inpatPrepayMapper.queryDaily(
                         day(request.getStartDate()), day(request.getEndDate()), lastRange[0], lastRange[1], dataType, month);
                 for (InpatPrepayDtlEntity r : rows) {
@@ -128,7 +145,7 @@ public class InpatPrepayServiceImpl implements InpatPrepayService {
                 String scope = scopeOf(type, "SUMMARY");
                 boolean refund = "REFUND".equals(scope);
                 boolean month = isMonthDimension(request);
-                Date[] lastRange = lastYearRange(request);
+                java.sql.Date[] lastRange = lastYearRange(request);
                 List<InpatPrepayDtlEntity> rows = inpatPrepayMapper.queryDaily(
                         day(request.getStartDate()), day(request.getEndDate()), lastRange[0], lastRange[1], scope, month);
                 for (InpatPrepayDtlEntity r : rows) {
@@ -168,7 +185,7 @@ public class InpatPrepayServiceImpl implements InpatPrepayService {
         if (dataConfig.isMybatisPlus() && hasDateRange(request)) {
             try {
                 String scope = scopeOf(type, "SUMMARY");
-                Date[] lastRange = lastYearRange(request);
+                java.sql.Date[] lastRange = lastYearRange(request);
                 List<InpatPrepayChtEntity> rows = inpatPrepayMapper.queryChannel(
                         day(request.getStartDate()), day(request.getEndDate()), lastRange[0], lastRange[1], scope);
                 for (InpatPrepayChtEntity r : rows) {
@@ -228,7 +245,7 @@ public class InpatPrepayServiceImpl implements InpatPrepayService {
         Map<String, long[]> byPayType = new LinkedHashMap<String, long[]>();
         if (dataConfig.isMybatisPlus() && hasDateRange(request)) {
             try {
-                Date[] lastRange = lastYearRange(request);
+                java.sql.Date[] lastRange = lastYearRange(request);
                 List<InpatPrepayChtEntity> rows = inpatPrepayMapper.queryChannel(
                         day(request.getStartDate()), day(request.getEndDate()), lastRange[0], lastRange[1], "REFUND");
                 for (InpatPrepayChtEntity r : rows) {
@@ -246,10 +263,10 @@ public class InpatPrepayServiceImpl implements InpatPrepayService {
     // ==================== 工具方法 ====================
 
     /** 同比区间:本期日期整体减一年(9-01~9-03 → 去年9-01~9-03) */
-    private static Date[] lastYearRange(InpatPrepayRequest request) {
+    private static java.sql.Date[] lastYearRange(InpatPrepayRequest request) {
         LocalDate start = toLocalDate(request.getStartDate()).minusYears(1);
         LocalDate end = toLocalDate(request.getEndDate()).minusYears(1);
-        return new Date[]{toDate(start), toDate(end)};
+        return new java.sql.Date[]{java.sql.Date.valueOf(start), java.sql.Date.valueOf(end)};
     }
 
     /** 按月统计:dimension=month 时表格/趋势按月分桶 */
@@ -360,12 +377,17 @@ public class InpatPrepayServiceImpl implements InpatPrepayService {
         return java.sql.Date.valueOf(day);
     }
 
-    /** 归一成java.sql.Date:与同期参数类型一致,避免DATE列绑定TIMESTAMP触发隐式转换 */
-    private static Date day(Date date) {
-        return toDate(toLocalDate(date));
+    /** 归一成java.sql.Date:绑定按DATE类型发送,避免DATE列绑定TIMESTAMP触发隐式转换致索引失效 */
+    private static java.sql.Date day(Date date) {
+        return java.sql.Date.valueOf(toLocalDate(date));
     }
 
     private static int nvl(Integer v) {
         return v == null ? 0 : v.intValue();
+    }
+
+    /** java.util.Date→java.sql.Date：绑定按DATE类型发送， 避免TIMESTAMP绑定触发的列隐式转换致索引失效 */
+    private static java.sql.Date sqlDay(java.util.Date d) {
+        return d == null ? null : new java.sql.Date(d.getTime());
     }
 }

@@ -25,10 +25,10 @@ public interface InpatPrepayMapper {
      * @param scope         数据范围(SUMMARY/INCOME/REFUND)
      * @return 概览聚合
      */
-    InpatPrepayOvEntity queryOverview(@Param("startDate") Date startDate,
-                                      @Param("endDate") Date endDate,
-                                      @Param("lastStartDate") Date lastStartDate,
-                                      @Param("lastEndDate") Date lastEndDate,
+    InpatPrepayOvEntity queryOverview(@Param("startDate") java.sql.Date startDate,
+                                      @Param("endDate") java.sql.Date endDate,
+                                      @Param("lastStartDate") java.sql.Date lastStartDate,
+                                      @Param("lastEndDate") java.sql.Date lastEndDate,
                                       @Param("scope") String scope);
 
     /**
@@ -42,10 +42,10 @@ public interface InpatPrepayMapper {
      * @param month         true按月聚合(返回每月一行),false按天
      * @return 按天/按月聚合
      */
-    List<InpatPrepayDtlEntity> queryDaily(@Param("startDate") Date startDate,
-                                          @Param("endDate") Date endDate,
-                                          @Param("lastStartDate") Date lastStartDate,
-                                          @Param("lastEndDate") Date lastEndDate,
+    List<InpatPrepayDtlEntity> queryDaily(@Param("startDate") java.sql.Date startDate,
+                                          @Param("endDate") java.sql.Date endDate,
+                                          @Param("lastStartDate") java.sql.Date lastStartDate,
+                                          @Param("lastEndDate") java.sql.Date lastEndDate,
                                           @Param("scope") String scope,
                                           @Param("month") boolean month);
 
@@ -59,9 +59,9 @@ public interface InpatPrepayMapper {
      * @param scope         数据范围(SUMMARY/INCOME/REFUND)
      * @return 渠道×支付方式聚合
      */
-    List<InpatPrepayChtEntity> queryChannel(@Param("startDate") Date startDate,
-                                            @Param("endDate") Date endDate,
-                                            @Param("lastStartDate") Date lastStartDate,
-                                            @Param("lastEndDate") Date lastEndDate,
+    List<InpatPrepayChtEntity> queryChannel(@Param("startDate") java.sql.Date startDate,
+                                            @Param("endDate") java.sql.Date endDate,
+                                            @Param("lastStartDate") java.sql.Date lastStartDate,
+                                            @Param("lastEndDate") java.sql.Date lastEndDate,
                                             @Param("scope") String scope);
 }

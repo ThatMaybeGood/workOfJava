@@ -257,6 +257,7 @@ class InpatientPrepaymentController {
         if (this.filter.tab === 'summary') {
             const activeType = document.querySelector('#summaryChartTabFilter .service-tab.active').dataset.tab;
             await Promise.all([
+                this.loadSummaryOverview(),
                 this.loadSummaryTable(),
                 this.loadSummaryChart(activeType)
             ]);
@@ -286,6 +287,28 @@ class InpatientPrepaymentController {
         setTimeout(() => {
             Object.values(this.charts).forEach(chart => chart && chart.resize());
         }, 100);
+    }
+
+    /** 汇总页签两净额卡：预缴-退院 的人次与金额，带同比 */
+    async loadSummaryOverview() {
+        try {
+            const body = await ReportAPI.getInpatientPrepaymentOverview({ ...this.filter, type: 'summary_count' });
+            if (body && body.prepaymentCount !== undefined) {
+                this.renderSummaryOverview(body);
+            }
+        } catch (error) {
+            console.error('Load summary overview failed:', error);
+        }
+    }
+
+    renderSummaryOverview(data) {
+        document.getElementById('summaryNetCount').textContent = data.prepaymentCount.toLocaleString('zh-CN');
+        document.getElementById('summaryNetCountCompare').textContent = `同比${data.prepaymentCountCompare >= 0 ? '+' : ''}${data.prepaymentCountCompare}%`;
+        document.getElementById('summaryNetCountCompare').className = `stat-compare ${data.prepaymentCountCompare >= 0 ? 'text-up' : 'text-down'}`;
+
+        document.getElementById('summaryNetAmount').textContent = data.prepaymentAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('summaryNetAmountCompare').textContent = `同比${data.prepaymentAmountCompare >= 0 ? '+' : ''}${data.prepaymentAmountCompare}%`;
+        document.getElementById('summaryNetAmountCompare').className = `stat-compare ${data.prepaymentAmountCompare >= 0 ? 'text-up' : 'text-down'}`;
     }
 
     async loadIncomeOverview() {
