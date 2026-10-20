@@ -76,7 +76,7 @@ public class OutpatientLabStatsServiceImpl implements OutpatientLabStatsService 
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientLabStatsRequest request) {
         try {
-            LabStatsOvEntity entity = labStatsMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            LabStatsOvEntity entity = labStatsMapper.queryOverview(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
             return buildOverviewData(entity);
         } catch (Exception e) {
             log.warn("查询检验统计概览失败", e);
@@ -95,7 +95,7 @@ public class OutpatientLabStatsServiceImpl implements OutpatientLabStatsService 
         }
         try {
             List<LabStatsTmEntity> rows =
-                    labStatsMapper.queryTimeAnalysis(request.getStartDate(), request.getEndDate());
+                    labStatsMapper.queryTimeAnalysis(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
             List<String> categories = new ArrayList<String>();
             List<Integer> data = new ArrayList<Integer>();
             for (LabStatsTmEntity row : rows) {
@@ -121,7 +121,7 @@ public class OutpatientLabStatsServiceImpl implements OutpatientLabStatsService 
         }
         try {
             List<LabStatsRnkEntity> rows =
-                    labStatsMapper.queryRanking(request.getStartDate(), request.getEndDate(), "LAB");
+                    labStatsMapper.queryRanking(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()), "LAB");
             // 查询返回的是区间内每天每项的明细，这里按项目汇总后取前 10 名，
             // 否则 400 天的数据会变成几千个类目，图表画不出来
             Map<String, Integer> sumByName = new LinkedHashMap<String, Integer>();
@@ -168,4 +168,9 @@ public class OutpatientLabStatsServiceImpl implements OutpatientLabStatsService 
         return dto;
     }
 
+
+    /** java.util.Date→java.sql.Date：绑定按DATE类型发送， 避免TIMESTAMP绑定触发的列隐式转换致索引失效 */
+    private static java.sql.Date sqlDay(java.util.Date d) {
+        return d == null ? null : new java.sql.Date(d.getTime());
+    }
 }

@@ -108,12 +108,12 @@ public class OutpatientServiceQualityServiceImpl implements OutpatientServiceQua
         try {
             if (isPraise(request.getType())) {
                 for (ServiceQualityPrzEntity row
-                        : serviceQualityMapper.queryPraiseByDate(request.getStartDate(), request.getEndDate())) {
+                        : serviceQualityMapper.queryPraiseByDate(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()))) {
                     all.add(buildMaintainItem(row));
                 }
             } else {
                 for (ServiceQualityCmplEntity row
-                        : serviceQualityMapper.queryComplaintByDate(request.getStartDate(), request.getEndDate())) {
+                        : serviceQualityMapper.queryComplaintByDate(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()))) {
                     all.add(buildMaintainItem(row));
                 }
             }
@@ -194,7 +194,7 @@ public class OutpatientServiceQualityServiceImpl implements OutpatientServiceQua
         }
         try {
             for (ServiceQualityCmplEntity row
-                    : serviceQualityMapper.listComplaint(request.getStartDate(), request.getEndDate())) {
+                    : serviceQualityMapper.listComplaint(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()))) {
                 ComplaintItem item = new ComplaintItem();
                 item.setSource(SOURCE_MANUAL);
                 item.setTime(formatTime(row.getComplaintTime()));
@@ -227,7 +227,7 @@ public class OutpatientServiceQualityServiceImpl implements OutpatientServiceQua
         }
         try {
             for (ServiceQualityPrzEntity row
-                    : serviceQualityMapper.listPraise(request.getStartDate(), request.getEndDate())) {
+                    : serviceQualityMapper.listPraise(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()))) {
                 PraiseItem item = new PraiseItem();
                 item.setSource(SOURCE_MANUAL);
                 item.setTime(formatTime(row.getPraiseTime()));
@@ -371,5 +371,10 @@ public class OutpatientServiceQualityServiceImpl implements OutpatientServiceQua
             list.add(item);
         }
         return PageResult.of(list, 55L, page, pageSize);
+    }
+
+    /** java.util.Date→java.sql.Date：绑定按DATE类型发送， 避免TIMESTAMP绑定触发的列隐式转换致索引失效 */
+    private static java.sql.Date sqlDay(java.util.Date d) {
+        return d == null ? null : new java.sql.Date(d.getTime());
     }
 }

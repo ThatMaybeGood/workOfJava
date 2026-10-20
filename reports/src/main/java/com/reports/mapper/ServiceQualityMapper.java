@@ -24,8 +24,8 @@ public interface ServiceQualityMapper {
      * @param endDate   结束日期
      * @return 投诉记录
      */
-    List<ServiceQualityCmplEntity> queryComplaintByDate(@Param("startDate") Date startDate,
-                                                        @Param("endDate") Date endDate);
+    List<ServiceQualityCmplEntity> queryComplaintByDate(@Param("startDate") java.sql.Date startDate,
+                                                        @Param("endDate") java.sql.Date endDate);
 
     /**
      * 按日期范围查询人工登记的表扬记录（数据维护弹窗用）
@@ -34,20 +34,20 @@ public interface ServiceQualityMapper {
      * @param endDate   结束日期
      * @return 表扬记录
      */
-    List<ServiceQualityPrzEntity> queryPraiseByDate(@Param("startDate") Date startDate,
-                                                    @Param("endDate") Date endDate);
+    List<ServiceQualityPrzEntity> queryPraiseByDate(@Param("startDate") java.sql.Date startDate,
+                                                    @Param("endDate") java.sql.Date endDate);
 
     /**
      * 人工登记的投诉记录（报表列表用，按时间倒序）
      */
-    List<ServiceQualityCmplEntity> listComplaint(@Param("startDate") Date startDate,
-                                                 @Param("endDate") Date endDate);
+    List<ServiceQualityCmplEntity> listComplaint(@Param("startDate") java.sql.Date startDate,
+                                                 @Param("endDate") java.sql.Date endDate);
 
     /**
      * 人工登记的表扬记录（报表列表用，按时间倒序）
      */
-    List<ServiceQualityPrzEntity> listPraise(@Param("startDate") Date startDate,
-                                             @Param("endDate") Date endDate);
+    List<ServiceQualityPrzEntity> listPraise(@Param("startDate") java.sql.Date startDate,
+                                             @Param("endDate") java.sql.Date endDate);
 
     /**
      * 新增投诉记录

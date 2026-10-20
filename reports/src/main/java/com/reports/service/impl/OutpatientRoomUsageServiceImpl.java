@@ -102,7 +102,7 @@ public class OutpatientRoomUsageServiceImpl implements OutpatientRoomUsageServic
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientRoomUsageRequest request) {
         try {
-            RoomUsageOvEntity entity = roomUsageMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            RoomUsageOvEntity entity = roomUsageMapper.queryOverview(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
             return buildOverviewData(entity);
         } catch (Exception e) {
             log.warn("查询诊室使用率概览失败", e);
@@ -112,7 +112,7 @@ public class OutpatientRoomUsageServiceImpl implements OutpatientRoomUsageServic
 
     private PageResult<TableItem> queryTableByMybatisPlus(OutpatientRoomUsageRequest request, Integer page, Integer pageSize) {
         try {
-            List<RoomUsageDtlEntity> rows = roomUsageMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), request.getDeptCode(), request.getDeptName());
+            List<RoomUsageDtlEntity> rows = roomUsageMapper.queryDeptDetail(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()), request.getDeptCode(), request.getDeptName());
             List<TableItem> allItems = new ArrayList<>();
             for (RoomUsageDtlEntity row : rows) {
                 allItems.add(buildTableItem(row));
@@ -155,4 +155,9 @@ public class OutpatientRoomUsageServiceImpl implements OutpatientRoomUsageServic
         return item;
     }
 
+
+    /** java.util.Date→java.sql.Date：绑定按DATE类型发送， 避免TIMESTAMP绑定触发的列隐式转换致索引失效 */
+    private static java.sql.Date sqlDay(java.util.Date d) {
+        return d == null ? null : new java.sql.Date(d.getTime());
+    }
 }

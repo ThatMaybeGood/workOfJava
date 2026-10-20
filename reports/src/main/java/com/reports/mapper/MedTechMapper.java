@@ -22,7 +22,7 @@ public interface MedTechMapper extends BaseMapper<MedTechOvEntity> {
      * @param endDate   结束日期
      * @return 概览数据
      */
-    MedTechOvEntity queryOverview(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    MedTechOvEntity queryOverview(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
 
     /**
      * 查询医技科室明细
@@ -31,6 +31,6 @@ public interface MedTechMapper extends BaseMapper<MedTechOvEntity> {
      * @param endDate   结束日期
       * @return 科室明细数据列表
      */
-    List<MedTechDtlEntity> queryDeptDetail(@Param("startDate") Date startDate,
-                                            @Param("endDate") Date endDate);
+    List<MedTechDtlEntity> queryDeptDetail(@Param("startDate") java.sql.Date startDate,
+                                            @Param("endDate") java.sql.Date endDate);
 }

@@ -193,7 +193,7 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientNoShowRequest request) {
         try {
-            NoShowOvEntity entity = noShowMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            NoShowOvEntity entity = noShowMapper.queryOverview(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
             return buildOverviewData(entity);
         } catch (Exception e) {
             log.warn("查询爽约退号概览数据失败", e);
@@ -203,7 +203,7 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
 
     private AgeAnalysis queryAgeAnalysisByMybatisPlus(OutpatientNoShowRequest request) {
         try {
-            List<NoShowAgeEntity> list = noShowMapper.queryAgeAnalysis(request.getStartDate(), request.getEndDate());
+            List<NoShowAgeEntity> list = noShowMapper.queryAgeAnalysis(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
             return buildAgeAnalysis(list);
         } catch (Exception e) {
             log.warn("查询爽约退号年龄分析失败", e);
@@ -213,7 +213,7 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
 
     private List<AnalysisItem> queryRefundOriginByMybatisPlus(OutpatientNoShowRequest request) {
         try {
-            List<NoShowOrgEntity> list = noShowMapper.queryOriginAnalysis(request.getStartDate(), request.getEndDate(), null);
+            List<NoShowOrgEntity> list = noShowMapper.queryOriginAnalysis(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()), null);
             List<AnalysisItem> result = new ArrayList<>();
             for (NoShowOrgEntity entity : list) {
                 result.add(newAnalysisItem(entity.getItemName(), entity.getItemValue()));
@@ -227,7 +227,7 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
 
     private List<AnalysisItem> queryRefundChannelByMybatisPlus(OutpatientNoShowRequest request) {
         try {
-            List<NoShowChnEntity> list = noShowMapper.queryChannelAnalysis(request.getStartDate(), request.getEndDate(), null);
+            List<NoShowChnEntity> list = noShowMapper.queryChannelAnalysis(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()), null);
             List<AnalysisItem> result = new ArrayList<>();
             for (NoShowChnEntity entity : list) {
                 result.add(newAnalysisItem(entity.getItemName(), entity.getItemValue()));
@@ -241,7 +241,7 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
 
     private PageResult<TableItem> queryTableByMybatisPlus(OutpatientNoShowRequest request, Integer page, Integer pageSize) {
         try {
-            List<NoShowDtlEntity> list = noShowMapper.queryDeptDetail(request.getStartDate(), request.getEndDate(), request.getDeptCode(), request.getDeptName());
+            List<NoShowDtlEntity> list = noShowMapper.queryDeptDetail(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()), request.getDeptCode(), request.getDeptName());
             List<TableItem> allItems = new ArrayList<>();
             for (NoShowDtlEntity entity : list) {
                 allItems.add(buildTableItem(entity));
@@ -337,4 +337,9 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
         return item;
     }
 
+
+    /** java.util.Date→java.sql.Date：绑定按DATE类型发送， 避免TIMESTAMP绑定触发的列隐式转换致索引失效 */
+    private static java.sql.Date sqlDay(java.util.Date d) {
+        return d == null ? null : new java.sql.Date(d.getTime());
+    }
 }

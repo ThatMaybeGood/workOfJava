@@ -211,7 +211,7 @@ public class OutpatientWindowStatsServiceImpl implements OutpatientWindowStatsSe
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientWindowStatsRequest request) {
         try {
-            WindowStatsOvEntity entity = windowStatsMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            WindowStatsOvEntity entity = windowStatsMapper.queryOverview(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
             return buildOverviewData(entity);
         } catch (Exception e) {
             log.warn("查询人工窗口概览数据失败", e);
@@ -221,7 +221,7 @@ public class OutpatientWindowStatsServiceImpl implements OutpatientWindowStatsSe
 
     private AgeAnalysis queryAgeAnalysisByMybatisPlus(OutpatientWindowStatsRequest request) {
         try {
-            List<WindowStatsAgeEntity> list = windowStatsMapper.queryAgeAnalysis(request.getStartDate(), request.getEndDate());
+            List<WindowStatsAgeEntity> list = windowStatsMapper.queryAgeAnalysis(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
             return buildAgeAnalysis(list);
         } catch (Exception e) {
             log.warn("查询人工窗口年龄分析失败", e);
@@ -231,7 +231,7 @@ public class OutpatientWindowStatsServiceImpl implements OutpatientWindowStatsSe
 
     private TimeAnalysis queryTimeAnalysisByMybatisPlus(OutpatientWindowStatsRequest request) {
         try {
-            List<WindowStatsTmEntity> list = windowStatsMapper.queryTimeAnalysis(request.getStartDate(), request.getEndDate());
+            List<WindowStatsTmEntity> list = windowStatsMapper.queryTimeAnalysis(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
             return buildTimeAnalysis(list);
         } catch (Exception e) {
             log.warn("查询人工窗口时段分析失败", e);
@@ -241,7 +241,7 @@ public class OutpatientWindowStatsServiceImpl implements OutpatientWindowStatsSe
 
     private List<AnalysisItem> querySourceAnalysisByMybatisPlus(OutpatientWindowStatsRequest request) {
         try {
-            List<WindowStatsSrcEntity> list = windowStatsMapper.querySourceAnalysis(request.getStartDate(), request.getEndDate());
+            List<WindowStatsSrcEntity> list = windowStatsMapper.querySourceAnalysis(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
             List<AnalysisItem> result = new ArrayList<>();
             for (WindowStatsSrcEntity entity : list) {
                 result.add(newAnalysisItem(entity.getSourceName(), entity.getSourceCount()));
@@ -255,7 +255,7 @@ public class OutpatientWindowStatsServiceImpl implements OutpatientWindowStatsSe
 
     private WorkloadTable queryWorkloadTableByMybatisPlus(OutpatientWindowStatsRequest request) {
         try {
-            List<WindowStatsTmEntity> list = windowStatsMapper.queryWorkload(request.getStartDate(), request.getEndDate());
+            List<WindowStatsTmEntity> list = windowStatsMapper.queryWorkload(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
             return buildWorkloadTable(list);
         } catch (Exception e) {
             log.warn("查询人工窗口工作量表格失败", e);
@@ -360,4 +360,9 @@ public class OutpatientWindowStatsServiceImpl implements OutpatientWindowStatsSe
         return item;
     }
 
+
+    /** java.util.Date→java.sql.Date：绑定按DATE类型发送， 避免TIMESTAMP绑定触发的列隐式转换致索引失效 */
+    private static java.sql.Date sqlDay(java.util.Date d) {
+        return d == null ? null : new java.sql.Date(d.getTime());
+    }
 }

@@ -28,8 +28,8 @@ public interface PatientPortraitMapper extends BaseMapper<OutpatientPatientPortr
      * @param deptName   科室名称
      * @return 年龄分析数据
      */
-    List<OutpatientPatientPortraitAgeEntity> queryAgeAnalysis(@Param("startDate") Date startDate,
-                                                               @Param("endDate") Date endDate,
+    List<OutpatientPatientPortraitAgeEntity> queryAgeAnalysis(@Param("startDate") java.sql.Date startDate,
+                                                               @Param("endDate") java.sql.Date endDate,
                                                                @Param("patientType") String patientType,
                                                                @Param("deptCode") String deptCode,
                                                                @Param("deptName") String deptName);
@@ -44,8 +44,8 @@ public interface PatientPortraitMapper extends BaseMapper<OutpatientPatientPortr
      * @param deptName   科室名称
      * @return 医保分析数据
      */
-    List<OutpatientPatientPortraitInsurEntity> queryInsuranceAnalysis(@Param("startDate") Date startDate,
-                                                                       @Param("endDate") Date endDate,
+    List<OutpatientPatientPortraitInsurEntity> queryInsuranceAnalysis(@Param("startDate") java.sql.Date startDate,
+                                                                       @Param("endDate") java.sql.Date endDate,
                                                                        @Param("patientType") String patientType,
                                                                        @Param("deptCode") String deptCode,
                                                                        @Param("deptName") String deptName);
@@ -60,8 +60,8 @@ public interface PatientPortraitMapper extends BaseMapper<OutpatientPatientPortr
      * @param deptName   科室名称
      * @return 身份分析数据
      */
-    List<OutpatientPatientPortraitIdtyEntity> queryIdentityAnalysis(@Param("startDate") Date startDate,
-                                                                     @Param("endDate") Date endDate,
+    List<OutpatientPatientPortraitIdtyEntity> queryIdentityAnalysis(@Param("startDate") java.sql.Date startDate,
+                                                                     @Param("endDate") java.sql.Date endDate,
                                                                      @Param("patientType") String patientType,
                                                                      @Param("deptCode") String deptCode,
                                                                      @Param("deptName") String deptName);
@@ -76,8 +76,8 @@ public interface PatientPortraitMapper extends BaseMapper<OutpatientPatientPortr
      * @param deptName   科室名称
      * @return 挂号来源分析数据
      */
-    List<OutpatientPatientPortraitRegEntity> queryRegOriginAnalysis(@Param("startDate") Date startDate,
-                                                                     @Param("endDate") Date endDate,
+    List<OutpatientPatientPortraitRegEntity> queryRegOriginAnalysis(@Param("startDate") java.sql.Date startDate,
+                                                                     @Param("endDate") java.sql.Date endDate,
                                                                      @Param("patientType") String patientType,
                                                                      @Param("deptCode") String deptCode,
                                                                      @Param("deptName") String deptName);
@@ -92,8 +92,8 @@ public interface PatientPortraitMapper extends BaseMapper<OutpatientPatientPortr
      * @param deptName   科室名称
      * @return 建档来源分析数据
      */
-    List<OutpatientPatientPortraitArcEntity> queryArcOriginAnalysis(@Param("startDate") Date startDate,
-                                                                     @Param("endDate") Date endDate,
+    List<OutpatientPatientPortraitArcEntity> queryArcOriginAnalysis(@Param("startDate") java.sql.Date startDate,
+                                                                     @Param("endDate") java.sql.Date endDate,
                                                                      @Param("patientType") String patientType,
                                                                      @Param("deptCode") String deptCode,
                                                                      @Param("deptName") String deptName);

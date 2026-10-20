@@ -73,9 +73,9 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
             Date end = request.getEndDate();
             // 钻取只看本期所选范围
             if ("CHANNEL".equals(request.getDrillType())) {
-                return dischSettleMapper.queryChannelDetail(start, end, request.getItemName());
+                return dischSettleMapper.queryChannelDetail(sqlDay(start), sqlDay(end), request.getItemName());
             }
-            return dischSettleMapper.queryPayDetail(start, end, request.getItemName());
+            return dischSettleMapper.queryPayDetail(sqlDay(start), sqlDay(end), request.getItemName());
         } catch (Exception e) {
             log.warn("查询出院结算钻取明细失败", e);
             return new ArrayList<>();
@@ -194,7 +194,7 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
 
     private OverviewData queryOverviewByMybatisPlus(CashDischargeSettlementRequest request) {
         try {
-            Date[] range = currentAndLastRange(request);
+            java.sql.Date[] range = currentAndLastRange(request);
             return dischSettleMapper.queryOverview(range[0], range[1], range[2], range[3]);
         } catch (Exception e) {
             log.warn("查询出院结算概览失败", e);
@@ -204,7 +204,7 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
 
     private ChartsData queryChartsByMybatisPlus(CashDischargeSettlementRequest request) {
         try {
-            Date[] range = currentAndLastRange(request);
+            java.sql.Date[] range = currentAndLastRange(request);
             ChartsData charts = new ChartsData();
             charts.setChannelAnalysis(dischSettleMapper.queryChannelChart(range[0], range[1], range[2], range[3]));
             charts.setPatientTypeAnalysis(dischSettleMapper.queryFeeTypeChart(range[0], range[1], range[2], range[3]));
@@ -218,7 +218,7 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
 
     private PageResult<TableItem> queryTableByMybatisPlus(CashDischargeSettlementRequest request, Integer page, Integer pageSize) {
         try {
-            Date[] range = currentAndLastRange(request);
+            java.sql.Date[] range = currentAndLastRange(request);
             List<TableItem> allItems = dischSettleMapper.queryDetail(range[0], range[1], range[2], range[3],
                     isMonthDimension(request));
             int total = allItems.size();
@@ -238,10 +238,10 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
     }
 
     /** 本期区间 + 去年同期区间(月份减12, 与明细轴平移口径一致) */
-    private static Date[] currentAndLastRange(CashDischargeSettlementRequest request) {
+    private static java.sql.Date[] currentAndLastRange(CashDischargeSettlementRequest request) {
         Date start = request.getStartDate();
         Date end = request.getEndDate();
-        return new Date[]{start, end, addMonths(start, -12), addMonths(end, -12)};
+        return new java.sql.Date[]{sqlDay(start), sqlDay(end), sqlDay(addMonths(start, -12)), sqlDay(addMonths(end, -12))};
     }
 
     private static Date addMonths(Date date, int months) {
@@ -261,4 +261,9 @@ public class CashDischargeSettlementServiceImpl implements CashDischargeSettleme
         return item;
     }
 
-}
+
+    /** java.util.Date→java.sql.Date：绑定按DATE类型发送， 避免TIMESTAMP绑定触发的列隐式转换致索引失效 */
+    private static java.sql.Date sqlDay(java.util.Date d) {
+        return d == null ? null : new java.sql.Date(d.getTime());
+    }
+}

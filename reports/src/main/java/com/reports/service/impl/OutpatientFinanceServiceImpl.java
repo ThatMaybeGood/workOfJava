@@ -152,7 +152,7 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         }
         Date start = normalizeDate(3, request.getTimeType(), request.getStartDate());
         Date end = normalizeDate(3, request.getTimeType(), request.getEndDate());
-        Map<String, Object> row = financeMapper.queryRefundVisitSplit(start, end);
+        Map<String, Object> row = financeMapper.queryRefundVisitSplit(sqlDay(start), sqlDay(end));
         if (row != null) {
             data.setRefundSameDayCount(toMapDouble(row.get("sameDay")));
             data.setRefundCrossDayCount(toMapDouble(row.get("crossDay")));
@@ -210,9 +210,9 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         Map<String, Double> clinic;
         if (statisticType != null && statisticType == 1) {
             Map<String, Double> clinicIn = toPeriodMap(
-                    financeMapper.queryClinicCounts(2, startDate, endDate, timeType), "cnt");
+                    financeMapper.queryClinicCounts(2, sqlDay(startDate), sqlDay(endDate), timeType), "cnt");
             Map<String, Double> clinicOut = toPeriodMap(
-                    financeMapper.queryClinicCounts(3, startDate, endDate, timeType), "cnt");
+                    financeMapper.queryClinicCounts(3, sqlDay(startDate), sqlDay(endDate), timeType), "cnt");
             clinic = new HashMap<>();
             for (Map.Entry<String, Double> e : clinicIn.entrySet()) {
                 clinic.merge(e.getKey(), e.getValue(), Double::sum);
@@ -222,12 +222,12 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             }
         } else {
             clinic = toPeriodMap(
-                    financeMapper.queryClinicCounts(statisticType, startDate, endDate, timeType), "cnt");
+                    financeMapper.queryClinicCounts(statisticType, sqlDay(startDate), sqlDay(endDate), timeType), "cnt");
         }
 
         Map<String, Double> amount = new HashMap<>();
         Map<String, Double> receipt = new HashMap<>();
-        for (Map<String, Object> row : financeMapper.queryAcctAmounts(statisticType, startDate, endDate, timeType)) {
+        for (Map<String, Object> row : financeMapper.queryAcctAmounts(statisticType, sqlDay(startDate), sqlDay(endDate), timeType)) {
             Object p = row.get("period");
             if (p == null) {
                 log.warn("queryAcctAmounts 结果缺少 period 字段，row={}", row);
@@ -242,9 +242,9 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         Map<String, Double> netCares;
         if (statisticType != null && statisticType == 1) {
             Map<String, Double> careIn = toPeriodMap(
-                    financeMapper.queryVisitCounts(2, startDate, endDate, timeType), "cnt");
+                    financeMapper.queryVisitCounts(2, sqlDay(startDate), sqlDay(endDate), timeType), "cnt");
             Map<String, Double> careOut = toPeriodMap(
-                    financeMapper.queryVisitCounts(3, startDate, endDate, timeType), "cnt");
+                    financeMapper.queryVisitCounts(3, sqlDay(startDate), sqlDay(endDate), timeType), "cnt");
             netCares = new HashMap<>();
             for (Map.Entry<String, Double> e : careIn.entrySet()) {
                 netCares.merge(e.getKey(), e.getValue(), Double::sum);
@@ -254,7 +254,7 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             }
         } else {
             netCares = toPeriodMap(
-                    financeMapper.queryVisitCounts(statisticType, startDate, endDate, timeType), "cnt");
+                    financeMapper.queryVisitCounts(statisticType, sqlDay(startDate), sqlDay(endDate), timeType), "cnt");
         }
 
         Set<String> periods = new TreeSet<>();
@@ -291,70 +291,70 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
             // bt1 订单来源：门诊挂号表按 SOURCE_TYPE 净人次（未退号+1/退号-1）
             if (types.contains("1")) {
                 log.info("[门诊财务饼图] bt1: 门诊量分析(订单来分析) → queryClinicCountBySource");
-                map.put("1", buildPie(financeMapper.queryClinicCountBySource(type, start, end, tt),
-                        financeMapper.queryClinicCountBySource(type, pStart, pEnd, tt), this::mapSourceType));
+                map.put("1", buildPie(financeMapper.queryClinicCountBySource(type, sqlDay(start), sqlDay(end), tt),
+                        financeMapper.queryClinicCountBySource(type, sqlDay(pStart), sqlDay(pEnd), tt), this::mapSourceType));
             }
             if (types.contains("2")) {
                 log.info("[门诊财务饼图] bt2: 门诊量分析(取号渠道) → queryQueueCountByOperator");
-                map.put("2", buildPie(financeMapper.queryQueueCountByOperator(type, start, end, tt),
-                        financeMapper.queryQueueCountByOperator(type, pStart, pEnd, tt), null));
+                map.put("2", buildPie(financeMapper.queryQueueCountByOperator(type, sqlDay(start), sqlDay(end), tt),
+                        financeMapper.queryQueueCountByOperator(type, sqlDay(pStart), sqlDay(pEnd), tt), null));
             }
              if (types.contains("3")) {
                 log.info("[门诊财务饼图] bt3: 门诊量分析(预约取号渠道分析) → queryClinicCountByOperator");
                 map.put("3", buildPie(
-                        financeMapper.queryClinicCountByOperator(type, start, end, tt),
-                        financeMapper.queryClinicCountByOperator(type, pStart, pEnd, tt), null));
+                        financeMapper.queryClinicCountByOperator(type, sqlDay(start), sqlDay(end), tt),
+                        financeMapper.queryClinicCountByOperator(type, sqlDay(pStart), sqlDay(pEnd), tt), null));
              }
             if (types.contains("4")) {
                 log.info("[门诊财务饼图] bt4: 缴费人次分析(缴费人次渠道分析) → queryRcptCountByOperator");
-                map.put("4", buildPie(financeMapper.queryRcptCountByOperator(type, start, end, tt),
-                        financeMapper.queryRcptCountByOperator(type, pStart, pEnd, tt), null));
+                map.put("4", buildPie(financeMapper.queryRcptCountByOperator(type, sqlDay(start), sqlDay(end), tt),
+                        financeMapper.queryRcptCountByOperator(type, sqlDay(pStart), sqlDay(pEnd), tt), null));
             }
 
             if (types.contains("5")) {
                 log.info("[门诊财务饼图] bt5: 缴费人次分析(支付方式金额) → queryPaymentCountByMoneyType");
-                map.put("5", buildPie(financeMapper.queryPaymentCountByMoneyType(type, start, end, tt),
-                        financeMapper.queryPaymentCountByMoneyType(type, pStart, pEnd, tt), null));
+                map.put("5", buildPie(financeMapper.queryPaymentCountByMoneyType(type, sqlDay(start), sqlDay(end), tt),
+                        financeMapper.queryPaymentCountByMoneyType(type, sqlDay(pStart), sqlDay(pEnd), tt), null));
             }
             if (types.contains("6")) {
                 log.info("[门诊财务饼图] bt6: 收据张数(渠道分析) → queryRcptSumByOperator");
-                map.put("6", buildPie(financeMapper.queryRcptSumByOperator(type, start, end, tt),
-                        financeMapper.queryRcptSumByOperator(type, pStart, pEnd, tt), null));
+                map.put("6", buildPie(financeMapper.queryRcptSumByOperator(type, sqlDay(start), sqlDay(end), tt),
+                        financeMapper.queryRcptSumByOperator(type, sqlDay(pStart), sqlDay(pEnd), tt), null));
             }
             if (types.contains("7")) {
                 log.info("[门诊财务饼图] bt7: 支付方式金额(按支付方式金额) → queryPaymentSumByMoneyType");
-                map.put("7", buildPie(financeMapper.queryPaymentSumByMoneyType(type, start, end, tt),
-                        financeMapper.queryPaymentSumByMoneyType(type, pStart, pEnd, tt), null));
+                map.put("7", buildPie(financeMapper.queryPaymentSumByMoneyType(type, sqlDay(start), sqlDay(end), tt),
+                        financeMapper.queryPaymentSumByMoneyType(type, sqlDay(pStart), sqlDay(pEnd), tt), null));
             }
             if (types.contains("8")) {
                 log.info("[门诊财务饼图] bt8: 业务类型金额(当日挂号/门诊缴费) → queryBizTypeAmount");
-                map.put("8", buildPie(financeMapper.queryBizTypeAmount(type, start, end, tt),
-                        financeMapper.queryBizTypeAmount(type, pStart, pEnd, tt), null));
+                map.put("8", buildPie(financeMapper.queryBizTypeAmount(type, sqlDay(start), sqlDay(end), tt),
+                        financeMapper.queryBizTypeAmount(type, sqlDay(pStart), sqlDay(pEnd), tt), null));
             }
             if (types.contains("9")) {
                 log.info("[门诊财务饼图] bt9: 应收/实收 → queryPaymentSumByCategory");
-                map.put("9", buildPie(financeMapper.queryPaymentSumByCategory(type, start, end, tt),
-                        financeMapper.queryPaymentSumByCategory(type, pStart, pEnd, tt), null));
+                map.put("9", buildPie(financeMapper.queryPaymentSumByCategory(type, sqlDay(start), sqlDay(end), tt),
+                        financeMapper.queryPaymentSumByCategory(type, sqlDay(pStart), sqlDay(pEnd), tt), null));
             }
             if (types.contains("10")) {
                 log.info("[门诊财务饼图] bt10: 应收金额(应收账款类按支付方式明细) → queryPaymentSumReceivable");
-                map.put("10", buildPie(financeMapper.queryPaymentSumReceivable(type, start, end, tt),
-                        financeMapper.queryPaymentSumReceivable(type, pStart, pEnd, tt), null));
+                map.put("10", buildPie(financeMapper.queryPaymentSumReceivable(type, sqlDay(start), sqlDay(end), tt),
+                        financeMapper.queryPaymentSumReceivable(type, sqlDay(pStart), sqlDay(pEnd), tt), null));
             }
             if (types.contains("13")) {
                 log.info("[门诊财务饼图] bt13: 实收金额(实收类支付方式明细) → queryPaymentSumReceived");
-                map.put("13", buildPie(financeMapper.queryPaymentSumReceived(type, start, end, tt),
-                        financeMapper.queryPaymentSumReceived(type, pStart, pEnd, tt), null));
+                map.put("13", buildPie(financeMapper.queryPaymentSumReceived(type, sqlDay(start), sqlDay(end), tt),
+                        financeMapper.queryPaymentSumReceived(type, sqlDay(pStart), sqlDay(pEnd), tt), null));
             }
             if (types.contains("11")) {
                 log.info("[门诊财务饼图] bt11: 收入金额分析(渠道分析) → queryIncomeSumByOperator");
-                map.put("11", buildPie(financeMapper.queryIncomeSumByOperator(type, start, end, tt),
-                        financeMapper.queryIncomeSumByOperator(type, pStart, pEnd, tt), null));
+                map.put("11", buildPie(financeMapper.queryIncomeSumByOperator(type, sqlDay(start), sqlDay(end), tt),
+                        financeMapper.queryIncomeSumByOperator(type, sqlDay(pStart), sqlDay(pEnd), tt), null));
             }
             if (types.contains("12")) {
                 log.info("[门诊财务饼图] bt12: 收入金额分析(支付方式分析) → queryIncomeSumByMoneyType");
-                map.put("12", buildPie(financeMapper.queryIncomeSumByMoneyType(type, start, end, tt),
-                        financeMapper.queryIncomeSumByMoneyType(type, pStart, pEnd, tt), null));
+                map.put("12", buildPie(financeMapper.queryIncomeSumByMoneyType(type, sqlDay(start), sqlDay(end), tt),
+                        financeMapper.queryIncomeSumByMoneyType(type, sqlDay(pStart), sqlDay(pEnd), tt), null));
             }
             // bt14/bt15 仅退项统计-收据张数分析使用：无审退费(yq_powercfp) vs 窗口切片
             if (types.contains("14")) {
@@ -387,8 +387,8 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
                 countMode ? noAuditRefundReader.queryNoAuditCount(start, end)
                         : noAuditRefundReader.queryNoAuditAmount(start, end));
         curr.add(windowSlice(
-                countMode ? financeMapper.queryRcptSumByOperator(3, start, end, tt)
-                        : financeMapper.queryIncomeSumByOperator(3, start, end, tt), valueKey));
+                countMode ? financeMapper.queryRcptSumByOperator(3, sqlDay(start), sqlDay(end), tt)
+                        : financeMapper.queryIncomeSumByOperator(3, sqlDay(start), sqlDay(end), tt), valueKey));
         // 只要占比，不做同比
         return buildPie(curr, new ArrayList<>(), null);
     }
@@ -676,4 +676,9 @@ public class OutpatientFinanceServiceImpl implements OutpatientFinanceService {
         return Math.round(value * 100.0) / 100.0;
     }
 
+
+    /** java.util.Date→java.sql.Date：绑定按DATE类型发送， 避免TIMESTAMP绑定触发的列隐式转换致索引失效 */
+    private static java.sql.Date sqlDay(java.util.Date d) {
+        return d == null ? null : new java.sql.Date(d.getTime());
+    }
 }

@@ -24,7 +24,7 @@ public interface WindowStatsMapper extends BaseMapper<WindowStatsOvEntity> {
      * @param endDate   结束日期
      * @return 窗口统计概览数据
      */
-    WindowStatsOvEntity queryOverview(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    WindowStatsOvEntity queryOverview(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
 
     /**
      * 查询人工窗口年龄分析
@@ -33,7 +33,7 @@ public interface WindowStatsMapper extends BaseMapper<WindowStatsOvEntity> {
      * @param endDate   结束日期
      * @return 年龄分析数据列表
      */
-    List<WindowStatsAgeEntity> queryAgeAnalysis(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    List<WindowStatsAgeEntity> queryAgeAnalysis(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
 
     /**
      * 查询人工窗口时段分析
@@ -42,7 +42,7 @@ public interface WindowStatsMapper extends BaseMapper<WindowStatsOvEntity> {
      * @param endDate   结束日期
      * @return 时段分析数据列表
      */
-    List<WindowStatsTmEntity> queryTimeAnalysis(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    List<WindowStatsTmEntity> queryTimeAnalysis(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
 
     /**
      * 查询人工窗口来源分析
@@ -51,7 +51,7 @@ public interface WindowStatsMapper extends BaseMapper<WindowStatsOvEntity> {
      * @param endDate   结束日期
      * @return 来源分析数据列表
      */
-    List<WindowStatsSrcEntity> querySourceAnalysis(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    List<WindowStatsSrcEntity> querySourceAnalysis(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
 
     /**
      * 查询人工窗口工作量
@@ -60,5 +60,5 @@ public interface WindowStatsMapper extends BaseMapper<WindowStatsOvEntity> {
      * @param endDate   结束日期
      * @return 工作量数据列表
      */
-    List<WindowStatsTmEntity> queryWorkload(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    List<WindowStatsTmEntity> queryWorkload(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
 }

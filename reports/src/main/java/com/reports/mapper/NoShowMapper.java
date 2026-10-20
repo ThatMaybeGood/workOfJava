@@ -25,7 +25,7 @@ public interface NoShowMapper extends BaseMapper<NoShowOvEntity> {
      * @param endDate   结束日期
      * @return 概览数据
      */
-    NoShowOvEntity queryOverview(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    NoShowOvEntity queryOverview(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
 
     /**
      * 查询爽约退号科室明细
@@ -35,8 +35,8 @@ public interface NoShowMapper extends BaseMapper<NoShowOvEntity> {
      * @param deptName  科室名称
      * @return 科室明细数据列表
      */
-    List<NoShowDtlEntity> queryDeptDetail(@Param("startDate") Date startDate,
-                                           @Param("endDate") Date endDate,
+    List<NoShowDtlEntity> queryDeptDetail(@Param("startDate") java.sql.Date startDate,
+                                           @Param("endDate") java.sql.Date endDate,
                                            @Param("deptCode") String deptCode,
                                            @Param("deptName") String deptName);
 
@@ -48,8 +48,8 @@ public interface NoShowMapper extends BaseMapper<NoShowOvEntity> {
      * @param originType 来源类型
      * @return 来源分析数据列表
      */
-    List<NoShowOrgEntity> queryOriginAnalysis(@Param("startDate") Date startDate,
-                                               @Param("endDate") Date endDate,
+    List<NoShowOrgEntity> queryOriginAnalysis(@Param("startDate") java.sql.Date startDate,
+                                               @Param("endDate") java.sql.Date endDate,
                                                @Param("originType") String originType);
 
     /**
@@ -60,8 +60,8 @@ public interface NoShowMapper extends BaseMapper<NoShowOvEntity> {
      * @param channelType 渠道类型
      * @return 渠道分析数据列表
      */
-    List<NoShowChnEntity> queryChannelAnalysis(@Param("startDate") Date startDate,
-                                                @Param("endDate") Date endDate,
+    List<NoShowChnEntity> queryChannelAnalysis(@Param("startDate") java.sql.Date startDate,
+                                                @Param("endDate") java.sql.Date endDate,
                                                 @Param("channelType") String channelType);
 
     /**
@@ -71,5 +71,5 @@ public interface NoShowMapper extends BaseMapper<NoShowOvEntity> {
      * @param endDate   结束日期
      * @return 年龄分析数据列表
      */
-    List<NoShowAgeEntity> queryAgeAnalysis(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    List<NoShowAgeEntity> queryAgeAnalysis(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
 }

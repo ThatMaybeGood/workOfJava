@@ -21,8 +21,8 @@ public interface DischSettleCntMapper {
      * @param timeDimension 时间粒度(day/month)
      * @return 人次统计行
      */
-    List<PersonCountItem> queryByFeeChannel(@Param("startDate") Date startDate,
-                                            @Param("endDate") Date endDate,
+    List<PersonCountItem> queryByFeeChannel(@Param("startDate") java.sql.Date startDate,
+                                            @Param("endDate") java.sql.Date endDate,
                                             @Param("timeDimension") String timeDimension);
 
     /**
@@ -33,8 +33,8 @@ public interface DischSettleCntMapper {
      * @param timeDimension 时间粒度(day/month)
      * @return 人次统计行
      */
-    List<PersonCountItem> queryByOperator(@Param("startDate") Date startDate,
-                                          @Param("endDate") Date endDate,
+    List<PersonCountItem> queryByOperator(@Param("startDate") java.sql.Date startDate,
+                                          @Param("endDate") java.sql.Date endDate,
                                           @Param("timeDimension") String timeDimension);
 
     /**
@@ -45,7 +45,7 @@ public interface DischSettleCntMapper {
      * @param timeDimension 时间粒度(day/month)
      * @return 人次统计行
      */
-    List<PersonCountItem> queryByPayType(@Param("startDate") Date startDate,
-                                         @Param("endDate") Date endDate,
+    List<PersonCountItem> queryByPayType(@Param("startDate") java.sql.Date startDate,
+                                         @Param("endDate") java.sql.Date endDate,
                                          @Param("timeDimension") String timeDimension);
 }

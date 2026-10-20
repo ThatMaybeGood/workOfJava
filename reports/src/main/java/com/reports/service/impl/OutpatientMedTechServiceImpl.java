@@ -104,7 +104,7 @@ public class OutpatientMedTechServiceImpl implements OutpatientMedTechService {
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientMedTechRequest request) {
         try {
-            MedTechOvEntity entity = medTechMapper.queryOverview(request.getStartDate(), request.getEndDate());
+            MedTechOvEntity entity = medTechMapper.queryOverview(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
             return buildOverviewData(entity);
         } catch (Exception e) {
             log.warn("查询医技统计概览失败", e);
@@ -114,7 +114,7 @@ public class OutpatientMedTechServiceImpl implements OutpatientMedTechService {
 
     private PageResult<TableItem> queryTableByMybatisPlus(OutpatientMedTechRequest request, Integer page, Integer pageSize) {
         try {
-            List<MedTechDtlEntity> rows = medTechMapper.queryDeptDetail(request.getStartDate(), request.getEndDate());
+            List<MedTechDtlEntity> rows = medTechMapper.queryDeptDetail(sqlDay(request.getStartDate()), sqlDay(request.getEndDate()));
             List<TableItem> allItems = new ArrayList<>();
             for (MedTechDtlEntity row : rows) {
                 allItems.add(buildTableItem(row));
@@ -155,4 +155,9 @@ public class OutpatientMedTechServiceImpl implements OutpatientMedTechService {
         return item;
     }
 
+
+    /** java.util.Date→java.sql.Date：绑定按DATE类型发送， 避免TIMESTAMP绑定触发的列隐式转换致索引失效 */
+    private static java.sql.Date sqlDay(java.util.Date d) {
+        return d == null ? null : new java.sql.Date(d.getTime());
+    }
 }

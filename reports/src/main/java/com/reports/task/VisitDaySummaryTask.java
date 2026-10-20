@@ -64,7 +64,8 @@ public class VisitDaySummaryTask {
     }
 
     private void refreshDay(Date day) {
-        financeMapper.deleteVisitDay(day);
-        financeMapper.insertVisitDay(day);
+        java.sql.Date d = new java.sql.Date(day.getTime());
+        financeMapper.deleteVisitDay(d);
+        financeMapper.insertVisitDay(d);
     }
 }

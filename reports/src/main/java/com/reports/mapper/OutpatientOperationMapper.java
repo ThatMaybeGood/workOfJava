@@ -23,8 +23,8 @@ public interface OutpatientOperationMapper extends BaseMapper<OutpatientOperatio
      * @param deptCode  科室编码（可为空，为空则查所有科室）
      * @return 汇总数据
      */
-    OutpatientOperationEntity querySummaryByDateAndDept(@Param("startDate") Date startDate,
-                                                        @Param("endDate") Date endDate,
+    OutpatientOperationEntity querySummaryByDateAndDept(@Param("startDate") java.sql.Date startDate,
+                                                        @Param("endDate") java.sql.Date endDate,
                                                         @Param("deptCode") String deptCode);
 
     /**
@@ -35,16 +35,16 @@ public interface OutpatientOperationMapper extends BaseMapper<OutpatientOperatio
      * @param deptCode  科室编码（可为空，为空则查所有科室）
      * @return 按科室分组统计结果
      */
-    List<OutpatientOperationEntity> queryGroupByDept(@Param("startDate") Date startDate,
-                                                      @Param("endDate") Date endDate,
+    List<OutpatientOperationEntity> queryGroupByDept(@Param("startDate") java.sql.Date startDate,
+                                                      @Param("endDate") java.sql.Date endDate,
                                                       @Param("deptCode") String deptCode,
                                                       @Param("deptName") String deptName);
 
     /**
      * 查询科室明细数据
      */
-    List<OutpatientOpDtlEntity> queryDeptDetail(@Param("startDate") Date startDate,
-                                                 @Param("endDate") Date endDate,
+    List<OutpatientOpDtlEntity> queryDeptDetail(@Param("startDate") java.sql.Date startDate,
+                                                 @Param("endDate") java.sql.Date endDate,
                                                  @Param("deptCode") String deptCode,
                                                  @Param("deptName") String deptName);
 

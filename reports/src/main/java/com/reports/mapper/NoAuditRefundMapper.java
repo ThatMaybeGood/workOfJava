@@ -14,10 +14,10 @@ import java.util.Map;
 public interface NoAuditRefundMapper {
 
     /** bt14 无审退费张数：指定日期区间的无审退费收据张数 */
-    List<Map<String, Object>> queryNoAuditRefundCount(@Param("startDate") Date startDate,
-                                                      @Param("endDate") Date endDate);
+    List<Map<String, Object>> queryNoAuditRefundCount(@Param("startDate") java.sql.Date startDate,
+                                                      @Param("endDate") java.sql.Date endDate);
 
     /** bt15 无审退费金额：指定日期区间的无审退费金额 */
-    List<Map<String, Object>> queryNoAuditRefundAmount(@Param("startDate") Date startDate,
-                                                       @Param("endDate") Date endDate);
+    List<Map<String, Object>> queryNoAuditRefundAmount(@Param("startDate") java.sql.Date startDate,
+                                                       @Param("endDate") java.sql.Date endDate);
 }

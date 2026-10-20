@@ -23,5 +23,5 @@ public interface ServiceQualitySourceMapper {
      * @param endDate   结束日期（含）
      * @return 答卷原始行
      */
-    List<QuestionAnswerRow> queryAnswers(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    List<QuestionAnswerRow> queryAnswers(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
 }

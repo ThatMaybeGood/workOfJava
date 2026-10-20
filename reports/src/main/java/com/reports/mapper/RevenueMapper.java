@@ -25,8 +25,8 @@ public interface RevenueMapper extends BaseMapper<RevenueOvEntity> {
      * @param deptName  科室名称（可选，支持模糊查询）
      * @return 收入概览数据
      */
-    RevenueOvEntity queryOverview(@Param("startDate") Date startDate,
-                                   @Param("endDate") Date endDate,
+    RevenueOvEntity queryOverview(@Param("startDate") java.sql.Date startDate,
+                                   @Param("endDate") java.sql.Date endDate,
                                    @Param("deptCode") String deptCode,
                                    @Param("deptName") String deptName);
 
@@ -39,8 +39,8 @@ public interface RevenueMapper extends BaseMapper<RevenueOvEntity> {
      * @param deptName  科室名称（可选，支持模糊查询）
      * @return 科室收入明细数据列表
      */
-    List<RevenueDeptEntity> queryDeptDetail(@Param("startDate") Date startDate,
-                                             @Param("endDate") Date endDate,
+    List<RevenueDeptEntity> queryDeptDetail(@Param("startDate") java.sql.Date startDate,
+                                             @Param("endDate") java.sql.Date endDate,
                                              @Param("deptCode") String deptCode,
                                              @Param("deptName") String deptName);
 
@@ -53,8 +53,8 @@ public interface RevenueMapper extends BaseMapper<RevenueOvEntity> {
      * @param deptName  科室名称（可选，支持模糊查询）
      * @return 医生收入明细数据列表
      */
-    List<RevenueDocEntity> queryDoctorDetail(@Param("startDate") Date startDate,
-                                              @Param("endDate") Date endDate,
+    List<RevenueDocEntity> queryDoctorDetail(@Param("startDate") java.sql.Date startDate,
+                                              @Param("endDate") java.sql.Date endDate,
                                               @Param("deptCode") String deptCode,
                                               @Param("deptName") String deptName);
 }

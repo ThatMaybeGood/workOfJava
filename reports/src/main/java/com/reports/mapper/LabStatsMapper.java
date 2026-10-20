@@ -23,7 +23,7 @@ public interface LabStatsMapper extends BaseMapper<LabStatsOvEntity> {
      * @param endDate   结束日期
      * @return 概览数据
      */
-    LabStatsOvEntity queryOverview(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    LabStatsOvEntity queryOverview(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
 
     /**
      * 查询检验统计排行
@@ -33,8 +33,8 @@ public interface LabStatsMapper extends BaseMapper<LabStatsOvEntity> {
      * @param rankType  排行类型
      * @return 排行数据列表
      */
-    List<LabStatsRnkEntity> queryRanking(@Param("startDate") Date startDate,
-                                          @Param("endDate") Date endDate,
+    List<LabStatsRnkEntity> queryRanking(@Param("startDate") java.sql.Date startDate,
+                                          @Param("endDate") java.sql.Date endDate,
                                           @Param("rankType") String rankType);
 
     /**
@@ -44,5 +44,5 @@ public interface LabStatsMapper extends BaseMapper<LabStatsOvEntity> {
      * @param endDate   结束日期
      * @return 时段分析数据列表
      */
-    List<LabStatsTmEntity> queryTimeAnalysis(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    List<LabStatsTmEntity> queryTimeAnalysis(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
 }

@@ -148,9 +148,9 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
         Date yesterday = toDate(today.minusDays(1));
 
         // 步骤1:三个基准值
-        double avgReg = nvl(forecastMapper.queryAvgReg(last30Start, yesterday, request.getDeptCode(), request.getDeptName()));
-        double avgAppoint = nvl(forecastMapper.queryAvgAppoint(last30Start, yesterday, request.getDeptCode(), request.getDeptName()));
-        double visitCoef = nvl(forecastMapper.queryVisitCoef(last30Start, yesterday, request.getDeptCode(), request.getDeptName()), 1d);
+        double avgReg = nvl(forecastMapper.queryAvgReg(sqlDay(last30Start), sqlDay(yesterday), request.getDeptCode(), request.getDeptName()));
+        double avgAppoint = nvl(forecastMapper.queryAvgAppoint(sqlDay(last30Start), sqlDay(yesterday), request.getDeptCode(), request.getDeptName()));
+        double visitCoef = nvl(forecastMapper.queryVisitCoef(sqlDay(last30Start), sqlDay(yesterday), request.getDeptCode(), request.getDeptName()), 1d);
 
         List<DailyForecast> result = new ArrayList<>();
         // 节假日系数30天内不变,首次遇到法定假日日才算,后续复用
@@ -158,9 +158,9 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
         for (int i = 1; i <= DAILY_DAYS; i++) {
             LocalDate day = today.plusDays(i);
             // 步骤2:当日基础量 = 实时预约(无则兜底avgAppoint) + 挂号日均
-            Double appoint = forecastMapper.queryAppoint(toDate(day), request.getDeptCode(), request.getDeptName());
+            Double appoint = forecastMapper.queryAppoint(sqlDay(toDate(day)), request.getDeptCode(), request.getDeptName());
             double base = (appoint != null ? appoint : avgAppoint) + avgReg;
-            double weatherCoef = nvl(forecastMapper.queryWeatherCoef(toDate(day)), 1d);
+            double weatherCoef = nvl(forecastMapper.queryWeatherCoef(sqlDay(toDate(day))), 1d);
             double holidayCoef = 1d;
             if (isLegalHoliday(day)) {
                 if (holidayCoefCache == null) {
@@ -206,15 +206,15 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
         // 前置:今年全年外推量 YTD/已过天数*今年天数(1月1日当天elapsedDays=0则外推量为0)
         int elapsedDays = today.getDayOfYear() - 1;
         int yearDays = java.time.Year.of(year).length();
-        double ytd = forecastMapper.queryYtdVolume(toDate(LocalDate.of(year, 1, 1)), toDate(today.minusDays(1)), deptCode, deptName);
+        double ytd = forecastMapper.queryYtdVolume(sqlDay(toDate(LocalDate.of(year, 1, 1))), sqlDay(toDate(today.minusDays(1))), deptCode, deptName);
         double projectedYear = elapsedDays > 0 ? ytd / elapsedDays * yearDays : 0;
 
         // 前置:同比增幅 今年YTD/去年同期YTD
-        double ytdPrev = forecastMapper.queryYtdVolume(toDate(LocalDate.of(year - 1, 1, 1)), toDate(today.minusYears(1).minusDays(1)), deptCode, deptName);
+        double ytdPrev = forecastMapper.queryYtdVolume(sqlDay(toDate(LocalDate.of(year - 1, 1, 1))), sqlDay(toDate(today.minusYears(1).minusDays(1))), deptCode, deptName);
         double growth = ytdPrev > 0 ? ytd / ytdPrev : 0;
 
         // 前置:近90天挂号日均(兜底用)
-        double avgDaily90 = nvl(forecastMapper.queryAvgReg(toDate(today.minusDays(90)), toDate(today.minusDays(1)), deptCode, deptName));
+        double avgDaily90 = nvl(forecastMapper.queryAvgReg(sqlDay(toDate(today.minusDays(90))), sqlDay(toDate(today.minusDays(1))), deptCode, deptName));
 
         List<MonthPoint> values = new ArrayList<>();
         for (int i = 0; i < 12; i++) {
@@ -254,19 +254,19 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
      */
     private double calcHolidayCoef(OutpatientForecastRequest request) {
         LocalDate today = LocalDate.now();
-        List<Date> holidays = forecastMapper.queryRecentHolidays(toDate(today.minusDays(365)), toDate(today.minusDays(1)));
+        List<Date> holidays = forecastMapper.queryRecentHolidays(sqlDay(toDate(today.minusDays(365))), sqlDay(toDate(today.minusDays(1))));
         double growthSum = 0;
         int count = 0;
         for (Date holiday : holidays) {
             if (count >= HOLIDAY_SAMPLE_LIMIT) {
                 break;
             }
-            Date prevWorkday = forecastMapper.queryPrevWorkday(holiday);
+            Date prevWorkday = forecastMapper.queryPrevWorkday(sqlDay(holiday));
             if (prevWorkday == null) {
                 continue;
             }
-            int holidayVol = forecastMapper.queryVolume(holiday, request.getDeptCode(), request.getDeptName());
-            int prevVol = forecastMapper.queryVolume(prevWorkday, request.getDeptCode(), request.getDeptName());
+            int holidayVol = forecastMapper.queryVolume(sqlDay(holiday), request.getDeptCode(), request.getDeptName());
+            int prevVol = forecastMapper.queryVolume(sqlDay(prevWorkday), request.getDeptCode(), request.getDeptName());
             if (prevVol > 0) {
                 growthSum += (double) (holidayVol - prevVol) / prevVol;
                 count++;
@@ -277,7 +277,7 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
     }
 
     private boolean isLegalHoliday(LocalDate day) {
-        return "LEGAL_HOLIDAY".equals(forecastMapper.queryHolidayType(toDate(day)));
+        return "LEGAL_HOLIDAY".equals(forecastMapper.queryHolidayType(sqlDay(toDate(day))));
     }
 
     /**
@@ -430,4 +430,9 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
     //   明年未过月(09~12):  去年同月量 × growth
     //   任一月≤0 兜底: 近90天挂号日均 × 当月天数
 
+
+    /** java.util.Date→java.sql.Date：绑定按DATE类型发送， 避免TIMESTAMP绑定触发的列隐式转换致索引失效 */
+    private static java.sql.Date sqlDay(java.util.Date d) {
+        return d == null ? null : new java.sql.Date(d.getTime());
+    }
 }

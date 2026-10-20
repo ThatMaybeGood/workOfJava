@@ -43,7 +43,7 @@ public class ServiceQualitySourceReader {
         List<SourceFeedback> result = new ArrayList<>();
         List<QuestionAnswerRow> rows;
         try {
-            rows = sourceMapper.queryAnswers(startDate, endDate);
+            rows = sourceMapper.queryAnswers(sqlDay(startDate), sqlDay(endDate));
         } catch (Exception e) {
             log.warn("读取投诉表扬源库失败", e);
             return result;
@@ -79,5 +79,10 @@ public class ServiceQualitySourceReader {
         feedback.setContent(content);
         feedback.setResult(row.getDisposeResult());
         return feedback;
+    }
+
+    /** java.util.Date→java.sql.Date：绑定按DATE类型发送， 避免TIMESTAMP绑定触发的列隐式转换致索引失效 */
+    private static java.sql.Date sqlDay(java.util.Date d) {
+        return d == null ? null : new java.sql.Date(d.getTime());
     }
 }

@@ -24,7 +24,7 @@ public interface TreatmentStatsMapper extends BaseMapper<TreatmentStatsOvEntity>
      * @param endDate   结束日期
      * @return 概览数据
      */
-    TreatmentStatsOvEntity queryOverview(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    TreatmentStatsOvEntity queryOverview(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
 
     /**
      * 查询治疗统计科室明细
@@ -33,8 +33,8 @@ public interface TreatmentStatsMapper extends BaseMapper<TreatmentStatsOvEntity>
      * @param endDate   结束日期
      * @return 科室明细数据
      */
-    List<TreatmentStatsDtlEntity> queryDeptDetail(@Param("startDate") Date startDate,
-                                                    @Param("endDate") Date endDate,
+    List<TreatmentStatsDtlEntity> queryDeptDetail(@Param("startDate") java.sql.Date startDate,
+                                                    @Param("endDate") java.sql.Date endDate,
                                                     @Param("deptCode") String deptCode,
                                                     @Param("deptName") String deptName);
 
@@ -45,7 +45,7 @@ public interface TreatmentStatsMapper extends BaseMapper<TreatmentStatsOvEntity>
      * @param endDate   结束日期
      * @return 趋势数据
      */
-    List<TreatmentStatsTrendEntity> queryTrend(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    List<TreatmentStatsTrendEntity> queryTrend(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
 
     /**
      * 查询 TOP 治疗项目（按治疗人次降序，页面取前 10 个）
@@ -54,6 +54,6 @@ public interface TreatmentStatsMapper extends BaseMapper<TreatmentStatsOvEntity>
      * @param endDate   结束日期
      * @return 每项 {name, value}
      */
-    List<Map<String, Object>> queryTopItems(@Param("startDate") Date startDate,
-                                             @Param("endDate") Date endDate);
+    List<Map<String, Object>> queryTopItems(@Param("startDate") java.sql.Date startDate,
+                                             @Param("endDate") java.sql.Date endDate);
 }

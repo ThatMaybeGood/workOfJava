@@ -20,57 +20,57 @@ public interface DischSettleMapper {
     /**
      * 概览: 本期/同期出院人次(总/已结算/未结算) + 结算金额, 同比行内重算
      */
-    OverviewData queryOverview(@Param("startDate") Date startDate,
-                               @Param("endDate") Date endDate,
-                               @Param("lastStartDate") Date lastStartDate,
-                               @Param("lastEndDate") Date lastEndDate);
+    OverviewData queryOverview(@Param("startDate") java.sql.Date startDate,
+                               @Param("endDate") java.sql.Date endDate,
+                               @Param("lastStartDate") java.sql.Date lastStartDate,
+                               @Param("lastEndDate") java.sql.Date lastEndDate);
 
     /**
      * 日/月明细: 按日期轴聚合出院人次与结算金额
      *
      * @param month true=按月聚合, false=按天
      */
-    List<TableItem> queryDetail(@Param("startDate") Date startDate,
-                                @Param("endDate") Date endDate,
-                                @Param("lastStartDate") Date lastStartDate,
-                                @Param("lastEndDate") Date lastEndDate,
+    List<TableItem> queryDetail(@Param("startDate") java.sql.Date startDate,
+                                @Param("endDate") java.sql.Date endDate,
+                                @Param("lastStartDate") java.sql.Date lastStartDate,
+                                @Param("lastEndDate") java.sql.Date lastEndDate,
                                 @Param("month") boolean month);
 
     /**
      * 渠道分析: 结算主表按操作员分窗口/自助机, 本期人次+同比
      */
-    List<ChartItem> queryChannelChart(@Param("startDate") Date startDate,
-                                      @Param("endDate") Date endDate,
-                                      @Param("lastStartDate") Date lastStartDate,
-                                      @Param("lastEndDate") Date lastEndDate);
+    List<ChartItem> queryChannelChart(@Param("startDate") java.sql.Date startDate,
+                                      @Param("endDate") java.sql.Date endDate,
+                                      @Param("lastStartDate") java.sql.Date lastStartDate,
+                                      @Param("lastEndDate") java.sql.Date lastEndDate);
 
     /**
      * 费别人次分析: 结算主表按结算费别, 本期人次+同比
      */
-    List<ChartItem> queryFeeTypeChart(@Param("startDate") Date startDate,
-                                      @Param("endDate") Date endDate,
-                                      @Param("lastStartDate") Date lastStartDate,
-                                      @Param("lastEndDate") Date lastEndDate);
+    List<ChartItem> queryFeeTypeChart(@Param("startDate") java.sql.Date startDate,
+                                      @Param("endDate") java.sql.Date endDate,
+                                      @Param("lastStartDate") java.sql.Date lastStartDate,
+                                      @Param("lastEndDate") java.sql.Date lastEndDate);
 
     /**
      * 支付方式金额分析: 支付方式表按支付方式, 本期金额(收)+同比
      */
-    List<ChartItem> queryPayTypeChart(@Param("startDate") Date startDate,
-                                      @Param("endDate") Date endDate,
-                                      @Param("lastStartDate") Date lastStartDate,
-                                      @Param("lastEndDate") Date lastEndDate);
+    List<ChartItem> queryPayTypeChart(@Param("startDate") java.sql.Date startDate,
+                                      @Param("endDate") java.sql.Date endDate,
+                                      @Param("lastStartDate") java.sql.Date lastStartDate,
+                                      @Param("lastEndDate") java.sql.Date lastEndDate);
 
     /**
      * 渠道钻取: 该渠道下各结算费别的人次
      */
-    List<ChartItem> queryChannelDetail(@Param("startDate") Date startDate,
-                                       @Param("endDate") Date endDate,
+    List<ChartItem> queryChannelDetail(@Param("startDate") java.sql.Date startDate,
+                                       @Param("endDate") java.sql.Date endDate,
                                        @Param("channel") String channel);
 
     /**
      * 支付方式钻取: 该方式的收/退金额
      */
-    List<ChartItem> queryPayDetail(@Param("startDate") Date startDate,
-                                   @Param("endDate") Date endDate,
+    List<ChartItem> queryPayDetail(@Param("startDate") java.sql.Date startDate,
+                                   @Param("endDate") java.sql.Date endDate,
                                    @Param("moneyType") String moneyType);
 }

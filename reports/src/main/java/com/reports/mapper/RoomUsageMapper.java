@@ -22,7 +22,7 @@ public interface RoomUsageMapper extends BaseMapper<RoomUsageOvEntity> {
      * @param endDate   结束日期
      * @return 诊室使用率概览数据
      */
-    RoomUsageOvEntity queryOverview(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    RoomUsageOvEntity queryOverview(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
 
     /**
      * 查询诊室使用率科室明细
@@ -32,8 +32,8 @@ public interface RoomUsageMapper extends BaseMapper<RoomUsageOvEntity> {
      * @param deptName  科室名称（支持模糊查询）
      * @return 科室明细数据列表
      */
-    List<RoomUsageDtlEntity> queryDeptDetail(@Param("startDate") Date startDate,
-                                              @Param("endDate") Date endDate,
+    List<RoomUsageDtlEntity> queryDeptDetail(@Param("startDate") java.sql.Date startDate,
+                                              @Param("endDate") java.sql.Date endDate,
                                               @Param("deptCode") String deptCode,
                                               @Param("deptName") String deptName);
 }

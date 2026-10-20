@@ -193,7 +193,7 @@ public class OutpatientPatientPortraitServiceImpl implements OutpatientPatientPo
     private AgeAnalysis queryAgeAnalysisByMybatisPlus(OutpatientPatientPortraitRequest request) {
         try {
             List<OutpatientPatientPortraitAgeEntity> list = patientPortraitMapper.queryAgeAnalysis(
-                    request.getStartDate(), request.getEndDate(),
+                    sqlDay(request.getStartDate()), sqlDay(request.getEndDate()),
                     request.getPatientType(), request.getDeptCode(), request.getDeptName());
             return buildAgeAnalysis(list);
         } catch (Exception e) {
@@ -205,7 +205,7 @@ public class OutpatientPatientPortraitServiceImpl implements OutpatientPatientPo
     private List<AnalysisItem> queryInsuranceAnalysisByMybatisPlus(OutpatientPatientPortraitRequest request) {
         try {
             List<OutpatientPatientPortraitInsurEntity> list = patientPortraitMapper.queryInsuranceAnalysis(
-                    request.getStartDate(), request.getEndDate(),
+                    sqlDay(request.getStartDate()), sqlDay(request.getEndDate()),
                     request.getPatientType(), request.getDeptCode(), request.getDeptName());
             List<AnalysisItem> result = new ArrayList<>();
             for (OutpatientPatientPortraitInsurEntity entity : list) {
@@ -221,7 +221,7 @@ public class OutpatientPatientPortraitServiceImpl implements OutpatientPatientPo
     private List<AnalysisItem> queryIdentityAnalysisByMybatisPlus(OutpatientPatientPortraitRequest request) {
         try {
             List<OutpatientPatientPortraitIdtyEntity> list = patientPortraitMapper.queryIdentityAnalysis(
-                    request.getStartDate(), request.getEndDate(),
+                    sqlDay(request.getStartDate()), sqlDay(request.getEndDate()),
                     request.getPatientType(), request.getDeptCode(), request.getDeptName());
             List<AnalysisItem> result = new ArrayList<>();
             for (OutpatientPatientPortraitIdtyEntity entity : list) {
@@ -237,7 +237,7 @@ public class OutpatientPatientPortraitServiceImpl implements OutpatientPatientPo
     private List<AnalysisItem> queryRegisterOriginAnalysisByMybatisPlus(OutpatientPatientPortraitRequest request) {
         try {
             List<OutpatientPatientPortraitRegEntity> list = patientPortraitMapper.queryRegOriginAnalysis(
-                    request.getStartDate(), request.getEndDate(),
+                    sqlDay(request.getStartDate()), sqlDay(request.getEndDate()),
                     request.getPatientType(), request.getDeptCode(), request.getDeptName());
             List<AnalysisItem> result = new ArrayList<>();
             for (OutpatientPatientPortraitRegEntity entity : list) {
@@ -253,7 +253,7 @@ public class OutpatientPatientPortraitServiceImpl implements OutpatientPatientPo
     private List<AnalysisItem> queryArchiveOriginAnalysisByMybatisPlus(OutpatientPatientPortraitRequest request) {
         try {
             List<OutpatientPatientPortraitArcEntity> list = patientPortraitMapper.queryArcOriginAnalysis(
-                    request.getStartDate(), request.getEndDate(),
+                    sqlDay(request.getStartDate()), sqlDay(request.getEndDate()),
                     request.getPatientType(), request.getDeptCode(), request.getDeptName());
             List<AnalysisItem> result = new ArrayList<>();
             for (OutpatientPatientPortraitArcEntity entity : list) {
@@ -293,4 +293,9 @@ public class OutpatientPatientPortraitServiceImpl implements OutpatientPatientPo
         return item;
     }
 
+
+    /** java.util.Date→java.sql.Date：绑定按DATE类型发送， 避免TIMESTAMP绑定触发的列隐式转换致索引失效 */
+    private static java.sql.Date sqlDay(java.util.Date d) {
+        return d == null ? null : new java.sql.Date(d.getTime());
+    }
 }

@@ -33,7 +33,7 @@ public class NoAuditRefundReader {
     /** bt14 无审退费张数，源库读失败按 0 返回 */
     public List<Map<String, Object>> queryNoAuditCount(Date startDate, Date endDate) {
         try {
-            return noAuditRefundMapper.queryNoAuditRefundCount(startDate, endDate);
+            return noAuditRefundMapper.queryNoAuditRefundCount(sqlDay(startDate), sqlDay(endDate));
         } catch (Exception e) {
             log.warn("读取无审退费张数失败", e);
             return zeroRow("cnt");
@@ -43,7 +43,7 @@ public class NoAuditRefundReader {
     /** bt15 无审退费金额，源库读失败按 0 返回 */
     public List<Map<String, Object>> queryNoAuditAmount(Date startDate, Date endDate) {
         try {
-            return noAuditRefundMapper.queryNoAuditRefundAmount(startDate, endDate);
+            return noAuditRefundMapper.queryNoAuditRefundAmount(sqlDay(startDate), sqlDay(endDate));
         } catch (Exception e) {
             log.warn("读取无审退费金额失败", e);
             return zeroRow("amount");
@@ -55,5 +55,10 @@ public class NoAuditRefundReader {
         row.put("name", "无审退费");
         row.put(valueKey, 0);
         return Collections.singletonList(row);
+    }
+
+    /** java.util.Date→java.sql.Date：绑定按DATE类型发送， 避免TIMESTAMP绑定触发的列隐式转换致索引失效 */
+    private static java.sql.Date sqlDay(java.util.Date d) {
+        return d == null ? null : new java.sql.Date(d.getTime());
     }
 }

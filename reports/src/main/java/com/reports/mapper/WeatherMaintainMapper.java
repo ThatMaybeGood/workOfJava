@@ -21,8 +21,8 @@ public interface WeatherMaintainMapper extends BaseMapper<WeatherEntity> {
      * @param endDate   结束日期
      * @return 天气列表
      */
-    List<WeatherEntity> queryWeatherByDate(@Param("startDate") Date startDate,
-                                           @Param("endDate") Date endDate);
+    List<WeatherEntity> queryWeatherByDate(@Param("startDate") java.sql.Date startDate,
+                                           @Param("endDate") java.sql.Date endDate);
 
     /**
      * 近30天同天气日期的爽约退号率(爽约+退号)/挂号量
@@ -33,8 +33,8 @@ public interface WeatherMaintainMapper extends BaseMapper<WeatherEntity> {
      * @return 爽约退号率，无数据返回空
      */
     Double queryNoShowRateByWeather(@Param("weatherType") String weatherType,
-                                    @Param("startDate") Date startDate,
-                                    @Param("endDate") Date endDate);
+                                    @Param("startDate") java.sql.Date startDate,
+                                    @Param("endDate") java.sql.Date endDate);
 
     /**
      * 覆盖保存天气（按 weather_date 存在即更新、不存在即插入）
@@ -50,5 +50,5 @@ public interface WeatherMaintainMapper extends BaseMapper<WeatherEntity> {
      * @param weatherDate 天气日期
      * @return 影响行数
      */
-    int deleteWeatherByDate(@Param("weatherDate") Date weatherDate);
+    int deleteWeatherByDate(@Param("weatherDate") java.sql.Date weatherDate);
 }

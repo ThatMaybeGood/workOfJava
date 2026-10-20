@@ -19,141 +19,141 @@ public interface OutpatientFinanceMapper {
      * 门诊量：按周期净量分组（未退号 − 退号），T2 未退号 / T3 退号
      */
     List<Map<String, Object>> queryClinicCounts(@Param("statisticType") Integer statisticType,
-                                                @Param("startDate") Date startDate,
-                                                @Param("endDate") Date endDate,
+                                                @Param("startDate") java.sql.Date startDate,
+                                                @Param("endDate") java.sql.Date endDate,
                                                 @Param("timeType") Integer timeType);
 
     /**
      * 收据张数/金额：按周期分组聚合（TR_OUTP_FIN_ACCT_MASTER）
      */
     List<Map<String, Object>> queryAcctAmounts(@Param("statisticType") Integer statisticType,
-                                               @Param("startDate") Date startDate,
-                                               @Param("endDate") Date endDate,
+                                               @Param("startDate") java.sql.Date startDate,
+                                               @Param("endDate") java.sql.Date endDate,
                                                @Param("timeType") Integer timeType);
 
     /**
      * 缴费人次：同患者+同日+同前缀+票号连续合并为一人次（窗口函数在库内完成，只返回周期+人次）
      */
     List<Map<String, Object>> queryVisitCounts(@Param("statisticType") Integer statisticType,
-                                               @Param("startDate") Date startDate,
-                                               @Param("endDate") Date endDate,
+                                               @Param("startDate") java.sql.Date startDate,
+                                               @Param("endDate") java.sql.Date endDate,
                                                @Param("timeType") Integer timeType);
 
     /**
      * bt8 业务类型金额：挂号费(分界前)+收据 bill_class 分类
      */
     List<Map<String, Object>> queryBizTypeAmount(@Param("statisticType") Integer statisticType,
-                                                 @Param("startDate") Date startDate,
-                                                 @Param("endDate") Date endDate,
+                                                 @Param("startDate") java.sql.Date startDate,
+                                                 @Param("endDate") java.sql.Date endDate,
                                                  @Param("timeType") Integer timeType);
 
     /**
      * 退项门诊量悬浮标注：当日挂号退号(STAT_DATE=RETURNED_DATE)/非当日各多少（T3口径）
      */
-    Map<String, Object> queryRefundVisitSplit(@Param("startDate") Date startDate,
-                                              @Param("endDate") Date endDate);
+    Map<String, Object> queryRefundVisitSplit(@Param("startDate") java.sql.Date startDate,
+                                              @Param("endDate") java.sql.Date endDate);
 
     /**
      * bt1 订单来源：门诊挂号表按 SOURCE_TYPE 净人次（未退号+1，退号-1）
      */
     List<Map<String, Object>> queryClinicCountBySource(@Param("statisticType") Integer statisticType,
-                                                         @Param("startDate") Date startDate,
-                                                         @Param("endDate") Date endDate,
+                                                         @Param("startDate") java.sql.Date startDate,
+                                                         @Param("endDate") java.sql.Date endDate,
                                                          @Param("timeType") Integer timeType);
 
     /**
      * bt3 预约取号渠道：挂号日≠就诊日(预约号)按操作员净张数（收据表）
      */
     List<Map<String, Object>> queryClinicCountByOperator(@Param("statisticType") Integer statisticType,
-                                                       @Param("startDate") Date startDate,
-                                                       @Param("endDate") Date endDate,
+                                                       @Param("startDate") java.sql.Date startDate,
+                                                       @Param("endDate") java.sql.Date endDate,
                                                        @Param("timeType") Integer timeType);
 
     /**
      * bt4 缴费人次渠道：按操作员分类（queryVisitCounts 同口径）
      */
     List<Map<String, Object>> queryRcptCountByOperator(@Param("statisticType") Integer statisticType,
-                                                       @Param("startDate") Date startDate,
-                                                       @Param("endDate") Date endDate,
+                                                       @Param("startDate") java.sql.Date startDate,
+                                                       @Param("endDate") java.sql.Date endDate,
                                                        @Param("timeType") Integer timeType);
 
     /**
      * bt6 收据张数渠道：结账主表按操作员分类（张数口径）
      */
     List<Map<String, Object>> queryRcptSumByOperator(@Param("statisticType") Integer statisticType,
-                                                     @Param("startDate") Date startDate,
-                                                     @Param("endDate") Date endDate,
+                                                     @Param("startDate") java.sql.Date startDate,
+                                                     @Param("endDate") java.sql.Date endDate,
                                                      @Param("timeType") Integer timeType);
 
     /**
      * bt2 取号渠道：挂号表按操作员净人次（IS_RETURN_TYPE 口径，与 queryClinicCounts 一致）
      */
     List<Map<String, Object>> queryQueueCountByOperator(@Param("statisticType") Integer statisticType,
-                                                        @Param("startDate") Date startDate,
-                                                        @Param("endDate") Date endDate,
+                                                        @Param("startDate") java.sql.Date startDate,
+                                                        @Param("endDate") java.sql.Date endDate,
                                                         @Param("timeType") Integer timeType);
 
     /**
      * bt5 缴费人次支付：按支付方式求金额
      */
     List<Map<String, Object>> queryPaymentCountByMoneyType(@Param("statisticType") Integer statisticType,
-                                                           @Param("startDate") Date startDate,
-                                                           @Param("endDate") Date endDate,
+                                                           @Param("startDate") java.sql.Date startDate,
+                                                           @Param("endDate") java.sql.Date endDate,
                                                            @Param("timeType") Integer timeType);
 
     /**
      * bt7 支付方式金额：结账主表⋈结账支付表
      */
     List<Map<String, Object>> queryPaymentSumByMoneyType(@Param("statisticType") Integer statisticType,
-                                                         @Param("startDate") Date startDate,
-                                                         @Param("endDate") Date endDate,
+                                                         @Param("startDate") java.sql.Date startDate,
+                                                         @Param("endDate") java.sql.Date endDate,
                                                          @Param("timeType") Integer timeType);
 
     /**
      * bt9 应收/实收：结账支付按类别归类求和
      */
     List<Map<String, Object>> queryPaymentSumByCategory(@Param("statisticType") Integer statisticType,
-                                                        @Param("startDate") Date startDate,
-                                                        @Param("endDate") Date endDate,
+                                                        @Param("startDate") java.sql.Date startDate,
+                                                        @Param("endDate") java.sql.Date endDate,
                                                         @Param("timeType") Integer timeType);
 
     /**
      * bt10 应收金额：应收账款类（ELSE 桶）按支付方式明细
      */
     List<Map<String, Object>> queryPaymentSumReceivable(@Param("statisticType") Integer statisticType,
-                                                        @Param("startDate") Date startDate,
-                                                        @Param("endDate") Date endDate,
+                                                        @Param("startDate") java.sql.Date startDate,
+                                                        @Param("endDate") java.sql.Date endDate,
                                                         @Param("timeType") Integer timeType);
 
     /**
      * bt13 实收金额：实收类支付方式（现金/微信/支付宝等）明细，与 bt10 只差 IN / NOT IN
      */
     List<Map<String, Object>> queryPaymentSumReceived(@Param("statisticType") Integer statisticType,
-                                                      @Param("startDate") Date startDate,
-                                                      @Param("endDate") Date endDate,
+                                                      @Param("startDate") java.sql.Date startDate,
+                                                      @Param("endDate") java.sql.Date endDate,
                                                       @Param("timeType") Integer timeType);
 
     /**
      * bt11 收入金额渠道：结账主表按操作员分类（总收入口径）
      */
     List<Map<String, Object>> queryIncomeSumByOperator(@Param("statisticType") Integer statisticType,
-                                                       @Param("startDate") Date startDate,
-                                                       @Param("endDate") Date endDate,
+                                                       @Param("startDate") java.sql.Date startDate,
+                                                       @Param("endDate") java.sql.Date endDate,
                                                        @Param("timeType") Integer timeType);
 
     /**
      * bt12 收入金额支付：结账主表⋈结账支付表（总收入口径）
      */
     List<Map<String, Object>> queryIncomeSumByMoneyType(@Param("statisticType") Integer statisticType,
-                                                        @Param("startDate") Date startDate,
-                                                        @Param("endDate") Date endDate,
+                                                        @Param("startDate") java.sql.Date startDate,
+                                                        @Param("endDate") java.sql.Date endDate,
                                                         @Param("timeType") Integer timeType);
 
     /** 人次日汇总：按天重算前先清当天（幂等） */
-    int deleteVisitDay(@Param("day") Date day);
+    int deleteVisitDay(@Param("day") java.sql.Date day);
 
     /** 人次日汇总：单天窗口合并落表（全量/进项两种口径一次算完） */
-    int insertVisitDay(@Param("day") Date day);
+    int insertVisitDay(@Param("day") java.sql.Date day);
 
     /** 人次日汇总：明细表已有但汇总缺失的日期（不含当天），用于历史回填/断档补齐 */
     List<Date> selectMissingSummaryDates();
