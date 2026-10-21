@@ -179,12 +179,14 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
 
     /**
      * 未来30天每日预测
-     * 取数: 门诊量按日聚合(前年1-1~昨天)/预约按日聚合(近30天~未来30天)/就诊系数/天气/法定假日 共5次查询一次备齐,
+     * 取数: 门诊量按日聚合(前年1-1~昨天, 含每日预约行数)/就诊系数/天气/法定假日 共4次查询一次备齐,
      *       区间指标(日均/YTD/分月)与前一工作日推算全部在Java内对按日Map计算
+     * 当日预约量口径: clinic_master 预约行(appoints_indicator=1预约表内容, 或indicator=2且挂号日!=就诊日的预约挂号号;
+     *       该表同时含挂号主表与预约表内容,未来预约也在); 当天有数据用实际预约行数(无预约行记0), 当天无数据退回近30天预约日均
      * 公式:
-     * 1. 取三个基准值:近30天挂号日均avgReg、近30天预约日均avgAppoint(预约无当日数据时兜底用)、近30天就诊系数visitCoef
+     * 1. 取三个基准值:近30天挂号日均avgReg、近30天预约日均avgAppoint(当天无数据时兜底用)、近30天就诊系数visitCoef
      * 2. 逐日循环未来30天,每天:
-     *    基础量base = 当日实时预约量(查不到则退回avgAppoint) + avgReg
+     *    基础量base = 当日预约量(无数据则兜底avgAppoint) + avgReg
      *    预测值 = base × visitCoef × 当日天气系数(查不到按1) × 节假日系数(仅法定假日日,非法定假日按1)
      * 3. clampForecast把预测值压回base的±10%区间
      */
@@ -195,28 +197,32 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
         LocalDate horizonStartL = today.plusDays(1);
         LocalDate horizonEndL = today.plusDays(DAILY_DAYS);
 
-        // Q1: 门诊量按日聚合(前年1-1~昨天), 日/年预测及节假日系数的基础量
-        Map<String, Double> dayVol = toDayMap(forecastMapper.queryDailyVolumeRange(
+        // Q1: 门诊量按日聚合(前年1-1~昨天), 含每日预约行数, 日/年预测及节假日系数的基础量
+        List<ForecastDayRow> dayRows = forecastMapper.queryDailyVolumeRange(
                 sqlDay(toDate(LocalDate.of(today.getYear() - 2, 1, 1))), sqlDay(toDate(yesterdayL)),
-                request.getDeptCode(), request.getDeptName()));
+                request.getDeptCode(), request.getDeptName());
+        Map<String, Double> dayVol = new HashMap<>();
+        Map<String, Double> appointVol = new HashMap<>();
+        for (ForecastDayRow r : nvlList(dayRows)) {
+            if (r.getDd() != null) {
+                dayVol.put(r.getDd(), r.getNum());
+                appointVol.put(r.getDd(), nvl(r.getAppoint()));
+            }
+        }
         // Q2: 近30天就诊系数 = 1 - 爽约退号率
         double visitCoef = nvl(forecastMapper.queryVisitCoef(
                 sqlDay(toDate(past30StartL)), sqlDay(toDate(yesterdayL)),
                 request.getDeptCode(), request.getDeptName()), 1d);
-        // Q3: 预约量按日聚合(近30天~未来30天)
-        Map<String, Double> appointMap = toDayMap(forecastMapper.queryAppointRange(
-                sqlDay(toDate(past30StartL)), sqlDay(toDate(horizonEndL)),
-                request.getDeptCode(), request.getDeptName()));
-        // Q4: 未来30天每日天气系数
+        // Q3: 未来30天每日天气系数
         Map<String, Double> weatherMap = toDayMap(forecastMapper.queryWeatherRange(
                 sqlDay(toDate(horizonStartL)), sqlDay(toDate(horizonEndL))));
-        // Q5: 法定假日(近一年样本~未来30天)
+        // Q4: 法定假日(近一年样本~未来30天)
         Set<String> legalHolidays = new HashSet<>(nvlList(forecastMapper.queryLegalHolidayRange(
                 sqlDay(toDate(today.minusDays(365))), sqlDay(toDate(horizonEndL)))));
 
         // 基准值: 有记录的天占分母, 与SQL AVG(GROUP BY日)口径一致
         double avgReg = avgInRange(dayVol, past30StartL, yesterdayL);
-        double avgAppoint = avgInRange(appointMap, past30StartL, yesterdayL);
+        double avgAppoint = avgInRange(appointVol, past30StartL, yesterdayL);
 
         List<DailyForecast> result = new ArrayList<>();
         // 节假日系数30天内不变,首次遇到法定假日日才算,后续复用
@@ -224,9 +230,9 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
         for (int i = 1; i <= DAILY_DAYS; i++) {
             LocalDate day = today.plusDays(i);
             String dd = day.toString();
-            // 当日基础量 = 实时预约(无则兜底avgAppoint) + 挂号日均
-            Double appoint = appointMap.get(dd);
-            double base = (appoint != null ? appoint : avgAppoint) + avgReg;
+            // 当日预约量: 当天有数据用实际预约行数, 无数据退回avgAppoint
+            double appoint = dayVol.containsKey(dd) ? nvl(appointVol.get(dd)) : avgAppoint;
+            double base = appoint + avgReg;
             double weatherCoef = nvl(weatherMap.get(dd), 1d);
             double holidayCoef = 1d;
             if (legalHolidays.contains(dd)) {

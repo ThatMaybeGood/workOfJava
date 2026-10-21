@@ -13,13 +13,9 @@ import java.util.List;
 @Mapper
 public interface OutpatientForecastMapper {
 
-    /** 门诊量按日聚合(就诊日归期, 含科室过滤): 挂号日均/分月/YTD/节假日样本全部基础量一次查全 */
+    /** 门诊量按日聚合(就诊日归期, 含科室过滤): 总挂号行数+预约行数(indicator=1 或 indicator=2且挂号日!=就诊日), 日/年预测及节假日系数全部基础量一次查全 */
     List<ForecastDayRow> queryDailyVolumeRange(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate,
                                                @Param("deptCode") String deptCode, @Param("deptName") String deptName);
-
-    /** 预约量按日聚合: 近30天日均(过去段)与未来30天每日(未来段)一次查全 */
-    List<ForecastDayRow> queryAppointRange(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate,
-                                           @Param("deptCode") String deptCode, @Param("deptName") String deptName);
 
     /** 近30天就诊系数 = 1 - 爽约退号率(退号按退号日归期, 与按日聚合口径不同, 独立查询) */
     Double queryVisitCoef(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate,

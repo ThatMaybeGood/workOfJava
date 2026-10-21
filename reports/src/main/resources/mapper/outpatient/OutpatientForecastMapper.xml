@@ -18,24 +18,20 @@
     <!-- 一次按日聚合查询, 区间指标在Java内计算; 冷启动全链路5次DB交互 -->
     <!-- ============================================================ -->
 
-    <!-- 门诊量按日聚合(就诊日归期): 一次查全前年1-1~昨天, 日/年预测及节假日系数基础量共用 -->
+    <!-- 门诊量按日聚合(就诊日归期): 一次查全前年1-1~昨天, 日/年预测及节假日系数基础量共用; -->
+    <!-- 当日预约量=appoints_indicator=1(预约表内容) 或 indicator=2且挂号日!=就诊日(预约挂号号), 两类均计入 -->
     <select id="queryDailyVolumeRange" resultType="com.reports.dto.response.outpatient.forecast.ForecastDayRow">
-        SELECT TO_CHAR(c.stat_date, 'YYYY-MM-DD') AS dd, COUNT(1) AS num
+        SELECT TO_CHAR(c.stat_date, 'YYYY-MM-DD') AS dd,
+               COUNT(1) AS num,
+               COUNT(CASE WHEN c.appoints_indicator = 1
+                          OR (c.appoints_indicator = 2 AND c.registering_date IS NOT NULL
+                              AND TRUNC(c.registering_date) != TRUNC(c.stat_date))
+                     THEN 1 END) AS appoint
         FROM TR_OUTP_FIN_CLINIC_MASTER c
         INNER JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
         WHERE c.stat_date BETWEEN #{startDate} AND #{endDate}
         <include refid="deptFilter"/>
         GROUP BY c.stat_date
-    </select>
-
-    <!-- 预约量按日聚合: 近30天(算日均)与未来30天(算每日基础量)一次查全 -->
-    <select id="queryAppointRange" resultType="com.reports.dto.response.outpatient.forecast.ForecastDayRow">
-        SELECT TO_CHAR(a.appoint_date, 'YYYY-MM-DD') AS dd, SUM(a.appoint_count) AS num
-        FROM tr_fc_appoint a
-        LEFT JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
-        WHERE a.appoint_date BETWEEN #{startDate} AND #{endDate}
-        <include refid="deptFilter"/>
-        GROUP BY a.appoint_date
     </select>
 
     <!-- 近30天就诊系数 = 1 - 爽约退号率(退号按退号日归期同爽约退号报表; 爽约两种情况和原宽表一致按(日,身份证)去重, 科室NULL的情况一不计入科室维度) -->
