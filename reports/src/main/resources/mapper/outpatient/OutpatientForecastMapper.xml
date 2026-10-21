@@ -13,145 +13,85 @@
     </sql>
 
     <!-- ============================================================ -->
-    <!-- 2026-10-21 直查改造: 门诊量/退号/爽约不再读 TR_OUTPATIENT_STATS_DAY_RESULT 宽表, -->
-    <!-- 直接按就诊日聚合 TR_OUTP_FIN_CLINIC_MASTER(总挂号=COUNT(1)含后退, 退号=returned_date非空), -->
-    <!-- 爽约=情况一(queue预约未到诊,限appoints_indicator=1) + 情况二(registration_status<=1), -->
-    <!-- 与原宽表口径一致; 前提: 抽取按日覆盖(同一就诊号单一快照,否则重复计数) -->
+    <!-- 2026-10-21 直查改造: 门诊量/退号/爽约直查 TR_OUTP_FIN_CLINIC_MASTER/MOP_QUEUE -->
+    <!-- 2026-10-21 压缩: 同表不同日期范围的聚合(挂号日均/分月/YTD/节假日样本)合并为 -->
+    <!-- 一次按日聚合查询, 区间指标在Java内计算; 冷启动全链路5次DB交互 -->
     <!-- ============================================================ -->
 
-    <!-- 近30天挂号量日均 -->
-    <select id="queryAvgReg" resultType="java.lang.Double">
-        SELECT AVG(daily_reg)
-        FROM (
-            SELECT TRUNC(c.stat_date) AS dd, COUNT(1) AS daily_reg
-            FROM TR_OUTP_FIN_CLINIC_MASTER c
-            INNER JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
-            WHERE c.stat_date BETWEEN #{startDate} AND #{endDate}
-            <include refid="deptFilter"/>
-            GROUP BY TRUNC(c.stat_date)
-        )
-    </select>
-
-    <!-- 近30天预约量日均(预约无数据时给基础量兜底) -->
-    <select id="queryAvgAppoint" resultType="java.lang.Double">
-        SELECT AVG(daily_appoint)
-        FROM (
-            SELECT a.appoint_date, SUM(a.appoint_count) AS daily_appoint
-            FROM tr_fc_appoint a
-            LEFT JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
-            WHERE a.appoint_date BETWEEN #{startDate} AND #{endDate}
-            <include refid="deptFilter"/>
-            GROUP BY a.appoint_date
-        )
-    </select>
-
-    <!-- 某日实时预约量(无记录返回空,由调用方兜底) -->
-    <select id="queryAppoint" resultType="java.lang.Double">
-        SELECT SUM(a.appoint_count)
-        FROM tr_fc_appoint a
-        LEFT JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
-        WHERE a.appoint_date = #{appointDate}
-        <include refid="deptFilter"/>
-    </select>
-
-    <!-- 近30天就诊系数 = 1 - 爽约退号率(退号按就诊日归期; 爽约两种情况和原宽表一致按身份证去重, 科室NULL的情况一不计入科室维度) -->
-    <select id="queryVisitCoef" resultType="java.lang.Double">
-        SELECT 1 - (refund_cnt + no_show_cnt) / NULLIF(total_cnt, 0)
-        FROM (
-            SELECT
-                (SELECT COUNT(1) FROM TR_OUTP_FIN_CLINIC_MASTER c
-                    INNER JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
-                    WHERE c.stat_date BETWEEN #{startDate} AND #{endDate}
-                    <include refid="deptFilter"/>) AS total_cnt,
-                (SELECT COUNT(1) FROM TR_OUTP_FIN_CLINIC_MASTER c
-                    INNER JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
-                    WHERE c.stat_date BETWEEN #{startDate} AND #{endDate}
-                      AND c.returned_date IS NOT NULL
-                    <include refid="deptFilter"/>) AS refund_cnt,
-                (SELECT COUNT(1) FROM (
-                    SELECT dd, k FROM (
-                        SELECT TRUNC(q.stat_date) AS dd, NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) AS k
-                        FROM TR_OUTP_FIN_MOP_QUEUE q
-                        LEFT JOIN TR_OUTP_FIN_CLINIC_MASTER cm
-                          ON cm.patient_id = q.patient_id AND cm.queue_num = q.queue_num
-                        WHERE q.appoints_indicator = 1
-                          AND q.stat_date BETWEEN #{startDate} AND #{endDate}
-                          AND cm.patient_id IS NULL
-                    ) GROUP BY dd, k
-                    UNION ALL
-                    SELECT dd, k FROM (
-                        SELECT TRUNC(c2.stat_date) AS dd, NVL(c2.id_no, 'V' || c2.visit_no) AS k
-                        FROM TR_OUTP_FIN_CLINIC_MASTER c2
-                        INNER JOIN TR_DEPT_DICT d ON c2.dept_code = d.dept_code
-                        WHERE c2.registration_status <![CDATA[<=]]> 1
-                          AND c2.stat_date BETWEEN #{startDate} AND #{endDate}
-                        <include refid="deptFilter"/>
-                    ) GROUP BY dd, k
-                )) AS no_show_cnt
-            FROM DUAL
-        )
-    </select>
-
-    <!-- 某日天气出勤系数(无数据返回空,按1处理) -->
-    <select id="queryWeatherCoef" resultType="java.lang.Double">
-        SELECT weather_coef
-        FROM tr_fc_weather
-        WHERE weather_date = #{weatherDate}
-    </select>
-
-    <!-- 某日节假日类型(LEGAL_HOLIDAY/WORKDAY_ADJUST,无记录返回空) -->
-    <select id="queryHolidayType" resultType="java.lang.String">
-        SELECT hol_type
-        FROM tr_fc_holiday
-        WHERE hol_date = #{holDate}
-    </select>
-
-    <!-- 近一年法定节假日(倒序,取前30个算节假日系数) -->
-    <select id="queryRecentHolidays" resultType="java.util.Date">
-        SELECT hol_date
-        FROM tr_fc_holiday
-        WHERE hol_type = 'LEGAL_HOLIDAY'
-          AND hol_date BETWEEN #{startDate} AND #{endDate}
-        ORDER BY hol_date DESC
-    </select>
-
-    <!-- 某日之前最近一个正常工作日(排除周末和节假日; 有挂号记录的日期即工作日) -->
-    <select id="queryPrevWorkday" resultType="java.util.Date">
-        SELECT MAX(c.stat_date)
-        FROM TR_OUTP_FIN_CLINIC_MASTER c
-        WHERE c.stat_date <![CDATA[<]]> #{beforeDate}
-          AND TO_CHAR(c.stat_date, 'DY', 'NLS_DATE_LANGUAGE=AMERICAN') NOT IN ('SAT', 'SUN')
-          AND NOT EXISTS (SELECT 1 FROM tr_fc_holiday h WHERE h.hol_date = c.stat_date)
-    </select>
-
-    <!-- 某日门诊量 -->
-    <select id="queryVolume" resultType="java.lang.Integer">
-        SELECT COUNT(1)
-        FROM TR_OUTP_FIN_CLINIC_MASTER c
-        INNER JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
-        WHERE c.stat_date = #{statDate}
-        <include refid="deptFilter"/>
-    </select>
-
-    <!-- 某年各月门诊量(年度预测用) -->
-    <select id="queryMonthlyVolume" resultType="com.reports.entity.OutpatientForecastYearEntity">
-        SELECT TO_CHAR(c.stat_date, 'MM') AS forecastMonth,
-               COUNT(1) AS forecastValue
-        FROM TR_OUTP_FIN_CLINIC_MASTER c
-        INNER JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
-        WHERE TO_CHAR(c.stat_date, 'YYYY') = #{year}
-        <include refid="deptFilter"/>
-        GROUP BY TO_CHAR(c.stat_date, 'MM')
-        ORDER BY forecastMonth
-    </select>
-
-    <!-- 今年截至昨日门诊量(预测全年用) -->
-    <select id="queryYtdVolume" resultType="java.lang.Integer">
-        SELECT COUNT(1)
+    <!-- 门诊量按日聚合(就诊日归期): 一次查全前年1-1~昨天, 日/年预测及节假日系数基础量共用 -->
+    <select id="queryDailyVolumeRange" resultType="com.reports.dto.response.outpatient.forecast.ForecastDayRow">
+        SELECT TO_CHAR(c.stat_date, 'YYYY-MM-DD') AS dd, COUNT(1) AS num
         FROM TR_OUTP_FIN_CLINIC_MASTER c
         INNER JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
         WHERE c.stat_date BETWEEN #{startDate} AND #{endDate}
         <include refid="deptFilter"/>
+        GROUP BY c.stat_date
+    </select>
+
+    <!-- 预约量按日聚合: 近30天(算日均)与未来30天(算每日基础量)一次查全 -->
+    <select id="queryAppointRange" resultType="com.reports.dto.response.outpatient.forecast.ForecastDayRow">
+        SELECT TO_CHAR(a.appoint_date, 'YYYY-MM-DD') AS dd, SUM(a.appoint_count) AS num
+        FROM tr_fc_appoint a
+        LEFT JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
+        WHERE a.appoint_date BETWEEN #{startDate} AND #{endDate}
+        <include refid="deptFilter"/>
+        GROUP BY a.appoint_date
+    </select>
+
+    <!-- 近30天就诊系数 = 1 - 爽约退号率(退号按退号日归期同爽约退号报表; 爽约两种情况和原宽表一致按(日,身份证)去重, 科室NULL的情况一不计入科室维度) -->
+    <!-- 结构: clinic按就诊日扫总量、按退号日扫退号(走IDX_TR_CLINIC_RET), queue/clinic各一次扫描经UNION去重算爽约 -->
+    <select id="queryVisitCoef" resultType="java.lang.Double">
+        SELECT 1 - (r.refund_cnt + n.no_show_cnt) / NULLIF(t.total_cnt, 0)
+        FROM (
+            SELECT COUNT(1) AS total_cnt
+            FROM TR_OUTP_FIN_CLINIC_MASTER c
+            INNER JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
+            WHERE c.stat_date BETWEEN #{startDate} AND #{endDate}
+            <include refid="deptFilter"/>
+        ) t,
+        (
+            SELECT COUNT(1) AS refund_cnt
+            FROM TR_OUTP_FIN_CLINIC_MASTER c
+            INNER JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
+            WHERE c.returned_date BETWEEN #{startDate} AND #{endDate}
+            <include refid="deptFilter"/>
+        ) r,
+        (
+            SELECT COUNT(1) AS no_show_cnt
+            FROM (
+                SELECT TRUNC(q.stat_date) AS dd, NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no) AS k
+                FROM TR_OUTP_FIN_MOP_QUEUE q
+                LEFT JOIN TR_OUTP_FIN_CLINIC_MASTER cm
+                  ON cm.patient_id = q.patient_id AND cm.queue_num = q.queue_num
+                WHERE q.appoints_indicator = 1
+                  AND q.stat_date BETWEEN #{startDate} AND #{endDate}
+                  AND cm.patient_id IS NULL
+                GROUP BY TRUNC(q.stat_date), NVL(TO_CHAR(q.id_no), 'Q' || q.visit_no)
+                UNION ALL
+                SELECT TRUNC(c2.stat_date) AS dd, NVL(c2.id_no, 'V' || c2.visit_no) AS k
+                FROM TR_OUTP_FIN_CLINIC_MASTER c2
+                INNER JOIN TR_DEPT_DICT d ON c2.dept_code = d.dept_code
+                WHERE c2.registration_status <![CDATA[<=]]> 1
+                  AND c2.stat_date BETWEEN #{startDate} AND #{endDate}
+                <include refid="deptFilter"/>
+                GROUP BY TRUNC(c2.stat_date), NVL(c2.id_no, 'V' || c2.visit_no)
+            )
+        ) n
+    </select>
+
+    <!-- 日期区间内每日天气出勤系数 -->
+    <select id="queryWeatherRange" resultType="com.reports.dto.response.outpatient.forecast.ForecastDayRow">
+        SELECT TO_CHAR(w.weather_date, 'YYYY-MM-DD') AS dd, w.weather_coef AS num
+        FROM tr_fc_weather w
+        WHERE w.weather_date BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- 日期区间内法定节假日(近一年样本+未来30天判断一次查全) -->
+    <select id="queryLegalHolidayRange" resultType="java.lang.String">
+        SELECT TO_CHAR(h.hol_date, 'YYYY-MM-DD')
+        FROM tr_fc_holiday h
+        WHERE h.hol_type = 'LEGAL_HOLIDAY'
+          AND h.hol_date BETWEEN #{startDate} AND #{endDate}
     </select>
 
 </mapper>

@@ -1,77 +1,33 @@
 package com.reports.mapper;
 
-import com.reports.entity.OutpatientForecastYearEntity;
+import com.reports.dto.response.outpatient.forecast.ForecastDayRow;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import java.util.Date;
 import java.util.List;
 
 /**
  * 预测门诊量 Mapper(查询时实时计算)
+ * 取数原则: 同表不同日期范围的聚合合并为一次按日聚合查询, 区间指标在Java内计算
  */
 @Mapper
 public interface OutpatientForecastMapper {
 
-    /**
-     * 近30天挂号量日均
-     */
-    Double queryAvgReg(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate,
-                       @Param("deptCode") String deptCode, @Param("deptName") String deptName);
+    /** 门诊量按日聚合(就诊日归期, 含科室过滤): 挂号日均/分月/YTD/节假日样本全部基础量一次查全 */
+    List<ForecastDayRow> queryDailyVolumeRange(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate,
+                                               @Param("deptCode") String deptCode, @Param("deptName") String deptName);
 
-    /**
-     * 近30天预约量日均
-     */
-    Double queryAvgAppoint(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate,
-                           @Param("deptCode") String deptCode, @Param("deptName") String deptName);
+    /** 预约量按日聚合: 近30天日均(过去段)与未来30天每日(未来段)一次查全 */
+    List<ForecastDayRow> queryAppointRange(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate,
+                                           @Param("deptCode") String deptCode, @Param("deptName") String deptName);
 
-    /**
-     * 某日实时预约量(无记录返回空)
-     */
-    Double queryAppoint(@Param("appointDate") java.sql.Date appointDate,
-                        @Param("deptCode") String deptCode, @Param("deptName") String deptName);
-
-    /**
-     * 近30天就诊系数 = 1 - 爽约退号率
-     */
+    /** 近30天就诊系数 = 1 - 爽约退号率(退号按退号日归期, 与按日聚合口径不同, 独立查询) */
     Double queryVisitCoef(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate,
                           @Param("deptCode") String deptCode, @Param("deptName") String deptName);
 
-    /**
-     * 某日天气出勤系数(无数据返回空)
-     */
-    Double queryWeatherCoef(@Param("weatherDate") java.sql.Date weatherDate);
+    /** 日期区间内每日天气出勤系数 */
+    List<ForecastDayRow> queryWeatherRange(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
 
-    /**
-     * 某日节假日类型(无记录返回空)
-     */
-    String queryHolidayType(@Param("holDate") java.sql.Date holDate);
-
-    /**
-     * 近一年法定节假日(倒序)
-     */
-    List<Date> queryRecentHolidays(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
-
-    /**
-     * 某日之前的最近一个正常工作日(排除周末和节假日)
-     */
-    Date queryPrevWorkday(@Param("beforeDate") java.sql.Date beforeDate);
-
-    /**
-     * 某日门诊量
-     */
-    Integer queryVolume(@Param("statDate") java.sql.Date statDate,
-                        @Param("deptCode") String deptCode, @Param("deptName") String deptName);
-
-    /**
-     * 某年各月门诊量
-     */
-    List<OutpatientForecastYearEntity> queryMonthlyVolume(@Param("year") String year,
-                                                          @Param("deptCode") String deptCode, @Param("deptName") String deptName);
-
-    /**
-     * 时间段内门诊量合计
-     */
-    Integer queryYtdVolume(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate,
-                           @Param("deptCode") String deptCode, @Param("deptName") String deptName);
+    /** 日期区间内法定节假日(yyyy-MM-dd, 近一年样本+未来30天判断一次查全) */
+    List<String> queryLegalHolidayRange(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate);
 }
