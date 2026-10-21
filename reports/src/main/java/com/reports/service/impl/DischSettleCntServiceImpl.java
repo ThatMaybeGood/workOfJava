@@ -127,7 +127,7 @@ public class DischSettleCntServiceImpl implements DischSettleCntService {
                 return it;
             });
             item.setCnt(item.getCnt() + (r.getCnt() == null ? 0 : r.getCnt()));
-            // 人次=各原始组去重人次之和; 同一患者跨多个原始费别组会重复计(极少, 与原宽表口径一致)
+            // 人次=各原始组(person_id+visit_id去重)人次之和; 同一就诊跨多个原始费别组会重复计(极少, 与原宽表口径一致)
             item.setPersonCnt(item.getPersonCnt() + (r.getPersonCnt() == null ? 0 : r.getPersonCnt()));
         }
         return new ArrayList<>(merged.values());

@@ -25,11 +25,11 @@
              THEN ADD_MONTHS(stat_date, 12) ELSE stat_date END
     </sql>
 
-    <!-- 概览聚合:一次扫描,本期/同期两个区间OR过滤,行内CASE出两段 -->
+    <!-- 概览聚合:一次扫描,本期/同期两个区间OR过滤,行内CASE出两段; 人次=patient_id+visit_id去重 -->
     <select id="queryOverview" resultType="com.reports.entity.InpatPrepayOvEntity">
         SELECT
-        COUNT(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN patient_id END) AS countCurrent,
-        COUNT(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN patient_id END) AS countLast,
+        COUNT(DISTINCT CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN patient_id || '|' || visit_id END) AS countCurrent,
+        COUNT(DISTINCT CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN patient_id || '|' || visit_id END) AS countLast,
         NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN amount ELSE 0 END), 0) AS amountCurrent,
         NVL(SUM(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN amount ELSE 0 END), 0) AS amountLast
         FROM tr_inpat_prepay_rcpt
@@ -49,12 +49,12 @@
                 axis_date AS itemDate
             </otherwise>
         </choose>,
-        COUNT(CASE WHEN in_current = 1 THEN patient_id END) AS countCurrent,
-        COUNT(CASE WHEN in_last = 1 THEN patient_id END) AS countLast,
+        COUNT(DISTINCT CASE WHEN in_current = 1 THEN pv END) AS countCurrent,
+        COUNT(DISTINCT CASE WHEN in_last = 1 THEN pv END) AS countLast,
         NVL(SUM(CASE WHEN in_current = 1 THEN amount ELSE 0 END), 0) AS amountCurrent,
         NVL(SUM(CASE WHEN in_last = 1 THEN amount ELSE 0 END), 0) AS amountLast
         FROM (
-            SELECT patient_id, amount,
+            SELECT patient_id || '|' || visit_id AS pv, amount,
                    <include refid="axisExpr"/> AS axis_date,
                    CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
                    CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last
@@ -79,12 +79,12 @@
         SELECT
         channel,
         pay_way AS payWay,
-        COUNT(CASE WHEN in_current = 1 THEN patient_id END) AS countCurrent,
-        COUNT(CASE WHEN in_last = 1 THEN patient_id END) AS countLast,
+        COUNT(DISTINCT CASE WHEN in_current = 1 THEN pv END) AS countCurrent,
+        COUNT(DISTINCT CASE WHEN in_last = 1 THEN pv END) AS countLast,
         NVL(SUM(CASE WHEN in_current = 1 THEN amount ELSE 0 END), 0) AS amountCurrent,
         NVL(SUM(CASE WHEN in_last = 1 THEN amount ELSE 0 END), 0) AS amountLast
         FROM (
-            SELECT patient_id, amount, pay_way,
+            SELECT patient_id || '|' || visit_id AS pv, amount, pay_way,
                    <include refid="channelExpr"/> AS channel,
                    CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
                    CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last

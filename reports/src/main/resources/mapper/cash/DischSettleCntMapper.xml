@@ -30,7 +30,7 @@
             <include refid="feeTypeExpr"/> AS feeType,
             <include refid="channelExpr"/> AS settleChannel,
             COUNT(1) AS cnt,
-            COUNT(DISTINCT a.PATIENT_ID) AS personCnt
+            COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt
         FROM inp_settle_master a
         WHERE a.SETTLING_DATE &gt;= #{startDate}
           AND a.SETTLING_DATE &lt; #{endDate} + 1
@@ -52,7 +52,7 @@
             a.OPERATOR_NO AS operatorNo,
             RAWTOHEX(NVL(u.USER_NAME, a.OPERATOR_NO)) AS operatorName,
             COUNT(1) AS cnt,
-            COUNT(DISTINCT a.PATIENT_ID) AS personCnt
+            COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt
         FROM inp_settle_master a
         LEFT JOIN users u ON u.USER_ID = a.OPERATOR_NO
         WHERE a.SETTLING_DATE &gt;= #{startDate}
@@ -76,7 +76,7 @@
             <include refid="channelExpr"/> AS settleChannel,
             RAWTOHEX(TRIM(a.CHARGE_TYPE)) AS payType,
             COUNT(1) AS cnt,
-            COUNT(DISTINCT a.PATIENT_ID) AS personCnt
+            COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt
         FROM inp_settle_master a
         WHERE a.SETTLING_DATE &gt;= #{startDate}
           AND a.SETTLING_DATE &lt; #{endDate} + 1
