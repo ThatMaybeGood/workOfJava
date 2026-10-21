@@ -3,6 +3,7 @@
 -- ============================================================
 -- 本报表无独立DDL: 2026-10-21起直查 TR_OUTP_FIN_CLINIC_MASTER + TR_OUTP_FIN_MOP_QUEUE
 -- (源表结构见 19_门诊财务.sql; 原中间宽表 TR_OUTPATIENT_STATS_DAY_RESULT 已退役, 内网验证稳定后可DROP)
--- 口径: 退号=returned_date非空按stat_date(=visit_date)归期; 爽约=情况一(queue预约appoints_indicator=1
--- 且queue_num关联不上clinic,科室NULL只进合计)+情况二(registration_status<=1), 两分支按(日,身份证)去重;
--- 属地=身份证前2/4位(50/5122重庆,51四川,52贵州,53云南,其余其他); 年龄=就诊日年-身份证出生年,证件<15位不计
+-- 口径: 退号按退号日归期(returned_date,走IDX_TR_CLINIC_RET索引); 爽约=情况一(queue预约appoints_indicator=1
+-- 且queue_num关联不上clinic,科室NULL只进合计)+情况二(registration_status<=1), 两分支按(日,身份证)去重,
+-- 同一人同一天两边各计一次为既有口径; 总挂号按就诊日(stat_date)归期;
+-- 属地=身份证前2/4位(50/5122重庆,51四川,52贵州,53云南,其余其他); 年龄=归期日年-身份证出生年,证件<15位不计

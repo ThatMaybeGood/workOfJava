@@ -15,7 +15,8 @@ import java.util.Map;
 public interface NoShowMapper extends BaseMapper<NoShowOvEntity> {
 
     /**
-     * 爽约退号全度量: 就诊日×科室出全部35项度量, 源表直查(口径同原宽表), 服务层10min缓存
+     * 爽约退号全度量: 就诊日×科室出全部度量, 源表直查(口径同原宽表), 服务层10min缓存
+     * 归期: 总挂号/爽约情况二按就诊日, 退号按退号日(returned_date), 情况一按queue就诊日
      *
      * @param startDate 开始日期
      * @param endDate   结束日期

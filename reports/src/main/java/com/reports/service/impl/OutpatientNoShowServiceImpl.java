@@ -217,7 +217,7 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
 
     private OverviewData queryOverviewByMybatisPlus(OutpatientNoShowRequest request) {
         try {
-            List<Map<String, Object>> rows = queryMeasuresCached(request);
+            List<Map<String, Object>> rows = filterByDept(queryMeasuresCached(request), request);
             double total = sumOf(rows, "totalGuahao");
             double refund = sumOf(rows, "tuiHaoShu");
             double noShow = sumOf(rows, "shuangYueShu");
@@ -235,7 +235,7 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
 
     private AgeAnalysis queryAgeAnalysisByMybatisPlus(OutpatientNoShowRequest request) {
         try {
-            List<Map<String, Object>> rows = queryMeasuresCached(request);
+            List<Map<String, Object>> rows = filterByDept(queryMeasuresCached(request), request);
             // 与原有行为一致: 年龄图只展示爽约侧(refundCount列原本就未上图)
             AgeAnalysis analysis = new AgeAnalysis();
             List<String> categories = new ArrayList<>();
@@ -255,7 +255,7 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
 
     private List<AnalysisItem> queryRefundOriginByMybatisPlus(OutpatientNoShowRequest request) {
         try {
-            List<Map<String, Object>> rows = queryMeasuresCached(request);
+            List<Map<String, Object>> rows = filterByDept(queryMeasuresCached(request), request);
             // 退号属地(原有行为只出退号侧); 与原SQL一致: 合计为0的属地不出项
             List<AnalysisItem> result = new ArrayList<>();
             for (int i = 0; i < ORIGIN_NAMES.length; i++) {
@@ -274,7 +274,7 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
 
     private List<AnalysisItem> queryRefundChannelByMybatisPlus(OutpatientNoShowRequest request) {
         try {
-            List<Map<String, Object>> rows = queryMeasuresCached(request);
+            List<Map<String, Object>> rows = filterByDept(queryMeasuresCached(request), request);
             List<AnalysisItem> result = new ArrayList<>();
             int window = (int) sumOf(rows, "tuiHaoChuangKou");
             int mini = (int) sumOf(rows, "tuiHaoZiZhuJi");
@@ -365,6 +365,36 @@ public class OutpatientNoShowServiceImpl implements OutpatientNoShowService {
             s += toDouble(row.get(key));
         }
         return s;
+    }
+
+    /** 科室过滤(与科室表同口径): 无过滤全量; 有过滤时deptCode为NULL(爽约情况一)及无字典科室不计入 */
+    private List<Map<String, Object>> filterByDept(List<Map<String, Object>> rows, OutpatientNoShowRequest request) {
+        String deptCodeFilter = request.getDeptCode() == null ? "" : request.getDeptCode().trim();
+        String deptNameFilter = request.getDeptName() == null ? "" : request.getDeptName().trim();
+        if (deptCodeFilter.isEmpty() && deptNameFilter.isEmpty()) {
+            return rows;
+        }
+        Map<String, String> nameByCode = deptNameMap();
+        List<Map<String, Object>> filtered = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            Object dc = row.get("deptCode");
+            if (dc == null) {
+                continue;
+            }
+            String code = String.valueOf(dc);
+            String name = nameByCode.get(code);
+            if (name == null) {
+                continue;
+            }
+            if (!deptCodeFilter.isEmpty() && !code.equals(deptCodeFilter)) {
+                continue;
+            }
+            if (!deptNameFilter.isEmpty() && !name.contains(deptNameFilter)) {
+                continue;
+            }
+            filtered.add(row);
+        }
+        return filtered;
     }
 
     private double toDouble(Object v) {
