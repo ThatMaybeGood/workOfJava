@@ -796,6 +796,77 @@ const MockService = {
                 resolve({ code: 200, data: { list, total: list.length } });
             }, 200);
         });
+    },
+
+    /**
+     * 院前转住院统计（日期×操作员）
+     */
+    getPreHospTransData(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const dates = genDischCntDates(params.startDate, params.endDate, params.timeDimension || 'day');
+                const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+                const operators = [
+                    { operNo: 'S011', operName: '张收费' },
+                    { operNo: 'S012', operName: '李收费' }
+                ];
+                const list = [];
+                dates.forEach(itemDate => {
+                    operators.forEach(op => {
+                        list.push({
+                            itemDate, operNo: op.operNo, operName: op.operName,
+                            rcptCnt: rand(1, 20), personCnt: rand(1, 15)
+                        });
+                    });
+                });
+                resolve({ code: 200, data: { list, total: list.length } });
+            }, 200);
+        });
+    },
+
+    /**
+     * 院前操作员维护（query返回列表, 其余动作返回affected）
+     */
+    getPreHospOperData(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                if (params && params.action === 'query') {
+                    resolve({
+                        code: 200,
+                        data: {
+                            list: [
+                                { id: 1, operNo: 'S011', operName: '张收费', dbuser: 'zhangsf', validFlag: 1 },
+                                { id: 2, operNo: 'S012', operName: '李收费', dbuser: 'lisf', validFlag: 0 }
+                            ],
+                            total: 2
+                        }
+                    });
+                    return;
+                }
+                if (params && params.action === 'search') {
+                    // 23名候选, 按关键字模糊过滤后分页
+                    const all = [];
+                    for (let i = 1; i <= 23; i++) {
+                        all.push({ operNo: 'S1' + String(i).padStart(2, '0'), operName: '收费员' + i, dbuser: 'sfy' + i });
+                    }
+                    const kw = (params.keyword || '').trim();
+                    const filtered = kw ? all.filter(o => o.operName.indexOf(kw) >= 0
+                        || o.operNo.toLowerCase().indexOf(kw.toLowerCase()) >= 0
+                        || o.dbuser.toLowerCase().indexOf(kw.toLowerCase()) >= 0) : all;
+                    const page = params.page || 1;
+                    const size = params.pageSize || 10;
+                    resolve({
+                        code: 200,
+                        data: {
+                            list: filtered.slice((page - 1) * size, page * size),
+                            total: filtered.length
+                        }
+                    });
+                    return;
+                }
+                resolve({ code: 200, data: { affected: 1 } });
+            }, 200);
+        });
     }
 };
 

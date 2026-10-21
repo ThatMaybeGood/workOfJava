@@ -271,6 +271,28 @@ public enum ReportModule {
                     new ReportMethod("queryByFeeChannel", "按费别汇总查询"),
                     new ReportMethod("queryByOperator", "按操作员查询"),
                     new ReportMethod("queryByPayType", "按支付类别查询")
+            )),
+
+    /**
+     * 院前转住院统计
+     */
+    PRE_HOSP_TRANS("院前转住院统计",
+            "com.reports.service.PreHospTransService",
+            Arrays.asList(
+                    new ReportMethod("queryStats", "查询统计")
+            )),
+
+    /**
+     * 院前操作员维护
+     */
+    PRE_HOSP_OPER("院前操作员维护",
+            "com.reports.service.PreHospOperService",
+            Arrays.asList(
+                    new ReportMethod("queryList", "查询维护列表"),
+                    new ReportMethod("searchStaff", "候选人员搜索"),
+                    new ReportMethod("addOper", "添加操作员"),
+                    new ReportMethod("removeOper", "删除操作员"),
+                    new ReportMethod("setValid", "设置是否有效")
             ));
 
     /**

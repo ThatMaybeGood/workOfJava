@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.PreHospOperMapper">
+
+    <resultMap id="operMap" type="com.reports.entity.PreHospOperEntity">
+        <id property="id" column="id"/>
+        <result property="operNo" column="oper_no"/>
+        <result property="dbuser" column="dbuser"/>
+        <result property="validFlag" column="valid_flag"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 维护列表: 仅本表, 姓名由服务层经HIS users回显 -->
+    <select id="queryList" resultMap="operMap">
+        SELECT id, oper_no, dbuser, valid_flag, create_time, update_time
+        FROM tr_prehosp_oper
+        ORDER BY id
+    </select>
+
+    <select id="queryValidOperNos" resultType="string">
+        SELECT oper_no FROM tr_prehosp_oper WHERE valid_flag = 1 ORDER BY oper_no
+    </select>
+
+    <select id="queryAllOperNos" resultType="string">
+        SELECT oper_no FROM tr_prehosp_oper ORDER BY oper_no
+    </select>
+
+    <select id="countByOperNo" resultType="int">
+        SELECT COUNT(1) FROM tr_prehosp_oper WHERE oper_no = #{operNo}
+    </select>
+
+    <insert id="insertOper">
+        INSERT INTO tr_prehosp_oper (id, oper_no, dbuser, valid_flag, create_time, update_time)
+        VALUES (seq_tr_reports.NEXTVAL, #{operNo}, #{dbuser}, 1, SYSDATE, SYSDATE)
+    </insert>
+
+    <delete id="deleteById">
+        DELETE FROM tr_prehosp_oper WHERE id = #{id}
+    </delete>
+
+    <update id="updateValid">
+        UPDATE tr_prehosp_oper SET valid_flag = #{validFlag}, update_time = SYSDATE WHERE id = #{id}
+    </update>
+
+</mapper>

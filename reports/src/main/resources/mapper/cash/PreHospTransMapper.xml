@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.PreHospTransMapper">
+
+    <!-- ============================================================ -->
+    <!-- 院前转住院统计: 就诊日×操作员出收据张数/人次                          -->
+    <!-- 库: HIS(US7ASCII, SQL内不写中文字面量; 本SQL全ASCII安全)             -->
+    <!-- 口径: 只统计维护表有效操作员(IN); 院前=收据在outp_treat_rec_t存在      -->
+    <!-- 且PRE_HOSPITAL<=1(查不到/全>1均排除, EXISTS天然每收据计一次);          -->
+    <!-- 人次=count(distinct patient_id); WHERE用裸VISIT_DATE半开区间走索引,   -->
+    <!-- TRUNC仅作用分组/显示不影响索引                                       -->
+    <!-- ============================================================ -->
+    <select id="queryStats" resultType="com.reports.dto.response.cash.prehosp.PreHospTransItem">
+        SELECT
+            <choose>
+                <when test="timeDimension == 'month'">
+                    TO_CHAR(TRUNC(a.VISIT_DATE, 'MM'), 'YYYY-MM')
+                </when>
+                <otherwise>
+                    TO_CHAR(TRUNC(a.VISIT_DATE), 'YYYY-MM-DD')
+                </otherwise>
+            </choose> AS itemDate,
+            a.OPERATOR_NO AS operNo,
+            COUNT(1) AS rcptCnt,
+            COUNT(DISTINCT a.PATIENT_ID) AS personCnt
+        FROM outp_rcpt_master a
+        WHERE a.VISIT_DATE &gt;= #{startDate}
+          AND a.VISIT_DATE &lt; #{endDate} + 1
+          AND a.OPERATOR_NO IN
+          <foreach collection="operatorNos" item="op" open="(" separator="," close=")">
+              #{op}
+          </foreach>
+        <if test="operatorNo != null and operatorNo != ''">
+          AND a.OPERATOR_NO = #{operatorNo}
+        </if>
+          AND EXISTS (
+              SELECT 1 FROM outp_treat_rec_t t
+              WHERE t.RCPT_NO = a.RCPT_NO
+                AND t.PRE_HOSPITAL &lt;= 1
+          )
+        GROUP BY
+            a.OPERATOR_NO,
+            <choose>
+                <when test="timeDimension == 'month'">
+                    TRUNC(a.VISIT_DATE, 'MM')
+                </when>
+                <otherwise>
+                    TRUNC(a.VISIT_DATE)
+                </otherwise>
+            </choose>
+        ORDER BY itemDate, operNo
+    </select>
+
+    <!-- HIS users: 姓名LIKE按RAWTOHEX匹配(GBK双字节hex纯ASCII, 避开US7ASCII驱动丢高字节) -->
+    <select id="queryUsersByIds" resultType="com.reports.dto.response.cash.prehosp.PreHospUserItem">
+        SELECT USER_ID AS operNo, DB_USER AS operDbuser, RAWTOHEX(TRIM(USER_NAME)) AS operNameHex
+        FROM users
+        WHERE USER_ID IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="searchUsers" resultType="com.reports.dto.response.cash.prehosp.PreHospUserItem">
+        SELECT operNo, operDbuser, operNameHex FROM (
+            SELECT USER_ID AS operNo, DB_USER AS operDbuser,
+                   RAWTOHEX(TRIM(USER_NAME)) AS operNameHex, ROWNUM AS rn
+            FROM users
+            WHERE (USER_ID LIKE '%' || #{kw} || '%'
+                OR DB_USER LIKE '%' || #{kw} || '%'
+                OR RAWTOHEX(USER_NAME) LIKE '%' || #{kwHex} || '%')
+              AND ROWNUM &lt;= #{endRow}
+        ) WHERE rn &gt;= #{startRow}
+    </select>
+
+    <select id="countUsers" resultType="int">
+        SELECT COUNT(1)
+        FROM users
+        WHERE USER_ID LIKE '%' || #{kw} || '%'
+           OR DB_USER LIKE '%' || #{kw} || '%'
+           OR RAWTOHEX(USER_NAME) LIKE '%' || #{kwHex} || '%'
+    </select>
+
+    <select id="queryUserByDbuser" resultType="com.reports.dto.response.cash.prehosp.PreHospUserItem">
+        SELECT USER_ID AS operNo, DB_USER AS operDbuser, RAWTOHEX(TRIM(USER_NAME)) AS operNameHex
+        FROM users
+        WHERE DB_USER = #{dbuser} AND ROWNUM = 1
+    </select>
+
+</mapper>

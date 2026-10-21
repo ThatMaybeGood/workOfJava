@@ -147,5 +147,21 @@ const ReportAPI = {
      */
     getDischSettlePersonCount(params) {
         return apiRequest('reports.cash.disch-settle-cnt', 'endpoint', params);
+    },
+
+    /**
+     * 获取院前转住院统计数据
+     * method: reports.cash.pre-hosp-trans
+     */
+    getPreHospTrans(params) {
+        return apiRequest('reports.cash.pre-hosp-trans', 'endpoint', params);
+    },
+
+    /**
+     * 院前操作员维护(action: query/search/add/delete/setValid)
+     * method: reports.cash.pre-hosp-oper
+     */
+    preHospOper(params) {
+        return apiRequest('reports.cash.pre-hosp-oper', 'endpoint', params);
     }
 };

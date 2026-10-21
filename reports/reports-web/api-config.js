@@ -137,6 +137,14 @@ const API_CONFIG = {
         // 出院结算人次统计
         'reports.cash.disch-settle-cnt': {
             endpoint: '/api/cash/disch-settle-cnt'
+        },
+        // 院前转住院统计
+        'reports.cash.pre-hosp-trans': {
+            endpoint: '/api/cash/pre-hosp-trans'
+        },
+        // 院前操作员维护
+        'reports.cash.pre-hosp-oper': {
+            endpoint: '/api/cash/pre-hosp-oper'
         }
     }
 };
@@ -450,6 +458,14 @@ function callMockService(methodKey, endpointKey, params) {
         // 出院结算人次统计
         'reports.cash.disch-settle-cnt': {
             endpoint: (p) => MockService.getDischSettlePersonCountData(p)
+        },
+        // 院前转住院统计
+        'reports.cash.pre-hosp-trans': {
+            endpoint: (p) => MockService.getPreHospTransData(p)
+        },
+        // 院前操作员维护
+        'reports.cash.pre-hosp-oper': {
+            endpoint: (p) => MockService.getPreHospOperData(p)
         }
     };
 
