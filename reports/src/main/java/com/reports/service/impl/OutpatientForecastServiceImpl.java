@@ -197,9 +197,9 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
         LocalDate horizonStartL = today.plusDays(1);
         LocalDate horizonEndL = today.plusDays(DAILY_DAYS);
 
-        // Q1: 门诊量按日聚合(前年1-1~昨天), 含每日预约行数, 日/年预测及节假日系数的基础量
+        // Q1: 门诊量按日聚合(前年1-1~未来30天), 含每日预约行数; 未来段取当日预约量, 过去段算日均/YTD/分月(窗口过滤不受未来行影响)
         List<ForecastDayRow> dayRows = forecastMapper.queryDailyVolumeRange(
-                sqlDay(toDate(LocalDate.of(today.getYear() - 2, 1, 1))), sqlDay(toDate(yesterdayL)),
+                sqlDay(toDate(LocalDate.of(today.getYear() - 2, 1, 1))), sqlDay(toDate(horizonEndL)),
                 request.getDeptCode(), request.getDeptName());
         Map<String, Double> dayVol = new HashMap<>();
         Map<String, Double> appointVol = new HashMap<>();
