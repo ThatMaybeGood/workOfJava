@@ -15,8 +15,9 @@ import java.util.List;
 public interface PreHospTransMapper {
 
     /**
-     * 院前转住院统计: 就诊日×操作员出收据张数/人次
-     * 只统计已维护操作员(IN列表); 院前口径=收据在outp_treat_rec_t存在且PRE_HOSPITAL&lt;=1(查不到不算)
+     * 院前转住院统计: 就诊日×操作员出负交易收据张数/人次
+     * 只统计已维护操作员(IN列表); 院前口径=负交易(total_charges<0)经refund_rcpt_no找回的正交易
+     * 在outp_treat_rec_t存在且PRE_HOSPITAL&lt;=1(院前标记在正交易上)
      */
     List<PreHospTransItem> queryStats(@Param("startDate") Date startDate, @Param("endDate") Date endDate,
                                       @Param("timeDimension") String timeDimension,

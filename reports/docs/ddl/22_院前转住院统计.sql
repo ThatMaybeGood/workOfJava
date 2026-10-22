@@ -2,7 +2,9 @@
 -- 院前转住院统计
 -- ============================================================
 -- 报表无中间结果表: 统计直查HIS outp_rcpt_master + outp_treat_rec_t(与出院结算人次统计同库),
--- 只统计本表维护的有效操作员; 人次=count(distinct patient_id)
+-- 统计对象为负交易(total_charges<0, 退费冲红), 负交易经refund_rcpt_no找回被退正交易,
+-- 正交易存在且outp_treat_rec_t PRE_HOSPITAL<=1才算院前(院前标记在正交易, 直接判正交易误收普通正交易);
+-- 只统计本表维护的有效操作员; 收据张数/人次/操作员均取负交易行, 人次=count(distinct patient_id)
 -- 本文件仅含维护功能配置表
 
 DROP TABLE tr_prehosp_oper CASCADE CONSTRAINTS;
