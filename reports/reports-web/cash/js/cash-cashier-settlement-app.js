@@ -26,7 +26,7 @@ function defaultDateRange() {
         String(d.getMonth() + 1).padStart(2, '0') + '-' +
         String(d.getDate()).padStart(2, '0');
     const end = new Date();
-    const start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const start = new Date(end.getTime());
     return { startDate: fmt(start), endDate: fmt(end) };
 }
 
