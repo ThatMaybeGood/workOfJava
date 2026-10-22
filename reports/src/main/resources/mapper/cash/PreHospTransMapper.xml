@@ -6,7 +6,7 @@
     <!-- 院前转住院统计: 就诊日×操作员出负交易收据张数/人次                    -->
     <!-- 库: HIS(US7ASCII, SQL内不写中文字面量; 本SQL全ASCII安全)             -->
     <!-- 口径: 只统计维护表有效操作员(IN); 统计对象是负交易(total_charges<0), -->
-    <!-- 负交易经refund_rcpt_no找回被退的正交易, 该正交易存在且              -->
+    <!-- 负交易经refunded_rcpt_no找回被退的正交易, 该正交易存在且              -->
     <!-- 其outp_treat_rec_t PRE_HOSPITAL<=1才算院前(院前标记在正交易上,       -->
     <!-- 直接对正交易判会误收普通正交易); 人次=count(distinct patient_id);    -->
     <!-- WHERE用裸VISIT_DATE半开区间走索引, TRUNC仅作用分组/显示不影响索引      -->
@@ -37,7 +37,7 @@
         </if>
           AND EXISTS (
               SELECT 1 FROM outp_rcpt_master o
-              WHERE o.RCPT_NO = n.REFUND_RCPT_NO
+              WHERE o.RCPT_NO = n.REFUNDED_RCPT_NO
                 AND EXISTS (
                     SELECT 1 FROM outp_treat_rec_t t
                     WHERE t.RCPT_NO = o.RCPT_NO
