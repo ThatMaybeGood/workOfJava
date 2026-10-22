@@ -28,6 +28,8 @@ class PreHospTransApp {
         };
         this.datePicker = null;
         this.maintList = [];
+        this.maintPage = 1;
+        this.maintPageSize = 10;
         this.delTarget = null;
         this.bindEvents();
         this.initDatePicker();
@@ -66,6 +68,12 @@ class PreHospTransApp {
         document.getElementById('addNewBtn').addEventListener('click', () => this.startAddRow());
         document.getElementById('maintKeyword').addEventListener('input', (e) => {
             this.maintKeyword = e.target.value.trim();
+            this.maintPage = 1;
+            this.renderMaintList();
+        });
+        document.getElementById('maintPageSizeSelect').addEventListener('change', (e) => {
+            this.maintPageSize = parseInt(e.target.value, 10);
+            this.maintPage = 1;
             this.renderMaintList();
         });
         document.getElementById('delConfirmBtn').addEventListener('click', () => this.confirmDelete());
@@ -118,7 +126,7 @@ class PreHospTransApp {
             (body.list || []).filter(o => o.validFlag === 1).forEach(o => {
                 const opt = document.createElement('option');
                 opt.value = o.operNo;
-                opt.textContent = `${o.operName || o.dbuser || o.operNo}（${o.dbuser || o.operNo}）`;
+                opt.textContent = o.operName || o.dbuser || o.operNo;
                 select.appendChild(opt);
             });
             select.value = selected;
@@ -190,7 +198,7 @@ class PreHospTransApp {
 
     initDatePicker() {
         const end = new Date();
-        const start = new Date(end.getTime() - 6 * 86400000);
+        const start = new Date(end.getTime());
         this.state.startDate = this.formatDate(start);
         this.state.endDate = this.formatDate(end);
         this.datePicker = flatpickr(document.getElementById('dateRange'), {
@@ -288,7 +296,9 @@ class PreHospTransApp {
     async openMaintModal() {
         this.addingNew = false;
         this.maintKeyword = '';
+        this.maintPage = 1;
         document.getElementById('maintKeyword').value = '';
+        document.getElementById('maintPageSizeSelect').value = String(this.maintPageSize);
         await this.loadMaintList();
         bootstrap.Modal.getOrCreateInstance(document.getElementById('maintModal')).show();
     }
@@ -305,12 +315,18 @@ class PreHospTransApp {
         }
     }
 
-    /** 已维护列表(姓名模糊筛选) + 顶部新增编辑行 */
+    /** 已维护列表(姓名模糊筛选+本地分页) + 顶部新增编辑行 */
     renderMaintList() {
         const kw = this.maintKeyword || '';
         const filtered = kw ? this.maintList.filter(row =>
             (row.operName || '').indexOf(kw) >= 0) : this.maintList;
+        // 分页: 在筛选结果上本地分页, 新增编辑行固定在首行不占分页
+        const pages = Math.max(1, Math.ceil(filtered.length / this.maintPageSize));
+        if (this.maintPage > pages) this.maintPage = pages;
+        const startIdx = (this.maintPage - 1) * this.maintPageSize;
+        const pageRows = filtered.slice(startIdx, startIdx + this.maintPageSize);
         document.getElementById('maintEmpty').classList.toggle('d-none', filtered.length > 0);
+        document.getElementById('maintPagerWrap').classList.toggle('d-none', filtered.length === 0);
         let html = '';
         if (this.addingNew) {
             html += `
@@ -324,7 +340,7 @@ class PreHospTransApp {
                 </td>
             </tr>`;
         }
-        html += filtered.map(row => `
+        html += pageRows.map(row => `
             <tr>
                 <td>${row.operName != null ? row.operName : ''}</td>
                 <td>${row.dbuser != null ? row.dbuser : ''}</td>
@@ -342,6 +358,28 @@ class PreHospTransApp {
             </tr>`).join('');
         document.getElementById('maintTableBody').innerHTML = html;
         document.getElementById('addError').classList.add('d-none');
+        document.getElementById('maintPageInfo').textContent =
+            `${this.maintPageSize}条/页 共${filtered.length}条`;
+        const pager = document.getElementById('maintPagination');
+        pager.innerHTML = '';
+        const mk = (label, p, disabled, active) => {
+            const li = document.createElement('li');
+            li.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="#">${label}</a>`;
+            if (!disabled && !active) {
+                li.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.maintPage = p;
+                    this.renderMaintList();
+                });
+            }
+            return li;
+        };
+        pager.appendChild(mk('上一页', this.maintPage - 1, this.maintPage <= 1, false));
+        for (let p = 1; p <= pages; p++) {
+            pager.appendChild(mk(p, p, false, p === this.maintPage));
+        }
+        pager.appendChild(mk('下一页', this.maintPage + 1, this.maintPage >= pages, false));
         if (this.addingNew) {
             document.getElementById('newDbuser').addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') this.saveNewRow();

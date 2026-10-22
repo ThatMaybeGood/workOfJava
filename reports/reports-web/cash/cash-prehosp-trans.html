@@ -105,6 +105,17 @@
                         </table>
                     </div>
                     <div id="maintEmpty" class="text-center text-muted py-2 d-none">暂无符合条件的操作员</div>
+                    <div class="pagination-wrapper d-flex justify-content-center align-items-center mt-3 gap-3" id="maintPagerWrap">
+                        <div class="pagination-info"><span id="maintPageInfo">10条/页 共0条</span></div>
+                        <nav aria-label="Maint page navigation"><ul class="pagination pagination-sm mb-0" id="maintPagination"></ul></nav>
+                        <div class="pagination-controls d-flex align-items-center gap-1">
+                            <select class="form-select form-select-sm" id="maintPageSizeSelect">
+                                <option value="10" selected>10条/页</option>
+                                <option value="20">20条/页</option>
+                                <option value="50">50条/页</option>
+                            </select>
+                        </div>
+                    </div>
                     <div id="addError" class="text-danger small d-none mt-2"></div>
                 </div>
                 <div class="modal-footer">
