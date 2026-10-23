@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -36,9 +35,7 @@ public class PreHospOperServiceImpl implements PreHospOperService {
     @Override
     public List<PreHospOperEntity> queryList() {
         try {
-            List<PreHospOperEntity> list = preHospOperMapper.queryList();
-            fillOperName(list);
-            return list;
+            return preHospOperMapper.queryList();
         } catch (Exception e) {
             log.warn("查询院前操作员维护列表失败", e);
             return new ArrayList<>();
@@ -92,6 +89,7 @@ public class PreHospOperServiceImpl implements PreHospOperService {
 
     /**
      * 手动录入姓名+登录ID保存: 登录ID反查HIS users取USER_ID落库;
+     * 姓名一并落库(优先HIS users.USER_NAME, 取不到退回手录姓名/登录ID), 后续列表/统计直读本表不再回HIS;
      * 登录ID为空/users中不存在/已维护(按USER_ID判重)均返回0
      */
     @Override
@@ -109,7 +107,10 @@ public class PreHospOperServiceImpl implements PreHospOperService {
             if (preHospOperMapper.countByOperNo(operNo) > 0) {
                 return 0;
             }
-            return preHospOperMapper.insertOper(operNo, dbuser);
+            String hisName = GbkHexUtil.decode(user.getOperNameHex());
+            String entered = request.getOperName() == null ? "" : request.getOperName().trim();
+            String operName = hisName != null && !hisName.isEmpty() ? hisName : (!entered.isEmpty() ? entered : dbuser);
+            return preHospOperMapper.insertOper(operNo, dbuser, operName);
         } catch (Exception e) {
             log.warn("添加院前操作员失败", e);
             return 0;
@@ -127,35 +128,6 @@ public class PreHospOperServiceImpl implements PreHospOperService {
             return 0;
         }
         return preHospOperMapper.updateValid(id, validFlag);
-    }
-
-    /** 姓名回显: HIS users批量取, 查不到回退工号 */
-    private void fillOperName(List<PreHospOperEntity> list) {
-        if (list.isEmpty()) {
-            return;
-        }
-        try {
-            List<String> ids = new ArrayList<>();
-            for (PreHospOperEntity r : list) {
-                if (r.getOperNo() != null && !ids.contains(r.getOperNo())) {
-                    ids.add(r.getOperNo());
-                }
-            }
-            Map<String, String> names = new HashMap<>();
-            if (!ids.isEmpty()) {
-                for (PreHospUserItem u : preHospTransHisService.queryUsersByIds(ids)) {
-                    names.putIfAbsent(u.getOperNo(), nameOf(u));
-                }
-            }
-            for (PreHospOperEntity r : list) {
-                r.setOperName(names.getOrDefault(r.getOperNo(), r.getOperNo()));
-            }
-        } catch (Exception e) {
-            log.warn("回显操作员姓名失败", e);
-            for (PreHospOperEntity r : list) {
-                r.setOperName(r.getOperNo());
-            }
-        }
     }
 
     private static String nameOf(PreHospUserItem u) {

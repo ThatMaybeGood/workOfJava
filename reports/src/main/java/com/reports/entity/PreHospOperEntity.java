@@ -35,7 +35,7 @@ public class PreHospOperEntity {
     @TableField("update_time")
     private Date updateTime;
 
-    /** 操作员姓名(HIS users.USER_NAME回显, 非本表列) */
-    @TableField(exist = false)
+    /** 操作员姓名(添加时从HIS users.USER_NAME落库, 本表列) */
+    @TableField("oper_name")
     private String operName;
 }

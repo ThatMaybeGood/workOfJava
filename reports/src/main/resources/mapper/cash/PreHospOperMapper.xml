@@ -6,20 +6,25 @@
         <id property="id" column="id"/>
         <result property="operNo" column="oper_no"/>
         <result property="dbuser" column="dbuser"/>
+        <result property="operName" column="oper_name"/>
         <result property="validFlag" column="valid_flag"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
-    <!-- 维护列表: 仅本表, 姓名由服务层经HIS users回显 -->
+    <!-- 维护列表: 姓名本表直读 -->
     <select id="queryList" resultMap="operMap">
-        SELECT id, oper_no, dbuser, valid_flag, create_time, update_time
+        SELECT id, oper_no, dbuser, oper_name, valid_flag, create_time, update_time
         FROM tr_prehosp_oper
         ORDER BY id
     </select>
 
     <select id="queryValidOperNos" resultType="string">
         SELECT oper_no FROM tr_prehosp_oper WHERE valid_flag = 1 ORDER BY oper_no
+    </select>
+
+    <select id="queryValidOpers" resultMap="operMap">
+        SELECT oper_no, oper_name FROM tr_prehosp_oper WHERE valid_flag = 1 ORDER BY oper_no
     </select>
 
     <select id="queryAllOperNos" resultType="string">
@@ -31,8 +36,8 @@
     </select>
 
     <insert id="insertOper">
-        INSERT INTO tr_prehosp_oper (id, oper_no, dbuser, valid_flag, create_time, update_time)
-        VALUES (seq_tr_reports.NEXTVAL, #{operNo}, #{dbuser}, 1, SYSDATE, SYSDATE)
+        INSERT INTO tr_prehosp_oper (id, oper_no, dbuser, oper_name, valid_flag, create_time, update_time)
+        VALUES (seq_tr_reports.NEXTVAL, #{operNo}, #{dbuser}, #{operName}, 1, SYSDATE, SYSDATE)
     </insert>
 
     <delete id="deleteById">

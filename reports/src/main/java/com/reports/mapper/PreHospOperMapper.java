@@ -12,11 +12,14 @@ import java.util.List;
 @Mapper
 public interface PreHospOperMapper {
 
-    /** 维护列表(仅本表; 姓名由服务层经HIS users回显) */
+    /** 维护列表(姓名本表直读, 不再回HIS回显) */
     List<PreHospOperEntity> queryList();
 
     /** 有效操作员工号列表(统计范围+下拉) */
     List<String> queryValidOperNos();
+
+    /** 有效操作员(oper_no+oper_name, 统计结果姓名直读本表用) */
+    List<PreHospOperEntity> queryValidOpers();
 
     /** 全部已维护工号(候选搜索排除用) */
     List<String> queryAllOperNos();
@@ -24,7 +27,7 @@ public interface PreHospOperMapper {
     /** 已维护人数(防重复添加) */
     int countByOperNo(@Param("operNo") String operNo);
 
-    int insertOper(@Param("operNo") String operNo, @Param("dbuser") String dbuser);
+    int insertOper(@Param("operNo") String operNo, @Param("dbuser") String dbuser, @Param("operName") String operName);
 
     int deleteById(@Param("id") Long id);
 

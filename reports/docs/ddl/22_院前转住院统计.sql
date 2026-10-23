@@ -13,6 +13,7 @@ CREATE TABLE tr_prehosp_oper (
     id          NUMBER(10)      NOT NULL,               -- 主键(共用seq_tr_reports)
     oper_no     VARCHAR2(50)    NOT NULL,               -- 操作员=HIS users.USER_ID(统计查询按此过滤)
     dbuser      VARCHAR2(50)    NOT NULL,               -- 登录ID=HIS users.DB_USER(维护页添加/显示)
+    oper_name   VARCHAR2(50),                           -- 操作员姓名(添加时从HIS users.USER_NAME回显落库, 统计/列表直读本列不再回HIS查)
     valid_flag  NUMBER(1)       DEFAULT 1,              -- 是否有效: 1有效 0无效(无效不下拉不统计)
     create_time DATE            DEFAULT SYSDATE,
     update_time DATE            DEFAULT SYSDATE,
@@ -24,6 +25,7 @@ COMMENT ON TABLE tr_prehosp_oper IS '院前转住院统计-院前操作员维护
 COMMENT ON COLUMN tr_prehosp_oper.id IS '主键(共用seq_tr_reports)';
 COMMENT ON COLUMN tr_prehosp_oper.oper_no IS '操作员=HIS users.USER_ID(统计按此过滤; 维护页添加时由登录ID+姓名选定)';
 COMMENT ON COLUMN tr_prehosp_oper.dbuser IS '登录ID=HIS users.DB_USER(维护页添加/显示)';
+COMMENT ON COLUMN tr_prehosp_oper.oper_name IS '操作员姓名(添加时从HIS users.USER_NAME落库)';
 COMMENT ON COLUMN tr_prehosp_oper.valid_flag IS '是否有效: 1有效 0无效(无效不下拉不统计)';
 COMMENT ON COLUMN tr_prehosp_oper.create_time IS '创建时间';
 COMMENT ON COLUMN tr_prehosp_oper.update_time IS '更新时间';

@@ -3,11 +3,10 @@ package com.reports.service.impl;
 import com.reports.config.ReportDataConfig;
 import com.reports.dto.request.PreHospTransRequest;
 import com.reports.dto.response.cash.prehosp.PreHospTransItem;
-import com.reports.dto.response.cash.prehosp.PreHospUserItem;
+import com.reports.entity.PreHospOperEntity;
 import com.reports.mapper.PreHospOperMapper;
 import com.reports.service.PreHospTransHisService;
 import com.reports.service.PreHospTransService;
-import com.reports.util.GbkHexUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -62,28 +61,20 @@ public class PreHospTransServiceImpl implements PreHospTransService {
         }
     }
 
-    /** 操作员姓名回显: HIS users批量取(US7ASCII RAWTOHEX待GBK解码), 查不到回退工号 */
+    /** 操作员姓名直读维护表(添加时已落库), 不再回HIS users查询, 空值回退工号 */
     private void fillOperName(List<PreHospTransItem> rows) {
         if (rows.isEmpty()) {
             return;
         }
         Map<String, String> names = new HashMap<>();
         try {
-            List<String> codes = new ArrayList<>();
-            for (PreHospTransItem r : rows) {
-                if (r.getOperNo() != null && !codes.contains(r.getOperNo())) {
-                    codes.add(r.getOperNo());
-                }
-            }
-            if (!codes.isEmpty()) {
-                for (PreHospUserItem u : preHospTransHisService.queryUsersByIds(codes)) {
-                    String name = GbkHexUtil.decode(u.getOperNameHex());
-                    names.putIfAbsent(u.getOperNo(),
-                            name == null || name.isEmpty() ? u.getOperNo() : name);
+            for (PreHospOperEntity o : preHospOperMapper.queryValidOpers()) {
+                if (o.getOperNo() != null && o.getOperName() != null && !o.getOperName().trim().isEmpty()) {
+                    names.putIfAbsent(o.getOperNo(), o.getOperName());
                 }
             }
         } catch (Exception e) {
-            log.warn("回显操作员姓名失败", e);
+            log.warn("读取维护表操作员姓名失败", e);
         }
         for (PreHospTransItem r : rows) {
             r.setOperName(names.getOrDefault(r.getOperNo(), r.getOperNo()));
