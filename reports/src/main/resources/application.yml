@@ -15,7 +15,7 @@ spring:
 reports:
   trace:
     # 追踪号前缀规则: 字母组合+数字, 如 YQ, WM
-    prefix: "YQ"
+    prefix: "YQ_"
     # 追踪号数字长度
     number-length: 9
     # 是否包含方括号

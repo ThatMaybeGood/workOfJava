@@ -5,6 +5,9 @@
 -->
 <configuration>
 
+    <!-- 逐行递增序号: %stepseq 由 StepSeqConverter 在打印时自动+1, 同链路内 mybatis 的 Preparing/Parameters/Total 形成连续号段 -->
+    <conversionRule conversionWord="stepseq" converterClass="com.reports.logback.StepSeqConverter"/>
+
     <!-- ===== 从 application.yml 读取的配置项 ===== -->
     <springProperty name="LOG_PATH" source="logging.logback.path" defaultValue="logs"/>
     <springProperty name="MAX_HISTORY" source="logging.logback.max-history" defaultValue="30"/>
@@ -13,9 +16,9 @@
     <springProperty name="MAX_FILE_SIZE" source="logging.logback.max-file-size" defaultValue="100MB"/>
     <springProperty name="TOTAL_SIZE_CAP" source="logging.logback.total-size-cap" defaultValue="2GB"/>
 
-    <!-- 输出格式（含 traceId/seq，原 logging.pattern.console 已挪到这里统一管理） -->
+    <!-- 输出格式（含 traceId + 逐行递增序号stepseq，原 seq 已废弃：业务代码无需再调 SeqUtil.next 刷号） -->
     <property name="LOG_PATTERN"
-              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - [%X{traceId}] [%X{seq}] %msg%n"/>
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - [%X{traceId}] [%stepseq] %msg%n"/>
 
     <!-- ===== 控制台 ===== -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">

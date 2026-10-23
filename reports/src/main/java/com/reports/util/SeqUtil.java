@@ -34,6 +34,7 @@ public class SeqUtil {
     public static void init() {
         SEQ_HOLDER.set(new AtomicInteger(0));
         MDC.put(SEQ_KEY, "0");
+        com.reports.logback.StepSeqConverter.reset();
     }
 
     /**
@@ -64,6 +65,7 @@ public class SeqUtil {
     public static void clear() {
         SEQ_HOLDER.remove();
         MDC.remove(SEQ_KEY);
+        com.reports.logback.StepSeqConverter.clear();
     }
 
 }
