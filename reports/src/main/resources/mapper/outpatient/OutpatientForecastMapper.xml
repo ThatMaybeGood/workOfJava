@@ -34,6 +34,18 @@
         GROUP BY c.stat_date
     </select>
 
+    <!-- 未来预约实时数据按日聚合: TR_OUTP_FIN_APPOINTS(全表皆预约行, 未来段专用; 不并入CLINIC_MASTER避免与次日转来的挂号主表行重复计数) -->
+    <select id="queryFutureAppointRange" resultType="com.reports.dto.response.outpatient.forecast.ForecastDayRow">
+        SELECT TO_CHAR(c.stat_date, 'YYYY-MM-DD') AS dd,
+               COUNT(1) AS num,
+               COUNT(1) AS appoint
+        FROM TR_OUTP_FIN_APPOINTS c
+        LEFT JOIN TR_DEPT_DICT d ON c.dept_code = d.dept_code
+        WHERE c.stat_date BETWEEN #{startDate} AND #{endDate}
+        <include refid="deptFilter"/>
+        GROUP BY c.stat_date
+    </select>
+
     <!-- 近30天就诊系数 = 1 - 爽约退号率(退号按退号日归期同爽约退号报表; 爽约两种情况和原宽表一致按(日,身份证)去重, 科室NULL的情况一不计入科室维度) -->
     <!-- 结构: clinic按就诊日扫总量、按退号日扫退号(走IDX_TR_CLINIC_RET), queue/clinic各一次扫描经UNION去重算爽约 -->
     <select id="queryVisitCoef" resultType="java.lang.Double">

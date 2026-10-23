@@ -17,6 +17,10 @@ public interface OutpatientForecastMapper {
     List<ForecastDayRow> queryDailyVolumeRange(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate,
                                                @Param("deptCode") String deptCode, @Param("deptName") String deptName);
 
+    /** 未来预约实时数据按日聚合(TR_OUTP_FIN_APPOINTS, 预测"当日实时预约量"专用; 全表皆预约行, appoint=num) */
+    List<ForecastDayRow> queryFutureAppointRange(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate,
+                                                 @Param("deptCode") String deptCode, @Param("deptName") String deptName);
+
     /** 近30天就诊系数 = 1 - 爽约退号率(退号按退号日归期, 与按日聚合口径不同, 独立查询) */
     Double queryVisitCoef(@Param("startDate") java.sql.Date startDate, @Param("endDate") java.sql.Date endDate,
                           @Param("deptCode") String deptCode, @Param("deptName") String deptName);

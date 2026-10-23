@@ -73,11 +73,43 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
 
     // ==================== 实时计算 ====================
 
-    /** 日/月预测缓存: 同科室10min只算一次(锚定当天, 概览/月图/年图共用); 值含日预测结果及其门诊量按日聚合(年预测复用不重复查库) */
+    /**
+     * 分段缓存: 过去段(全表按日聚合+就诊系数, 仅夜间抽数后变化)缓存至次日0点自动过期;
+     * 日预测整体10min刷新(近30天预约日均/天气/节假日可在维护页随时改, 快速生效); 概览/月图/年图共用
+     */
     private static final long FC_TTL = 10 * 60 * 1000L;
-    private final Map<String, long[]> fcCacheAt = new ConcurrentHashMap<>();
     private final Map<String, DailyContext> dailyCache = new ConcurrentHashMap<>();
     private final Map<String, List<MonthPoint>> yearCache = new ConcurrentHashMap<>();
+    private final Map<String, PastEntry> pastVolCache = new ConcurrentHashMap<>();
+    private final Map<String, CoefEntry> visitCoefCache = new ConcurrentHashMap<>();
+
+    /** 带过期时间的过去段聚合缓存 */
+    private static class PastEntry {
+        private final Map<String, Double> vol;
+        private final long expireAt;
+
+        private PastEntry(Map<String, Double> vol, long expireAt) {
+            this.vol = vol;
+            this.expireAt = expireAt;
+        }
+    }
+
+    /** 带过期时间的就诊系数缓存 */
+    private static class CoefEntry {
+        private final double value;
+        private final long expireAt;
+
+        private CoefEntry(double value, long expireAt) {
+            this.value = value;
+            this.expireAt = expireAt;
+        }
+    }
+
+    /** 次日0点毫秒值: 过去段缓存过期锚(抽数按日覆盖, 跨天必刷新) */
+    private static long nextMidnightMillis() {
+        return LocalDate.now().plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault())
+                .toInstant().toEpochMilli();
+    }
 
     private String fcKey(OutpatientForecastRequest request) {
         String dc = request.getDeptCode() == null ? "" : request.getDeptCode().trim();
@@ -91,30 +123,90 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
 
     private DailyContext dailyContextCached(OutpatientForecastRequest request) {
         String key = fcKey(request);
-        long now = System.currentTimeMillis();
-        long[] at = fcCacheAt.get(key);
+        long expireAt = System.currentTimeMillis() + FC_TTL;
         DailyContext hit = dailyCache.get(key);
-        if (at != null && hit != null && now - at[0] <= FC_TTL) {
+        if (hit != null && hit.expireAt > System.currentTimeMillis()) {
             return hit;
         }
-        DailyContext ctx = calcDailyForecast(request);
-        fcCacheAt.put(key, new long[]{now});
-        dailyCache.put(key, ctx);
-        return ctx;
+        // single-flight: 同科室并发请求只算一次, 其余等结果复用(避免冷缓存时双倍重查询)
+        synchronized (key.intern()) {
+            hit = dailyCache.get(key);
+            if (hit != null && hit.expireAt > System.currentTimeMillis()) {
+                return hit;
+            }
+            DailyContext ctx = calcDailyForecast(request);
+            dailyCache.put(key, new DailyContext(ctx.daily, ctx.dayVol, expireAt));
+            return dailyCache.get(key);
+        }
     }
 
     private List<MonthPoint> calcYearForecastCached(OutpatientForecastRequest request) {
         String key = fcKey(request);
-        long now = System.currentTimeMillis();
-        List<MonthPoint> hit = yearCache.get(key);
-        long[] at = fcCacheAt.get(key);
-        if (at != null && hit != null && now - at[0] <= FC_TTL) {
-            return hit;
+        // single-flight: 年预测复用日预测结果, 与日预测同锁串行, 并发只算一遍
+        synchronized (key.intern()) {
+            DailyContext ctx = dailyCache.get(key);
+            List<MonthPoint> hit = yearCache.get(key);
+            if (ctx != null && ctx.expireAt > System.currentTimeMillis() && hit != null) {
+                return hit;
+            }
+            DailyContext fresh = dailyContextCached(request);
+            List<MonthPoint> rows = calcYearForecast(request, fresh.daily, fresh.dayVol);
+            yearCache.put(key, rows);
+            return rows;
         }
-        DailyContext ctx = dailyContextCached(request);
-        List<MonthPoint> rows = calcYearForecast(request, ctx.daily, ctx.dayVol);
-        yearCache.put(key, rows);
-        return rows;
+    }
+
+    /** 过去段门诊量按日聚合(前年1-1~昨天): 重查询(674万行级)当天只跑一次, 缓存至次日0点 */
+    private Map<String, Double> pastVolCached(OutpatientForecastRequest request) {
+        String key = fcKey(request);
+        long now = System.currentTimeMillis();
+        PastEntry hit = pastVolCache.get(key);
+        if (hit != null && hit.expireAt > now) {
+            return hit.vol;
+        }
+        synchronized (("past|" + key).intern()) {
+            now = System.currentTimeMillis();
+            hit = pastVolCache.get(key);
+            if (hit != null && hit.expireAt > now) {
+                return hit.vol;
+            }
+            LocalDate today = LocalDate.now();
+            List<ForecastDayRow> rows = forecastMapper.queryDailyVolumeRange(
+                    sqlDay(toDate(LocalDate.of(today.getYear() - 2, 1, 1))), sqlDay(toDate(today.minusDays(1))),
+                    request.getDeptCode(), request.getDeptName());
+            Map<String, Double> vol = new HashMap<>();
+            for (ForecastDayRow r : nvlList(rows)) {
+                if (r.getDd() != null) {
+                    vol.put(r.getDd(), r.getNum());
+                }
+            }
+            PastEntry entry = new PastEntry(vol, nextMidnightMillis());
+            pastVolCache.put(key, entry);
+            return vol;
+        }
+    }
+
+    /** 近30天就诊系数: 过去段指标, 与按日聚合同策略缓存至次日0点 */
+    private double visitCoefCached(OutpatientForecastRequest request) {
+        String key = fcKey(request);
+        long now = System.currentTimeMillis();
+        CoefEntry hit = visitCoefCache.get(key);
+        if (hit != null && hit.expireAt > now) {
+            return hit.value;
+        }
+        synchronized (("coef|" + key).intern()) {
+            now = System.currentTimeMillis();
+            hit = visitCoefCache.get(key);
+            if (hit != null && hit.expireAt > now) {
+                return hit.value;
+            }
+            LocalDate today = LocalDate.now();
+            double value = nvl(forecastMapper.queryVisitCoef(
+                    sqlDay(toDate(today.minusDays(DAILY_DAYS))), sqlDay(toDate(today.minusDays(1))),
+                    request.getDeptCode(), request.getDeptName()), 1d);
+            visitCoefCache.put(key, new CoefEntry(value, nextMidnightMillis()));
+            return value;
+        }
     }
 
     private OverviewData queryOverviewCompute(OutpatientForecastRequest request) {
@@ -145,6 +237,8 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
             }
             forecast.setDates(dates);
             forecast.setData(data);
+            // 诊断日志: 打印最终输出的30个预测值, 部署验证用
+            log.info("未来30天预测值: {}", data);
             return forecast;
         } catch (Exception e) {
             log.warn("查询未来30天预测失败", e);
@@ -179,50 +273,48 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
 
     /**
      * 未来30天每日预测
-     * 取数: 门诊量按日聚合(前年1-1~昨天, 含每日预约行数)/就诊系数/天气/法定假日 共4次查询一次备齐,
-     *       区间指标(日均/YTD/分月)与前一工作日推算全部在Java内对按日Map计算
-     * 当日预约量口径: clinic_master 预约行(appoints_indicator=1预约表内容, 或indicator=2且挂号日!=就诊日的预约挂号号;
-     *       该表同时含挂号主表与预约表内容,未来预约也在); 当天有数据用实际预约行数(无预约行记0), 当天无数据退回近30天预约日均
-     * 公式:
-     * 1. 取三个基准值:近30天挂号日均avgReg、近30天预约日均avgAppoint(当天无数据时兜底用)、近30天就诊系数visitCoef
-     * 2. 逐日循环未来30天,每天:
-     *    基础量base = 当日预约量(无数据则兜底avgAppoint) + avgReg
-     *    预测值 = base × visitCoef × 当日天气系数(查不到按1) × 节假日系数(仅法定假日日,非法定假日按1)
-     * 3. clampForecast把预测值压回base的±10%区间
+     * 取数分段: 过去段(门诊量按日聚合前年1-1~昨天)缓存至次日0点; 未来已有预约行随日预测10min刷新;
+     *       天气/法定假日小表直查; 区间指标在Java内对按日Map计算
+     * 公式(逐日对应, 不用窗口平均):
+     *   第i天基础量 = 一个月前对应日(今天+i-30)的实际挂号行数 + 当日实时预约量
+     *   当日实时预约量 = TR_OUTP_FIN_APPOINTS 未来预约行(当前约15天, 记N);
+     *       第1~N天用当天, 第N+1~30天沿用第1~N天对应位置(第N+1天对第1天); 对应不到按0
+     *   预测值 = 基础量 × 就诊系数 × 当日天气系数(查不到按1) × 节假日系数(仅法定假日日,非法定假日按1)
+     *   最后clampForecast把预测值压回基础量的±10%区间
      */
     private DailyContext calcDailyForecast(OutpatientForecastRequest request) {
         LocalDate today = LocalDate.now();
-        LocalDate yesterdayL = today.minusDays(1);
-        LocalDate past30StartL = today.minusDays(DAILY_DAYS);
         LocalDate horizonStartL = today.plusDays(1);
         LocalDate horizonEndL = today.plusDays(DAILY_DAYS);
 
-        // Q1: 门诊量按日聚合(前年1-1~未来30天), 含每日预约行数; 未来段取当日预约量, 过去段算日均/YTD/分月(窗口过滤不受未来行影响)
-        List<ForecastDayRow> dayRows = forecastMapper.queryDailyVolumeRange(
-                sqlDay(toDate(LocalDate.of(today.getYear() - 2, 1, 1))), sqlDay(toDate(horizonEndL)),
-                request.getDeptCode(), request.getDeptName());
-        Map<String, Double> dayVol = new HashMap<>();
-        Map<String, Double> appointVol = new HashMap<>();
-        for (ForecastDayRow r : nvlList(dayRows)) {
+        // 过去段: 按日聚合缓存至次日0点, 分月/YTD/节假日样本全在这里算
+        Map<String, Double> dayVol = pastVolCached(request);
+        // 未来已有预约行(实时预约表TR_OUTP_FIN_APPOINTS, 当前约15天), 随日预测10min刷新
+        Map<String, Double> futureAppoint = new HashMap<>();
+        for (ForecastDayRow r : nvlList(forecastMapper.queryFutureAppointRange(
+                sqlDay(toDate(today)), sqlDay(toDate(horizonEndL)),
+                request.getDeptCode(), request.getDeptName()))) {
             if (r.getDd() != null) {
-                dayVol.put(r.getDd(), r.getNum());
-                appointVol.put(r.getDd(), nvl(r.getAppoint()));
+                futureAppoint.put(r.getDd(), nvl(r.getAppoint()));
             }
         }
-        // Q2: 近30天就诊系数 = 1 - 爽约退号率
-        double visitCoef = nvl(forecastMapper.queryVisitCoef(
-                sqlDay(toDate(past30StartL)), sqlDay(toDate(yesterdayL)),
-                request.getDeptCode(), request.getDeptName()), 1d);
-        // Q3: 未来30天每日天气系数
+        // 诊断日志: 打印实际加载到的未来预约行, 部署验证用
+        StringBuilder sample = new StringBuilder();
+        futureAppoint.forEach((k, v) -> {
+            if (sample.length() < 200) {
+                sample.append(k).append('=').append(v).append(',');
+            }
+        });
+        log.info("未来预约行加载: 共{}天 [{}]", futureAppoint.size(), sample);
+        double visitCoef = visitCoefCached(request);
         Map<String, Double> weatherMap = toDayMap(forecastMapper.queryWeatherRange(
                 sqlDay(toDate(horizonStartL)), sqlDay(toDate(horizonEndL))));
-        // Q4: 法定假日(近一年样本~未来30天)
         Set<String> legalHolidays = new HashSet<>(nvlList(forecastMapper.queryLegalHolidayRange(
                 sqlDay(toDate(today.minusDays(365))), sqlDay(toDate(horizonEndL)))));
 
-        // 基准值: 有记录的天占分母, 与SQL AVG(GROUP BY日)口径一致
-        double avgReg = avgInRange(dayVol, past30StartL, yesterdayL);
-        double avgAppoint = avgInRange(appointVol, past30StartL, yesterdayL);
+        // 逐日对应: 未来第i天配今天+i-30(一个月前同一天)的实际挂号行数; 不再用窗口平均
+        int appointDays = Math.min(futureAppoint.size(), DAILY_DAYS);
+        log.info("逐日对应参数: N(预约覆盖)={}", appointDays);
 
         List<DailyForecast> result = new ArrayList<>();
         // 节假日系数30天内不变,首次遇到法定假日日才算,后续复用
@@ -230,9 +322,12 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
         for (int i = 1; i <= DAILY_DAYS; i++) {
             LocalDate day = today.plusDays(i);
             String dd = day.toString();
-            // 当日预约量: 当天有数据用实际预约行数, 无数据退回avgAppoint
-            double appoint = dayVol.containsKey(dd) ? nvl(appointVol.get(dd)) : avgAppoint;
-            double base = appoint + avgReg;
+            // 挂号项: 一个月前对应日的实际行数, 当天无记录按0
+            double reg = nvl(dayVol.get(day.minusDays(30).toString()));
+            // 预约项: 第1~N天用当天; 第N+1~30天沿用第1~N天对应位置(第N+1天对第1天)
+            String refDd = i <= appointDays ? dd : today.plusDays(i - appointDays).toString();
+            double appoint = futureAppoint.getOrDefault(refDd, 0d);
+            double base = reg + appoint;
             double weatherCoef = nvl(weatherMap.get(dd), 1d);
             double holidayCoef = 1d;
             if (legalHolidays.contains(dd)) {
@@ -244,7 +339,8 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
             // 乘系数后clamp到±10%
             result.add(new DailyForecast(day, clampForecast(base, base * visitCoef * weatherCoef * holidayCoef)));
         }
-        return new DailyContext(result, dayVol);
+        // expireAt由外层dailyContextCached包装时赋值
+        return new DailyContext(result, dayVol, 0L);
     }
 
     /**
@@ -484,14 +580,16 @@ public class OutpatientForecastServiceImpl implements OutpatientForecastService 
         }
     }
 
-    /** 日预测结果及其门诊量按日聚合: 年预测复用同一份聚合, 不重复查库 */
+    /** 日预测结果/门诊量按日聚合(过去段)/过期时间: 年预测复用同一份聚合, 不重复查库 */
     private static class DailyContext {
         private final List<DailyForecast> daily;
         private final Map<String, Double> dayVol;
+        private final long expireAt;
 
-        private DailyContext(List<DailyForecast> daily, Map<String, Double> dayVol) {
+        private DailyContext(List<DailyForecast> daily, Map<String, Double> dayVol, long expireAt) {
             this.daily = daily;
             this.dayVol = dayVol;
+            this.expireAt = expireAt;
         }
     }
 
