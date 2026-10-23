@@ -106,6 +106,7 @@ class ForecastController {
             yAxis: {
                 type: 'value',
                 name: '人次',
+                scale: true,
                 axisLine: { show: false },
                 axisTick: { show: false },
                 splitLine: { lineStyle: { color: '#f0f0f0' } },
@@ -153,6 +154,7 @@ class ForecastController {
             yAxis: {
                 type: 'value',
                 name: '人次',
+                scale: true,
                 axisLine: { show: false },
                 axisTick: { show: false },
                 splitLine: { lineStyle: { color: '#f0f0f0' } },

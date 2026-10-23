@@ -11,6 +11,41 @@ const WORKLOAD_METRICS = ['当日挂号', '有效挂号数', '预约挂号', '�
 /** 按收费员统计/按来源方式统计两页签表格的9个业务量指标列（与来源图表指标一致） */
 const TABLE_METRICS = ['预约挂号量', '预约取号量', '当日挂号量', '退号量', '门诊收费量', '门诊退费量', '收预交金量', '退院量', '出院结算量'];
 
+/** 指标圆圈感叹号提示语: 按收费员统计口径 */
+const CASHIER_TIPS = {
+    '预约挂号量': '预约挂号-取消预约',
+    '预约取号量': '预约取号-退号',
+    '当日挂号量': '当日挂号-退号',
+    '退号量': '操作退号的人次',
+    '门诊收费量': '门诊缴费单据数+当日挂号+预约取号-退费-退号',
+    '门诊退费量': '操作门诊退费的单据数',
+    '收预交金量': '操作收取预交金成功的人次',
+    '退院量': '操作退院的人次',
+    '出院结算量': '出院结算结账统计收据数'
+};
+
+/** 指标圆圈感叹号提示语: 按来源方式统计口径 */
+const SOURCE_TIPS = {
+    '预约挂号量': '操作预约挂号成功的人次',
+    '预约取号量': '操作预约取号成功的人次',
+    '当日挂号量': '操作当日挂号成功的人次',
+    '退号量': '操作退号的人次',
+    '门诊收费量': '门诊收费的单据数',
+    '门诊退费量': '门诊收退费的单据数',
+    '收预交金量': '操作收取预交金成功的人次',
+    '退院量': '操作退院的人次',
+    '出院结算量': '结账统计收据数'
+};
+
+/** 指标圆圈感叹号提示语: 工作量报表列口径 */
+const WORKLOAD_TIPS = {
+    '当日挂号': '当日+取号+回诊号+医联号-退号',
+    '有效挂号数': '当日+取号-退号',
+    '预约挂号': '预约成功-取消预约',
+    '门诊收费': '当日+取号+缴费收据数',
+    '门诊退费': '退号+退费收据数'
+};
+
 /**
  * 默认统计区间：今天往前 30 天。
  * 原先写死成 2025-09-22 ~ 2025-10-22，是过期的固定日期，
@@ -352,6 +387,7 @@ class CashierSettlementController {
                 }
                 const item = itemMap[key];
                 const value = data[key];
+                const tips = this.filter.tab === 'source' ? SOURCE_TIPS : CASHIER_TIPS;
                 const compare = data[key + 'Compare'];
                 const hasCompare = compare !== null && compare !== undefined;
                 const compareClass = hasCompare ? (compare >= 0 ? 'text-up' : 'text-down') : '';
@@ -364,7 +400,7 @@ class CashierSettlementController {
                                 <div class="stat-icon ${item.icon}"><i class="bi bi-bar-chart-fill"></i></div>
                                 <div class="ms-3">
                                     <div class="stat-value text-${item.icon}">${value.toLocaleString('zh-CN')}</div>
-                                    <div class="stat-label">${item.label} <i class="bi bi-info-circle info-icon"></i></div>
+                                    <div class="stat-label">${item.label} <i class="bi bi-info-circle info-icon" title="${tips[item.label] || ''}"></i></div>
                                     <div class="stat-compare ${compareClass}">同比${compareText}</div>
                                 </div>
                             </div>
@@ -415,7 +451,7 @@ class CashierSettlementController {
             // 工作量报表：行=时间+操作员(姓名)，列=5个工作量指标
             let headHtml = `<tr><th>${dateLabel}</th><th>操作员</th>`;
             WORKLOAD_METRICS.forEach(name => {
-                headHtml += `<th class="text-center">${name}</th>`;
+                headHtml += `<th class="text-center" title="${WORKLOAD_TIPS[name] || ''}">${name}</th>`;
             });
             headHtml += `<th class="text-center">汇总</th></tr>`;
             thead.innerHTML = headHtml;
@@ -446,8 +482,9 @@ class CashierSettlementController {
             columns = TABLE_METRICS;
         }
         let headHtml = `<tr><th>${dateLabel}</th>`;
+        const colTips = this.filter.tab === 'source' ? SOURCE_TIPS : CASHIER_TIPS;
         columns.forEach(name => {
-            headHtml += `<th class="text-center">${name}</th>`;
+            headHtml += `<th class="text-center" title="${colTips[name] || ''}">${name}</th>`;
         });
         headHtml += `<th class="text-center">汇总</th></tr>`;
         thead.innerHTML = headHtml;
