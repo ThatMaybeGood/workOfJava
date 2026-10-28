@@ -55,7 +55,7 @@ public class MsgPlatformController {
 
         } catch (Exception e) {
             log.error("接收消息失败: {}", e.getMessage(), e);
-            return MsgResponse.failure("接收消息失败: " + e.getMessage());
+            return MsgResponse.failure("接收消息失败，请稍后重试或联系管理员");
         }
         log.info("========== 优先人员 接收消息完成，返回成功响应 ==========");
         return MsgResponse.success("操作成功");
@@ -84,7 +84,7 @@ public class MsgPlatformController {
 
         } catch (Exception e) {
             log.error("处理请求失败", e);
-            return MsgResponse.failure("接收消息失败: " + e.getMessage());
+            return MsgResponse.failure("接收消息失败，请稍后重试或联系管理员");
         }
         log.info("========== SPD 接收消息完成，返回成功响应 ==========");
         return MsgResponse.success("操作成功");

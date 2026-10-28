@@ -100,3 +100,19 @@ sp:
 
       holiday: "SP_QUERY_CASH_REG_HOLIDAY"
       report: "SP_QUERY_CASH_REG_REPORT"
+
+
+# 生产环境关闭Swagger接口文档暴露
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+# 生产环境日志级别调回info，避免SQL及参数(含患者数据)落日志
+logging:
+  level:
+    com.baomidou.mybatisplus: info
+    com.mergedata.mapper: info
+    org.apache.ibatis.executor: info
+    com.mergedata.config.RequestLoggingInterceptor: info
