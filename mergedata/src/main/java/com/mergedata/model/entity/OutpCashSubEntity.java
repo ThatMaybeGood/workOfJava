@@ -89,6 +89,11 @@ public class OutpCashSubEntity {
      */
     private  Integer inputFlag = 0;
 
+    /*
+     * 前端Excel公式文本(JSON {字段名:公式})，仅新版前端写入
+     */
+    private String cellFormula;
+
     // 统一处理BigDecimal类型的null值
     private BigDecimal safeBigDecimal(BigDecimal value) {
         return value != null ? value : BigDecimal.ZERO;

@@ -189,6 +189,12 @@ public class OutpReportSubVO {
     private  Integer auditFlag ;
 
     /*
+     * 前端Excel公式文本(JSON {字段名:公式})，仅新版前端写入
+     */
+    @JsonProperty("cell_formula")
+    private String cellFormula;
+
+    /*
      * 手工输入标志
      */
     @JsonProperty("input_flag")

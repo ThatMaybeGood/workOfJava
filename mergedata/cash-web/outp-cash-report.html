@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>门诊现金统计报表</title>
+    <style>
+        :root {
+            --bg-main: #f4f7f9;
+            --card-bg: #ffffff;
+            --text-title: #1a3a4a;
+            --text-main: #334e5e;
+            --text-muted: #78909c;
+            --medical-blue: #0b5e7e;
+            --medical-blue-light: #e6f0f5;
+            --income-green: #2c7a4d;
+            --refund-orange: #c96f3e;
+            --net-blue: #2c7da0;
+            --border-color: #d0dde6;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--text-main);
+            padding: 24px;
+        }
+
+        .dashboard-container { max-width: 1680px; margin: 0 auto; }
+
+        .header-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .header-title { font-size: 18px; font-weight: 700; color: var(--medical-blue); }
+
+        .control-panel { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+        .date-group {
+            display: flex;
+            align-items: center;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            padding: 6px 14px;
+            border-radius: 8px;
+            gap: 8px;
+        }
+        .date-group label { font-size: 13px; font-weight: 600; color: var(--medical-blue); }
+        .date-group input {
+            border: none;
+            background: transparent;
+            color: var(--text-main);
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .btn {
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
+
+        .btn-query { background: var(--medical-blue); color: white; }
+        .btn-query:hover { background: #08475f; transform: translateY(-1px); }
+        .btn-refetch { background: var(--refund-orange); color: white; }
+        .btn-refetch:hover { background: #a5572f; transform: translateY(-1px); }
+        .btn-save { background: var(--income-green); color: white; }
+        .btn-save:hover { background: #1e5e38; transform: translateY(-1px); }
+        .btn-print { background: var(--net-blue); color: white; }
+        .btn-print:hover { background: #1f5f7a; transform: translateY(-1px); }
+        .btn-excel { background: #1d6f42; color: white; }
+        .btn-excel:hover { background: #14532d; transform: translateY(-1px); }
+
+        .btn-group {
+            display: flex;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .btn-option {
+            border: none;
+            background: transparent;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            border-right: 1px solid var(--border-color);
+        }
+        .btn-option:last-child { border-right: none; }
+        .btn-option:hover { background: #e2ecf3; color: var(--medical-blue); }
+        .btn-option.active { background: var(--medical-blue); color: white; }
+
+        .filter-label { font-size: 13px; font-weight: 600; color: var(--text-main); }
+
+        .table-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid #b8c5ce;
+            border-radius: 8px;
+            background: #ffffff !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 13px;
+        }
+
+        .data-table th {
+            background: #f8fafc;
+            color: var(--medical-blue);
+            font-weight: 700;
+            padding: 8px 4px;
+            border-bottom: 2px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            text-align: center;
+            line-height: 1.35;
+        }
+        .data-table th:last-child { border-right: none; }
+
+        .data-table td {
+            padding: 6px;
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            text-align: center;
+            white-space: nowrap;
+        }
+        .data-table td:last-child { border-right: none; }
+        .data-table tbody tr:hover td { background: #f4f9fc; }
+
+        .table-main-title { text-align: center; }
+        .table-main-title .t-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+            letter-spacing: 2px;
+        }
+        .table-main-title .t-title.total-mode { color: #e64545; }
+
+        .cell-money { cursor: pointer; min-height: 18px; }
+        .cell-money.neg { color: #e91e8c; }
+        .cell-changed { color: #f5222d !important; font-weight: 700; }
+
+        .row-computed td { background: #fdf6ec; font-weight: 600; }
+        .row-total td { background: #eef4f8; font-weight: 700; }
+
+        .cell-edit-input {
+            width: 90%;
+            border: 1px solid var(--medical-blue);
+            border-radius: 4px;
+            padding: 3px 6px;
+            font-size: 13px;
+            text-align: right;
+            outline: none;
+        }
+        .cell-edit-textarea {
+            width: 96%;
+            border: 1px solid var(--medical-blue);
+            border-radius: 4px;
+            padding: 6px;
+            font-size: 13px;
+            outline: none;
+            resize: vertical;
+        }
+
+        .merge-remarks {
+            min-height: 300px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-start;
+            text-align: left;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .sign-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 10px 2px;
+            padding-right: 120px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .empty-data { text-align: center; color: var(--text-muted); padding: 40px 0 !important; }
+
+        .notice-banner {
+            display: none;
+            padding: 50px 20px;
+            text-align: center;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: #fdfaf5;
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+        }
+        .notice-banner.show { display: block; }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 14px;
+            z-index: 9999;
+        }
+        .loading-overlay.show { display: flex; }
+        .spinner {
+            width: 42px; height: 42px;
+            border: 4px solid var(--medical-blue-light);
+            border-top-color: var(--medical-blue);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media print {
+            body { background: #fff; padding: 0; }
+            .header-card, .no-print { display: none !important; }
+            .table-card { border: none; box-shadow: none; padding: 0; }
+            .table-wrapper { border: none; box-shadow: none; overflow: visible; }
+            .data-table { font-size: 12px; }
+            .cell-money, .merge-remarks { cursor: default; }
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard-container">
+
+    <div class="header-card">
+        <div class="header-title" id="pageTitle">门诊现金统计报表</div>
+        <div class="control-panel">
+            <div class="date-group">
+                <label>日期：</label>
+                <input type="date" id="billDate">
+            </div>
+            <span class="filter-label">是否住院窗口：</span>
+            <div class="btn-group" id="inpWindowGroup">
+                <button class="btn-option active" data-val="0">否</button>
+                <button class="btn-option" data-val="1">是</button>
+            </div>
+            <span class="filter-label">是否自助机：</span>
+            <div class="btn-group" id="amtGroup">
+                <button class="btn-option active" data-val="0">否</button>
+                <button class="btn-option" data-val="1">是</button>
+            </div>
+            <span class="filter-label">是否汇总筛选：</span>
+            <div class="btn-group" id="totalFlagGroup">
+                <button class="btn-option active" data-val="0">非汇总</button>
+                <button class="btn-option" data-val="1">汇总</button>
+                <button class="btn-option" data-val="2">月初报表</button>
+            </div>
+            <button class="btn btn-query" id="btnSearch">搜索</button>
+            <button class="btn btn-refetch" id="btnReFetch">重新获取</button>
+            <button class="btn btn-print no-print" id="btnPrint">打印</button>
+            <button class="btn btn-excel no-print" id="btnExport">导出</button>
+            <button class="btn btn-save no-print" id="btnSave">保存</button>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="notice-banner" id="noticeBanner"></div>
+        <div class="table-wrapper" id="tableWrapper">
+            <table class="data-table" id="reportTable">
+                <thead>
+                <tr>
+                    <th colspan="14" class="table-main-title"><span class="t-title" id="tableTitle">门诊现金统计报表</span></th>
+                </tr>
+                <tr>
+                    <th style="width:3%">序号</th>
+                    <th style="width:4%">姓名</th>
+                    <th>HIS<br>预交金</th>
+                    <th>HIS<br>医疗收入</th>
+                    <th>应交报表数<br>（1）</th>
+                    <th>前日暂收款<br>（2）</th>
+                    <th id="thHoliday">节假日暂收款</th>
+                    <th>实交报表数<br>（3=1-2）</th>
+                    <th>当日暂收款1<br>（4）</th>
+                    <th>实收现金数<br>（5=3+4）</th>
+                    <th>留存差额数<br>（6=7-3-8）</th>
+                    <th>留存现金数<br>（7）</th>
+                    <th>备用金<br>（8）</th>
+                    <th>备注</th>
+                </tr>
+                </thead>
+                <tbody id="tableBody">
+                <tr><td colspan="14" class="empty-data">暂无数据记录</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="sign-line" id="signLine">
+            <span>审核：</span>
+            <span></span>
+            <span></span>
+            <span>出纳：</span>
+        </div>
+    </div>
+</div>
+
+<div class="loading-overlay" id="loadingMask">
+    <div class="spinner"></div>
+    <div style="color: var(--medical-blue); font-weight: 700; font-size: 15px;">数据加载中...</div>
+</div>
+
+<script>
+    const API_BASE = "http://127.0.0.1:18081/api/reports";
+    const HOLIDAY_API = "http://127.0.0.1:18081/api/querydatetype/holidayDate";
+
+    const COMMON_HEAD = {
+        charset: "utf-8",
+        encrypt_type: "AES",
+        enterprise_id: "xinqiao",
+        language: "zh_CN",
+        method: "orgine.powermsp.service.overt.extend.SP_GetHisIncome_938",
+        sign: "1",
+        sign_type: "md5",
+        sys_track_code: Math.random().toString(36).substring(2),
+        timestamp: Date.now().toString(),
+        version: "1.0",
+        access_token: "123456",
+        app_id: "b16ff06f5fd44ab6b56e037d7ee1a6ed"
+    };
+
+    // 金额列
+    const MONEY_FIELDS = ["his_advance_payment", "his_medical_income", "report_amount", "previous_temporary_receipt",
+        "holiday_temporary_receipt", "actual_report_amount", "current_temporary_receipt", "actual_cash_amount",
+        "retained_difference", "retained_cash", "petty_cash"];
+    // 负值标粉的列（原界面风格）
+    const NEG_PINK_FIELDS = ["his_advance_payment", "his_medical_income"];
+    // 汇总行名（合计行的汇总排除它们）
+    const COMPUTED_NAMES = ["合计", "当日暂收款", "日报表数", "合计存款金额", "住院部当日借款", "住院部当日回款",
+        "门诊当日抵扣报表金额", "门诊当日退主病房", "门诊当日退三住院部", "门诊当日借款", "门诊当日回款", "门诊当日实存金额"];
+    // 合并区：当日暂收款行的备用金+备注合并8行，这些行不再渲染后两列
+    const MERGE_SKIP_NAMES = ["日报表数", "合计存款金额", "住院部当日借款", "住院部当日回款",
+        "门诊当日抵扣报表金额", "门诊当日退主病房", "门诊当日退三住院部", "门诊当日借款", "门诊当日回款", "门诊当日实存金额"];
+    // 各列可编辑限制：his_advance_payment 对 合计/当日暂收款/日报表数 不可编；其余金额列仅合计不可编
+    const HOLIDAY_TITLE_MAP = { "0": "节假日暂收款", "1": "当日节假日暂收款", "2": "节假日暂收款汇总" };
+
+    const state = {
+        billDate: fmtDate(new Date()),
+        inpWindow: "0",
+        amt: "0",
+        totalFlag: "0",
+        isHoliday: "0",
+        totalTitle: "门诊现金统计报表",
+        list: [],      // 展示用（含计算行）
+        _list: [],     // 保存用（编辑后同步）
+        changed: new Set(), // "rowIndex_field" 标红
+        loaded: false
+    };
+
+    function buildHead() {
+        return { ...COMMON_HEAD, sys_track_code: Math.random().toString(36).substring(2), timestamp: Date.now().toString() };
+    }
+
+    async function apiRequest(url, bodyData) {
+        const requestBody = { head: buildHead(), body: bodyData };
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody)
+        });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const result = await response.json();
+        if (result.result && result.result.code === "10000") return result;
+        throw new Error((result.result && result.result.sub_msg) || "接口调用失败");
+    }
+
+    function showLoading(show) {
+        document.getElementById("loadingMask").classList.toggle("show", !!show);
+    }
+
+    function showToast(msg, type = "info") {
+        const toast = document.createElement("div");
+        toast.textContent = msg;
+        toast.style.cssText = "position:fixed;bottom:30px;left:50%;transform:translateX(-50%);padding:10px 24px;border-radius:40px;z-index:9999;color:white;";
+        toast.style.backgroundColor = type === "error" ? "#dc2626" : (type === "warning" ? "#f59e0b" : "#2c7a4d");
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2800);
+    }
+
+    function fmtMoney(val) {
+        if (val === null || val === undefined || val === "" || isNaN(val)) return "0.00";
+        return parseFloat(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function toNumber(val) {
+        if (val === null || val === undefined || val === "") return 0;
+        const n = parseFloat(String(val).replace(/,/g, ""));
+        return isNaN(n) ? 0 : n;
+    }
+
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return "";
+        return String(str).replace(/[&<>]/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[m]));
+    }
+
+    // 本地时区格式化日期, 不用toISOString(UTC会差一天)
+    function fmtDate(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return y + "-" + m + "-" + day;
+    }
+
+    function prevDate(dateStr) {
+        const p = dateStr.split("-");
+        const d = new Date(+p[0], +p[1] - 1, +p[2]);
+        d.setDate(d.getDate() - 1);
+        return fmtDate(d);
+    }
+
+    function isComputedRow(row) {
+        return COMPUTED_NAMES.indexOf(row.operator_name) >= 0;
+    }
+
+    // bt1 公式存取: cell_formula为JSON字符串 {字段名:公式文本}
+    function getCellFormula(row, field) {
+        if (!row.cell_formula) return null;
+        try {
+            const map = JSON.parse(row.cell_formula);
+            return map[field] || null;
+        } catch (e) { return null; }
+    }
+
+    function setCellFormula(row, field, formulaText) {
+        let map = {};
+        if (row.cell_formula) {
+            try { map = JSON.parse(row.cell_formula); } catch (e) { map = {}; }
+        }
+        if (formulaText) map[field] = formulaText; else delete map[field];
+        row.cell_formula = Object.keys(map).length ? JSON.stringify(map) : null;
+    }
+
+    // bt2 Excel式公式求值: 支持单元格引用(C5)、区间SUM(C3:C10)、四则运算
+    const COLUMN_FIELDS = [null, null, "his_advance_payment", "his_medical_income", "report_amount",
+        "previous_temporary_receipt", "holiday_temporary_receipt", "actual_report_amount",
+        "current_temporary_receipt", "actual_cash_amount", "retained_difference", "retained_cash", "petty_cash", null];
+
+    function cellRefValue(colLetter, rowNo) {
+        const colIdx = colLetter.toUpperCase().charCodeAt(0) - 65;
+        const field = COLUMN_FIELDS[colIdx];
+        const row = state.list[rowNo - 1];
+        if (!field || !row) return NaN;
+        return toNumber(row[field]);
+    }
+
+    function evalFormulaText(text) {
+        let expr = String(text).trim();
+        if (expr.startsWith("=")) expr = expr.slice(1);
+        // SUM区间
+        expr = expr.replace(/SUM\(([A-N])(\d+):([A-N])(\d+)\)/gi, function (m, c1, r1, c2, r2) {
+            let sum = 0;
+            const ci1 = c1.toUpperCase().charCodeAt(0) - 65, ci2 = c2.toUpperCase().charCodeAt(0) - 65;
+            for (let ci = Math.min(ci1, ci2); ci <= Math.max(ci1, ci2); ci++) {
+                for (let ri = Math.min(+r1, +r2); ri <= Math.max(+r1, +r2); ri++) {
+                    const v = cellRefValue(String.fromCharCode(65 + ci), ri);
+                    if (!isFinite(v)) return "NaN";
+                    sum += v;
+                }
+            }
+            return String(sum);
+        });
+        // 单元格引用
+        expr = expr.replace(/([A-N])(\d+)/gi, function (m, c, r) {
+            const v = cellRefValue(c, parseInt(r, 10));
+            return isFinite(v) ? String(v) : "NaN";
+        });
+        if (!/^[0-9+\-*/().\s]+$/.test(expr)) return NaN;
+        try { return Function('"use strict";return (' + expr + ')')(); } catch (e) { return NaN; }
+    }
+
+    // bt3 全表重算公式（至多3轮收敛跨行引用；跳过自引用防迭代膨胀）
+    function isSelfReferential(formulaText, rowIdx, field) {
+        const colIdx = COLUMN_FIELDS.indexOf(field);
+        if (colIdx < 0) return false;
+        const ownCol = colIdx, ownRow = rowIdx + 1;
+        const colOf = ch => ch.toUpperCase().charCodeAt(0) - 65;
+        // 展开SUM区间
+        let text = String(formulaText).replace(/SUM\(([A-N])(\d+):([A-N])(\d+)\)/gi, function (m, c1, r1, c2, r2) {
+            const parts = [];
+            for (let ci = Math.min(colOf(c1), colOf(c2)); ci <= Math.max(colOf(c1), colOf(c2)); ci++) {
+                for (let ri = Math.min(+r1, +r2); ri <= Math.max(+r1, +r2); ri++) {
+                    parts.push(String.fromCharCode(65 + ci) + ri);
+                }
+            }
+            return parts.join("+");
+        });
+        const re = /([A-N])(\d+)/gi;
+        let m;
+        while ((m = re.exec(text)) !== null) {
+            if (colOf(m[1]) === ownCol && parseInt(m[2], 10) === ownRow) return true;
+        }
+        return false;
+    }
+
+    function recalcFormulas() {
+        for (let pass = 0; pass < 3; pass++) {
+            let changed = false;
+            state.list.forEach(function (row, rowIdx) {
+                if (!row.cell_formula) return;
+                let map;
+                try { map = JSON.parse(row.cell_formula); } catch (e) { return; }
+                Object.keys(map).forEach(function (field) {
+                    if (isSelfReferential(map[field], rowIdx, field)) return;
+                    const r = evalFormulaText(map[field]);
+                    if (isFinite(r)) {
+                        const v = Math.round(r * 100) / 100;
+                        if (row[field] !== v) { row[field] = v; changed = true; }
+                    }
+                });
+            });
+            if (!changed) break;
+        }
+    }
+
+    // bt4 汇总计算：剔除计算行求和（分转元累加防浮点误差）
+    function calcTotals(list) {
+        const t = {};
+        MONEY_FIELDS.forEach(f => t[f] = 0);
+        list.forEach(r => {
+            if (isComputedRow(r)) return;
+            MONEY_FIELDS.forEach(f => t[f] += Math.round(toNumber(r[f]) * 100));
+        });
+        MONEY_FIELDS.forEach(f => t[f] /= 100);
+        return t;
+    }
+
+    function fillComputedValues(list, totals) {
+        const holidayMode = state.isHoliday === "1" || state.isHoliday === "4";
+        const curTemp = list.find(r => r.operator_name === "当日暂收款");
+        const dayReport = list.find(r => r.operator_name === "日报表数");
+        const deposit = list.find(r => r.operator_name === "合计存款金额");
+        const inpBorrow = list.find(r => r.operator_name === "住院部当日借款");
+        const inpBack = list.find(r => r.operator_name === "住院部当日回款");
+        const outpBorrow = list.find(r => r.operator_name === "门诊当日借款");
+        const outpBack = list.find(r => r.operator_name === "门诊当日回款");
+        const outpReal = list.find(r => r.operator_name === "门诊当日实存金额");
+        const totalRow = list.find(r => r.operator_name === "合计");
+
+        if (totalRow) {
+            MONEY_FIELDS.forEach(f => totalRow[f] = totals[f]);
+        }
+        if (curTemp) {
+            curTemp.his_advance_payment = holidayMode ? totals.holiday_temporary_receipt : totals.current_temporary_receipt;
+        }
+        if (dayReport) {
+            dayReport.his_advance_payment = holidayMode ? 0 : totals.actual_report_amount;
+        }
+        if (outpReal) {
+            outpReal.his_advance_payment =
+                toNumber(curTemp && curTemp.his_advance_payment) +
+                toNumber(dayReport && dayReport.his_advance_payment) +
+                toNumber(deposit && deposit.his_advance_payment) +
+                toNumber(inpBack && inpBack.his_advance_payment) +
+                toNumber(outpBack && outpBack.his_advance_payment) -
+                toNumber(outpBorrow && outpBorrow.his_advance_payment) -
+                toNumber(inpBorrow && inpBorrow.his_advance_payment);
+        }
+    }
+
+    // bt5 追加计算行（后端未返回合计时）
+    function appendComputedRows(list) {
+        const totals = calcTotals(list);
+        const rows = list.slice();
+        const mk = name => ({
+            serial_no: null, operator_no: name, operator_name: name,
+            his_advance_payment: 0, his_medical_income: 0, his_registration_income: 0,
+            report_amount: 0, previous_temporary_receipt: 0, holiday_temporary_receipt: 0,
+            actual_report_amount: 0, current_temporary_receipt: 0, actual_cash_amount: 0,
+            retained_difference: 0, retained_cash: 0, petty_cash: 0, remarks: ""
+        });
+        const totalRow = mk("合计");
+        MONEY_FIELDS.forEach(f => totalRow[f] = totals[f]);
+        rows.push(totalRow);
+        ["当日暂收款", "日报表数", "合计存款金额", "住院部当日借款", "住院部当日回款",
+            "门诊当日借款", "门诊当日回款", "门诊当日实存金额"].forEach(n => rows.push(mk(n)));
+        fillComputedValues(rows, totals);
+        return rows;
+    }
+
+    // bt6 重算（后端已带计算行时原地更新）
+    function recomputeComputedRows(list) {
+        const rows = list.slice();
+        const totals = calcTotals(rows);
+        fillComputedValues(rows, totals);
+        return rows;
+    }
+
+    async function fetchHoliday() {
+        try {
+            const res = await apiRequest(HOLIDAY_API, {
+                reportdate: prevDate(state.billDate),
+                query_type: "0",
+                total_flag: state.totalFlag,
+                extend_params1: null, extend_params2: null, extend_params3: null
+            });
+            if (res.body) {
+                state.isHoliday = res.body.holiday_type !== undefined && res.body.holiday_type !== null ? String(res.body.holiday_type) : "0";
+                if (res.body.total_title) state.totalTitle = res.body.total_title;
+            }
+        } catch (e) {
+            console.warn("节假日类型查询失败", e);
+        }
+    }
+
+    async function fetchList(refetch) {
+        showLoading(true);
+        try {
+            await fetchHoliday();
+            const res = await apiRequest(API_BASE + "/findbydate", {
+                reportdate: prevDate(state.billDate),
+                inp_window: state.inpWindow,
+                amt: state.amt,
+                total_flag: state.totalFlag,
+                extend_params1: refetch ? "true" : null,
+                extend_params2: null, extend_params3: null
+            });
+            const raw = (res.body && res.body.list) ? res.body.list : [];
+            // 汇总/月初无数据或不符条件: 只给提示不渲染表格
+            state.notice = null;
+            if (state.totalFlag !== "0") {
+                const realRows = raw.filter(r => COMPUTED_NAMES.indexOf(r.operator_name) < 0);
+                if (realRows.length === 0) {
+                    state.notice = "对应日期没有" + (state.totalFlag === "1" ? "汇总" : "月初") + "报表数据";
+                } else if (realRows.length === 1 && realRows[0].operator_name === "当日暂收款" && realRows[0].remarks) {
+                    state.notice = realRows[0].remarks;
+                }
+            }
+            if (state.notice) {
+                state.list = [];
+                state._list = [];
+                state.loaded = true;
+                render();
+                return;
+            }
+            state._list = JSON.parse(JSON.stringify(raw));
+            state.changed = new Set();
+            const hasTotal = raw.some(r => r.operator_name === "合计");
+            state.list = hasTotal ? recomputeComputedRows(raw) : appendComputedRows(raw);
+            recalcFormulas();
+            state.loaded = true;
+            render();
+        } catch (e) {
+            console.error(e);
+            showToast("获取费别参保信息异常！", "warning");
+            state.list = [];
+            state._list = [];
+            render();
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    function isEditableCell(row, field) {
+        const name = row.operator_name;
+        if (field === "his_advance_payment") {
+            return ["合计", "当日暂收款", "日报表数"].indexOf(name) < 0;
+        }
+        if (field === "petty_cash" || field === "remarks") {
+            if (MERGE_SKIP_NAMES.indexOf(name) >= 0) return false;
+            if (name === "当日暂收款") return false; // 合并大文本在备用金列渲染
+        }
+        if (MONEY_FIELDS.indexOf(field) >= 0) {
+            return name !== "合计";
+        }
+        if (field === "remarks") return !isComputedRow(row);
+        return false;
+    }
+
+    function cellChangedKey(rowIdx, field) { return rowIdx + "_" + field; }
+
+    function render() {
+        const tbody = document.getElementById("tableBody");
+        const titleEl = document.getElementById("tableTitle");
+        const noticeEl = document.getElementById("noticeBanner");
+        // 动态汇总标题只渲染在表格大标题行, 页头保持固定菜单名(同旧版)
+        titleEl.textContent = state.totalTitle;
+        titleEl.classList.toggle("total-mode", state.totalFlag === "1");
+        document.getElementById("thHoliday").textContent = HOLIDAY_TITLE_MAP[state.isHoliday] || "节假日暂收款";
+
+        // 汇总/月初不符条件: 提示横幅替代表格
+        const inNotice = !!state.notice;
+        noticeEl.classList.toggle("show", inNotice);
+        if (inNotice) noticeEl.textContent = state.notice;
+        document.getElementById("tableWrapper").style.display = inNotice ? "none" : "";
+        document.getElementById("signLine").style.display = inNotice ? "none" : "";
+
+        if (!state.list.length) {
+            tbody.innerHTML = '<tr><td colspan="14" class="empty-data">' + (state.loaded ? "暂无数据记录" : "请选择日期并点击查询") + '</td></tr>';
+            return;
+        }
+
+        const html = [];
+        state.list.forEach((row, i) => {
+            const name = row.operator_name;
+            const isTotal = name === "合计";
+            const isMerge = name === "当日暂收款";
+            const skipMerge = MERGE_SKIP_NAMES.indexOf(name) >= 0;
+            const trCls = isTotal ? ' class="row-total"' : (isComputedRow(row) ? ' class="row-computed"' : '');
+
+            html.push("<tr" + trCls + ">");
+            html.push("<td>" + (i + 1) + "</td>");
+            html.push("<td>" + escapeHtml(name) + "</td>");
+
+            MONEY_FIELDS.forEach(field => {
+                if (field === "petty_cash") return; // 备用金列单独处理
+                const val = row[field];
+                const changed = state.changed.has(cellChangedKey(i, field));
+                const negCls = (NEG_PINK_FIELDS.indexOf(field) >= 0 && toNumber(val) < 0) ? " neg" : "";
+                const editCls = changed ? " cell-changed" : "";
+                if (isEditableCell(row, field)) {
+                    const formulaTip = getCellFormula(row, field) || "";
+                    html.push('<td><div class="cell-money' + negCls + editCls + '" data-row="' + i + '" data-field="' + field + '"' +
+                        (formulaTip ? ' title="' + escapeHtml(formulaTip) + '"' : "") + '>' + fmtMoney(val) + "</div></td>");
+                } else {
+                    html.push('<td><span class="' + (negCls + editCls).trim() + '">' + fmtMoney(val) + "</span></td>");
+                }
+            });
+
+            if (isMerge) {
+                // bt7 当日暂收款行: 备用金+备注合并8行, 内容即备注大文本
+                const changed = state.changed.has(cellChangedKey(i, "remarks"));
+                html.push('<td rowspan="8" colspan="2"' + (changed ? ' style="background:#fdf6ec"' : "") + '>' +
+                    '<div class="merge-remarks' + (changed ? " cell-changed" : "") + '" data-row="' + i + '" data-field="merge_remarks">' +
+                    escapeHtml(row.remarks || "") + "</div></td>");
+            } else if (!skipMerge) {
+                const petty = row.petty_cash;
+                const changed = state.changed.has(cellChangedKey(i, "petty_cash"));
+                if (isEditableCell(row, "petty_cash")) {
+                    html.push('<td><div class="cell-money' + (changed ? " cell-changed" : "") + '" data-row="' + i + '" data-field="petty_cash">' + fmtMoney(petty) + "</div></td>");
+                } else {
+                    html.push('<td><span class="' + (changed ? "cell-changed" : "") + '">' + fmtMoney(petty) + "</span></td>");
+                }
+                const remarks = row.remarks;
+                const rChanged = state.changed.has(cellChangedKey(i, "remarks"));
+                if (isEditableCell(row, "remarks")) {
+                    html.push('<td><div class="cell-money' + (rChanged ? " cell-changed" : "") + '" data-row="' + i + '" data-field="remarks">' + escapeHtml(remarks || "") + "</div></td>");
+                } else {
+                    html.push("<td>" + escapeHtml(remarks || "") + "</td>");
+                }
+            }
+            html.push("</tr>");
+        });
+        tbody.innerHTML = html.join("");
+    }
+
+    function bindEditEvents() {
+        document.getElementById("tableBody").addEventListener("dblclick", function (e) {
+            const cell = e.target.closest(".cell-money, .merge-remarks");
+            if (!cell || cell.querySelector("input,textarea")) return;
+            const rowIdx = parseInt(cell.dataset.row, 10);
+            const field = cell.dataset.field;
+            const row = state.list[rowIdx];
+            if (!row) return;
+
+            if (field === "merge_remarks") {
+                const ta = document.createElement("textarea");
+                ta.className = "cell-edit-textarea";
+                ta.value = row.remarks || "";
+                ta.style.minHeight = "280px";
+                cell.textContent = "";
+                cell.appendChild(ta);
+                ta.focus();
+                ta.onblur = function () {
+                    row.remarks = ta.value;
+                    applyEdit(rowIdx, "remarks");
+                };
+                ta.onkeydown = function (ev) { if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); ta.blur(); } };
+            } else if (field === "remarks") {
+                const input = document.createElement("input");
+                input.className = "cell-edit-input";
+                input.style.textAlign = "left";
+                input.value = row.remarks || "";
+                cell.textContent = "";
+                cell.appendChild(input);
+                input.focus();
+                input.onblur = function () {
+                    row.remarks = input.value;
+                    applyEdit(rowIdx, "remarks");
+                };
+                input.onkeydown = function (ev) { if (ev.key === "Enter") input.blur(); };
+            } else {
+                const input = document.createElement("input");
+                input.className = "cell-edit-input";
+                input.placeholder = "支持 =100-50 或 =C5-D5";
+                input.value = getCellFormula(row, field) || toNumber(row[field]);
+                cell.textContent = "";
+                cell.appendChild(input);
+                input.focus();
+                input.select();
+                input.onblur = function () {
+                    finishMoneyEdit(row, rowIdx, field, input.value);
+                };
+                input.onkeydown = function (ev) { if (ev.key === "Enter") input.blur(); };
+            }
+        });
+    }
+
+    // bt8 金额编辑落值: =开头按公式算, 公式文本留存cell_formula
+    function finishMoneyEdit(row, rowIdx, field, rawValue) {
+        rawValue = String(rawValue).trim();
+        if (rawValue.startsWith("=") || rawValue.startsWith("＝")) {
+            const normalized = "=" + rawValue.slice(1).trim();
+            if (isSelfReferential(normalized, rowIdx, field)) {
+                showToast("公式引用了单元格自身，无法计算", "warning");
+                render();
+                return;
+            }
+            const result = evalFormulaText(normalized);
+            if (!isFinite(result)) {
+                showToast("公式无法计算，支持如 =100-200 或 =C5-D5", "warning");
+                render();
+                return;
+            }
+            row[field] = Math.round(result * 100) / 100;
+            setCellFormula(row, field, normalized);
+        } else {
+            row[field] = toNumber(rawValue);
+            setCellFormula(row, field, null);
+        }
+        applyEdit(rowIdx, field);
+    }
+
+    // bt9 编辑后重算公式与汇总并标红
+    function applyEdit(rowIdx, field) {
+        state.changed.add(cellChangedKey(rowIdx, field));
+        recalcFormulas();
+        const totals = calcTotals(state.list);
+        fillComputedValues(state.list, totals);
+        state._list = JSON.parse(JSON.stringify(state.list));
+        render();
+    }
+
+    async function saveTable() {
+        if (!state._list.length) { showToast("暂无可保存的数据", "warning"); return; }
+        const list = JSON.parse(JSON.stringify(state._list));
+        list.forEach((r, i) => r.id = i + 1);
+        showLoading(true);
+        try {
+            await apiRequest(API_BASE + "/insert", { list: list, total_flag: state.totalFlag });
+            showToast("保存信息成功!");
+            await fetchList(false);
+        } catch (e) {
+            console.error(e);
+            showToast("保存信息异常!", "error");
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    function exportExcel() {
+        const table = document.getElementById("reportTable").cloneNode(true);
+        table.querySelectorAll("input,textarea").forEach(el => {
+            const v = el.value;
+            const div = document.createElement("div");
+            div.textContent = v;
+            el.parentNode.replaceChild(div, el);
+        });
+        const html = '<html><head><meta charset="UTF-8"></head><body>' + table.outerHTML + "</body></html>";
+        const blob = new Blob([html], { type: "application/vnd.ms-excel" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = state.billDate + " 门诊现金总统计报表.xls";
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+
+    function bindGroup(id, onChange) {
+        const group = document.getElementById(id);
+        group.addEventListener("click", function (e) {
+            const btn = e.target.closest(".btn-option");
+            if (!btn) return;
+            group.querySelectorAll(".btn-option").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            onChange(btn.dataset.val);
+        });
+    }
+
+    function init() {
+        document.getElementById("billDate").value = state.billDate;
+
+        bindGroup("inpWindowGroup", v => state.inpWindow = v);
+        bindGroup("amtGroup", v => state.amt = v);
+        bindGroup("totalFlagGroup", v => {
+            state.totalFlag = v;
+            state.totalTitle = "门诊现金统计报表";
+        });
+
+        document.getElementById("billDate").addEventListener("change", function () {
+            if (this.value) state.billDate = this.value;
+        });
+        document.getElementById("btnSearch").addEventListener("click", () => fetchList(false));
+        document.getElementById("btnReFetch").addEventListener("click", () => fetchList(true));
+        document.getElementById("btnSave").addEventListener("click", saveTable);
+        document.getElementById("btnPrint").addEventListener("click", () => window.print());
+        document.getElementById("btnExport").addEventListener("click", exportExcel);
+
+        bindEditEvents();
+    }
+
+    init();
+</script>
+</body>
+</html>

@@ -121,8 +121,8 @@ public class ReportServiceImpl implements ReportService {
             subList = mainVO.getSubList().stream()
                     .sorted(Comparator.comparing(OutpReportSubVO::getRowNum, Comparator.nullsLast(Comparator.naturalOrder()))
                             .thenComparing(OutpReportSubVO::getId, Comparator.nullsLast(Comparator.naturalOrder())))
-                    .filter(r -> (body.getInpWindow() == null || !body.getInpWindow().equals(1) || Integer.valueOf(1).equals(r.getInpWindow())))
-                    .filter(r -> (body.getAtm() == null || !body.getAtm().equals(1) || Integer.valueOf(1).equals(r.getAtm())))
+                    .filter(r -> (body.getInpWindow() == null || !body.getInpWindow().equals(1) || "1".equals(r.getInpWindow())))
+                    .filter(r -> (body.getAtm() == null || !body.getAtm().equals(1) || "1".equals(r.getAtm())))
                     .collect(Collectors.toList());
             mainVO.setSubList(subList);
 
@@ -432,6 +432,9 @@ public class ReportServiceImpl implements ReportService {
             }
         }
 
+        // 旧前端保存不带公式字段, 落库前回补库中已有公式避免被覆盖清空
+        fillBlankCellFormula(main, reportDate, mainVO.getTotalFlag());
+
         try {
             outpReportService.insertOrUpdate(main);
         } catch (Exception e) {
@@ -439,6 +442,20 @@ public class ReportServiceImpl implements ReportService {
             throw new RuntimeException("保存门诊报表数据异常", e);
         }
         return Constant.SUCCESS;
+    }
+
+    // 按操作员回补空值的cell_formula（旧版前端无此字段）
+    private void fillBlankCellFormula(OutpCashMainEntity main, LocalDate reportDate, String totalFlag) {
+        if (CollectionUtils.isEmpty(main.getSubs())) return;
+        OutpCashMainEntity oldMain = outpReportService.findByDate(reportDate, totalFlag);
+        if (oldMain == null || CollectionUtils.isEmpty(oldMain.getSubs())) return;
+        Map<String, String> formulaMap = new HashMap<>();
+        oldMain.getSubs().forEach(s -> {
+            if (s.getCellFormula() != null) formulaMap.putIfAbsent(s.getOperatorNo(), s.getCellFormula());
+        });
+        main.getSubs().forEach(s -> {
+            if (s.getCellFormula() == null) s.setCellFormula(formulaMap.get(s.getOperatorNo()));
+        });
     }
 
     /*

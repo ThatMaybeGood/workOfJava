@@ -1,5 +1,6 @@
 package com.mergedata.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
@@ -27,6 +28,7 @@ public class OutpReportRequestBody {
     /**
      * 入参：ATM号
      */
+    @JsonAlias("amt") // 兼容旧前端amt字段名
     @JsonProperty("atm")
     private Integer atm;
 
