@@ -163,6 +163,10 @@
         .data-table td.merge-cell,
         .data-table td.merge-edge { border-right: 1px solid var(--border-color); }
 
+        /* bt15 备注列自适应: 全表无备注数据时收窄, 有数据才放宽(内容nowrap继续向右撑) */
+        .th-remarks { min-width: 60px; }
+        .data-table.has-remarks .th-remarks { min-width: 150px; }
+
         .table-main-title { text-align: center; }
         .table-main-title .t-title {
             font-size: 20px;
@@ -265,7 +269,10 @@
             .header-card, .no-print { display: none !important; }
             .table-card { border: none; box-shadow: none; padding: 0; }
             .table-wrapper { border: none; box-shadow: none; overflow: visible; }
-            .data-table { font-size: 12px; }
+            /* bt16 打印边框: 换collapse模型逐格实线, 避免separate模型+zoom缩放致发丝边框丢失; 保留行底色 */
+            .data-table { font-size: 12px; border-collapse: collapse; border: 2px solid #333;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .data-table th, .data-table td { border: 1px solid #333 !important; }
             .cell-money, .merge-remarks { cursor: default; }
         }
     </style>
@@ -326,7 +333,7 @@
                     <th>留存差额数<br>（6=7-3-8）</th>
                     <th>留存现金数<br>（7）</th>
                     <th style="min-width:90px">备用金<br>（8）</th>
-                    <th style="min-width:150px">备注</th>
+                    <th class="th-remarks">备注</th>
                 </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -717,9 +724,14 @@
         document.getElementById("signLine").style.display = inNotice ? "none" : "";
 
         if (!state.list.length) {
+            document.getElementById("reportTable").classList.remove("has-remarks");
             tbody.innerHTML = '<tr><td colspan="14" class="empty-data">' + (state.loaded ? "暂无数据记录" : "请选择日期并点击查询") + '</td></tr>';
             return;
         }
+
+        // bt15 备注列: 全表有任一备注数据才放宽
+        const hasRemarks = state.list.some(r => r.remarks && String(r.remarks).trim() !== "");
+        document.getElementById("reportTable").classList.toggle("has-remarks", hasRemarks);
 
         const html = [];
         state.list.forEach((row, i) => {
@@ -741,11 +753,13 @@
                 const mChanged = state.changed.has(cellChangedKey(i, "his_advance_payment"));
                 const mNeg = toNumber(mVal) < 0 ? " neg" : "";
                 const mFormula = getCellFormula(row, "his_advance_payment") || "";
+                // bt17 整行合并td在跳列行是末格, 会被td:last-child规则去掉右边框(合并大格左边线丢失), 补merge-edge
+                const mEdge = skipMerge ? ' class="merge-edge"' : "";
                 if (isEditableCell(row, "his_advance_payment")) {
-                    html.push('<td colspan="10"><div class="cell-money' + mNeg + (mChanged ? " cell-changed" : "") + '" data-row="' + i + '" data-field="his_advance_payment"' +
+                    html.push('<td colspan="10"' + mEdge + '><div class="cell-money' + mNeg + (mChanged ? " cell-changed" : "") + '" data-row="' + i + '" data-field="his_advance_payment"' +
                         (mFormula ? ' title="' + escapeHtml(mFormula) + '"' : "") + '>' + fmtMoney(mVal) + "</div></td>");
                 } else {
-                    html.push('<td colspan="10"><span class="' + (mNeg + (mChanged ? " cell-changed" : "")).trim() + '">' + fmtMoney(mVal) + "</span></td>");
+                    html.push('<td colspan="10"' + mEdge + '><span class="' + (mNeg + (mChanged ? " cell-changed" : "")).trim() + '">' + fmtMoney(mVal) + "</span></td>");
                 }
             } else {
                 MONEY_FIELDS.forEach(field => {
@@ -899,26 +913,51 @@
     }
 
     function exportExcel() {
-        const table = document.getElementById("reportTable").cloneNode(true);
+        const srcTable = document.getElementById("reportTable");
+        const table = srcTable.cloneNode(true);
         table.querySelectorAll("input,textarea").forEach(el => {
             const v = el.value;
             const div = document.createElement("div");
             div.textContent = v;
             el.parentNode.replaceChild(div, el);
         });
-        // bt11 导出带边框: 克隆不带页面样式, 内联一套简化样式; 备注换行转<br>(Excel不识别pre-wrap)
+        // bt11 导出按界面还原: 样式逐格内联(Excel/WPS不认页面样式), 备注换行转<br>; 合并大格保持折行
         table.querySelectorAll(".merge-remarks, .cell-money[data-field='remarks']").forEach(d => {
             d.innerHTML = escapeHtml(d.textContent).replace(/\n/g, "<br>");
         });
-        const style = "<style>" +
-            "table{border-collapse:collapse;font-size:12pt;}" +
-            "td,th{border:1px solid #000;padding:4px;text-align:center;}" +
-            ".t-title{font-size:16pt;font-weight:bold;letter-spacing:2px;}" +
-            ".total-mode{color:#e64545;}" +
-            ".merge-remarks{text-align:left;}" +
-            "</style>";
-        const html = '<html><head><meta charset="UTF-8">' + style + '</head><body>' + table.outerHTML + "</body></html>";
-        const blob = new Blob([html], { type: "application/vnd.ms-excel" });
+        table.style.borderCollapse = "collapse";
+        table.style.fontFamily = "宋体, SimSun, serif";
+        table.querySelectorAll("th,td").forEach(c => {
+            c.style.border = "1px solid #000";
+            c.style.padding = "4px";
+            c.style.textAlign = "center";
+            c.style.fontSize = "12pt";
+            c.style.whiteSpace = "nowrap";
+        });
+        table.querySelectorAll("td.merge-cell").forEach(c => { c.style.whiteSpace = "normal"; });
+        // 列宽按界面实际渲染宽度写死, 导出与界面一致(备注列无数据时窄、有数据随内容宽)
+        const headCells = table.querySelectorAll("thead tr:nth-child(2) th");
+        const liveCells = srcTable.querySelectorAll("thead tr:nth-child(2) th");
+        headCells.forEach((th, i) => { if (liveCells[i]) th.style.width = liveCells[i].offsetWidth + "px"; });
+        // 行底色/表头底色/大标题/备注左对齐 还原界面观感
+        table.querySelectorAll("thead th").forEach(c => {
+            if (!c.classList.contains("table-main-title")) c.style.background = "#f8fafc";
+        });
+        table.querySelectorAll("tr.row-total td").forEach(c => { c.style.background = "#eef4f8"; });
+        table.querySelectorAll("tr.row-computed td").forEach(c => { c.style.background = "#fdf6ec"; });
+        const title = table.querySelector(".t-title");
+        if (title) {
+            title.style.fontSize = "16pt";
+            title.style.fontWeight = "bold";
+            title.style.letterSpacing = "2px";
+            if (title.classList.contains("total-mode")) title.style.color = "#e64545";
+        }
+        table.querySelectorAll(".merge-remarks, td.cell-remarks").forEach(d => { d.style.textAlign = "left"; });
+        // 审核/出纳签字行一并导出
+        const sign = document.getElementById("signLine").cloneNode(true);
+        sign.style.cssText = "padding:12px 10px 2px;font-size:14pt;font-weight:bold;";
+        const html = '<html><head><meta charset="UTF-8"></head><body>' + table.outerHTML + sign.outerHTML + "</body></html>";
+        const blob = new Blob(["﻿" + html], { type: "application/vnd.ms-excel" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
         a.download = state.billDate + " 门诊现金总统计报表.xls";
