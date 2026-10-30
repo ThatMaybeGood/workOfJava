@@ -130,7 +130,8 @@
         }
 
         .data-table {
-            width: 100%;
+            width: max-content;
+            min-width: 100%;
             border-collapse: separate;
             border-spacing: 0;
             font-size: 13px;
@@ -158,6 +159,10 @@
         .data-table td:last-child { border-right: none; }
         .data-table tbody tr:hover td { background: #f4f9fc; }
 
+        /* bt10 合并区补边框: 末列规则会把合并大格与相邻行末格的右边框去掉 */
+        .data-table td.merge-cell,
+        .data-table td.merge-edge { border-right: 1px solid var(--border-color); }
+
         .table-main-title { text-align: center; }
         .table-main-title .t-title {
             font-size: 20px;
@@ -168,6 +173,8 @@
         .table-main-title .t-title.total-mode { color: #e64545; }
 
         .cell-money { cursor: pointer; min-height: 18px; }
+        /* bt13 备注不换行: 内容多了整表向右撑出横向滚动, 不挤前面列 */
+        .cell-money[data-field="remarks"], td.cell-remarks { white-space: pre; }
         .cell-money.neg { color: #e91e8c; }
         .cell-changed { color: #f5222d !important; font-weight: 700; }
 
@@ -195,6 +202,7 @@
 
         .merge-remarks {
             min-height: 300px;
+            max-width: 340px;
             white-space: pre-wrap;
             word-break: break-word;
             display: flex;
@@ -252,6 +260,7 @@
         @keyframes spin { to { transform: rotate(360deg); } }
 
         @media print {
+            @page { size: A4; margin: 10mm; }
             body { background: #fff; padding: 0; }
             .header-card, .no-print { display: none !important; }
             .table-card { border: none; box-shadow: none; padding: 0; }
@@ -296,7 +305,7 @@
     </div>
 
     <div class="table-card">
-        <div class="notice-banner" id="noticeBanner"></div>
+        <div class="notice-banner no-print" id="noticeBanner"></div>
         <div class="table-wrapper" id="tableWrapper">
             <table class="data-table" id="reportTable">
                 <thead>
@@ -304,8 +313,8 @@
                     <th colspan="14" class="table-main-title"><span class="t-title" id="tableTitle">门诊现金统计报表</span></th>
                 </tr>
                 <tr>
-                    <th style="width:3%">序号</th>
-                    <th style="width:4%">姓名</th>
+                    <th style="min-width:44px">序号</th>
+                    <th style="min-width:60px">姓名</th>
                     <th>HIS<br>预交金</th>
                     <th>HIS<br>医疗收入</th>
                     <th>应交报表数<br>（1）</th>
@@ -316,8 +325,8 @@
                     <th>实收现金数<br>（5=3+4）</th>
                     <th>留存差额数<br>（6=7-3-8）</th>
                     <th>留存现金数<br>（7）</th>
-                    <th>备用金<br>（8）</th>
-                    <th>备注</th>
+                    <th style="min-width:90px">备用金<br>（8）</th>
+                    <th style="min-width:150px">备注</th>
                 </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -340,23 +349,10 @@
 </div>
 
 <script>
-    const API_BASE = "http://127.0.0.1:18081/api/reports";
-    const HOLIDAY_API = "http://127.0.0.1:18081/api/querydatetype/holidayDate";
-
-    const COMMON_HEAD = {
-        charset: "utf-8",
-        encrypt_type: "AES",
-        enterprise_id: "xinqiao",
-        language: "zh_CN",
-        method: "orgine.powermsp.service.overt.extend.SP_GetHisIncome_938",
-        sign: "1",
-        sign_type: "md5",
-        sys_track_code: Math.random().toString(36).substring(2),
-        timestamp: Date.now().toString(),
-        version: "1.0",
-        access_token: "123456",
-        app_id: "b16ff06f5fd44ab6b56e037d7ee1a6ed"
-    };
+    // bt0 服务地址: 内网后端服务器IP, 前后端分离部署时只改这一处
+    const API_HOST = "http://192.168.1.100:18081";
+    const API_BASE = API_HOST + "/api/reports";
+    const HOLIDAY_API = API_HOST + "/api/querydatetype/holidayDate";
 
     // 金额列
     const MONEY_FIELDS = ["his_advance_payment", "his_medical_income", "report_amount", "previous_temporary_receipt",
@@ -386,12 +382,9 @@
         loaded: false
     };
 
-    function buildHead() {
-        return { ...COMMON_HEAD, sys_track_code: Math.random().toString(36).substring(2), timestamp: Date.now().toString() };
-    }
-
     async function apiRequest(url, bodyData) {
-        const requestBody = { head: buildHead(), body: bodyData };
+        // 后端controller不读head, 传空对象即可
+        const requestBody = { head: {}, body: bodyData };
         const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -680,7 +673,7 @@
             render();
         } catch (e) {
             console.error(e);
-            showToast("获取费别参保信息异常！", "warning");
+            showToast("获取门诊现金数据异常！", "warning");
             state.list = [];
             state._list = [];
             render();
@@ -740,25 +733,44 @@
             html.push("<td>" + (i + 1) + "</td>");
             html.push("<td>" + escapeHtml(name) + "</td>");
 
-            MONEY_FIELDS.forEach(field => {
-                if (field === "petty_cash") return; // 备用金列单独处理
-                const val = row[field];
-                const changed = state.changed.has(cellChangedKey(i, field));
-                const negCls = (NEG_PINK_FIELDS.indexOf(field) >= 0 && toNumber(val) < 0) ? " neg" : "";
-                const editCls = changed ? " cell-changed" : "";
-                if (isEditableCell(row, field)) {
-                    const formulaTip = getCellFormula(row, field) || "";
-                    html.push('<td><div class="cell-money' + negCls + editCls + '" data-row="' + i + '" data-field="' + field + '"' +
-                        (formulaTip ? ' title="' + escapeHtml(formulaTip) + '"' : "") + '>' + fmtMoney(val) + "</div></td>");
+            // bt14 计算行金额区合并: 这些行只有HIS预交金列有值, 其余金额列全0时合并成一格(仍可双击编辑/公式)
+            const mergeMoney = isComputedRow(row) && !isTotal &&
+                MONEY_FIELDS.filter(f => f !== "his_advance_payment").every(f => !toNumber(row[f]));
+            if (mergeMoney) {
+                const mVal = row.his_advance_payment;
+                const mChanged = state.changed.has(cellChangedKey(i, "his_advance_payment"));
+                const mNeg = toNumber(mVal) < 0 ? " neg" : "";
+                const mFormula = getCellFormula(row, "his_advance_payment") || "";
+                if (isEditableCell(row, "his_advance_payment")) {
+                    html.push('<td colspan="10"><div class="cell-money' + mNeg + (mChanged ? " cell-changed" : "") + '" data-row="' + i + '" data-field="his_advance_payment"' +
+                        (mFormula ? ' title="' + escapeHtml(mFormula) + '"' : "") + '>' + fmtMoney(mVal) + "</div></td>");
                 } else {
-                    html.push('<td><span class="' + (negCls + editCls).trim() + '">' + fmtMoney(val) + "</span></td>");
+                    html.push('<td colspan="10"><span class="' + (mNeg + (mChanged ? " cell-changed" : "")).trim() + '">' + fmtMoney(mVal) + "</span></td>");
                 }
-            });
+            } else {
+                MONEY_FIELDS.forEach(field => {
+                    if (field === "petty_cash") return; // 备用金列单独处理
+                    const val = row[field];
+                    const changed = state.changed.has(cellChangedKey(i, field));
+                    const negCls = (NEG_PINK_FIELDS.indexOf(field) >= 0 && toNumber(val) < 0) ? " neg" : "";
+                    const editCls = changed ? " cell-changed" : "";
+                    const edgeCls = (skipMerge && field === "retained_cash") ? ' class="merge-edge"' : "";
+                    if (isEditableCell(row, field)) {
+                        const formulaTip = getCellFormula(row, field) || "";
+                        html.push('<td' + edgeCls + '><div class="cell-money' + negCls + editCls + '" data-row="' + i + '" data-field="' + field + '"' +
+                            (formulaTip ? ' title="' + escapeHtml(formulaTip) + '"' : "") + '>' + fmtMoney(val) + "</div></td>");
+                    } else {
+                        html.push('<td' + edgeCls + '><span class="' + (negCls + editCls).trim() + '">' + fmtMoney(val) + "</span></td>");
+                    }
+                });
+            }
 
             if (isMerge) {
-                // bt7 当日暂收款行: 备用金+备注合并8行, 内容即备注大文本
+                // bt7 当日暂收款行: 备用金+备注合并, 覆盖其后连续跳列行, 内容即备注大文本
+                let span = 1;
+                for (let j = i + 1; j < state.list.length && MERGE_SKIP_NAMES.indexOf(state.list[j].operator_name) >= 0; j++) span++;
                 const changed = state.changed.has(cellChangedKey(i, "remarks"));
-                html.push('<td rowspan="8" colspan="2"' + (changed ? ' style="background:#fdf6ec"' : "") + '>' +
+                html.push('<td rowspan="' + span + '" colspan="2" class="merge-cell"' + (changed ? ' style="background:#fdf6ec"' : "") + '>' +
                     '<div class="merge-remarks' + (changed ? " cell-changed" : "") + '" data-row="' + i + '" data-field="merge_remarks">' +
                     escapeHtml(row.remarks || "") + "</div></td>");
             } else if (!skipMerge) {
@@ -774,7 +786,7 @@
                 if (isEditableCell(row, "remarks")) {
                     html.push('<td><div class="cell-money' + (rChanged ? " cell-changed" : "") + '" data-row="' + i + '" data-field="remarks">' + escapeHtml(remarks || "") + "</div></td>");
                 } else {
-                    html.push("<td>" + escapeHtml(remarks || "") + "</td>");
+                    html.push('<td class="cell-remarks">' + escapeHtml(remarks || "") + "</td>");
                 }
             }
             html.push("</tr>");
@@ -803,20 +815,20 @@
                     row.remarks = ta.value;
                     applyEdit(rowIdx, "remarks");
                 };
-                ta.onkeydown = function (ev) { if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); ta.blur(); } };
+                ta.onkeydown = function (ev) { if (ev.key === "Escape") render(); };
             } else if (field === "remarks") {
-                const input = document.createElement("input");
-                input.className = "cell-edit-input";
-                input.style.textAlign = "left";
-                input.value = row.remarks || "";
+                const ta = document.createElement("textarea");
+                ta.className = "cell-edit-textarea";
+                ta.rows = 3;
+                ta.value = row.remarks || "";
                 cell.textContent = "";
-                cell.appendChild(input);
-                input.focus();
-                input.onblur = function () {
-                    row.remarks = input.value;
+                cell.appendChild(ta);
+                ta.focus();
+                ta.onblur = function () {
+                    row.remarks = ta.value;
                     applyEdit(rowIdx, "remarks");
                 };
-                input.onkeydown = function (ev) { if (ev.key === "Enter") input.blur(); };
+                ta.onkeydown = function (ev) { if (ev.key === "Escape") render(); };
             } else {
                 const input = document.createElement("input");
                 input.className = "cell-edit-input";
@@ -894,13 +906,35 @@
             div.textContent = v;
             el.parentNode.replaceChild(div, el);
         });
-        const html = '<html><head><meta charset="UTF-8"></head><body>' + table.outerHTML + "</body></html>";
+        // bt11 导出带边框: 克隆不带页面样式, 内联一套简化样式; 备注换行转<br>(Excel不识别pre-wrap)
+        table.querySelectorAll(".merge-remarks, .cell-money[data-field='remarks']").forEach(d => {
+            d.innerHTML = escapeHtml(d.textContent).replace(/\n/g, "<br>");
+        });
+        const style = "<style>" +
+            "table{border-collapse:collapse;font-size:12pt;}" +
+            "td,th{border:1px solid #000;padding:4px;text-align:center;}" +
+            ".t-title{font-size:16pt;font-weight:bold;letter-spacing:2px;}" +
+            ".total-mode{color:#e64545;}" +
+            ".merge-remarks{text-align:left;}" +
+            "</style>";
+        const html = '<html><head><meta charset="UTF-8">' + style + '</head><body>' + table.outerHTML + "</body></html>";
         const blob = new Blob([html], { type: "application/vnd.ms-excel" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
         a.download = state.billDate + " 门诊现金总统计报表.xls";
         a.click();
         URL.revokeObjectURL(a.href);
+    }
+
+    // bt12 打印自适应A4: 按内容宽高算出zoom压到一张A4(190x277mm可打印区), 打完还原
+    function fitToA4() {
+        const card = document.querySelector(".table-card");
+        const table = document.getElementById("reportTable");
+        if (!table.offsetParent) { card.style.zoom = ""; return; }
+        const mm = 96 / 25.4;
+        const w = table.offsetWidth;
+        const h = table.offsetHeight + document.getElementById("signLine").offsetHeight + 16;
+        card.style.zoom = Math.min(190 * mm / w, 277 * mm / h, 1);
     }
 
     function bindGroup(id, onChange) {
@@ -930,7 +964,13 @@
         document.getElementById("btnSearch").addEventListener("click", () => fetchList(false));
         document.getElementById("btnReFetch").addEventListener("click", () => fetchList(true));
         document.getElementById("btnSave").addEventListener("click", saveTable);
-        document.getElementById("btnPrint").addEventListener("click", () => window.print());
+        document.getElementById("btnPrint").addEventListener("click", function () {
+            fitToA4();
+            window.print();
+        });
+        window.addEventListener("afterprint", function () {
+            document.querySelector(".table-card").style.zoom = "";
+        });
         document.getElementById("btnExport").addEventListener("click", exportExcel);
 
         bindEditEvents();

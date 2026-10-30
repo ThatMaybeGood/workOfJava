@@ -772,22 +772,9 @@
 </div>
 
 <script>
-    const API_BASE = "http://127.0.0.1:18081/api/reports";
-
-    const COMMON_HEAD = {
-        charset: "utf-8",
-        encrypt_type: "AES",
-        enterprise_id: "xinqiao",
-        language: "zh_CN",
-        method: "orgine.powermsp.service.overt.extend.SP_GetHisIncome_938",
-        sign: "1",
-        sign_type: "md5",
-        sys_track_code: Math.random().toString(36).substring(2),
-        timestamp: Date.now().toString(),
-        version: "1.0",
-        access_token: "123456",
-        app_id: "b16ff06f5fd44ab6b56e037d7ee1a6ed"
-    };
+    // 服务地址: 内网后端服务器IP, 前后端分离部署时只改这一处
+    const API_HOST = "http://192.168.1.100:18081";
+    const API_BASE = API_HOST + "/api/reports";
 
     const COLUMN_CONFIG = [
         { field: null, title: "序号", align: "center", editable: false, computed: false },
@@ -844,8 +831,9 @@
     var auditTime = "";
 
     async function apiRequest(url, bodyData) {
+        // 后端controller不读head, 传空对象即可
         const requestBody = {
-            head: { ...COMMON_HEAD, sys_track_code: Math.random().toString(36).substring(2), timestamp: Date.now().toString() },
+            head: {},
             body: bodyData
         };
         try {
