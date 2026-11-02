@@ -6,9 +6,9 @@
     <!-- 院前转住院统计: 就诊日×操作员出负交易收据张数/人次                    -->
     <!-- 库: HIS(US7ASCII, SQL内不写中文字面量; 本SQL全ASCII安全)             -->
     <!-- 口径: 只统计维护表有效操作员(IN); 统计对象是负交易(total_charges<0),    -->
-    <!-- 维护操作员的退费冲红即视为院前退票(院前标识PRE_HOSPITAL过滤已屏蔽:        -->
-    <!-- 急诊存在未打标识收据; 外层找回被退收据EXISTS保留,负交易refunded_rcpt_no  -->
-    <!-- 恒非空有值,该EXISTS业务上恒成立); 另显式加REFUNDED_RCPT_NO IS NOT NULL; -->
+    <!-- 维护操作员的退费冲红即视为院前退票(院前标识PRE_HOSPITAL及找回被退收据  -->
+    <!-- EXISTS两层校验均已屏蔽: 急诊存在未打标识收据,且负交易refunded_rcpt_no   -->
+    <!-- 必非空有值,EXISTS恒成立); 以显式REFUNDED_RCPT_NO IS NOT NULL为准;        -->
     <!-- 人次=count(distinct patient_id); WHERE用裸VISIT_DATE半开区间走索引,      -->
     <!-- TRUNC仅作用分组/显示不影响索引                                        -->
     <!-- ============================================================ -->
@@ -38,15 +38,16 @@
           AND n.OPERATOR_NO = #{operatorNo}
         </if>
 <!--   先不去查询对应院前标识；存在有急诊的未打标识；他维护的操作员退票就是所有院前-->
-          AND EXISTS (
-              SELECT 1 FROM outp_rcpt_master o
-              WHERE o.RCPT_NO = n.REFUNDED_RCPT_NO
+<!--   负交易TOTAL_CHARGES<0本身REFUNDED_RCPT_NO必非空有值,找回被退收据EXISTS恒成立,一并屏蔽-->
+<!--          AND EXISTS (-->
+<!--              SELECT 1 FROM outp_rcpt_master o-->
+<!--              WHERE o.RCPT_NO = n.REFUNDED_RCPT_NO-->
 <!--                AND EXISTS (-->
 <!--                    SELECT 1 FROM outp_treat_rec_t t-->
 <!--                    WHERE t.RCPT_NO = o.RCPT_NO-->
 <!--                      AND t.PRE_HOSPITAL &lt;= 1-->
 <!--                )-->
-          )
+<!--          )-->
         GROUP BY
             n.OPERATOR_NO,
             <choose>
