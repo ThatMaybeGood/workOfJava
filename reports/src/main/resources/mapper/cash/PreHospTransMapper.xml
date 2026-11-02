@@ -36,15 +36,15 @@
           AND n.OPERATOR_NO = #{operatorNo}
         </if>
 <!--   先不去查询对应院前标识；存在有急诊的未打标识；他维护的操作员退票就是所有院前-->
-<!--          AND EXISTS (-->
-<!--              SELECT 1 FROM outp_rcpt_master o-->
-<!--              WHERE o.RCPT_NO = n.REFUNDED_RCPT_NO-->
+          AND EXISTS (
+              SELECT 1 FROM outp_rcpt_master o
+              WHERE o.RCPT_NO = n.REFUNDED_RCPT_NO
 <!--                AND EXISTS (-->
 <!--                    SELECT 1 FROM outp_treat_rec_t t-->
 <!--                    WHERE t.RCPT_NO = o.RCPT_NO-->
 <!--                      AND t.PRE_HOSPITAL &lt;= 1-->
 <!--                )-->
-<!--          )-->
+          )
         GROUP BY
             n.OPERATOR_NO,
             <choose>
