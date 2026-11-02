@@ -28,6 +28,7 @@
         WHERE n.VISIT_DATE &gt;= #{startDate}
           AND n.VISIT_DATE &lt; #{endDate} + 1
           AND n.TOTAL_CHARGES &lt; 0
+          AND n.REFUNDED_RCPT_NO IS NOT NULL
           AND n.OPERATOR_NO IN
           <foreach collection="operatorNos" item="op" open="(" separator="," close=")">
               #{op}
