@@ -5,10 +5,10 @@
     <!-- ============================================================ -->
     <!-- 院前转住院统计: 就诊日×操作员出负交易收据张数/人次                    -->
     <!-- 库: HIS(US7ASCII, SQL内不写中文字面量; 本SQL全ASCII安全)             -->
-    <!-- 口径: 只统计维护表有效操作员(IN); 统计对象是负交易(total_charges<0), -->
-    <!-- 负交易经refunded_rcpt_no找回被退的正交易, 该正交易存在且              -->
-    <!-- 其outp_treat_rec_t PRE_HOSPITAL<=1才算院前(院前标记在正交易上,       -->
-    <!-- 直接对正交易判会误收普通正交易); 人次=count(distinct patient_id);    -->
+    <!-- 口径: 只统计维护表有效操作员(IN); 统计对象是负交易(total_charges<0),    -->
+    <!-- 维护操作员的退费冲红即视为院前退票(院前标识PRE_HOSPITAL过滤已屏蔽:        -->
+    <!-- 急诊存在未打标识收据; 外层找回被退收据EXISTS保留,负交易refunded_rcpt_no  -->
+    <!-- 恒非空有值,该EXISTS业务上恒成立); 人次=count(distinct patient_id);     -->
     <!-- WHERE用裸VISIT_DATE半开区间走索引, TRUNC仅作用分组/显示不影响索引      -->
     <!-- ============================================================ -->
     <select id="queryStats" resultType="com.reports.dto.response.cash.prehosp.PreHospTransItem">
