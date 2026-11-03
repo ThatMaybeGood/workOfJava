@@ -44,6 +44,8 @@ public class InpReportVO {
 
     private List<InpAuditLogEntity> auditLogs;  // 审核日志记录
 
+    private String warnMsg;                 // 缺数提醒（仅展示，如对应汇总未生成）
+
     // 关联的子报表列表（一对多关系）
     @TableField(exist = false)
     private List<InpCashSubEntity> subs;

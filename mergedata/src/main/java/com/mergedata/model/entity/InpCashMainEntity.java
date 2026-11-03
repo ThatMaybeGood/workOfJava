@@ -101,4 +101,8 @@ public class InpCashMainEntity {
     @TableField(value = "holiday_end_date")
     private LocalDate holidayEndDate;
 
+    /** 缺数提醒（仅展示，不落库） */
+    @TableField(exist = false)
+    private String warnMsg;
+
 }

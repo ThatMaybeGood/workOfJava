@@ -1131,6 +1131,10 @@ public class ReportServiceImpl implements ReportService {
                     preSegMap.putIfAbsent(k, s);
                 }
             }
+        } else {
+            //段前一天日报缺失才提醒(该日不在自动补生成范围内)
+            summary.setWarnMsg("汇总区间前一天 " + preSegDate + " 的日报尚未生成，汇总的前日暂收款/前日欠条暂按0处理"
+                    + "；请先查询 " + preSegDate + " 的正常日报表生成后，再「初始化」本汇总");
         }
 
         // 按收费员逐行汇总: 各列=期间每天对应列合计(公式列同样直接加总), 收费员顺序以最近一天报表为准
@@ -1266,6 +1270,10 @@ public class ReportServiceImpl implements ReportService {
             boolean holidayNoExtract = !holidayService.findByDate(currtDate).isEmpty()
                     || !holidayService.findByDate(currtDate.plusDays(1)).isEmpty();
             InpCashMainEntity preInpResult = null;
+            //汇总展示日缺汇总行才提醒(不判断汇总值是否为0)
+            boolean totalMissing = Constant.HOLIDAY_AFTER.equals(holidayType)
+                    && !holidayNoExtract
+                    && queryInpReportByDate(currtDate, Constant.YES) == null;
             if (!holidayNoExtract) {
                 preInpResult = queryInpReportByDate(currtDate, Constant.YES);
                 if (preInpResult == null) {
@@ -1293,6 +1301,15 @@ public class ReportServiceImpl implements ReportService {
 
             // 3. 构建结果集
             InpCashMainEntity resultVo = new InpCashMainEntity();
+            //缺汇总/前日报时才提醒, 提醒目的是让操作员去生成对应日期报表
+            if (totalMissing) {
+                resultVo.setWarnMsg(currtDate + " 为节假日汇总展示日，对应汇总尚未生成，前日暂收款/前日欠条"
+                        + (preInpResult == null ? "暂按0处理" : "暂按前一日日报取值")
+                        + "；请先用「汇总」查询该日期生成汇总，再点「初始化」刷新本日报表");
+            } else if (preInpResult == null) {
+                resultVo.setWarnMsg("前一天 " + preDate + " 的日报尚未生成，前日暂收款/前日欠条暂按0处理"
+                        + "；请先查询 " + preDate + " 的正常日报表生成后，再点「初始化」刷新本日报表");
+            }
             List<InpCashSubEntity> inpCashSubList = new ArrayList<>();
 
              String pk = PrimaryKeyGenerator.generateKey();

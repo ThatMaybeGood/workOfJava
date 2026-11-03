@@ -1181,7 +1181,14 @@
 
             updateTitle(dateStr);
             applyAuditStatus(body.audit_status);
-            document.getElementById("queryHint").classList.remove("show");
+            // bt6 缺数提醒: 后端仅在该提的汇总/日报不存在时返回warn_msg, 汇总存在但值为0不提醒
+            const hintEl = document.getElementById("queryHint");
+            if (body.warn_msg) {
+                hintEl.textContent = "提醒：" + body.warn_msg;
+                hintEl.classList.add("show");
+            } else {
+                hintEl.classList.remove("show");
+            }
 
             renderTable();
         } catch (error) {
