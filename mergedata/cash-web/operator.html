@@ -206,6 +206,33 @@
             text-align: center;
         }
 
+        /* 门诊/住院 分类徽章：蓝=门诊，橙=住院 */
+        .badge-menz {
+            display: inline-block;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            font-weight: bold;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            min-width: 52px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .badge-zhuy {
+            display: inline-block;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            font-weight: bold;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            min-width: 52px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
         .action-buttons {
             display: flex;
             gap: 10px;
@@ -492,7 +519,7 @@
             <thead>
                 <tr>
                     <th>序号</th><th>登录账号</th><th>姓名</th><th>备用金(元)</th>
-                    <th>非住院窗口</th><th>自助机</th><th>提取HIS数据(门诊/住院)</th><th>门诊/住院</th><th>创建时间</th>
+                    <th id="thInpWindow">非住院窗口</th><th id="thAtm">自助机</th><th>提取HIS数据(门诊/住院)</th><th>门诊/住院</th><th>创建时间</th>
                     <th>输入标志</th><th>顺序号</th><th>操作</th>
                 </tr>
             </thead>
@@ -533,11 +560,14 @@
                 <input type="hidden" id="editSerialNo" value="">
                 <div class="form-field"><label>登录账号 *</label><input type="text" id="operatorNo" placeholder="例如: ORBILL_TEST" required></div>
                 <div class="form-field"><label>姓名 *</label><input type="text" id="operatorName" placeholder="操作员姓名" required></div>
+                <div class="form-field"><label style="color:#dc2626">门诊/住院 *</label>
+                    <select id="category"><option value="0">门诊</option><option value="1">住院</option></select>
+                </div>
                 <div class="form-field"><label>备用金(元)</label><input type="number" id="pettyCash" step="0.01" value="0"></div>
-                <div class="form-field"><label>非住院窗口</label>
+                <div class="form-field" id="inpWindowField"><label>非住院窗口</label>
                     <select id="inpWindow"><option value="0">否</option><option value="1">是</option></select>
                 </div>
-                <div class="form-field"><label>自助机</label>
+                <div class="form-field" id="atmField"><label>自助机</label>
                     <select id="atm"><option value="0">否</option><option value="1">是</option></select>
                 </div>
                 <!-- 新增字段: 是否提取HIS数据，默认“是”(值为1) -->
@@ -547,13 +577,10 @@
                         <option value="0">住院</option>
                     </select>
                 </div>
-                <div class="form-field"><label>门诊/住院 *</label>
-                    <select id="category"><option value="0">门诊</option><option value="1">住院</option></select>
-                </div>
                 <div class="form-field"><label>输入标志</label>
                     <select id="inputFlag"><option value=0>否</option><option value=1>是</option></select>
                 </div>
-                <div class="form-field"><label>顺序号</label><input type="number" id="rowNum" value="0"></div>
+                <div class="form-field"><label>顺序号</label><input type="number" id="rowNum" placeholder="留空则自动编号"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" id="cancelFormBtn">取消</button>
@@ -671,6 +698,18 @@
             refreshDisplay();
         } finally {
             showLoading(false);
+        }
+    }
+
+    // 顺序号留空时：全量拉取，取所选门诊/住院分类当前最大顺序号+1
+    async function computeNextRowNum(category) {
+        try {
+            const result = await apiRequest(`${API_BASE}/findall`, { extend_params1: "", extend_params2: "", extend_params3: "" });
+            const list = (result && result.body && result.body.list) || [];
+            const max = list.reduce((m, o) => (o.category === category) ? Math.max(m, parseInt(o.row_num) || 0) : m, 0);
+            return max + 1;
+        } catch (e) {
+            return 1;
         }
     }
 
@@ -797,37 +836,48 @@
         if (currentPage < 1) currentPage = 1;
     }
 
+    // 住院视图隐藏门诊专用两列
+    function toggleInpColumns() {
+        const hidden = currentFilter === "1";
+        document.getElementById("thInpWindow").style.display = hidden ? "none" : "";
+        document.getElementById("thAtm").style.display = hidden ? "none" : "";
+    }
+
     // 渲染表格，新增“提取HIS数据”列
     function renderTable() {
         const tbody = document.getElementById("tableBody");
         const pageData = getCurrentPageData();
         const startIndex = (currentPage - 1) * pageSize;
-        
+        const inpColsHidden = currentFilter === "1";
+
         if (!pageData.length) {
-            tbody.innerHTML = `<tr class="empty-row"><td colspan="12">暂无数据，请点击"新增操作员"添加</td></tr>`;
+            tbody.innerHTML = `<tr class="empty-row"><td colspan="${inpColsHidden ? 10 : 12}">暂无数据，请点击"新增操作员"添加</td></tr>`;
             return;
         }
         
         let html = "";
         pageData.forEach((item, idx) => {
             const serial = startIndex + idx + 1;
-            const categoryText = item.category === "0" ? "门诊" : "住院";
+            const categoryBadge = item.category === "0" ? '<span class="badge-menz">门诊</span>' : '<span class="badge-zhuy">住院</span>';
             const inpWindowBadge = item.inp_window === "1" ? '<span class="badge-yes">是</span>' : '<span class="badge-no">否</span>';
             const atmBadge = item.atm === "1" ? '<span class="badge-yes">是</span>' : '<span class="badge-no">否</span>';
             const inputFlagBadge = item.input_flag === 1 ? '<span class="badge-yes">是</span>' : '<span class="badge-no">否</span>';
             // 提取HIS数据徽章展示
             const extractHisBadge = item.extract_his_flag === "1" ? '<span class="badge-yes">门诊</span>' : '<span class="badge-no">住院</span>';
             const formattedCreateTime = formatDateTime(item.create_time);
-            
+            // 门诊专用两列：住院行无意义，全部视图下显示 —
+            const inpWindowCell = inpColsHidden ? "" : `<td style="text-align:center">${item.category === "1" ? "—" : inpWindowBadge}</td>`;
+            const atmCell = inpColsHidden ? "" : `<td style="text-align:center">${item.category === "1" ? "—" : atmBadge}</td>`;
+
             html += `<tr>
                 <td>${serial}</td>
                 <td>${escapeHtml(item.operator_no || '')}</td>
                 <td>${escapeHtml(item.operator_name || '')}</td>
                 <td>${parseFloat(item.petty_cash || 0).toFixed(2)}</td>
-                <td style="text-align:center">${inpWindowBadge}</td>
-                <td style="text-align:center">${atmBadge}</td>
+                ${inpWindowCell}
+                ${atmCell}
                 <td style="text-align:center">${extractHisBadge}</td>
-                <td>${categoryText}</td>
+                <td style="text-align:center">${categoryBadge}</td>
                 <td>${formattedCreateTime}</td>
                 <td style="text-align:center">${inputFlagBadge}</td>
                 <td>${(item.row_num || 0)}</td>
@@ -892,6 +942,7 @@
     
     function refreshDisplay() {
         adjustPage();
+        toggleInpColumns();
         renderTable();
         renderPagination();
     }
@@ -916,6 +967,13 @@
         document.getElementById("gotoPageInput").value = target;
     }
     
+    // 住院分类用不到 非住院窗口/自助机，按所选分类显隐弹窗表单项
+    function toggleInpOnlyFields() {
+        const isInp = document.getElementById("category").value === "1";
+        document.getElementById("inpWindowField").style.display = isInp ? "none" : "";
+        document.getElementById("atmField").style.display = isInp ? "none" : "";
+    }
+
     // 模态框逻辑: 新增时 提取HIS数据默认值为“1”（是）
     function openAddModal() {
         document.getElementById("modalTitle").innerText = "新增操作员";
@@ -927,7 +985,8 @@
         document.getElementById("extractHisFlag").value = "1";    // 默认 是
         document.getElementById("category").value = "0";
         document.getElementById("inputFlag").value = 0;
-        document.getElementById("rowNum").value = "0";
+        document.getElementById("rowNum").value = "";
+        toggleInpOnlyFields();
         document.getElementById("operatorModal").style.display = "flex";
     }
     
@@ -945,6 +1004,7 @@
         document.getElementById("category").value = operator.category;
         document.getElementById("inputFlag").value = operator.input_flag;
         document.getElementById("rowNum").value = operator.row_num || 0;
+        toggleInpOnlyFields();
         document.getElementById("operatorModal").style.display = "flex";
     }
     
@@ -978,11 +1038,14 @@
             const success = await updateOperator(operatorData);
             if (success) closeModal();
         } else {
+            const rowNumInput = document.getElementById("rowNum").value.trim();
+            const row_num = rowNumInput === "" ? await computeNextRowNum(document.getElementById("category").value)
+                                               : (parseInt(rowNumInput) || 0);
             const operatorData = {
                 operator_no: operator_no,
                 operator_name: operator_name,
                 category: document.getElementById("category").value,
-                row_num: parseInt(document.getElementById("rowNum").value) || 0,
+                row_num: row_num,
                 inp_window: document.getElementById("inpWindow").value,
                 atm: document.getElementById("atm").value,
                 petty_cash: parseFloat(document.getElementById("pettyCash").value) || 0,
@@ -1053,6 +1116,7 @@
             }
         });
         document.getElementById("openAddBtn").addEventListener("click", openAddModal);
+        document.getElementById("category").addEventListener("change", toggleInpOnlyFields);
         document.getElementById("closeModalBtn").addEventListener("click", closeModal);
         document.getElementById("cancelFormBtn").addEventListener("click", closeModal);
         document.getElementById("operatorForm").addEventListener("submit", (e) => { e.preventDefault(); onSaveForm(); });
