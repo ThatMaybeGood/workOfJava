@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.MiReconMedInstMapper">
+
+    <resultMap id="orgMap" type="com.reports.dto.response.cash.mi.MiReconCompareItem">
+        <result property="settleDate" column="settle_date"/>
+        <result property="orgQty" column="org_qty"/>
+        <result property="orgFee" column="org_fee"/>
+    </resultMap>
+
+    <!-- 占坑: 医疗机构侧对账汇总SQL, 用户补全(HIS库)
+         入参: insurType=费别(310/390/3101/3901), startDate/endDate=yyyy-MM-dd(对账月份1号~月末)
+         返回三列: settle_date结算日期, org_qty数量, org_fee医疗总费用
+         注意: HIS库netcen_yb是US7ASCII, SQL不能写中文字面量; 中文列需RAWTOHEX传回Java按GBK解码
+         补全示例(HIS表名/字段以实际口径为准):
+             SELECT 结算日期 AS settle_date, SUM(数量) AS org_qty, SUM(医疗总费用) AS org_fee
+             FROM his_表
+             WHERE 费别 = #{insurType}
+               AND 结算日期 BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
+             GROUP BY 结算日期
+             ORDER BY settle_date
+         下方占位语句恒返回空, 替换整段select即可 -->
+    <select id="queryOrgData" resultMap="orgMap">
+        SELECT TO_DATE(#{startDate}, 'yyyy-mm-dd') AS settle_date,
+               CAST(NULL AS NUMBER(10))   AS org_qty,
+               CAST(NULL AS NUMBER(14,2)) AS org_fee
+        FROM DUAL
+        WHERE 1 = 0
+    </select>
+
+</mapper>
