@@ -1,0 +1,236 @@
+package com.reports.service.impl;
+
+import com.reports.dto.request.MiReconRequest;
+import com.reports.dto.response.cash.mi.MiReconCompareItem;
+import com.reports.dto.response.cash.mi.MiReconFileItem;
+import com.reports.entity.MiReconDetailEntity;
+import com.reports.entity.MiReconFileEntity;
+import com.reports.enums.MiReconInsurType;
+import com.reports.mapper.MiReconMapper;
+import com.reports.service.MiReconMedInstService;
+import com.reports.service.MiReconService;
+import com.reports.util.MiReconExcelUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+/**
+ * 医保对账每日对比服务实现(报表库)
+ */
+@Slf4j
+@Service
+public class MiReconServiceImpl implements MiReconService {
+
+    private final MiReconMapper miReconMapper;
+    private final MiReconMedInstService miReconMedInstService;
+
+    @Autowired
+    public MiReconServiceImpl(MiReconMapper miReconMapper,
+                              MiReconMedInstService miReconMedInstService) {
+        this.miReconMapper = miReconMapper;
+        this.miReconMedInstService = miReconMedInstService;
+    }
+
+    @Override
+    public List<MiReconCompareItem> queryCompare(MiReconRequest request) {
+        MiReconInsurType type = MiReconInsurType.ofCode(request.getInsurType());
+        if (type == null) {
+            throw new IllegalArgumentException("医保类型无效, 应为310/390/3101/3901之一");
+        }
+        // 对账月份折算为当月1号~月末(医疗机构侧SQL按此日期范围直查)
+        String month = resolveMonth(request.getMonth());
+        String start = month + "-01";
+        String end = lastDayOfMonth(month);
+
+        // 医保侧(上传数据)与医疗机构侧各按结算日期取数, 按日期并集对齐
+        Map<String, MiReconCompareItem> merged = new TreeMap<>();
+        try {
+            for (MiReconDetailEntity d : miReconMapper.queryMiAgg(type.getCode(), start, end)) {
+                MiReconCompareItem item = merged.computeIfAbsent(fmt(d.getSettleDate()), k -> baseItem(k, type));
+                item.setMiQty(d.getQty());
+                item.setMiFee(d.getTotalFee());
+            }
+        } catch (Exception e) {
+            log.warn("查询医保对账上传数据失败", e);
+        }
+        try {
+            for (MiReconCompareItem org : miReconMedInstService.queryOrgData(type.getCode(), start, end)) {
+                if (org == null || org.getSettleDate() == null) {
+                    continue;
+                }
+                MiReconCompareItem item = merged.computeIfAbsent(fmt(org.getSettleDate()), k -> baseItem(k, type));
+                item.setOrgQty(org.getOrgQty());
+                item.setOrgFee(org.getOrgFee());
+            }
+        } catch (Exception e) {
+            log.warn("查询医疗机构对账数据失败", e);
+        }
+
+        List<MiReconCompareItem> list = new ArrayList<>(merged.values());
+        for (MiReconCompareItem item : list) {
+            boolean both = item.getMiFee() != null && item.getOrgFee() != null;
+            item.setDiffFee(both ? item.getMiFee().subtract(item.getOrgFee()) : null);
+            // 金额对平才算对平; 单侧缺失或不等均不平
+            item.setMatched(both && item.getMiFee().compareTo(item.getOrgFee()) == 0);
+        }
+        return list;
+    }
+
+    @Override
+    public List<MiReconFileItem> queryRecords() {
+        List<MiReconFileItem> result = new ArrayList<>();
+        try {
+            for (MiReconFileEntity entity : miReconMapper.queryFileList()) {
+                MiReconFileItem item = new MiReconFileItem();
+                item.setId(entity.getId());
+                item.setFileName(entity.getFileName());
+                item.setInsurType(entity.getInsurType());
+                MiReconInsurType type = MiReconInsurType.ofCode(entity.getInsurType());
+                item.setInsurTypeName(entity.getInsurTypeName() != null
+                        ? entity.getInsurTypeName()
+                        : (type == null ? entity.getInsurType() : type.getChineseName()));
+                item.setDataDate(entity.getDataDate());
+                item.setRowCount(entity.getRowCount());
+                item.setCreateTime(entity.getCreateTime());
+                result.add(item);
+            }
+        } catch (Exception e) {
+            log.warn("查询医保对账上传记录失败", e);
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int updateType(Long id, String insurType) {
+        if (id == null || MiReconInsurType.ofCode(insurType) == null) {
+            throw new IllegalArgumentException("记录id或医保类型无效");
+        }
+        int affected = miReconMapper.updateFileType(id, insurType.trim(), typeName(insurType));
+        try {
+            miReconMapper.cascadeDetailType(id, insurType.trim(), typeName(insurType));
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalArgumentException(
+                    "修改失败：目标类型在相同结算日期已存在数据，请先删除冲突类型的上传记录");
+        }
+        return affected;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Map<String, Object> upload(MultipartFile file, String insurType, String dataDate) {
+        MiReconInsurType type = MiReconInsurType.ofCode(insurType);
+        if (type == null) {
+            throw new IllegalArgumentException("医保类型无效, 应为310/390/3101/3901之一");
+        }
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("上传文件为空");
+        }
+        Date dataDay = parseDay(dataDate);
+
+        List<MiReconDetailEntity> details;
+        try {
+            details = MiReconExcelUtil.parse(file.getInputStream(), type.getCode());
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("医保对账文件解析失败: {}", file.getOriginalFilename(), e);
+            throw new IllegalArgumentException("文件解析失败, 请确认是医保对账xls/xlsx文件");
+        }
+        if (details.isEmpty()) {
+            throw new IllegalArgumentException("文件中没有有效数据行");
+        }
+
+        MiReconFileEntity fileEntity = new MiReconFileEntity();
+        fileEntity.setFileName(file.getOriginalFilename());
+        fileEntity.setInsurType(type.getCode());
+        fileEntity.setInsurTypeName(type.getChineseName());
+        fileEntity.setDataDate(dataDay);
+        fileEntity.setRowCount(details.size());
+        miReconMapper.insertFile(fileEntity);
+
+        List<String> settleDates = new ArrayList<>();
+        for (MiReconDetailEntity d : details) {
+            settleDates.add(fmt(d.getSettleDate()));
+        }
+        miReconMapper.deleteDetailByTypeAndDates(type.getCode(), settleDates);
+        for (MiReconDetailEntity d : details) {
+            d.setFileId(fileEntity.getId());
+            d.setInsurTypeName(type.getChineseName());
+            miReconMapper.insertDetail(d);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("fileId", fileEntity.getId());
+        result.put("fileName", fileEntity.getFileName());
+        result.put("insurType", type.getCode());
+        result.put("insurTypeName", type.getChineseName());
+        result.put("rowCount", details.size());
+        return result;
+    }
+
+    private MiReconCompareItem baseItem(String settleDate, MiReconInsurType type) {
+        MiReconCompareItem item = new MiReconCompareItem();
+        item.setSettleDate(parseDay(settleDate));
+        item.setInsurType(type.getCode());
+        return item;
+    }
+
+    /** 默认取当月 */
+    private String resolveMonth(String month) {
+        if (month == null || month.trim().isEmpty()) {
+            return new SimpleDateFormat("yyyy-MM").format(new Date());
+        }
+        String m = month.trim();
+        if (!m.matches("\\d{4}-\\d{2}")) {
+            throw new IllegalArgumentException("对账月份格式无效, 应为yyyy-MM");
+        }
+        return m;
+    }
+
+    /** 当月最后一天, yyyy-MM-dd */
+    private String lastDayOfMonth(String month) {
+        int year = Integer.parseInt(month.substring(0, 4));
+        int mon = Integer.parseInt(month.substring(5, 7));
+        if (mon < 1 || mon > 12) {
+            throw new IllegalArgumentException("对账月份格式无效, 应为yyyy-MM");
+        }
+        Calendar c = Calendar.getInstance();
+        c.clear();
+        c.set(year, mon - 1, 1);
+        int last = c.getActualMaximum(Calendar.DAY_OF_MONTH);
+        return month + "-" + String.format("%02d", last);
+    }
+
+    private Date parseDay(String yyyyMMdd) {
+        try {
+            SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd");
+            fmt.setLenient(false);
+            return fmt.parse(yyyyMMdd);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("日期格式无效, 应为yyyy-MM-dd");
+        }
+    }
+
+    private String fmt(Date date) {
+        return new SimpleDateFormat("yyyy-MM-dd").format(date);
+    }
+
+    private String typeName(String insurType) {
+        MiReconInsurType t = MiReconInsurType.ofCode(insurType);
+        return t == null ? insurType : t.getChineseName();
+    }
+}

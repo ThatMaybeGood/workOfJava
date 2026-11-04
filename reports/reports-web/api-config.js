@@ -13,6 +13,9 @@ const API_CONFIG = {
     // 真实接口基础地址
     baseUrl: 'http://localhost:18089/reports/gateway',
 
+    // 医保对账文件上传(multipart, 不走JSON网关)
+    miReconUploadUrl: 'http://localhost:18089/reports/mi-recon/upload',
+
     // ==================== 接口方法名映射 ====================
     // 每个 key 对应 API 文档中的 method 字段
     methods: {
@@ -145,6 +148,10 @@ const API_CONFIG = {
         // 院前操作员维护
         'reports.cash.pre-hosp-oper': {
             endpoint: '/api/cash/pre-hosp-oper'
+        },
+        // 医保对账每日对比
+        'reports.cash.mi-recon': {
+            endpoint: '/api/cash/mi-recon'
         }
     }
 };
@@ -466,6 +473,10 @@ function callMockService(methodKey, endpointKey, params) {
         // 院前操作员维护
         'reports.cash.pre-hosp-oper': {
             endpoint: (p) => MockService.getPreHospOperData(p)
+        },
+        // 医保对账每日对比
+        'reports.cash.mi-recon': {
+            endpoint: (p) => MockService.getMiReconData(p)
         }
     };
 

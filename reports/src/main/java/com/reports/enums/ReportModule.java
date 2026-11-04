@@ -293,6 +293,17 @@ public enum ReportModule {
                     new ReportMethod("addOper", "添加操作员"),
                     new ReportMethod("removeOper", "删除操作员"),
                     new ReportMethod("setValid", "设置是否有效")
+            )),
+
+    /**
+     * 医保对账每日对比
+     */
+    MI_RECON("医保对账每日对比",
+            "com.reports.service.MiReconService",
+            Arrays.asList(
+                    new ReportMethod("queryCompare", "查询对账对比"),
+                    new ReportMethod("queryRecords", "查询上传记录"),
+                    new ReportMethod("updateType", "修改上传类型")
             ));
 
     /**

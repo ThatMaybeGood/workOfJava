@@ -867,8 +867,65 @@ const MockService = {
                 resolve({ code: 200, data: { affected: 1 } });
             }, 200);
         });
+    },
+
+    /**
+     * 医保对账每日对比(compare返回双边对比行, records返回上传记录, 其余动作返回affected)
+     */
+    getMiReconData(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const typeName = { '310': '职工', '390': '居民', '3101': '异地职工', '3901': '异地居民' };
+                if (params && params.action === 'records') {
+                    resolve({
+                        code: 200,
+                        data: {
+                            list: [
+                                { id: 1, fileName: '2026年10月-职工医保-对账_.xls', insurType: '310', insurTypeName: '职工', dataDate: '2026-11-04', rowCount: 31, createTime: '2026-11-04 09:12:00' },
+                                { id: 2, fileName: '2026年10月-居民医保-对账_.xls', insurType: '390', insurTypeName: '居民', dataDate: '2026-11-04', rowCount: 31, createTime: '2026-11-04 09:13:20' }
+                            ],
+                            total: 2
+                        }
+                    });
+                    return;
+                }
+                const month = (params && params.month) || new Date().toISOString().slice(0, 7);
+                const dates = genMonthDates(month);
+                const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+                const list = dates.map((itemDate, idx) => {
+                    const miQty = rand(200, 5000);
+                    const miFee = rand(100000, 4000000) + 0.12;
+                    // 每4天造一笔不平
+                    const matched = idx % 4 !== 3;
+                    const orgFee = matched ? miFee : miFee + rand(1, 999) + 0.5;
+                    return {
+                        settleDate: itemDate,
+                        insurType: params.insurType || '310',
+                        insurTypeName: typeName[params.insurType || '310'],
+                        miQty, miFee, orgQty: matched ? miQty : miQty - 1, orgFee,
+                        diffFee: matched ? 0 : miFee - orgFee,
+                        matched
+                    };
+                });
+                resolve({ code: 200, data: { list, total: list.length } });
+            }, 200);
+        });
     }
 };
+
+// ===== 医保对账每日对比 Mock 辅助函数 =====
+
+// 生成某月的日期序列 yyyy-MM-dd(整月)
+function genMonthDates(month) {
+    const list = [];
+    const [y, m] = String(month || '').split('-').map(Number);
+    if (!y || !m) return list;
+    const last = new Date(y, m, 0).getDate();
+    for (let d = 1; d <= last; d++) {
+        list.push(y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0'));
+    }
+    return list;
+}
 
 // ===== 出院结算人次统计 Mock 辅助函数 =====
 

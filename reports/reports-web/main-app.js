@@ -35,6 +35,7 @@ const menuConfig = [
             { label: '住院预交金统计',   file: 'cash/cash-inpatient-prepayment.html',     icon: 'bi-wallet2' },
             { label: '门诊财务报表',     file: 'cash/cash-outpatient-finance.html',       icon: 'bi-file-earmark-bar-graph' },
             { label: '院前转住院统计',   file: 'cash/cash-prehosp-trans.html',            icon: 'bi-hospital' },
+            { label: '医保对账每日对比', file: 'cash/cash-mi-recon.html',                 icon: 'bi-shield-check' },
         ]
     }
 ];

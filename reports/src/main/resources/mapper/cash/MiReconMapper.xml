@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.MiReconMapper">
+
+    <resultMap id="fileMap" type="com.reports.entity.MiReconFileEntity">
+        <id property="id" column="id"/>
+        <result property="fileName" column="file_name"/>
+        <result property="insurType" column="insur_type"/>
+        <result property="insurTypeName" column="insur_type_name"/>
+        <result property="dataDate" column="data_date"/>
+        <result property="rowCount" column="row_count"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <resultMap id="detailMap" type="com.reports.entity.MiReconDetailEntity">
+        <id property="id" column="id"/>
+        <result property="fileId" column="file_id"/>
+        <result property="insurType" column="insur_type"/>
+        <result property="insurTypeName" column="insur_type_name"/>
+        <result property="qty" column="qty"/>
+        <result property="totalFee" column="total_fee"/>
+        <result property="settleDate" column="settle_date"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <!-- 上传记录: 最近100条, 新的在前 -->
+    <select id="queryFileList" resultMap="fileMap">
+        SELECT id, file_name, insur_type, insur_type_name, data_date, row_count, create_time, update_time
+        FROM (
+            SELECT id, file_name, insur_type, insur_type_name, data_date, row_count, create_time, update_time
+            FROM tr_mi_recon_file
+            ORDER BY create_time DESC, id DESC
+        )
+        WHERE ROWNUM &lt;= 100
+    </select>
+
+    <!-- 医保侧按结算日期聚合(对比用) -->
+    <select id="queryMiAgg" resultMap="detailMap">
+        SELECT settle_date, SUM(qty) AS qty, SUM(total_fee) AS total_fee
+        FROM tr_mi_recon_detail
+        WHERE insur_type = #{insurType}
+          AND settle_date BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
+        GROUP BY settle_date
+        ORDER BY settle_date
+    </select>
+
+    <insert id="insertFile" parameterType="com.reports.entity.MiReconFileEntity">
+        <selectKey keyProperty="id" resultType="long" order="BEFORE">
+            SELECT seq_tr_reports.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO tr_mi_recon_file (id, file_name, insur_type, insur_type_name, data_date, row_count, create_time, update_time)
+        VALUES (#{id}, #{fileName}, #{insurType}, #{insurTypeName}, #{dataDate}, #{rowCount}, SYSDATE, SYSDATE)
+    </insert>
+
+    <!-- 类型修改级联明细, 保证对比按类型能查到 -->
+    <update id="updateFileType">
+        UPDATE tr_mi_recon_file
+        SET insur_type = #{insurType}, insur_type_name = #{insurTypeName}, update_time = SYSDATE
+        WHERE id = #{id}
+    </update>
+
+    <!-- 类型修改级联明细中文名 -->
+    <update id="cascadeDetailType">
+        UPDATE tr_mi_recon_detail
+        SET insur_type = #{insurType}, insur_type_name = #{insurTypeName}
+        WHERE file_id = #{id}
+    </update>
+
+    <!-- 同类型同结算日期以最新上传为准 -->
+    <delete id="deleteDetailByTypeAndDates">
+        DELETE FROM tr_mi_recon_detail
+        WHERE insur_type = #{insurType}
+          AND settle_date IN
+        <foreach collection="settleDates" item="d" open="(" separator="," close=")">
+            TO_DATE(#{d}, 'yyyy-mm-dd')
+        </foreach>
+    </delete>
+
+    <insert id="insertDetail" parameterType="com.reports.entity.MiReconDetailEntity">
+        INSERT INTO tr_mi_recon_detail (id, file_id, insur_type, insur_type_name, qty, total_fee, settle_date, create_time)
+        VALUES (seq_tr_reports.NEXTVAL, #{fileId}, #{insurType}, #{insurTypeName}, #{qty}, #{totalFee}, #{settleDate}, SYSDATE)
+    </insert>
+
+</mapper>

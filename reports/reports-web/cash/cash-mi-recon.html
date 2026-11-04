@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医保对账每日对比</title>
+    <link href="../vendor/bootstrap@5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../vendor/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../vendor/flatpickr@4.6.13/css/flatpickr.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid py-2">
+        <div class="page-title d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <span class="title-bar"></span>
+                医保对账每日对比
+            </div>
+            <label class="mock-toggle mb-0">
+                <span class="mock-label">Mock数据</span>
+                <input type="checkbox" id="mockToggle" checked>
+                <span class="mock-status" id="mockStatus">Mock</span>
+            </label>
+        </div>
+
+        <div class="filter-section">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="filter-label">类型：</span>
+                    <select class="form-select form-select-sm" id="typeFilter" style="width:140px">
+                        <option value="310">职工</option>
+                        <option value="390">居民</option>
+                        <option value="3101">异地职工</option>
+                        <option value="3901">异地居民</option>
+                    </select>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="filter-label">对账月份：</span>
+                    <input type="month" class="form-control form-control-sm" id="monthFilter" style="width:160px">
+                </div>
+                <button class="btn btn-primary btn-sm" id="queryBtn"><i class="bi bi-search me-1"></i>查询</button>
+                <div class="ms-auto d-flex align-items-center gap-2">
+                    <button class="btn btn-outline-primary btn-sm" id="uploadBtn"><i class="bi bi-upload me-1"></i>上传医保数据</button>
+                    <button class="btn btn-outline-secondary btn-sm" id="recordsBtn"><i class="bi bi-clock-history me-1"></i>上传记录</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-section">
+            <div class="table-header d-flex justify-content-between align-items-center">
+                <div class="table-title"><i class="bi bi-shield-check"></i><span id="tableTitle">医保对账每日对比</span></div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered mb-0" id="reconTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>结算日期</th>
+                            <th>类型</th>
+                            <th class="text-end">医保-对账数据量</th>
+                            <th class="text-end">医保-医疗费总额</th>
+                            <th class="text-end">医疗机构-数量</th>
+                            <th class="text-end">医疗机构-医疗总费用</th>
+                            <th class="text-end">差额(医保-医疗机构)</th>
+                            <th class="text-center">状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                    <tfoot id="tableFoot" class="table-light fw-bold" style="display:none;">
+                        <tr>
+                            <td colspan="2">合计</td>
+                            <td class="text-end" id="sumMiQty"></td>
+                            <td class="text-end" id="sumMiFee"></td>
+                            <td class="text-end" id="sumOrgQty"></td>
+                            <td class="text-end" id="sumOrgFee"></td>
+                            <td class="text-end" id="sumDiff"></td>
+                            <td class="text-center" id="sumStatus"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div id="tableEmpty" class="text-center text-muted py-4 d-none">暂无数据，请上传医保对账文件或调整查询条件</div>
+        </div>
+    </div>
+
+    <!-- 上传医保对账文件弹窗: 数据日期(默认当天) + 类型 + 文件 -->
+    <div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">上传医保对账文件</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">数据日期 <span class="text-danger">*</span></label>
+                        <div class="date-input-wrapper">
+                            <input type="text" class="form-control form-control-sm date-input" id="uploadDate" readonly>
+                            <i class="bi bi-calendar date-input-icon"></i>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">类型 <span class="text-danger">*</span></label>
+                        <select class="form-select form-select-sm" id="uploadType">
+                            <option value="310">职工(310)</option>
+                            <option value="390">居民(390)</option>
+                            <option value="3101">异地职工(3101)</option>
+                            <option value="3901">异地居民(3901)</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">对账文件 <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control form-control-sm" id="uploadFile" accept=".xls,.xlsx">
+                        <div class="form-text">医保导出的对账xls，列：定点医药机构编号/对账数据量/医疗费总额/结算日期</div>
+                    </div>
+                    <div id="uploadMsg" class="small d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="uploadSubmit"><i class="bi bi-upload me-1"></i>上传</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 上传记录弹窗: 文件名/类型/数据日期/行数/上传时间, 类型选错可改 -->
+    <div class="modal fade" id="recordsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">上传记录</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive" style="max-height:55vh">
+                        <table class="table table-hover table-bordered mb-0">
+                            <thead class="table-light">
+                                <tr><th>文件名</th><th style="width:150px;">类型</th><th>数据日期</th><th>明细行数</th><th>上传时间</th><th style="width:120px;">操作</th></tr>
+                            </thead>
+                            <tbody id="recordsBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="recordsEmpty" class="text-center text-muted py-2 d-none">暂无上传记录</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../vendor/bootstrap@5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script src="../vendor/flatpickr@4.6.13/js/flatpickr.min.js"></script>
+    <script src="../vendor/flatpickr@4.6.13/l10n/zh.js"></script>
+    <script src="../api-config.js"></script>
+    <script src="js/mock.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        (function() {
+            const toggle = document.getElementById('mockToggle');
+            const status = document.getElementById('mockStatus');
+            if (toggle && status) {
+                toggle.checked = API_CONFIG.useMock;
+                status.textContent = API_CONFIG.useMock ? 'Mock' : '接口';
+                status.classList.toggle('off', !API_CONFIG.useMock);
+                toggle.addEventListener('change', function() {
+                    setMockMode(this.checked);
+                    status.textContent = this.checked ? 'Mock' : '接口';
+                    status.classList.toggle('off', !this.checked);
+                    location.reload();
+                });
+            }
+        })();
+    </script>
+    <script src="js/cash-mi-recon-app.js"></script>
+</body>
+</html>

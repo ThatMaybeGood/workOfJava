@@ -163,5 +163,13 @@ const ReportAPI = {
      */
     preHospOper(params) {
         return apiRequest('reports.cash.pre-hosp-oper', 'endpoint', params);
+    },
+
+    /**
+     * 医保对账每日对比(action: compare/records/updateType)
+     * method: reports.cash.mi-recon
+     */
+    miRecon(params) {
+        return apiRequest('reports.cash.mi-recon', 'endpoint', params);
     }
 };
