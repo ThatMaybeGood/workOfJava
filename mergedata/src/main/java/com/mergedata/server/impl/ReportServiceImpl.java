@@ -879,12 +879,8 @@ public class ReportServiceImpl implements ReportService {
                     throw new BusinessException("该日期不是汇总日，无汇总数据；请在月末汇总日或节后第一个工作日查询汇总");
                 }
 
-                // 生成各段汇总并返回查询日期对应的那段
+                // 生成各段汇总并返回查询日期对应的那段(各段落库前已合并旧汇总行手工列, bt8)
                 inpResult = generateInpHolidayTotals(blockEnd, currentDate);
-                //2026-10-13 汇总初始化保留手工列: (11)(12)(15)保留旧汇总行录入值, (5)(9)/(6)随区间重新加总/汇集
-                if (isInitFlag && existTotal != null) {
-                    mergeSummaryManualColumns(inpResult, existTotal);
-                }
                 fillHolidayRange(inpResult);
             } else {
                 //查询数据库是否有相关数据
@@ -1093,6 +1089,11 @@ public class ReportServiceImpl implements ReportService {
             InpCashMainEntity summary = inpHolidayTotal(segRows, displayDates.get(i));
             summary.setHolidayStartDate(ranges.get(i)[0]);
             summary.setHolidayEndDate(ranges.get(i)[1]);
+            //bt8 落库前合并该段已存在汇总行的手工列(11)(12)(15), 初始化/重复生成不丢手工值
+            InpCashMainEntity existSeg = queryInpReportByDate(displayDates.get(i), Constant.YES);
+            if (existSeg != null) {
+                mergeSummaryManualColumns(summary, existSeg);
+            }
             isInitInsertInp(summary, Constant.YES);
             if (i == target) {
                 result = summary;
@@ -1236,10 +1237,40 @@ public class ReportServiceImpl implements ReportService {
         List<InpCashSubEntity> subs = Db.lambdaQuery(InpCashSubEntity.class)
                 .eq(InpCashSubEntity::getSerialNo, main.getSerialNo())
                 .list();
+        //bt7 行序按操作员表序号(即生成顺序), 防止物理删插后顺序漂移
+        sortInpSubsByOperator(subs);
         // 4. 设置子表列表
         main.setSubs(subs != null ? subs : new ArrayList<>());
 
         return main;
+    }
+
+    /**
+     * bt7 住院子表按操作员表序号排序(未匹配到操作员的行置后, 保持原相对顺序)
+     */
+    private void sortInpSubsByOperator(List<InpCashSubEntity> subs) {
+        if (subs == null || subs.size() < 2) {
+            return;
+        }
+        Map<String, Integer> orderMap = new HashMap<>();
+        for (YQOperatorEntity op : operatorService.findByCategory(Constant.TYPE_INP)) {
+            if (op.getRowNum() == null) {
+                continue;
+            }
+            if (op.getDbUser() != null) {
+                orderMap.putIfAbsent(op.getDbUser(), op.getRowNum());
+            }
+            if (op.getOperatorNo() != null) {
+                orderMap.putIfAbsent(op.getOperatorNo(), op.getRowNum());
+            }
+        }
+        subs.sort(Comparator.comparingInt(s -> {
+            Integer n = s.getDbUser() != null ? orderMap.get(s.getDbUser()) : null;
+            if (n == null && s.getOperatorNo() != null) {
+                n = orderMap.get(s.getOperatorNo());
+            }
+            return n != null ? n : Integer.MAX_VALUE;
+        }));
     }
 
 
