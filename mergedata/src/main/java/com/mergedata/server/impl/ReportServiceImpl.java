@@ -1120,22 +1120,24 @@ public class ReportServiceImpl implements ReportService {
         List<InpCashSubEntity> allSubs = allMains.stream()
                 .flatMap(m -> m.getSubs().stream()).collect(Collectors.toList());
 
-        //2026-10-19 汇总(1)前日暂收款/(8)前日欠条不加总: 取段第一天前一日日报同收费员的(11)今日暂收款/(16)今日欠条, 无则0
-        //如10.17/10.18放假, 段=[10.16..10.18], 取10.15日报; 节假日与节假日前一天的日报这两个值为0, 不会重复计入
-        LocalDate preSegDate = allMains.get(0).getReportDate().minusDays(1);
+        //bt9 前账(1)前日暂收款/(8)前日欠条: 仅段含放假前一天(段第一天非节假日)时取段前一天日报的(11)/(16); 跨月后段(段第一天为节假日, 前账已被前月段拿走)置0
         Map<String, InpCashSubEntity> preSegMap = new HashMap<>();
-        InpCashMainEntity preSegMain = queryInpReportByDate(preSegDate, Constant.NOT_TOTAL);
-        if (preSegMain != null) {
-            for (InpCashSubEntity s : preSegMain.getSubs()) {
-                String k = s.getDbUser() != null ? s.getDbUser() : s.getOperatorNo();
-                if (k != null) {
-                    preSegMap.putIfAbsent(k, s);
+        LocalDate segStart = allMains.get(0).getReportDate();
+        if (holidayService.findByDate(segStart).isEmpty()) {
+            LocalDate preSegDate = segStart.minusDays(1);
+            InpCashMainEntity preSegMain = queryInpReportByDate(preSegDate, Constant.NOT_TOTAL);
+            if (preSegMain != null) {
+                for (InpCashSubEntity s : preSegMain.getSubs()) {
+                    String k = s.getDbUser() != null ? s.getDbUser() : s.getOperatorNo();
+                    if (k != null) {
+                        preSegMap.putIfAbsent(k, s);
+                    }
                 }
+            } else {
+                //段前一天日报缺失才提醒(该日不在自动补生成范围内)
+                summary.setWarnMsg("汇总区间前一天 " + preSegDate + " 的日报尚未生成，汇总的前日暂收款/前日欠条暂按0处理"
+                        + "；请先查询 " + preSegDate + " 的正常日报表生成后，再「初始化」本汇总");
             }
-        } else {
-            //段前一天日报缺失才提醒(该日不在自动补生成范围内)
-            summary.setWarnMsg("汇总区间前一天 " + preSegDate + " 的日报尚未生成，汇总的前日暂收款/前日欠条暂按0处理"
-                    + "；请先查询 " + preSegDate + " 的正常日报表生成后，再「初始化」本汇总");
         }
 
         // 按收费员逐行汇总: 各列=期间每天对应列合计(公式列同样直接加总), 收费员顺序以最近一天报表为准
