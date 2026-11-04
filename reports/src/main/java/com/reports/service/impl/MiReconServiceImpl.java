@@ -74,7 +74,7 @@ public class MiReconServiceImpl implements MiReconService {
         // 医疗机构侧: HIS原始行在代码里聚合——日期合计入对比, 按来源类型(账平/医保负金额/医保正金额)汇总入明细
         Map<String, Map<String, MiReconOrgCatItem>> orgCatMap = new HashMap<>();
         try {
-            for (MiReconOrgDtlItem raw : miReconMedInstService.queryOrgData(type.getCode(), type.getChineseName(), start, end)) {
+            for (MiReconOrgDtlItem raw : miReconMedInstService.queryOrgData(type.getCode(), start, end)) {
                 if (raw == null || raw.getSettleDate() == null) {
                     continue;
                 }

@@ -12,8 +12,7 @@
     </resultMap>
 
     <!-- 医疗机构侧对账数据(医保结算库powerips的ips_dz_biz_bills)
-         入参: insurType=类型代码(310/390/3101/3901), insurTypeName=类型中文名(与代码配套传入, 直出),
-               startDate/endDate=yyyy-MM-dd(对账月份1号~月末)
+         入参: insurType=类型代码(310/390/3101/3901), startDate/endDate=yyyy-MM-dd(对账月份1号~月末)
          6字段: settle_date日期, qty数量, fee医疗总金额, insur_type类型代码, insur_type_name类型名称, source_type来源类型
          按来源类型UNION ALL: 账平(zp_flag=1)已补, 医保负金额/医保正金额两块待补(下方TODO骨架, 解开注释填条件即可);
          单块内已按bill_date分组(一天一行), Java侧再按日期+来源类型聚合 -->
@@ -31,7 +30,7 @@
                    COUNT(a.setl_id) AS qty,
                    SUM(a.medfee_sumamt) AS fee,
                    a.insutype AS insur_type,
-                   #{insurTypeName} AS insur_type_name
+                   DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民') AS insur_type_name
             FROM ips_dz_biz_bills a
             WHERE a.zp_flag = 1
               AND a.bill_date BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
@@ -44,7 +43,7 @@
                    COUNT(a.setl_id) AS qty,
                    SUM(a.medfee_sumamt) AS fee,
                    a.insutype AS insur_type,
-                   #{insurTypeName} AS insur_type_name
+                   DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民') AS insur_type_name
             FROM ips_dz_biz_bills a
             WHERE ...条件待补...
               AND a.bill_date BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')

@@ -14,7 +14,6 @@ public interface MiReconMedInstService {
 
     /**
      * 医疗机构侧原始行: 日期/数量/医疗总金额/类型代码/类型名称/来源类型
-     * insurTypeName与insurType配套传入, SQL直出
      */
-    List<MiReconOrgDtlItem> queryOrgData(String insurType, String insurTypeName, String startDate, String endDate);
+    List<MiReconOrgDtlItem> queryOrgData(String insurType, String startDate, String endDate);
 }

@@ -12,9 +12,8 @@ import java.util.List;
 @Mapper
 public interface MiReconMedInstMapper {
 
-    /** 医疗机构侧原始行(不聚合, 聚合在Java代码里); insurTypeName与insurType配套传入 */
+    /** 医疗机构侧原始行(不聚合, 聚合在Java代码里) */
     List<MiReconOrgDtlItem> queryOrgData(@Param("insurType") String insurType,
-                                         @Param("insurTypeName") String insurTypeName,
                                          @Param("startDate") String startDate,
                                          @Param("endDate") String endDate);
 }
