@@ -889,6 +889,20 @@ const MockService = {
                     });
                     return;
                 }
+                if (params && params.action === 'zpDiff') {
+                    resolve({
+                        code: 200,
+                        data: {
+                            list: [
+                                { setlId: '4301002026100100001', settleDate: params.settleDate, insurType: params.insurType, insurTypeName: typeName[params.insurType || '310'], medfeeSumamt: 3250.80, diffSide: '医保支付表' },
+                                { setlId: '4301002026100100002', settleDate: params.settleDate, insurType: params.insurType, insurTypeName: typeName[params.insurType || '310'], medfeeSumamt: 1180.00, diffSide: '医保支付表' },
+                                { setlId: '4301002026100100003', settleDate: params.settleDate, insurType: params.insurType, insurTypeName: typeName[params.insurType || '310'], medfeeSumamt: 560.50, diffSide: 'HIS业务表' }
+                            ],
+                            total: 3
+                        }
+                    });
+                    return;
+                }
                 const month = (params && params.month) || new Date().toISOString().slice(0, 7);
                 const dates = genMonthDates(month);
                 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;

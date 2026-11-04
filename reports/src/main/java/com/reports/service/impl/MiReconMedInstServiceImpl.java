@@ -2,6 +2,7 @@ package com.reports.service.impl;
 
 import com.reports.annotation.DataSource;
 import com.reports.dto.response.cash.mi.MiReconOrgDtlItem;
+import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
 import com.reports.mapper.MiReconMedInstMapper;
 import com.reports.service.MiReconMedInstService;
 import lombok.extern.slf4j.Slf4j;
@@ -32,5 +33,11 @@ public class MiReconMedInstServiceImpl implements MiReconMedInstService {
     public List<MiReconOrgDtlItem> queryOrgData(String insurType, String startDate, String endDate) {
         log.info("[医疗机构对账数据] powerips查询: insurType={} {}~{}", insurType, startDate, endDate);
         return miReconMedInstMapper.queryOrgData(insurType, startDate, endDate);
+    }
+
+    @Override
+    public List<MiReconZpDiffItem> queryZpDiff(String insurType, String settleDate) {
+        log.info("[账平差异] powerips查询: insurType={} settleDate={}", insurType, settleDate);
+        return miReconMedInstMapper.queryZpDiff(insurType, settleDate);
     }
 }

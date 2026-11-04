@@ -58,4 +58,52 @@
         ORDER BY settle_date, source_type
     </select>
 
+    <resultMap id="zpDiffMap" type="com.reports.dto.response.cash.mi.MiReconZpDiffItem">
+        <result property="setlId" column="setl_id"/>
+        <result property="settleDate" column="settle_date"/>
+        <result property="insurType" column="insur_type"/>
+        <result property="insurTypeName" column="insur_type_name"/>
+        <result property="medfeeSumamt" column="medfee_sumamt"/>
+        <result property="diffSide" column="diff_side"/>
+    </resultMap>
+
+    <!-- 账平差异明细(同一结算日, 两表账平应一致): HIS业务表ips_dz_biz_bills vs 医保支付表ips_dz_pay_bills
+         两块对称无主次: 各自zp_flag=1按setl_id反连接(NOT EXISTS)列对方没有的结算号,
+         diff_side=账平仅存在的一方(医保支付表/HIS业务表); 对方表不限日期类型, 存在同setl_id账平行即对上;
+         两表列名相同(bill_date/insutype/setl_id/medfee_sumamt/zp_flag) -->
+    <select id="queryZpDiff" resultMap="zpDiffMap">
+        SELECT diff_side,
+               settle_date,
+               setl_id,
+               insur_type,
+               insur_type_name,
+               medfee_sumamt
+        FROM (
+            SELECT '医保支付表' AS diff_side,
+                   p.bill_date AS settle_date,
+                   p.setl_id AS setl_id,
+                   p.insutype AS insur_type,
+                   DECODE(p.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民') AS insur_type_name,
+                   p.medfee_sumamt AS medfee_sumamt
+            FROM ips_dz_pay_bills p
+            WHERE p.zp_flag = 1
+              AND p.bill_date = TO_DATE(#{settleDate}, 'yyyy-mm-dd')
+              AND p.insutype = #{insurType}
+              AND NOT EXISTS (SELECT 1 FROM ips_dz_biz_bills b WHERE b.setl_id = p.setl_id AND b.zp_flag = 1)
+            UNION ALL
+            SELECT 'HIS业务表' AS diff_side,
+                   b.bill_date AS settle_date,
+                   b.setl_id AS setl_id,
+                   b.insutype AS insur_type,
+                   DECODE(b.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民') AS insur_type_name,
+                   b.medfee_sumamt AS medfee_sumamt
+            FROM ips_dz_biz_bills b
+            WHERE b.zp_flag = 1
+              AND b.bill_date = TO_DATE(#{settleDate}, 'yyyy-mm-dd')
+              AND b.insutype = #{insurType}
+              AND NOT EXISTS (SELECT 1 FROM ips_dz_pay_bills p WHERE p.setl_id = b.setl_id AND p.zp_flag = 1)
+        )
+        ORDER BY diff_side, setl_id
+    </select>
+
 </mapper>

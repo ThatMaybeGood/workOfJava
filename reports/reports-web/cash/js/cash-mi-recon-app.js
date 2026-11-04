@@ -81,9 +81,12 @@ class MiReconApp {
         });
         // 点对比表"医疗机构-医疗总费用"列的明细按钮, 弹出该日来源类型构成
         document.getElementById('tableBody').addEventListener('click', (e) => {
-            const btn = e.target.closest('button.org-dtl-btn');
-            if (btn) {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            if (btn.classList.contains('org-dtl-btn')) {
                 this.openOrgDtl(btn.dataset.date);
+            } else if (btn.classList.contains('zp-diff-btn')) {
+                this.openZpDiff(btn.dataset.date);
             }
         });
     }
@@ -141,8 +144,8 @@ class MiReconApp {
                 tr.className = 'table-danger';
                 mismatchCnt++;
             }
-            const hasOrg = item.orgFee !== null && item.orgFee !== undefined;
-            const orgFeeCell = hasOrg
+            const hasOrgFee = item.orgFee !== null && item.orgFee !== undefined;
+            const orgFeeCell = hasOrgFee
                 ? `${fmtFee(item.orgFee)} <button class="btn btn-link btn-sm p-0 ms-1 org-dtl-btn" data-date="${item.settleDate}"
                        title="查看该日医疗机构明细"><i class="bi bi-three-dots-vertical"></i></button>`
                 : '—';
@@ -156,7 +159,9 @@ class MiReconApp {
                 <td class="text-end">${item.diffFee === null || item.diffFee === undefined ? '—' : fmtFee(item.diffFee)}</td>
                 <td class="text-center">${item.matched
                     ? '<span class="badge bg-success">对平</span>'
-                    : '<span class="badge bg-danger">不平</span>'}</td>`;
+                    : `<span class="badge bg-danger">不平</span>
+                       <button class="btn btn-link btn-sm p-0 ms-1 zp-diff-btn" data-date="${item.settleDate}"
+                          title="查看HIS业务表与医保支付表账平差异">账平差异</button>`}</td>`;
             tbody.appendChild(tr);
             if (item.miQty !== null && item.miQty !== undefined) { sumMiQty += Number(item.miQty); hasMi = true; }
             if (item.miFee !== null && item.miFee !== undefined) { sumMiFee += Number(item.miFee); hasMi = true; }
@@ -199,6 +204,45 @@ class MiReconApp {
         bootstrap.Modal.getOrCreateInstance(document.getElementById('orgDtlModal')).show();
     }
 
+    /** 账平差异弹窗: HIS业务表ips_dz_biz_bills vs 医保支付表ips_dz_pay_bills, 双边账平按setl_id比对 */
+    async openZpDiff(settleDate) {
+        document.getElementById('zpDiffTitle').textContent =
+            `账平差异明细（${settleDate} ${insurTypeName(this.state.insurType)}）`;
+        const tbody = document.getElementById('zpDiffBody');
+        tbody.innerHTML = '';
+        document.getElementById('zpDiffEmpty').classList.add('d-none');
+        let list = [];
+        try {
+            const body = await ReportAPI.miRecon({
+                action: 'zpDiff',
+                insurType: this.state.insurType,
+                settleDate: settleDate
+            });
+            list = body.list || [];
+        } catch (error) {
+            console.error('Load zp diff failed:', error);
+        }
+        document.getElementById('zpDiffEmpty').classList.toggle('d-none', list.length > 0);
+        let sumFee = 0, hasFee = false, payCnt = 0, bizCnt = 0;
+        list.forEach(c => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${c.setlId || '—'}</td>
+                <td>${c.insurTypeName || insurTypeName(c.insurType)}</td>
+                <td>${c.diffSide || '—'}</td>
+                <td class="text-end">${fmtFee(c.medfeeSumamt)}</td>`;
+            tbody.appendChild(tr);
+            if (c.medfeeSumamt !== null && c.medfeeSumamt !== undefined) { sumFee += Number(c.medfeeSumamt); hasFee = true; }
+            if (c.diffSide === '医保支付表') payCnt++;
+            if (c.diffSide === 'HIS业务表') bizCnt++;
+        });
+        document.getElementById('zpDiffCnt').textContent = fmtQty(list.length) + ' 条';
+        document.getElementById('zpDiffSumFee').textContent = hasFee ? fmtFee(sumFee) : '—';
+        document.getElementById('zpDiffSummary').textContent = list.length === 0 ? ''
+            : `医保支付表多出 ${fmtQty(payCnt)} 条，HIS业务表多出 ${fmtQty(bizCnt)} 条（来源类型=账平仅存在的一方）`;
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('zpDiffModal')).show();
+    }
+
     openUploadModal() {
         this.showUploadMsg('', '');
         document.getElementById('uploadFile').value = '';
@@ -238,8 +282,8 @@ class MiReconApp {
             const resp = await fetch(API_CONFIG.miReconUploadUrl, { method: 'POST', body: form });
             const data = await resp.json();
             if (data.result && data.result.code === '10000' && data.result.success) {
+                // 不自动关闭弹窗, 成功信息留给用户确认, 手动点关闭
                 this.showUploadMsg(`上传成功：${data.body.fileName}（${data.body.insurTypeName}），共 ${data.body.rowCount} 条明细`, 'success');
-                setTimeout(() => bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide(), 1200);
                 this.load();
             } else {
                 this.showUploadMsg('上传失败：' + (data.result ? (data.result.sub_msg || data.result.msg) : '未知错误'), 'error');
@@ -274,7 +318,7 @@ class MiReconApp {
             const editing = this.editingId === item.id;
             const typeCell = editing
                 ? `<select class="form-select form-select-sm edit-type-select" data-id="${item.id}">
-                       ${INSUR_TYPES.map(t => `<option value="${t.code}" ${t.code === item.insurType ? 'selected' : ''}>${t.name}(${t.code})</option>`).join('')}
+                       ${INSUR_TYPES.map(t => `<option value="${t.code}" ${t.code === item.insurType ? 'selected' : ''}>${t.name}</option>`).join('')}
                    </select>`
                 : `<span class="badge bg-light text-dark border">${item.insurTypeName || insurTypeName(item.insurType)}</span>`;
             const opCell = editing

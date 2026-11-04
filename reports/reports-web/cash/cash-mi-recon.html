@@ -101,10 +101,10 @@
                     <div class="mb-3">
                         <label class="form-label">类型 <span class="text-danger">*</span></label>
                         <select class="form-select form-select-sm" id="uploadType">
-                            <option value="310">职工(310)</option>
-                            <option value="390">居民(390)</option>
-                            <option value="3101">异地职工(3101)</option>
-                            <option value="3901">异地居民(3901)</option>
+                            <option value="310">职工</option>
+                            <option value="390">居民</option>
+                            <option value="3101">异地职工</option>
+                            <option value="3901">异地居民</option>
                         </select>
                     </div>
                     <div class="mb-2">
@@ -173,6 +173,39 @@
                         </table>
                     </div>
                     <div id="orgDtlEmpty" class="text-center text-muted py-2 d-none">该日无医疗机构数据</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 账平差异弹窗: 对比表不平的行点"账平差异", 列HIS业务表与医保支付表账平不一致的结算号 -->
+    <div class="modal fade" id="zpDiffModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="zpDiffTitle">账平差异明细</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="zpDiffSummary" class="small text-muted mb-2"></div>
+                    <div class="table-responsive" style="max-height:55vh">
+                        <table class="table table-hover table-bordered mb-0">
+                            <thead class="table-light">
+                                <tr><th>结算ID</th><th>类型</th><th>来源类型</th><th class="text-end">医疗总金额</th></tr>
+                            </thead>
+                            <tbody id="zpDiffBody"></tbody>
+                            <tfoot class="table-light fw-bold">
+                                <tr>
+                                    <td colspan="3">合计（<span id="zpDiffCnt"></span>）</td>
+                                    <td class="text-end" id="zpDiffSumFee"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <div id="zpDiffEmpty" class="text-center text-muted py-2 d-none">两表账平一致，无差异</div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">关闭</button>

@@ -5,6 +5,7 @@ import com.reports.dto.response.cash.mi.MiReconCompareItem;
 import com.reports.dto.response.cash.mi.MiReconFileItem;
 import com.reports.dto.response.cash.mi.MiReconOrgCatItem;
 import com.reports.dto.response.cash.mi.MiReconOrgDtlItem;
+import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
 import com.reports.entity.MiReconDetailEntity;
 import com.reports.entity.MiReconFileEntity;
 import com.reports.enums.MiReconInsurType;
@@ -125,6 +126,21 @@ public class MiReconServiceImpl implements MiReconService {
             return ord == null ? MiReconOrgCategory.values().length : ord;
         }));
         return cats;
+    }
+
+    @Override
+    public List<MiReconZpDiffItem> queryZpDiff(String insurType, String settleDate) {
+        if (MiReconInsurType.ofCode(insurType) == null) {
+            throw new IllegalArgumentException("医保类型无效, 应为310/390/3101/3901之一");
+        }
+        // 先解析校验日期格式
+        parseDay(settleDate);
+        try {
+            return miReconMedInstService.queryZpDiff(insurType.trim(), settleDate.trim());
+        } catch (Exception e) {
+            log.warn("查询账平差异失败: insurType={} settleDate={}", insurType, settleDate, e);
+            return new ArrayList<>();
+        }
     }
 
     @Override

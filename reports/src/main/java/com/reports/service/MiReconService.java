@@ -3,6 +3,7 @@ package com.reports.service;
 import com.reports.dto.request.MiReconRequest;
 import com.reports.dto.response.cash.mi.MiReconCompareItem;
 import com.reports.dto.response.cash.mi.MiReconFileItem;
+import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
 import com.reports.entity.MiReconDetailEntity;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,6 +19,11 @@ public interface MiReconService {
      * 对账对比: 医保上传数据 vs 医疗机构数据, 同类型同结算日期金额比对
      */
     List<MiReconCompareItem> queryCompare(MiReconRequest request);
+
+    /**
+     * 账平差异明细(某日): HIS业务表 vs 医保支付表, 双边账平按setl_id比对
+     */
+    List<MiReconZpDiffItem> queryZpDiff(String insurType, String settleDate);
 
     /**
      * 上传记录(最近100条)

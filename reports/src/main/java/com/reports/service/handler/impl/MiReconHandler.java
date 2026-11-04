@@ -6,6 +6,7 @@ import com.reports.dto.common.ApiResponse;
 import com.reports.dto.request.MiReconRequest;
 import com.reports.dto.response.cash.mi.MiReconCompareItem;
 import com.reports.dto.response.cash.mi.MiReconFileItem;
+import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
 import com.reports.enums.ReportModule;
 import com.reports.service.MiReconService;
 import com.reports.service.handler.MethodMapping;
@@ -68,6 +69,12 @@ public class MiReconHandler implements ReportHandler<MiReconRequest, Map<String,
                 int affected = miReconService.updateType(body.getId(), body.getInsurType());
                 result.put("affected", affected);
                 return ApiResponse.success(result, affected > 0 ? "类型修改成功！" : "记录不存在，修改失败！");
+            }
+            case "zpDiff": {
+                List<MiReconZpDiffItem> list = miReconService.queryZpDiff(body.getInsurType(), body.getSettleDate());
+                result.put("list", list);
+                result.put("total", list.size());
+                return ApiResponse.success(result, "账平差异查询成功！");
             }
             default: {
                 List<MiReconCompareItem> list = miReconService.queryCompare(body);
