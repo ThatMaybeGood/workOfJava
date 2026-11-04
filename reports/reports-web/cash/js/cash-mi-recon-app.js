@@ -40,6 +40,7 @@ class MiReconApp {
         this.state = {
             insurType: '310',
             month: null,
+            status: '',
             list: []
         };
         this.records = [];
@@ -60,6 +61,11 @@ class MiReconApp {
                 this.state.month = e.target.value;
                 this.load();
             }
+        });
+        // 状态筛选只过滤已加载数据, 不重查
+        document.getElementById('statusFilter').addEventListener('change', (e) => {
+            this.state.status = e.target.value;
+            this.renderBody();
         });
         document.getElementById('queryBtn').addEventListener('click', () => this.load());
         document.getElementById('uploadBtn').addEventListener('click', () => this.openUploadModal());
@@ -129,9 +135,13 @@ class MiReconApp {
     }
 
     renderBody() {
-        const list = this.state.list;
+        // 状态筛选(全部/对平/不平), 合计跟随筛选结果——所见即所得
+        const all = this.state.list;
+        const list = all.filter(item => !this.state.status
+            || (this.state.status === 'matched' ? item.matched === true : item.matched === false));
+        const mismatchTotal = all.filter(item => item.matched === false).length;
         document.getElementById('tableTitle').textContent =
-            `医保对账每日对比（${insurTypeName(this.state.insurType)} ${this.state.month}）`;
+            `医保对账每日对比（${insurTypeName(this.state.insurType)} ${this.state.month}，共 ${list.length} 天${mismatchTotal > 0 ? '，不平 ' + mismatchTotal + ' 天' : ''}）`;
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
         document.getElementById('tableEmpty').classList.toggle('d-none', list.length > 0);
@@ -145,9 +155,10 @@ class MiReconApp {
                 mismatchCnt++;
             }
             const hasOrgFee = item.orgFee !== null && item.orgFee !== undefined;
+            // 点金额本身弹该日医疗机构来源类型构成
             const orgFeeCell = hasOrgFee
-                ? `${fmtFee(item.orgFee)} <button class="btn btn-link btn-sm p-0 ms-1 org-dtl-btn" data-date="${item.settleDate}"
-                       title="查看该日医疗机构明细"><i class="bi bi-three-dots-vertical"></i></button>`
+                ? `<button class="btn btn-link btn-sm p-0 org-dtl-btn" data-date="${item.settleDate}"
+                       title="点击查看该日医疗机构明细">${fmtFee(item.orgFee)}</button>`
                 : '—';
             tr.innerHTML = `
                 <td>${item.settleDate || '—'}</td>
@@ -159,9 +170,8 @@ class MiReconApp {
                 <td class="text-end">${item.diffFee === null || item.diffFee === undefined ? '—' : fmtFee(item.diffFee)}</td>
                 <td class="text-center">${item.matched
                     ? '<span class="badge bg-success">对平</span>'
-                    : `<span class="badge bg-danger">不平</span>
-                       <button class="btn btn-link btn-sm p-0 ms-1 zp-diff-btn" data-date="${item.settleDate}"
-                          title="查看HIS业务表与医保支付表账平差异">账平差异</button>`}</td>`;
+                    : `<button class="badge bg-danger border-0 zp-diff-btn" data-date="${item.settleDate}"
+                          title="点击查看HIS业务表与医保支付表账平差异">不平</button>`}</td>`;
             tbody.appendChild(tr);
             if (item.miQty !== null && item.miQty !== undefined) { sumMiQty += Number(item.miQty); hasMi = true; }
             if (item.miFee !== null && item.miFee !== undefined) { sumMiFee += Number(item.miFee); hasMi = true; }
