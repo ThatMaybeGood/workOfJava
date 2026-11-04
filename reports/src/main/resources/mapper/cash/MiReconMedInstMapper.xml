@@ -11,11 +11,11 @@
         <result property="sourceType" column="source_type"/>
     </resultMap>
 
-    <!-- 医疗机构侧对账数据(医保结算库powerips的ips_dz_biz_bills)
+    <!-- 医疗机构侧对账数据(医保结算库powerips, 4块UNION ALL按来源类型)
          入参: insurType=类型代码(310/390/3101/3901), startDate/endDate=yyyy-MM-dd(对账月份1号~月末)
          6字段: settle_date日期, qty数量, fee医疗总金额, insur_type类型代码, insur_type_name类型名称, source_type来源类型
-         按来源类型UNION ALL: 账平(zp_flag=1)已补, 医保负金额/医保正金额两块待补(下方TODO骨架, 解开注释填条件即可);
-         单块内已按bill_date分组(一天一行), Java侧再按日期+来源类型聚合 -->
+         单块内按bill_date分组(一天一行), Java侧再按日期+来源类型聚合;
+         注意: XML里SQL不能写裸<号, <=要用<![CDATA[<=]]>包, 否则启动解析报错 -->
     <select id="queryOrgData" resultMap="orgDtlMap">
         SELECT source_type,
                settle_date,
@@ -36,24 +36,60 @@
               AND a.bill_date BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
               AND a.insutype = #{insurType}
             GROUP BY a.insutype, a.bill_date
-            <!-- TODO 医保负金额(医保负=his正交易): 解开注释, 把过滤条件换成实际口径
             UNION ALL
-            SELECT '医保负金额' AS source_type,
+            <!-- 医保负金额-his正交易(医保负交易对HIS正交易, 金额取负) -->
+            SELECT '医保负金额-his正交易' AS source_type,
+                   b.bill_date AS settle_date,
+                   COUNT(b.setl_id) AS qty,
+                   -SUM(b.medfee_sumamt) AS fee,
+                   b.insutype AS insur_type,
+                   DECODE(b.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民') AS insur_type_name
+            FROM ips_dz_pay_bills b
+            INNER JOIN ips_dz_biz_bills a
+              ON a.INSUTYPE = b.INSUTYPE
+             AND a.bill_date <![CDATA[<=]]> b.bill_date
+             AND a.medfee_sumamt = -b.medfee_sumamt
+             AND a.TRAN_TYPE = 1
+             AND a.mdtrt_id = b.mdtrt_id
+             AND a.bill_date BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
+            WHERE b.bill_date BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
+              AND b.TRAN_TYPE = 2
+              AND b.zp_flag = -1
+              AND b.INSUTYPE = #{insurType}
+            GROUP BY b.insutype, b.bill_date
+            UNION ALL
+            <!-- 医保负金额-医保正交易(医保负交易对医保正交易, 金额取负) -->
+            SELECT '医保负金额-医保正交易' AS source_type,
+                   b.bill_date AS settle_date,
+                   COUNT(b.setl_id) AS qty,
+                   -SUM(NVL(a.medfee_sumamt, 0)) AS fee,
+                   b.insutype AS insur_type,
+                   DECODE(b.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民') AS insur_type_name
+            FROM ips_dz_pay_bills b
+            INNER JOIN ips_dz_pay_bills a
+              ON a.INSUTYPE = b.INSUTYPE
+             AND a.TRAN_TYPE = 1
+             AND a.setl_id = b.setl_id
+             AND a.bill_date BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
+            WHERE b.bill_date BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
+              AND b.TRAN_TYPE = 2
+              AND b.zp_flag = -1
+              AND b.INSUTYPE = #{insurType}
+            GROUP BY b.insutype, b.bill_date
+            UNION ALL
+            <!-- 医保正金额 -->
+            SELECT '医保正金额' AS source_type,
                    a.bill_date AS settle_date,
                    COUNT(a.setl_id) AS qty,
-                   SUM(a.medfee_sumamt) AS fee,
+                   SUM(NVL(a.medfee_sumamt, 0)) AS fee,
                    a.insutype AS insur_type,
                    DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民') AS insur_type_name
-            FROM ips_dz_biz_bills a
-            WHERE ...条件待补...
+            FROM ips_dz_pay_bills a
+            WHERE a.TRAN_TYPE = 1
+              AND a.zp_flag = -1
               AND a.bill_date BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
               AND a.insutype = #{insurType}
             GROUP BY a.insutype, a.bill_date
-            -->
-            <!-- TODO 医保正金额: 同上, source_type='医保正金额'
-            UNION ALL
-            SELECT '医保正金额' AS source_type, ...同结构...
-            -->
         )
         ORDER BY settle_date, source_type
     </select>
