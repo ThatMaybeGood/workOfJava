@@ -24,17 +24,34 @@ public enum MiReconOrgCategory {
     private final String chineseName;
 
     /**
-     * 按代码取中文名, 未知代码原样返回, null返回null
+     * 按代码或中文名取中文名(SQL直出中文时原样返回, 未知值原样返回, null返回null)
      */
-    public static String nameOf(String code) {
-        if (code == null) {
+    public static String nameOf(String value) {
+        if (value == null) {
             return null;
         }
+        String v = value.trim();
         for (MiReconOrgCategory c : values()) {
-            if (c.getCode().equals(code.trim())) {
+            if (c.getCode().equals(v) || c.getChineseName().equals(v)) {
                 return c.getChineseName();
             }
         }
-        return code;
+        return v;
+    }
+
+    /**
+     * 排序序号: 代码或中文名匹配返回ordinal, 未匹配返回null
+     */
+    public static Integer ordinalOf(String value) {
+        if (value == null) {
+            return null;
+        }
+        String v = value.trim();
+        for (MiReconOrgCategory c : values()) {
+            if (c.getCode().equals(v) || c.getChineseName().equals(v)) {
+                return c.ordinal();
+            }
+        }
+        return null;
     }
 }

@@ -118,14 +118,12 @@ public class MiReconServiceImpl implements MiReconService {
         return list;
     }
 
-    /** 明细弹窗类别排序: 账平/医保负金额/医保正金额在前, 未知类别按代码排后 */
+    /** 明细弹窗类别排序: 账平/医保负金额/医保正金额在前, 未知类别排后 */
     private List<MiReconOrgCatItem> sortOrgCats(List<MiReconOrgCatItem> cats) {
-        Map<String, Integer> order = new HashMap<>();
-        for (MiReconOrgCategory c : MiReconOrgCategory.values()) {
-            order.put(c.getCode(), c.ordinal());
-        }
-        cats.sort(Comparator.comparingInt(c -> order.containsKey(c.getSourceType())
-                ? order.get(c.getSourceType()) : MiReconOrgCategory.values().length));
+        cats.sort(Comparator.comparingInt(c -> {
+            Integer ord = MiReconOrgCategory.ordinalOf(c.getSourceType());
+            return ord == null ? MiReconOrgCategory.values().length : ord;
+        }));
         return cats;
     }
 

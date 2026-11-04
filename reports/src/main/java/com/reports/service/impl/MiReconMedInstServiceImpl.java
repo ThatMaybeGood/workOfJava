@@ -11,15 +11,14 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * 医疗机构侧对账数据服务实现(HIS库, 占坑: SQL在 MiReconMedInstMapper.xml 补全)
+ * 医疗机构侧对账数据服务实现(医保结算库powerips, SQL在 MiReconMedInstMapper.xml)
  * <p>
- * TODO: 补全 mapper/cash/MiReconMedInstMapper.xml 的 queryOrgData 原始行SQL
- * (6字段: 日期/数量/医疗总金额/类型代码/类型名称/来源类型), XML内已留示例与占位语句。
- * 目前占位语句恒返回空, 对比页医疗机构侧显示为空并按不平标红。
+ * 原始行SQL按来源类型UNION ALL(账平已补: ips_dz_biz_bills zp_flag=1;
+ * 医保负金额/医保正金额两个块待用户补全, XML内有TODO骨架)。
  */
 @Slf4j
 @Service
-@DataSource("his")
+@DataSource("powerips")
 public class MiReconMedInstServiceImpl implements MiReconMedInstService {
 
     private final MiReconMedInstMapper miReconMedInstMapper;
@@ -31,7 +30,7 @@ public class MiReconMedInstServiceImpl implements MiReconMedInstService {
 
     @Override
     public List<MiReconOrgDtlItem> queryOrgData(String insurType, String startDate, String endDate) {
-        log.info("[医疗机构对账数据] 占坑SQL未补全, 返回空: insurType={} {}~{}", insurType, startDate, endDate);
+        log.info("[医疗机构对账数据] powerips查询: insurType={} {}~{}", insurType, startDate, endDate);
         return miReconMedInstMapper.queryOrgData(insurType, startDate, endDate);
     }
 }

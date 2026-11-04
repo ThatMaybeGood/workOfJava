@@ -28,6 +28,6 @@ public class MiReconOrgDtlItem {
     /** 类型名称: 职工/居民/异地职工/异地居民 */
     private String insurTypeName;
 
-    /** 来源类型: 1账平 2医保负金额(his正交易) 3医保正金额 */
+    /** 来源类型: 账平/医保负金额(his正交易)/医保正金额(SQL直出中文, 兼容1/2/3代码) */
     private String sourceType;
 }

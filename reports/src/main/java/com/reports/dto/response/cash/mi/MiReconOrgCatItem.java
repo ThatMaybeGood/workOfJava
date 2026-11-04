@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 @Data
 public class MiReconOrgCatItem {
 
-    /** 来源类型: 1账平 2医保负金额 3医保正金额 */
+    /** 来源类型: 账平/医保负金额/医保正金额(或1/2/3代码) */
     private String sourceType;
 
     /** 来源类型中文名 */
