@@ -36,4 +36,7 @@ public class MiReconCompareItem {
 
     /** 是否对平(双侧金额相等) */
     private Boolean matched;
+
+    /** 医疗机构侧按来源类型汇总明细(账平/医保负金额/医保正金额), 无机构数据为null */
+    private java.util.List<MiReconOrgCatItem> orgDtl;
 }

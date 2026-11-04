@@ -79,6 +79,13 @@ class MiReconApp {
                 this.renderRecords();
             }
         });
+        // 点对比表"医疗机构-医疗总费用"列的明细按钮, 弹出该日来源类型构成
+        document.getElementById('tableBody').addEventListener('click', (e) => {
+            const btn = e.target.closest('button.org-dtl-btn');
+            if (btn) {
+                this.openOrgDtl(btn.dataset.date);
+            }
+        });
     }
 
     initMonthFilter() {
@@ -134,13 +141,18 @@ class MiReconApp {
                 tr.className = 'table-danger';
                 mismatchCnt++;
             }
+            const hasOrg = item.orgFee !== null && item.orgFee !== undefined;
+            const orgFeeCell = hasOrg
+                ? `${fmtFee(item.orgFee)} <button class="btn btn-link btn-sm p-0 ms-1 org-dtl-btn" data-date="${item.settleDate}"
+                       title="查看该日医疗机构明细"><i class="bi bi-three-dots-vertical"></i></button>`
+                : '—';
             tr.innerHTML = `
                 <td>${item.settleDate || '—'}</td>
                 <td>${item.insurTypeName || insurTypeName(item.insurType)}</td>
                 <td class="text-end">${fmtQty(item.miQty)}</td>
                 <td class="text-end">${fmtFee(item.miFee)}</td>
                 <td class="text-end">${fmtQty(item.orgQty)}</td>
-                <td class="text-end">${fmtFee(item.orgFee)}</td>
+                <td class="text-end">${orgFeeCell}</td>
                 <td class="text-end">${item.diffFee === null || item.diffFee === undefined ? '—' : fmtFee(item.diffFee)}</td>
                 <td class="text-center">${item.matched
                     ? '<span class="badge bg-success">对平</span>'
@@ -158,6 +170,33 @@ class MiReconApp {
         document.getElementById('sumOrgFee').textContent = hasOrg ? fmtFee(sumOrgFee) : '—';
         document.getElementById('sumDiff').textContent = (hasMi && hasOrg) ? fmtFee(sumMiFee - sumOrgFee) : '—';
         document.getElementById('sumStatus').textContent = mismatchCnt > 0 ? `不平${mismatchCnt}天` : '对平';
+    }
+
+    /** 医疗机构明细弹窗: 该日按来源类型(账平/医保负金额/医保正金额)的数量/金额构成 */
+    openOrgDtl(settleDate) {
+        const item = this.state.list.find(r => r.settleDate === settleDate);
+        if (!item) return;
+        document.getElementById('orgDtlTitle').textContent =
+            `医疗机构明细（${item.settleDate} ${item.insurTypeName || insurTypeName(item.insurType)}）`;
+        const tbody = document.getElementById('orgDtlBody');
+        tbody.innerHTML = '';
+        const dtl = item.orgDtl || [];
+        document.getElementById('orgDtlEmpty').classList.toggle('d-none', dtl.length > 0);
+        let sumQty = 0, sumFee = 0;
+        dtl.forEach(c => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${c.sourceTypeName || c.sourceType || '—'}</td>
+                <td>${c.insurTypeName || item.insurTypeName || insurTypeName(item.insurType)}</td>
+                <td class="text-end">${fmtQty(c.qty)}</td>
+                <td class="text-end">${fmtFee(c.fee)}</td>`;
+            tbody.appendChild(tr);
+            if (c.qty !== null && c.qty !== undefined) sumQty += Number(c.qty);
+            if (c.fee !== null && c.fee !== undefined) sumFee += Number(c.fee);
+        });
+        document.getElementById('orgDtlSumQty').textContent = fmtQty(sumQty);
+        document.getElementById('orgDtlSumFee').textContent = fmtFee(sumFee);
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('orgDtlModal')).show();
     }
 
     openUploadModal() {

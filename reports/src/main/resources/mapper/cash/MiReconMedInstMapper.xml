@@ -2,28 +2,40 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.reports.mapper.MiReconMedInstMapper">
 
-    <resultMap id="orgMap" type="com.reports.dto.response.cash.mi.MiReconCompareItem">
+    <resultMap id="orgDtlMap" type="com.reports.dto.response.cash.mi.MiReconOrgDtlItem">
         <result property="settleDate" column="settle_date"/>
-        <result property="orgQty" column="org_qty"/>
-        <result property="orgFee" column="org_fee"/>
+        <result property="qty" column="qty"/>
+        <result property="fee" column="fee"/>
+        <result property="insurType" column="insur_type"/>
+        <result property="insurTypeName" column="insur_type_name"/>
+        <result property="sourceType" column="source_type"/>
     </resultMap>
 
-    <!-- 占坑: 医疗机构侧对账汇总SQL, 用户补全(HIS库)
-         入参: insurType=费别(310/390/3101/3901), startDate/endDate=yyyy-MM-dd(对账月份1号~月末)
-         返回三列: settle_date结算日期, org_qty数量, org_fee医疗总费用
+    <!-- 占坑: 医疗机构侧对账SQL, 用户补全(HIS库)
+         入参: insurType=类型代码(310/390/3101/3901), startDate/endDate=yyyy-MM-dd(对账月份1号~月末)
+         返回6字段(原始行, 不要GROUP BY, 聚合在Java代码里做):
+             settle_date 日期, qty 数量, fee 医疗总金额,
+             insur_type 类型代码, insur_type_name 类型名称,
+             source_type 来源类型(1账平 2医保负金额(his正交易) 3医保正金额)
          注意: HIS库netcen_yb是US7ASCII, SQL不能写中文字面量; 中文列需RAWTOHEX传回Java按GBK解码
-         补全示例(HIS表名/字段以实际口径为准):
-             SELECT 结算日期 AS settle_date, SUM(数量) AS org_qty, SUM(医疗总费用) AS org_fee
-             FROM his_表
-             WHERE 费别 = #{insurType}
-               AND 结算日期 BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
-             GROUP BY 结算日期
-             ORDER BY settle_date
+         补全示例(HIS表名/字段以实际口径为准, 三个来源类型通常UNION拼):
+             SELECT settle_date, qty, fee, insur_type, insur_type_name, source_type FROM (
+                 SELECT 日期 settle_date, 数量 qty, 医疗总金额 fee, '310' insur_type, ... , '1' source_type FROM his_表1 WHERE ...
+                 UNION ALL
+                 SELECT ..., '2' source_type FROM his_表2 WHERE ...
+                 UNION ALL
+                 SELECT ..., '3' source_type FROM his_表3 WHERE ...
+             )
+             WHERE insur_type = #{insurType}
+               AND settle_date BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
          下方占位语句恒返回空, 替换整段select即可 -->
-    <select id="queryOrgData" resultMap="orgMap">
+    <select id="queryOrgData" resultMap="orgDtlMap">
         SELECT TO_DATE(#{startDate}, 'yyyy-mm-dd') AS settle_date,
-               CAST(NULL AS NUMBER(10))   AS org_qty,
-               CAST(NULL AS NUMBER(14,2)) AS org_fee
+               CAST(NULL AS NUMBER(10))   AS qty,
+               CAST(NULL AS NUMBER(14,2)) AS fee,
+               CAST(NULL AS VARCHAR2(4))  AS insur_type,
+               CAST(NULL AS VARCHAR2(20)) AS insur_type_name,
+               CAST(NULL AS VARCHAR2(2))  AS source_type
         FROM DUAL
         WHERE 1 = 0
     </select>

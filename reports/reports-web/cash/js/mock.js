@@ -897,12 +897,33 @@ const MockService = {
                     const miFee = rand(100000, 4000000) + 0.12;
                     // 每4天造一笔不平
                     const matched = idx % 4 !== 3;
+                    const orgQty = matched ? miQty : miQty - 1;
                     const orgFee = matched ? miFee : miFee + rand(1, 999) + 0.5;
+                    // 医疗机构侧按来源类型拆三笔, 合计精确等于orgQty/orgFee
+                    const orgDtl = (() => {
+                        const cats = [
+                            { sourceType: '1', sourceTypeName: '账平' },
+                            { sourceType: '2', sourceTypeName: '医保负金额' },
+                            { sourceType: '3', sourceTypeName: '医保正金额' }
+                        ];
+                        let restQty = orgQty;
+                        let restFeeCents = Math.round(orgFee * 100);
+                        return cats.map((c, i) => {
+                            if (i < 2) {
+                                const q = Math.floor(restQty * (0.5 + Math.random() * 0.2));
+                                const fCents = Math.round(restFeeCents * (0.5 + Math.random() * 0.2));
+                                restQty -= q;
+                                restFeeCents -= fCents;
+                                return { ...c, qty: q, fee: fCents / 100 };
+                            }
+                            return { ...c, qty: restQty, fee: restFeeCents / 100 };
+                        });
+                    })();
                     return {
                         settleDate: itemDate,
                         insurType: params.insurType || '310',
                         insurTypeName: typeName[params.insurType || '310'],
-                        miQty, miFee, orgQty: matched ? miQty : miQty - 1, orgFee,
+                        miQty, miFee, orgQty, orgFee, orgDtl,
                         diffFee: matched ? 0 : miFee - orgFee,
                         matched
                     };

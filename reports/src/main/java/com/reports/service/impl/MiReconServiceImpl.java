@@ -3,9 +3,12 @@ package com.reports.service.impl;
 import com.reports.dto.request.MiReconRequest;
 import com.reports.dto.response.cash.mi.MiReconCompareItem;
 import com.reports.dto.response.cash.mi.MiReconFileItem;
+import com.reports.dto.response.cash.mi.MiReconOrgCatItem;
+import com.reports.dto.response.cash.mi.MiReconOrgDtlItem;
 import com.reports.entity.MiReconDetailEntity;
 import com.reports.entity.MiReconFileEntity;
 import com.reports.enums.MiReconInsurType;
+import com.reports.enums.MiReconOrgCategory;
 import com.reports.mapper.MiReconMapper;
 import com.reports.service.MiReconMedInstService;
 import com.reports.service.MiReconService;
@@ -17,9 +20,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -66,14 +71,35 @@ public class MiReconServiceImpl implements MiReconService {
         } catch (Exception e) {
             log.warn("查询医保对账上传数据失败", e);
         }
+        // 医疗机构侧: HIS原始行在代码里聚合——日期合计入对比, 按来源类型(账平/医保负金额/医保正金额)汇总入明细
+        Map<String, Map<String, MiReconOrgCatItem>> orgCatMap = new HashMap<>();
         try {
-            for (MiReconCompareItem org : miReconMedInstService.queryOrgData(type.getCode(), start, end)) {
-                if (org == null || org.getSettleDate() == null) {
+            for (MiReconOrgDtlItem raw : miReconMedInstService.queryOrgData(type.getCode(), start, end)) {
+                if (raw == null || raw.getSettleDate() == null) {
                     continue;
                 }
-                MiReconCompareItem item = merged.computeIfAbsent(fmt(org.getSettleDate()), k -> baseItem(k, type));
-                item.setOrgQty(org.getOrgQty());
-                item.setOrgFee(org.getOrgFee());
+                String day = fmt(raw.getSettleDate());
+                MiReconCompareItem item = merged.computeIfAbsent(day, k -> baseItem(k, type));
+                item.setOrgQty((item.getOrgQty() == null ? 0L : item.getOrgQty())
+                        + (raw.getQty() == null ? 0L : raw.getQty()));
+                item.setOrgFee((item.getOrgFee() == null ? BigDecimal.ZERO : item.getOrgFee())
+                        .add(raw.getFee() == null ? BigDecimal.ZERO : raw.getFee()));
+                String sourceType = raw.getSourceType() == null ? "" : raw.getSourceType().trim();
+                MiReconOrgCatItem cat = orgCatMap.computeIfAbsent(day, k -> new LinkedHashMap<>())
+                        .computeIfAbsent(sourceType, k -> {
+                            MiReconOrgCatItem c = new MiReconOrgCatItem();
+                            c.setSourceType(k);
+                            c.setSourceTypeName(MiReconOrgCategory.nameOf(k));
+                            c.setQty(0L);
+                            c.setFee(BigDecimal.ZERO);
+                            return c;
+                        });
+                if (raw.getQty() != null) {
+                    cat.setQty(cat.getQty() + raw.getQty());
+                }
+                if (raw.getFee() != null) {
+                    cat.setFee(cat.getFee().add(raw.getFee()));
+                }
             }
         } catch (Exception e) {
             log.warn("查询医疗机构对账数据失败", e);
@@ -81,12 +107,26 @@ public class MiReconServiceImpl implements MiReconService {
 
         List<MiReconCompareItem> list = new ArrayList<>(merged.values());
         for (MiReconCompareItem item : list) {
+            List<MiReconOrgCatItem> cats = orgCatMap.get(fmt(item.getSettleDate())) == null ? null
+                    : new ArrayList<>(orgCatMap.get(fmt(item.getSettleDate())).values());
+            item.setOrgDtl(cats == null || cats.isEmpty() ? null : sortOrgCats(cats));
             boolean both = item.getMiFee() != null && item.getOrgFee() != null;
             item.setDiffFee(both ? item.getMiFee().subtract(item.getOrgFee()) : null);
             // 金额对平才算对平; 单侧缺失或不等均不平
             item.setMatched(both && item.getMiFee().compareTo(item.getOrgFee()) == 0);
         }
         return list;
+    }
+
+    /** 明细弹窗类别排序: 账平/医保负金额/医保正金额在前, 未知类别按代码排后 */
+    private List<MiReconOrgCatItem> sortOrgCats(List<MiReconOrgCatItem> cats) {
+        Map<String, Integer> order = new HashMap<>();
+        for (MiReconOrgCategory c : MiReconOrgCategory.values()) {
+            order.put(c.getCode(), c.ordinal());
+        }
+        cats.sort(Comparator.comparingInt(c -> order.containsKey(c.getSourceType())
+                ? order.get(c.getSourceType()) : MiReconOrgCategory.values().length));
+        return cats;
     }
 
     @Override
