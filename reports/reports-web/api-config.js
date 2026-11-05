@@ -13,8 +13,7 @@ const API_CONFIG = {
     // 真实接口基础地址
     baseUrl: 'http://localhost:18089/reports/gateway',
 
-    // 医保对账文件上传(multipart, 不走JSON网关)
-    miReconUploadUrl: 'http://localhost:18089/reports/mi-recon/upload',
+    // 医保对账文件上传(multipart, 不走JSON网关)——地址在文件底部由baseUrl派生, 无需单独配置
 
     // ==================== 接口方法名映射 ====================
     // 每个 key 对应 API 文档中的 method 字段
@@ -155,6 +154,10 @@ const API_CONFIG = {
         }
     }
 };
+
+// 医保对账文件上传(multipart, 不走JSON网关): 地址跟随baseUrl(同一台后端服务),
+// 前后端不同机部署时只需改上面baseUrl的IP, 上传自动走同一地址
+API_CONFIG.miReconUploadUrl = API_CONFIG.baseUrl.replace(/\/gateway$/, '/mi-recon/upload');
 
 /**
  * 统一请求封装
