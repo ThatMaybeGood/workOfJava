@@ -52,6 +52,8 @@ class MiReconApp {
         this.initUploadDatePicker();
         this.initRecordsDatePicker();
         this.initResizableModals();
+        this.fillPage();
+        window.addEventListener('resize', () => this.fillPage());
         this.load();
     }
 
@@ -151,33 +153,52 @@ class MiReconApp {
         document.getElementById('monthFilter').value = this.state.month;
     }
 
-    /** 本页所有弹窗加右下角拖把手, 可自由拖拉调整长宽(拉高后表格区自动撑开) */
+    /** 本页所有弹窗支持拖拉边界/角调整长宽: 左/右边拉宽, 下边拉高, 右下角同时拉 */
     initResizableModals() {
         document.querySelectorAll('#uploadModal, #recordsModal, #orgDtlModal, #zpDiffModal').forEach(modal => {
             const dialog = modal.querySelector('.modal-dialog');
             const content = modal.querySelector('.modal-content');
             if (!dialog || !content) return;
-            const grip = document.createElement('div');
-            grip.className = 'modal-resize-grip';
-            grip.title = '拖拽调整弹窗大小';
-            content.appendChild(grip);
-            grip.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                const startX = e.clientX, startY = e.clientY;
-                const startW = dialog.offsetWidth, startH = content.offsetHeight;
-                const onMove = (ev) => {
-                    dialog.style.width = Math.max(380, startW + ev.clientX - startX) + 'px';
-                    content.style.height = Math.max(260, startH + ev.clientY - startY) + 'px';
-                    content.classList.add('resized');
-                };
-                const onUp = () => {
-                    document.removeEventListener('mousemove', onMove);
-                    document.removeEventListener('mouseup', onUp);
-                };
-                document.addEventListener('mousemove', onMove);
-                document.addEventListener('mouseup', onUp);
+            ['e', 'w', 's', 'se'].forEach(dir => {
+                const handle = document.createElement('div');
+                handle.className = 'rz-handle rz-' + dir;
+                content.appendChild(handle);
+                handle.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    const startX = e.clientX, startY = e.clientY;
+                    const startW = dialog.offsetWidth, startH = content.offsetHeight;
+                    const onMove = (ev) => {
+                        if (dir !== 's') {
+                            // 左/右边拖宽(弹窗居中, 宽度对称伸缩)
+                            const dx = dir === 'w' ? startX - ev.clientX : ev.clientX - startX;
+                            dialog.style.width = Math.max(380, startW + dx) + 'px';
+                        }
+                        if (dir !== 'e' && dir !== 'w') {
+                            content.style.height = Math.max(260, startH + ev.clientY - startY) + 'px';
+                        }
+                        content.classList.add('resized');
+                    };
+                    const onUp = () => {
+                        document.removeEventListener('mousemove', onMove);
+                        document.removeEventListener('mouseup', onUp);
+                    };
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
+                });
             });
         });
+    }
+
+    /** 表格区铺满剩余高度: CSS flex为主, 个别老内核iframe里flex高度失效时JS兜底, 杜绝下方留白 */
+    fillPage() {
+        const container = document.querySelector('body > .container-fluid');
+        const section = container && container.querySelector('.table-section');
+        if (!section) return;
+        container.style.position = 'relative';
+        const remain = container.clientHeight - section.offsetTop - 8;
+        if (remain > 200) {
+            section.style.height = remain + 'px';
+        }
     }
 
     initUploadDatePicker() {
