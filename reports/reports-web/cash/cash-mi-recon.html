@@ -9,11 +9,12 @@
     <link href="../vendor/flatpickr@4.6.13/css/flatpickr.min.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
     <style>
-        /* 本页铺满视口高度, 表格区吃掉剩余空间, 少数据时下面不再留白 */
+        /* 本页铺满视口高度, 表格区吃掉剩余空间, 少数据时下面不再留白;
+           用height:100%逐级继承而非100vh——vh在iframe里对老内核(如Chrome 83)兼容不好, 会导致铺满失效留白 */
         html, body { height: 100%; }
-        body > .container-fluid { display: flex; flex-direction: column; min-height: 100vh; }
-        body > .container-fluid > .table-section { flex: 1; display: flex; flex-direction: column; }
-        body > .container-fluid > .table-section > .table-responsive { flex: 1; }
+        body > .container-fluid { display: flex; flex-direction: column; height: 100%; }
+        body > .container-fluid > .table-section { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+        body > .container-fluid > .table-section > .table-responsive { flex: 1; min-height: 0; }
         /* 行数超出时表头吸顶, 合计行吸底, 滚动时都能看到 */
         .table-section .table-responsive thead th { position: sticky; top: 0; z-index: 1; }
         .table-section .table-responsive tfoot td { position: sticky; bottom: 0; }
@@ -26,6 +27,22 @@
         .table-section .org-dtl-btn:hover, .table-section .mi-org-dtl-btn:hover, .table-section .cat-month-btn:hover {
             text-decoration: underline; color: #237804;
         }
+        /* 两表差异: 自对冲一对两行最左括号([跨两行垂直居中) */
+        #zpDiffTable .pair-cell { width: 30px; padding: 2px !important; text-align: center; }
+        #zpDiffTable .pair-bracket { color: #17a2b8; font-size: 30px; font-weight: 700; line-height: 1; }
+        /* 弹窗自由拖拉调整长宽: 右下角拖把手; modal-content纵向flex, 拉高后表格区自动撑开 */
+        .modal-content { display: flex; flex-direction: column; }
+        .modal-content .modal-body { flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
+        .modal-content .modal-body > .table-responsive { flex: 1 1 auto; min-height: 0; }
+        .modal-content.resized .modal-body > .table-responsive { max-height: none; }
+        .modal-resize-grip {
+            position: absolute; right: 1px; bottom: 1px; width: 16px; height: 16px;
+            cursor: nwse-resize; z-index: 1060;
+            background: repeating-linear-gradient(135deg, transparent 0 3px, #adb5bd 3px 4px);
+            border-bottom-right-radius: 6px;
+        }
+        /* 上传记录: 文件名列超长省略号 */
+        #recordsBody td.filename-cell { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -83,14 +100,14 @@
                         <tr>
                             <th>结算日期</th>
                             <th>类型</th>
-                            <th class="text-end">医保-对账数据量</th>
-                            <th class="text-end">医保-医疗费总额</th>
+                            <th class="text-end">标准对账-数量</th>
+                            <th class="text-end">标准对账-医疗费总额</th>
                             <th class="text-end">医疗机构-数量</th>
                             <th class="text-end">医疗机构-医疗总费用</th>
-                            <th class="text-end">差额(医保-医疗机构)</th>
-                            <th class="text-end">医保数据-数量</th>
-                            <th class="text-end">医保数据-医疗总费用</th>
-                            <th class="text-end">差额(上传-医保)</th>
+                            <th class="text-end">差额(标准-医疗机构)</th>
+                            <th class="text-end">医保机构-数量</th>
+                            <th class="text-end">医保机构-医疗总费用</th>
+                            <th class="text-end">差额(标准-医保机构)</th>
                             <th class="text-center">状态(机构/医保)</th>
                         </tr>
                     </thead>
@@ -155,24 +172,51 @@
         </div>
     </div>
 
-    <!-- 上传记录弹窗: 文件名/类型/数据日期/行数/上传时间, 类型选错可改 -->
+    <!-- 上传记录弹窗: 数据日期/文件名/类型/行数/上传时间/状态, 类型+数据日期筛选+分页, 类型选错可改/启停/删除 -->
     <div class="modal fade" id="recordsModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">上传记录</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                        <span class="filter-label">类型：</span>
+                        <select class="form-select form-select-sm" id="recTypeFilter" style="width:130px">
+                            <option value="">全部</option>
+                            <option value="310">职工</option>
+                            <option value="390">居民</option>
+                            <option value="3101">异地职工</option>
+                            <option value="3901">异地居民</option>
+                        </select>
+                        <span class="filter-label">数据日期：</span>
+                        <input type="text" class="form-control form-control-sm" id="recDateFilter" readonly style="width:130px">
+                        <button class="btn btn-outline-secondary btn-sm" id="recDateClear" title="清空数据日期筛选">清空</button>
+                        <button class="btn btn-primary btn-sm" id="recQueryBtn"><i class="bi bi-search me-1"></i>查询</button>
+                    </div>
                     <div class="table-responsive" style="max-height:55vh">
                         <table class="table table-hover table-bordered mb-0">
                             <thead class="table-light">
-                                <tr><th>文件名</th><th style="width:150px;">类型</th><th>数据日期</th><th>明细行数</th><th>上传时间</th><th style="width:90px;">状态</th><th style="width:170px;">操作</th></tr>
+                                <tr><th style="width:110px;">数据日期</th><th style="width:110px;">类型</th><th>文件名</th><th style="width:90px;">明细行数</th><th style="width:160px;">上传时间</th><th style="width:80px;">状态</th><th style="width:190px;">操作</th></tr>
                             </thead>
                             <tbody id="recordsBody"></tbody>
                         </table>
                     </div>
                     <div id="recordsEmpty" class="text-center text-muted py-2 d-none">暂无上传记录</div>
+                    <div class="d-flex align-items-center justify-content-between mt-2 flex-wrap gap-2">
+                        <div class="small text-muted" id="recTotal"></div>
+                        <div class="d-flex align-items-center gap-2">
+                            <select class="form-select form-select-sm" id="recPageSize" style="width:90px">
+                                <option value="10">10条/页</option>
+                                <option value="20">20条/页</option>
+                                <option value="50">50条/页</option>
+                            </select>
+                            <button class="btn btn-outline-secondary btn-sm" id="recPrevBtn">上一页</button>
+                            <span class="small" id="recPageInfo">第 1 / 1 页</span>
+                            <button class="btn btn-outline-secondary btn-sm" id="recNextBtn">下一页</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
@@ -237,7 +281,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="zpDiffTitle">账平差异明细</h5>
+                    <h5 class="modal-title" id="zpDiffTitle">两表差异明细</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -245,15 +289,29 @@
                     <div id="zpDiffTotals" class="d-flex flex-wrap gap-2 mb-2 small"></div>
                     <div id="zpDiffSummary" class="small text-muted mb-2"></div>
                     <div class="table-responsive" style="max-height:55vh">
-                        <table class="table table-hover table-bordered mb-0">
+                        <table class="table table-hover table-bordered mb-0" id="zpDiffTable">
                             <thead class="table-light">
-                                <tr><th>结算ID</th><th>类型</th><th>来源类型</th><th class="text-end">医疗总金额</th></tr>
+                                <tr>
+                                    <th style="width:30px;">关联</th>
+                                    <th>结算ID</th>
+                                    <th>类型</th>
+                                    <th><div class="small">数据来源</div>
+                                        <select id="zpFilterSide" class="form-select form-select-sm"></select></th>
+                                    <th style="width:110px;">冲销标识</th>
+                                    <th><div class="small">医保标志</div>
+                                        <select id="zpFilterPay" class="form-select form-select-sm"></select></th>
+                                    <th><div class="small">HIS标志</div>
+                                        <select id="zpFilterBiz" class="form-select form-select-sm"></select></th>
+                                    <th class="text-end">医保金额</th>
+                                    <th class="text-end">HIS金额</th>
+                                </tr>
                             </thead>
                             <tbody id="zpDiffBody"></tbody>
                             <tfoot class="table-light fw-bold">
                                 <tr>
-                                    <td colspan="3">合计（<span id="zpDiffCnt"></span>）</td>
-                                    <td class="text-end" id="zpDiffSumFee"></td>
+                                    <td colspan="7">合计（<span id="zpDiffCnt"></span>）</td>
+                                    <td class="text-end" id="zpDiffSumPayFee"></td>
+                                    <td class="text-end" id="zpDiffSumBizFee"></td>
                                 </tr>
                             </tfoot>
                         </table>

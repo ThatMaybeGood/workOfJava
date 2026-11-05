@@ -25,16 +25,50 @@
         <result property="createTime" column="create_time"/>
     </resultMap>
 
-    <!-- 上传记录: 最近100条, 新的在前 -->
+    <!-- 上传记录分页: 同类型排一起(类型→数据日期倒序→上传时间倒序), 可选类型/数据日期筛选, Oracle 11g ROWNUM分页 -->
     <select id="queryFileList" resultMap="fileMap">
         SELECT id, file_name, insur_type, insur_type_name, data_date, row_count, status, create_time, update_time
         FROM (
-            SELECT id, file_name, insur_type, insur_type_name, data_date, row_count, status, create_time, update_time
-            FROM tr_mi_recon_file
-            ORDER BY create_time DESC, id DESC
+            SELECT f.*, ROWNUM AS rn
+            FROM (
+                SELECT id, file_name, insur_type, insur_type_name, data_date, row_count, status, create_time, update_time
+                FROM tr_mi_recon_file
+                <where>
+                    <if test="insurType != null and insurType != ''">
+                        AND insur_type = #{insurType}
+                    </if>
+                    <if test="dataDate != null and dataDate != ''">
+                        AND data_date = TO_DATE(#{dataDate}, 'yyyy-mm-dd')
+                    </if>
+                </where>
+                ORDER BY insur_type ASC, data_date DESC, create_time DESC, id DESC
+            ) f
+            WHERE ROWNUM &lt;= #{endRow}
         )
-        WHERE ROWNUM &lt;= 100
+        WHERE rn &gt;= #{startRow}
     </select>
+
+    <select id="queryFileCount" resultType="int">
+        SELECT COUNT(*)
+        FROM tr_mi_recon_file
+        <where>
+            <if test="insurType != null and insurType != ''">
+                AND insur_type = #{insurType}
+            </if>
+            <if test="dataDate != null and dataDate != ''">
+                AND data_date = TO_DATE(#{dataDate}, 'yyyy-mm-dd')
+            </if>
+        </where>
+    </select>
+
+    <!-- 删除上传记录及其明细(物理删除, 不可恢复) -->
+    <delete id="deleteDetailByFileId">
+        DELETE FROM tr_mi_recon_detail WHERE file_id = #{fileId}
+    </delete>
+
+    <delete id="deleteFileById">
+        DELETE FROM tr_mi_recon_file WHERE id = #{id}
+    </delete>
 
     <select id="queryFileById" resultMap="fileMap">
         SELECT id, file_name, insur_type, insur_type_name, data_date, row_count, status, create_time, update_time

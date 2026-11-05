@@ -36,6 +36,21 @@ public class MiReconRequest extends BaseRequestBody {
     private String settleDate;
 
     /**
+     * records: 数据日期筛选, 格式 yyyy-MM-dd, 空为全部
+     */
+    private String dataDate;
+
+    /**
+     * records: 页码, 默认1
+     */
+    private Integer pageNum;
+
+    /**
+     * records: 每页条数, 默认10
+     */
+    private Integer pageSize;
+
+    /**
      * updateType: 上传记录id
      */
     private Long id;

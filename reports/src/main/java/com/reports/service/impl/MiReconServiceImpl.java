@@ -209,30 +209,60 @@ public class MiReconServiceImpl implements MiReconService {
         }
     }
 
+    /** 上传记录分页: 同类型排一起(类型→数据日期倒序→上传时间倒序), 类型/数据日期可选筛选 */
     @Override
-    public List<MiReconFileItem> queryRecords() {
-        List<MiReconFileItem> result = new ArrayList<>();
+    public Map<String, Object> queryRecords(String insurType, String dataDate, Integer pageNum, Integer pageSize) {
+        int size = (pageSize == null || pageSize < 1) ? 10 : Math.min(pageSize, 100);
+        int num = (pageNum == null || pageNum < 1) ? 1 : pageNum;
+        Map<String, Object> result = new HashMap<>();
+        List<MiReconFileItem> list = new ArrayList<>();
+        int total = 0;
         try {
-            for (MiReconFileEntity entity : miReconMapper.queryFileList()) {
-                MiReconFileItem item = new MiReconFileItem();
-                item.setId(entity.getId());
-                item.setFileName(entity.getFileName());
-                item.setInsurType(entity.getInsurType());
-                MiReconInsurType type = MiReconInsurType.ofCode(entity.getInsurType());
-                item.setInsurTypeName(entity.getInsurTypeName() != null
-                        ? entity.getInsurTypeName()
-                        : (type == null ? entity.getInsurType() : type.getChineseName()));
-                item.setDataDate(entity.getDataDate());
-                item.setRowCount(entity.getRowCount());
-                item.setStatus(entity.getStatus());
-                item.setStatusName("1".equals(entity.getStatus()) ? "启用" : "已作废");
-                item.setCreateTime(entity.getCreateTime());
-                result.add(item);
+            total = miReconMapper.queryFileCount(insurType, dataDate);
+            if (total > 0) {
+                int startRow = (num - 1) * size + 1;
+                int endRow = num * size;
+                for (MiReconFileEntity entity : miReconMapper.queryFileList(insurType, dataDate, startRow, endRow)) {
+                    list.add(toFileItem(entity));
+                }
             }
         } catch (Exception e) {
             log.warn("查询医保对账上传记录失败", e);
         }
+        result.put("list", list);
+        result.put("total", total);
         return result;
+    }
+
+    /** 删除上传记录及其明细(物理删除, 不可恢复) */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteFile(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("记录id不能为空");
+        }
+        if (miReconMapper.queryFileById(id) == null) {
+            throw new IllegalArgumentException("记录不存在或已被删除");
+        }
+        miReconMapper.deleteDetailByFileId(id);
+        return miReconMapper.deleteFileById(id);
+    }
+
+    private MiReconFileItem toFileItem(MiReconFileEntity entity) {
+        MiReconFileItem item = new MiReconFileItem();
+        item.setId(entity.getId());
+        item.setFileName(entity.getFileName());
+        item.setInsurType(entity.getInsurType());
+        MiReconInsurType type = MiReconInsurType.ofCode(entity.getInsurType());
+        item.setInsurTypeName(entity.getInsurTypeName() != null
+                ? entity.getInsurTypeName()
+                : (type == null ? entity.getInsurType() : type.getChineseName()));
+        item.setDataDate(entity.getDataDate());
+        item.setRowCount(entity.getRowCount());
+        item.setStatus(entity.getStatus());
+        item.setStatusName("1".equals(entity.getStatus()) ? "启用" : "已作废");
+        item.setCreateTime(entity.getCreateTime());
+        return item;
     }
 
     @Override

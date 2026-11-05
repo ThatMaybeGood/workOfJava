@@ -38,9 +38,15 @@ public interface MiReconService {
     List<MiReconUnmatchedNegItem> queryUnmatchedNeg(String insurType, String settleDate);
 
     /**
-     * 上传记录(最近100条)
+     * 上传记录(分页): 同类型排一起, 可按类型/数据日期筛选
+     * @return {list: 当前页记录, total: 筛选后总条数}
      */
-    List<MiReconFileItem> queryRecords();
+    Map<String, Object> queryRecords(String insurType, String dataDate, Integer pageNum, Integer pageSize);
+
+    /**
+     * 删除上传记录及其明细(物理删除, 不可恢复; 删除启用记录后对应日期无标准对账数据)
+     */
+    int deleteFile(Long id);
 
     /**
      * 修改上传记录类型(级联明细)

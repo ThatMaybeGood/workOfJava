@@ -877,20 +877,36 @@ const MockService = {
             setTimeout(() => {
                 const typeName = { '310': '职工', '390': '居民', '3101': '异地职工', '3901': '异地居民' };
                 if (params && params.action === 'records') {
+                    const all = [];
+                    for (let i = 1; i <= 23; i++) {
+                        const t = i % 2 === 0
+                            ? { code: '390', name: '居民' }
+                            : { code: '310', name: '职工' };
+                        all.push({
+                            id: i, fileName: `2026年10月-${t.name}医保-对账_${i}.xls`,
+                            insurType: t.code, insurTypeName: t.name,
+                            dataDate: '2026-11-' + String((i % 9) + 1).padStart(2, '0'),
+                            rowCount: 31, status: i % 4 === 0 ? '0' : '1',
+                            statusName: i % 4 === 0 ? '已作废' : '启用',
+                            createTime: `2026-11-0${(i % 8) + 1} 09:${String(10 + (i % 49)).padStart(2, '0')}:00`
+                        });
+                    }
+                    let filtered = all.filter(r =>
+                        (!params.insurType || r.insurType === params.insurType)
+                        && (!params.dataDate || r.dataDate === params.dataDate));
+                    const size = params.pageSize || 10;
+                    const num = params.pageNum || 1;
                     resolve({
                         code: 200,
-                        data: {
-                            list: [
-                                { id: 1, fileName: '2026年10月-职工医保-对账_.xls', insurType: '310', insurTypeName: '职工', dataDate: '2026-11-04', rowCount: 31, status: '1', statusName: '启用', createTime: '2026-11-04 09:12:00' },
-                                { id: 2, fileName: '2026年10月-职工医保-对账_修正.xls', insurType: '310', insurTypeName: '职工', dataDate: '2026-11-04', rowCount: 31, status: '0', statusName: '已作废', createTime: '2026-11-04 10:30:00' },
-                                { id: 3, fileName: '2026年10月-居民医保-对账_.xls', insurType: '390', insurTypeName: '居民', dataDate: '2026-11-04', rowCount: 31, status: '1', statusName: '启用', createTime: '2026-11-04 09:13:20' }
-                            ],
-                            total: 3
-                        }
+                        data: { list: filtered.slice((num - 1) * size, num * size), total: filtered.length }
                     });
                     return;
                 }
                 if (params && params.action === 'enableFile') {
+                    resolve({ code: 200, data: { affected: 1 } });
+                    return;
+                }
+                if (params && params.action === 'deleteFile') {
                     resolve({ code: 200, data: { affected: 1 } });
                     return;
                 }
@@ -912,9 +928,10 @@ const MockService = {
                         code: 200,
                         data: {
                             list: [
-                                { setlId: '4301002026100100001', settleDate: params.settleDate, insurType: params.insurType, insurTypeName: typeName[params.insurType || '310'], medfeeSumamt: 3250.80, diffSide: '医保支付表' },
-                                { setlId: '4301002026100100002', settleDate: params.settleDate, insurType: params.insurType, insurTypeName: typeName[params.insurType || '310'], medfeeSumamt: 1180.00, diffSide: '医保支付表' },
-                                { setlId: '4301002026100100003', settleDate: params.settleDate, insurType: params.insurType, insurTypeName: typeName[params.insurType || '310'], medfeeSumamt: 560.50, diffSide: 'HIS业务表' }
+                                { setlId: '4301002026100100001', settleDate: params.settleDate, insurType: params.insurType, insurTypeName: typeName[params.insurType || '310'], diffSide: '仅医保支付表', payZp: '-1', payZpName: '单边', bizZp: null, bizZpName: null, payFee: 3250.80, bizFee: null, offsetPair: '自对冲', pairKey: 'M88001' },
+                                { setlId: '4301002026100100002', settleDate: params.settleDate, insurType: params.insurType, insurTypeName: typeName[params.insurType || '310'], diffSide: '仅医保支付表', payZp: '-1', payZpName: '单边', bizZp: null, bizZpName: null, payFee: -3250.80, bizFee: null, offsetPair: '自对冲', pairKey: 'M88001' },
+                                { setlId: '4301002026100100003', settleDate: params.settleDate, insurType: params.insurType, insurTypeName: typeName[params.insurType || '310'], diffSide: '仅HIS业务表', payZp: null, payZpName: null, bizZp: '1', bizZpName: '账平', payFee: null, bizFee: 1180.00, offsetPair: null, pairKey: null },
+                                { setlId: '4301002026100100004', settleDate: params.settleDate, insurType: params.insurType, insurTypeName: typeName[params.insurType || '310'], diffSide: '账平标志不一致', payZp: '-2', payZpName: '金额不等', bizZp: '1', bizZpName: '账平', payFee: 560.50, bizFee: 560.00, offsetPair: null, pairKey: null }
                             ],
                             total: 3,
                             totals: [

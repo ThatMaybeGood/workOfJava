@@ -15,8 +15,21 @@ import java.util.List;
 @Mapper
 public interface MiReconMapper {
 
-    /** 上传记录(最近100条, 新的在前) */
-    List<MiReconFileEntity> queryFileList();
+    /** 上传记录分页(同类型排一起: 类型→数据日期倒序→上传时间倒序), Oracle 11g ROWNUM分页 */
+    List<MiReconFileEntity> queryFileList(@Param("insurType") String insurType,
+                                          @Param("dataDate") String dataDate,
+                                          @Param("startRow") int startRow,
+                                          @Param("endRow") int endRow);
+
+    /** 上传记录总条数(带筛选) */
+    int queryFileCount(@Param("insurType") String insurType,
+                       @Param("dataDate") String dataDate);
+
+    /** 删除上传记录的明细 */
+    int deleteDetailByFileId(@Param("fileId") Long fileId);
+
+    /** 删除上传记录 */
+    int deleteFileById(@Param("id") Long id);
 
     /** 按id查上传记录 */
     MiReconFileEntity queryFileById(@Param("id") Long id);

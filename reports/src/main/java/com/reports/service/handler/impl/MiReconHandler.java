@@ -62,10 +62,16 @@ public class MiReconHandler implements ReportHandler<MiReconRequest, Map<String,
         Map<String, Object> result = new HashMap<>();
         switch (action) {
             case "records": {
-                List<MiReconFileItem> list = miReconService.queryRecords();
-                result.put("list", list);
-                result.put("total", list.size());
+                Map<String, Object> page = miReconService.queryRecords(
+                        body.getInsurType(), body.getDataDate(), body.getPageNum(), body.getPageSize());
+                result.put("list", page.get("list"));
+                result.put("total", page.get("total"));
                 return ApiResponse.success(result, "上传记录查询成功！");
+            }
+            case "deleteFile": {
+                int affected = miReconService.deleteFile(body.getId());
+                result.put("affected", affected);
+                return ApiResponse.success(result, affected > 0 ? "删除成功！" : "记录不存在，删除失败！");
             }
             case "updateType": {
                 int affected = miReconService.updateType(body.getId(), body.getInsurType());

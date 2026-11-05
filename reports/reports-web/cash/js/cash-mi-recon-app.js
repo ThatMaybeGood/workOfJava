@@ -45,9 +45,13 @@ class MiReconApp {
         };
         this.records = [];
         this.editingId = null;
+        this.recState = { pageNum: 1, pageSize: 10, insurType: '', dataDate: '' };
+        this.recTotal = 0;
         this.bindEvents();
         this.initMonthFilter();
         this.initUploadDatePicker();
+        this.initRecordsDatePicker();
+        this.initResizableModals();
         this.load();
     }
 
@@ -85,9 +89,42 @@ class MiReconApp {
                 this.renderRecords();
             } else if (btn.classList.contains('enable-btn')) {
                 this.enableFile(id);
+            } else if (btn.classList.contains('delete-btn')) {
+                this.deleteFile(id);
             }
         });
-        // 点对比表金额弹该日来源类型构成(机构/医保数据), 不平徽章弹账平差异
+        // 上传记录: 筛选(类型/数据日期)与分页
+        document.getElementById('recTypeFilter').addEventListener('change', (e) => {
+            this.recState.insurType = e.target.value;
+            this.recState.pageNum = 1;
+            this.loadRecords();
+        });
+        document.getElementById('recQueryBtn').addEventListener('click', () => {
+            this.recState.pageNum = 1;
+            this.loadRecords();
+        });
+        document.getElementById('recDateClear').addEventListener('click', () => {
+            this.recDatePicker.clear();
+            this.recState.dataDate = '';
+            this.recState.pageNum = 1;
+            this.loadRecords();
+        });
+        document.getElementById('recPrevBtn').addEventListener('click', () => {
+            if (this.recState.pageNum > 1) {
+                this.recState.pageNum--;
+                this.loadRecords();
+            }
+        });
+        document.getElementById('recNextBtn').addEventListener('click', () => {
+            this.recState.pageNum++;
+            this.loadRecords();
+        });
+        document.getElementById('recPageSize').addEventListener('change', (e) => {
+            this.recState.pageSize = Number(e.target.value);
+            this.recState.pageNum = 1;
+            this.loadRecords();
+        });
+        // 点对比表金额弹该日来源类型构成(机构/医保机构), 不平徽章弹账平差异
         document.getElementById('tableBody').addEventListener('click', (e) => {
             const btn = e.target.closest('button');
             if (!btn) return;
@@ -102,12 +139,45 @@ class MiReconApp {
         // 合计行点击金额弹整月来源类型分摊
         document.getElementById('footOrgFeeBtn').addEventListener('click', () => this.openCatMonth('org'));
         document.getElementById('footMiOrgFeeBtn').addEventListener('click', () => this.openCatMonth('miOrg'));
+        // 两表差异弹窗列头筛选(数据来源/医保标志/HIS标志), 纯前端过滤已加载数据
+        ['zpFilterSide', 'zpFilterPay', 'zpFilterBiz'].forEach(id => {
+            document.getElementById(id).addEventListener('change', () => this.refreshZpDiff());
+        });
     }
 
     initMonthFilter() {
         const now = new Date();
         this.state.month = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
         document.getElementById('monthFilter').value = this.state.month;
+    }
+
+    /** 本页所有弹窗加右下角拖把手, 可自由拖拉调整长宽(拉高后表格区自动撑开) */
+    initResizableModals() {
+        document.querySelectorAll('#uploadModal, #recordsModal, #orgDtlModal, #zpDiffModal').forEach(modal => {
+            const dialog = modal.querySelector('.modal-dialog');
+            const content = modal.querySelector('.modal-content');
+            if (!dialog || !content) return;
+            const grip = document.createElement('div');
+            grip.className = 'modal-resize-grip';
+            grip.title = '拖拽调整弹窗大小';
+            content.appendChild(grip);
+            grip.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                const startX = e.clientX, startY = e.clientY;
+                const startW = dialog.offsetWidth, startH = content.offsetHeight;
+                const onMove = (ev) => {
+                    dialog.style.width = Math.max(380, startW + ev.clientX - startX) + 'px';
+                    content.style.height = Math.max(260, startH + ev.clientY - startY) + 'px';
+                    content.classList.add('resized');
+                };
+                const onUp = () => {
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                };
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            });
+        });
     }
 
     initUploadDatePicker() {
@@ -117,6 +187,18 @@ class MiReconApp {
             defaultDate: [this.formatDate(today, '/')],
             locale: 'zh',
             allowInput: false
+        });
+    }
+
+    /** 上传记录弹窗的数据日期筛选 */
+    initRecordsDatePicker() {
+        this.recDatePicker = flatpickr(document.getElementById('recDateFilter'), {
+            dateFormat: 'Y/m/d',
+            locale: 'zh',
+            allowInput: false,
+            onChange: (dates) => {
+                this.recState.dataDate = dates[0] ? this.formatDate(dates[0]) : '';
+            }
         });
     }
 
@@ -174,15 +256,15 @@ class MiReconApp {
                 : '—';
             const miOrgFeeCell = hasMiOrgFee
                 ? `<button class="btn btn-sm p-0 mi-org-dtl-btn" data-date="${item.settleDate}"
-                       title="点击查看该日医保数据来源类型构成">${fmtFee(item.miOrgFee)}</button>`
+                       title="点击查看该日医保机构来源类型构成">${fmtFee(item.miOrgFee)}</button>`
                 : '—';
             const orgBadge = item.matched === false
                 ? `<button class="badge bg-danger border-0 zp-diff-btn" data-date="${item.settleDate}"
-                       title="点击查看HIS业务表与医保支付表账平差异">不平</button>`
+                       title="点击查看两表差异明细(含单边/金额不等)">不平</button>`
                 : '<span class="badge bg-success">对平</span>';
             const miBadge = item.miOrgMatched === false
                 ? `<button class="badge bg-danger border-0 zp-diff-btn" data-date="${item.settleDate}"
-                       title="点击查看HIS业务表与医保支付表账平差异">不平</button>`
+                       title="点击查看两表差异明细(含单边/金额不等)">不平</button>`
                 : '<span class="badge bg-success">对平</span>';
             tr.innerHTML = `
                 <td>${item.settleDate || '—'}</td>
@@ -220,14 +302,14 @@ class MiReconApp {
         document.getElementById('sumStatus').textContent = parts.length > 0 ? parts.join(' ') : '对平';
     }
 
-    /** 单日明细弹窗: 该日按来源类型展示(side=org医疗机构/miOrg医保数据); 机构侧附带未匹配负交易 */
+    /** 单日明细弹窗: 该日按来源类型展示(side=org医疗机构/miOrg医保机构); 机构侧附带未匹配负交易 */
     openOrgDtl(settleDate, side = 'org') {
         const item = this.state.list.find(r => r.settleDate === settleDate);
         if (!item) return;
         const isMi = side === 'miOrg';
         const typeName = item.insurTypeName || insurTypeName(item.insurType);
         this.renderCatModal(
-            `${isMi ? '医保数据' : '医疗机构'}明细（${item.settleDate} ${typeName}）`,
+            `${isMi ? '医保机构' : '医疗机构'}明细（${item.settleDate} ${typeName}）`,
             (isMi ? item.miOrgDtl : item.orgDtl) || [],
             c => c.insurTypeName || typeName);
         document.getElementById('orgUnmatchedWrap').classList.add('d-none');
@@ -290,7 +372,7 @@ class MiReconApp {
             return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.name.localeCompare(b.name, 'zh');
         });
         this.renderCatModal(
-            `${isMi ? '医保数据' : '医疗机构'}来源类型分摊（${this.state.month} ${insurTypeName(this.state.insurType)}）`,
+            `${isMi ? '医保机构' : '医疗机构'}来源类型分摊（${this.state.month} ${insurTypeName(this.state.insurType)}）`,
             rows, () => insurTypeName(this.state.insurType));
     }
 
@@ -337,44 +419,128 @@ class MiReconApp {
         document.getElementById('zpDiffTotals').innerHTML = html;
     }
 
-    /** 账平差异弹窗: HIS业务表ips_dz_biz_bills vs 医保支付表ips_dz_pay_bills, 双边账平按setl_id比对 */
+    /** 自冲销行配对重排: 按就诊号分组、组内按金额绝对值降序两两配对(互反金额), 配上的两行紧挨排一起并编号 */
+    pairOffsetRows(list) {
+        const used = new Set();
+        const ordered = [];
+        let pairNo = 0;
+        list.forEach(c => {
+            if (used.has(c)) return;
+            if (!c.offsetPair) {
+                ordered.push(c);
+                used.add(c);
+                return;
+            }
+            // 同就诊号、金额互反且未配对的行作为对端
+            const partner = list.find(x => x !== c && !used.has(x) && x.offsetPair
+                && x.pairKey === c.pairKey
+                && Number(x.payFee) === -Number(c.payFee));
+            if (partner) {
+                pairNo++;
+                used.add(c);
+                used.add(partner);
+                // 正金额在前, 负(退费)在后
+                const first = Number(c.payFee) >= 0 ? c : partner;
+                const second = first === c ? partner : c;
+                first._pairNo = pairNo; first._pairFirst = true;
+                second._pairNo = pairNo; second._pairFirst = false;
+                ordered.push(first, second);
+            } else {
+                ordered.push(c);
+                used.add(c);
+            }
+        });
+        return ordered;
+    }
+
+    /** 两表差异弹窗: HIS业务表 vs 医保支付表按setl_id全量比对(单边存在+账平标志不一致), 不限账平标志 */
     async openZpDiff(settleDate) {
         document.getElementById('zpDiffTitle').textContent =
-            `账平差异明细（${settleDate} ${insurTypeName(this.state.insurType)}）`;
-        const tbody = document.getElementById('zpDiffBody');
-        tbody.innerHTML = '';
+            `两表差异明细（${settleDate} ${insurTypeName(this.state.insurType)}）`;
+        document.getElementById('zpDiffBody').innerHTML = '';
         document.getElementById('zpDiffEmpty').classList.add('d-none');
         document.getElementById('zpDiffTotals').innerHTML = '';
-        let list = [];
+        this.zpDiffList = [];
         try {
             const body = await ReportAPI.miRecon({
                 action: 'zpDiff',
                 insurType: this.state.insurType,
                 settleDate: settleDate
             });
-            list = body.list || [];
+            this.zpDiffList = body.list || [];
             this.renderZpTotals(body.totals || []);
         } catch (error) {
             console.error('Load zp diff failed:', error);
         }
-        document.getElementById('zpDiffEmpty').classList.toggle('d-none', list.length > 0);
-        let sumFee = 0, hasFee = false, payCnt = 0, bizCnt = 0;
-        list.forEach(c => {
+        this.populateZpFilters();
+        this.refreshZpDiff();
+    }
+
+    /** 差异表列头筛选下拉(数据来源/医保标志/HIS标志): 选项从本次数据动态生成 */
+    populateZpFilters() {
+        const fill = (id, values) => {
+            const sel = document.getElementById(id);
+            const prev = sel.value;
+            sel.innerHTML = '<option value="">全部</option>'
+                + values.map(v => `<option value="${v}">${v}</option>`).join('');
+            sel.value = values.includes(prev) ? prev : '';
+        };
+        const distinct = fn => [...new Set(this.zpDiffList.map(fn)
+            .filter(v => v !== null && v !== undefined && v !== ''))];
+        fill('zpFilterSide', distinct(c => c.diffSide));
+        fill('zpFilterPay', distinct(c => c.payZpName));
+        fill('zpFilterBiz', distinct(c => c.bizZpName));
+    }
+
+    /** 按列头筛选条件重渲染差异表(纯前端, 所见即所得) */
+    refreshZpDiff() {
+        const side = document.getElementById('zpFilterSide').value;
+        const pay = document.getElementById('zpFilterPay').value;
+        const biz = document.getElementById('zpFilterBiz').value;
+        const full = this.zpDiffList || [];
+        const list = full.filter(c => (!side || c.diffSide === side)
+            && (!pay || c.payZpName === pay)
+            && (!biz || c.bizZpName === biz));
+        const emptyEl = document.getElementById('zpDiffEmpty');
+        emptyEl.textContent = full.length === 0 ? '两表一致，无差异' : '无符合筛选条件的差异';
+        emptyEl.classList.toggle('d-none', list.length > 0);
+        const tbody = document.getElementById('zpDiffBody');
+        tbody.innerHTML = '';
+        let sumPayFee = 0, sumBizFee = 0, hasPayFee = false, hasBizFee = false;
+        const cntOf = s => list.filter(c => c.diffSide === s).length;
+        const offsetRows = list.filter(c => c.offsetPair).length;
+        // 自冲销配对: 按就诊号分组、组内按金额绝对值降序两两配对(金额互反), 配好对的两行紧挨排一起
+        const ordered = this.pairOffsetRows(list);
+        ordered.forEach(c => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `
+            // 关联列: 一对的首行用rowspan=2的大括号跨两行, 非配对行留空
+            const bracketCell = c._pairNo
+                ? (c._pairFirst
+                    ? `<td rowspan="2" class="pair-cell"><span class="pair-bracket">[</span></td>`
+                    : '')
+                : '<td class="pair-cell"></td>';
+            const offsetCell = c.offsetPair
+                ? `<span class="badge bg-info">自相冲销${c._pairNo ? ' 对' + c._pairNo : ''}</span>`
+                : '—';
+            tr.innerHTML = `${bracketCell}
                 <td>${c.setlId || '—'}</td>
                 <td>${c.insurTypeName || insurTypeName(c.insurType)}</td>
                 <td>${c.diffSide || '—'}</td>
-                <td class="text-end">${fmtFee(c.medfeeSumamt)}</td>`;
+                <td>${offsetCell}</td>
+                <td>${c.payZpName || '—'}</td>
+                <td>${c.bizZpName || '—'}</td>
+                <td class="text-end">${c.payFee === null || c.payFee === undefined ? '—' : fmtFee(c.payFee)}</td>
+                <td class="text-end">${c.bizFee === null || c.bizFee === undefined ? '—' : fmtFee(c.bizFee)}</td>`;
             tbody.appendChild(tr);
-            if (c.medfeeSumamt !== null && c.medfeeSumamt !== undefined) { sumFee += Number(c.medfeeSumamt); hasFee = true; }
-            if (c.diffSide === '医保支付表') payCnt++;
-            if (c.diffSide === 'HIS业务表') bizCnt++;
+            if (c.payFee !== null && c.payFee !== undefined) { sumPayFee += Number(c.payFee); hasPayFee = true; }
+            if (c.bizFee !== null && c.bizFee !== undefined) { sumBizFee += Number(c.bizFee); hasBizFee = true; }
         });
         document.getElementById('zpDiffCnt').textContent = fmtQty(list.length) + ' 条';
-        document.getElementById('zpDiffSumFee').textContent = hasFee ? fmtFee(sumFee) : '—';
+        document.getElementById('zpDiffSumPayFee').textContent = hasPayFee ? fmtFee(sumPayFee) : '—';
+        document.getElementById('zpDiffSumBizFee').textContent = hasBizFee ? fmtFee(sumBizFee) : '—';
         document.getElementById('zpDiffSummary').textContent = list.length === 0 ? ''
-            : `医保支付表多出 ${fmtQty(payCnt)} 条，HIS业务表多出 ${fmtQty(bizCnt)} 条（来源类型=账平仅存在的一方）`;
+            : `仅医保支付表 ${fmtQty(cntOf('仅医保支付表'))} 条，仅HIS业务表 ${fmtQty(cntOf('仅HIS业务表'))} 条，账平标志不一致 ${fmtQty(cntOf('账平标志不一致'))} 条`
+                + (offsetRows > 0 ? `；其中医保自对冲 ${fmtQty(offsetRows / 2)} 对（${fmtQty(offsetRows)} 条，金额自相抵消，非真实差异）` : '');
         bootstrap.Modal.getOrCreateInstance(document.getElementById('zpDiffModal')).show();
     }
 
@@ -433,15 +599,41 @@ class MiReconApp {
 
     async openRecordsModal() {
         this.editingId = null;
+        await this.loadRecords();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('recordsModal')).show();
+    }
+
+    /** 上传记录分页加载: 类型/数据日期筛选 + 页码, 同类型后端排一起 */
+    async loadRecords() {
         try {
-            const body = await ReportAPI.miRecon({ action: 'records' });
+            const body = await ReportAPI.miRecon({
+                action: 'records',
+                insurType: this.recState.insurType,
+                dataDate: this.recState.dataDate,
+                pageNum: this.recState.pageNum,
+                pageSize: this.recState.pageSize
+            });
             this.records = body.list || [];
+            this.recTotal = body.total || 0;
         } catch (error) {
             console.error('Load mi recon records failed:', error);
             this.records = [];
+            this.recTotal = 0;
         }
         this.renderRecords();
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('recordsModal')).show();
+        this.updateRecPager();
+    }
+
+    /** 上传记录分页条: 总条数/页码/翻页按钮状态 */
+    updateRecPager() {
+        const pages = Math.max(1, Math.ceil(this.recTotal / this.recState.pageSize));
+        if (this.recState.pageNum > pages) {
+            this.recState.pageNum = pages;
+        }
+        document.getElementById('recTotal').textContent = `共 ${fmtQty(this.recTotal)} 条`;
+        document.getElementById('recPageInfo').textContent = `第 ${this.recState.pageNum} / ${pages} 页`;
+        document.getElementById('recPrevBtn').disabled = this.recState.pageNum <= 1;
+        document.getElementById('recNextBtn').disabled = this.recState.pageNum >= pages;
     }
 
     renderRecords() {
@@ -460,14 +652,15 @@ class MiReconApp {
                 ? `<button class="btn btn-success btn-sm save-type-btn" data-id="${item.id}">保存</button>
                    <button class="btn btn-outline-secondary btn-sm cancel-type-btn" data-id="${item.id}">取消</button>`
                 : `<button class="btn btn-outline-primary btn-sm edit-type-btn" data-id="${item.id}"><i class="bi bi-pencil me-1"></i>改类型</button>
-                   ${item.status === '0' ? `<button class="btn btn-outline-success btn-sm enable-btn" data-id="${item.id}" title="启用后该文件数据用于对比，同类型冲突日期的启用文件自动作废">启用</button>` : ''}`;
+                   ${item.status === '0' ? `<button class="btn btn-outline-success btn-sm enable-btn" data-id="${item.id}" title="启用后该文件数据用于对比，同类型冲突日期的启用文件自动作废">启用</button>` : ''}
+                   <button class="btn btn-outline-danger btn-sm delete-btn" data-id="${item.id}" title="删除该记录及其明细数据，不可恢复">删除</button>`;
             const statusCell = item.status === '1'
                 ? '<span class="badge bg-success">启用</span>'
                 : '<span class="badge bg-secondary">已作废</span>';
             tr.innerHTML = `
-                <td title="${item.fileName || ''}">${item.fileName || '—'}</td>
-                <td>${typeCell}</td>
                 <td>${item.dataDate || '—'}</td>
+                <td>${typeCell}</td>
+                <td class="filename-cell" title="${item.fileName || ''}">${item.fileName || '—'}</td>
                 <td>${fmtQty(item.rowCount)}</td>
                 <td>${item.createTime || '—'}</td>
                 <td>${statusCell}</td>
@@ -483,11 +676,26 @@ class MiReconApp {
         }
         try {
             await ReportAPI.miRecon({ action: 'enableFile', id });
-            await this.openRecordsModal();
+            await this.loadRecords();
             this.load();
         } catch (error) {
             console.error('Enable mi recon file failed:', error);
             alert('启用失败：' + error.message);
+        }
+    }
+
+    /** 删除上传记录及其明细(物理删除不可恢复; 删除启用记录后对应日期将无标准对账数据) */
+    async deleteFile(id) {
+        if (!confirm('删除后不可恢复！该记录的明细数据将一并删除；若删除的是"启用"记录，对应日期的标准对账数据将缺失，确定删除？')) {
+            return;
+        }
+        try {
+            await ReportAPI.miRecon({ action: 'deleteFile', id });
+            await this.loadRecords();
+            this.load();
+        } catch (error) {
+            console.error('Delete mi recon file failed:', error);
+            alert('删除失败：' + error.message);
         }
     }
 
@@ -504,11 +712,7 @@ class MiReconApp {
         try {
             await ReportAPI.miRecon({ action: 'updateType', id, insurType: select.value });
             this.editingId = null;
-            if (record) {
-                record.insurType = select.value;
-                record.insurTypeName = insurTypeName(select.value);
-            }
-            this.renderRecords();
+            await this.loadRecords();
             this.load();
         } catch (error) {
             console.error('Update mi recon type failed:', error);
