@@ -7,6 +7,7 @@ import com.reports.dto.request.MiReconRequest;
 import com.reports.dto.response.cash.mi.MiReconCompareItem;
 import com.reports.dto.response.cash.mi.MiReconFileItem;
 import com.reports.dto.response.cash.mi.MiReconTableTotalItem;
+import com.reports.dto.response.cash.mi.MiReconUnmatchedNegItem;
 import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
 import com.reports.enums.ReportModule;
 import com.reports.service.MiReconService;
@@ -71,6 +72,10 @@ public class MiReconHandler implements ReportHandler<MiReconRequest, Map<String,
                 result.put("affected", affected);
                 return ApiResponse.success(result, affected > 0 ? "类型修改成功！" : "记录不存在，修改失败！");
             }
+            case "enableFile": {
+                int affected = miReconService.enableFile(body.getId());
+                return ApiResponse.success(result, affected > 0 ? "启用成功，该文件数据已用于对比！" : "该记录已是启用状态！");
+            }
             case "zpDiff": {
                 List<MiReconZpDiffItem> list = miReconService.queryZpDiff(body.getInsurType(), body.getSettleDate());
                 List<MiReconTableTotalItem> totals = miReconService.queryDayTotals(body.getInsurType(), body.getSettleDate());
@@ -78,6 +83,13 @@ public class MiReconHandler implements ReportHandler<MiReconRequest, Map<String,
                 result.put("total", list.size());
                 result.put("totals", totals);
                 return ApiResponse.success(result, "账平差异查询成功！");
+            }
+            case "unmatchedNeg": {
+                List<MiReconUnmatchedNegItem> list =
+                        miReconService.queryUnmatchedNeg(body.getInsurType(), body.getSettleDate());
+                result.put("list", list);
+                result.put("total", list.size());
+                return ApiResponse.success(result, "未匹配负交易查询成功！");
             }
             default: {
                 List<MiReconCompareItem> list = miReconService.queryCompare(body);

@@ -881,8 +881,26 @@ const MockService = {
                         code: 200,
                         data: {
                             list: [
-                                { id: 1, fileName: '2026年10月-职工医保-对账_.xls', insurType: '310', insurTypeName: '职工', dataDate: '2026-11-04', rowCount: 31, createTime: '2026-11-04 09:12:00' },
-                                { id: 2, fileName: '2026年10月-居民医保-对账_.xls', insurType: '390', insurTypeName: '居民', dataDate: '2026-11-04', rowCount: 31, createTime: '2026-11-04 09:13:20' }
+                                { id: 1, fileName: '2026年10月-职工医保-对账_.xls', insurType: '310', insurTypeName: '职工', dataDate: '2026-11-04', rowCount: 31, status: '1', statusName: '启用', createTime: '2026-11-04 09:12:00' },
+                                { id: 2, fileName: '2026年10月-职工医保-对账_修正.xls', insurType: '310', insurTypeName: '职工', dataDate: '2026-11-04', rowCount: 31, status: '0', statusName: '已作废', createTime: '2026-11-04 10:30:00' },
+                                { id: 3, fileName: '2026年10月-居民医保-对账_.xls', insurType: '390', insurTypeName: '居民', dataDate: '2026-11-04', rowCount: 31, status: '1', statusName: '启用', createTime: '2026-11-04 09:13:20' }
+                            ],
+                            total: 3
+                        }
+                    });
+                    return;
+                }
+                if (params && params.action === 'enableFile') {
+                    resolve({ code: 200, data: { affected: 1 } });
+                    return;
+                }
+                if (params && params.action === 'unmatchedNeg') {
+                    resolve({
+                        code: 200,
+                        data: {
+                            list: [
+                                { setlId: '4301002026100100099', settleDate: params.settleDate, insurType: params.insurType, insurTypeName: typeName[params.insurType || '310'], medfeeSumamt: -860.40 },
+                                { setlId: '4301002026100100100', settleDate: params.settleDate, insurType: params.insurType, insurTypeName: typeName[params.insurType || '310'], medfeeSumamt: -325.00 }
                             ],
                             total: 2
                         }

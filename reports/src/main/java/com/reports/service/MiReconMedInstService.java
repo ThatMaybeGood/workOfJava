@@ -2,6 +2,7 @@ package com.reports.service;
 
 import com.reports.dto.response.cash.mi.MiReconOrgDtlItem;
 import com.reports.dto.response.cash.mi.MiReconTableTotalItem;
+import com.reports.dto.response.cash.mi.MiReconUnmatchedNegItem;
 import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
 
 import java.util.List;
@@ -33,4 +34,10 @@ public interface MiReconMedInstService {
      * 某日两表全量合计(不限zp_flag, 账平差异弹窗顶部对照)
      */
     List<MiReconTableTotalItem> queryDayTotals(String insurType, String settleDate);
+
+    /**
+     * 某日未匹配负交易(找不到对应正交易的退费, 明细弹窗展示差异来源用)
+     */
+    List<MiReconUnmatchedNegItem> queryUnmatchedNeg(String insurType, String settleDate,
+                                                    String startDate, String endDate);
 }

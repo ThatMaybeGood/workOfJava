@@ -2,6 +2,7 @@ package com.reports.mapper;
 
 import com.reports.dto.response.cash.mi.MiReconOrgDtlItem;
 import com.reports.dto.response.cash.mi.MiReconTableTotalItem;
+import com.reports.dto.response.cash.mi.MiReconUnmatchedNegItem;
 import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -31,4 +32,10 @@ public interface MiReconMedInstMapper {
     /** 某日两表全量合计(不限zp_flag, 账平差异弹窗顶部对照) */
     List<MiReconTableTotalItem> queryDayTotals(@Param("insurType") String insurType,
                                                @Param("settleDate") String settleDate);
+
+    /** 某日未匹配负交易: pay退费在biz表和pay表正交易都查不到对应正交易的结算号 */
+    List<MiReconUnmatchedNegItem> queryUnmatchedNeg(@Param("insurType") String insurType,
+                                                    @Param("settleDate") String settleDate,
+                                                    @Param("startDate") String startDate,
+                                                    @Param("endDate") String endDate);
 }

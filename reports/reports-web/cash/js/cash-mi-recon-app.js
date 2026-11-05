@@ -83,6 +83,8 @@ class MiReconApp {
             } else if (btn.classList.contains('cancel-type-btn')) {
                 this.editingId = null;
                 this.renderRecords();
+            } else if (btn.classList.contains('enable-btn')) {
+                this.enableFile(id);
             }
         });
         // 点对比表金额弹该日来源类型构成(机构/医保数据), 不平徽章弹账平差异
@@ -218,7 +220,7 @@ class MiReconApp {
         document.getElementById('sumStatus').textContent = parts.length > 0 ? parts.join(' ') : '对平';
     }
 
-    /** 单日明细弹窗: 该日按来源类型展示(side=org医疗机构/miOrg医保数据) */
+    /** 单日明细弹窗: 该日按来源类型展示(side=org医疗机构/miOrg医保数据); 机构侧附带未匹配负交易 */
     openOrgDtl(settleDate, side = 'org') {
         const item = this.state.list.find(r => r.settleDate === settleDate);
         if (!item) return;
@@ -228,6 +230,43 @@ class MiReconApp {
             `${isMi ? '医保数据' : '医疗机构'}明细（${item.settleDate} ${typeName}）`,
             (isMi ? item.miOrgDtl : item.orgDtl) || [],
             c => c.insurTypeName || typeName);
+        document.getElementById('orgUnmatchedWrap').classList.add('d-none');
+        if (!isMi) {
+            this.loadUnmatchedNeg(settleDate);
+        }
+    }
+
+    /** 未匹配负交易: 机构侧内连接找不到对应正交易的退费, 展示在医疗机构明细弹窗底部(不影响对平状态) */
+    async loadUnmatchedNeg(settleDate) {
+        let list = [];
+        try {
+            const body = await ReportAPI.miRecon({
+                action: 'unmatchedNeg',
+                insurType: this.state.insurType,
+                settleDate: settleDate
+            });
+            list = body.list || [];
+        } catch (error) {
+            console.error('Load unmatched neg failed:', error);
+            return;
+        }
+        if (list.length === 0) {
+            return;
+        }
+        const tbody = document.getElementById('orgUnmatchedBody');
+        tbody.innerHTML = '';
+        let sumFee = 0, hasFee = false;
+        list.forEach(c => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${c.setlId || '—'}</td>
+                <td class="text-end">${fmtFee(c.medfeeSumamt)}</td>`;
+            tbody.appendChild(tr);
+            if (c.medfeeSumamt !== null && c.medfeeSumamt !== undefined) { sumFee += Number(c.medfeeSumamt); hasFee = true; }
+        });
+        document.getElementById('orgUnmatchedCnt').textContent = fmtQty(list.length) + ' 条';
+        document.getElementById('orgUnmatchedSumFee').textContent = hasFee ? fmtFee(sumFee) : '—';
+        document.getElementById('orgUnmatchedWrap').classList.remove('d-none');
     }
 
     /** 整月来源类型分摊弹窗: 合计行点绿色金额触发, 当月每天明细按来源类型加总 */
@@ -420,16 +459,36 @@ class MiReconApp {
             const opCell = editing
                 ? `<button class="btn btn-success btn-sm save-type-btn" data-id="${item.id}">保存</button>
                    <button class="btn btn-outline-secondary btn-sm cancel-type-btn" data-id="${item.id}">取消</button>`
-                : `<button class="btn btn-outline-primary btn-sm edit-type-btn" data-id="${item.id}"><i class="bi bi-pencil me-1"></i>改类型</button>`;
+                : `<button class="btn btn-outline-primary btn-sm edit-type-btn" data-id="${item.id}"><i class="bi bi-pencil me-1"></i>改类型</button>
+                   ${item.status === '0' ? `<button class="btn btn-outline-success btn-sm enable-btn" data-id="${item.id}" title="启用后该文件数据用于对比，同类型冲突日期的启用文件自动作废">启用</button>` : ''}`;
+            const statusCell = item.status === '1'
+                ? '<span class="badge bg-success">启用</span>'
+                : '<span class="badge bg-secondary">已作废</span>';
             tr.innerHTML = `
                 <td title="${item.fileName || ''}">${item.fileName || '—'}</td>
                 <td>${typeCell}</td>
                 <td>${item.dataDate || '—'}</td>
                 <td>${fmtQty(item.rowCount)}</td>
                 <td>${item.createTime || '—'}</td>
+                <td>${statusCell}</td>
                 <td>${opCell}</td>`;
             tbody.appendChild(tr);
         });
+    }
+
+    /** 启用历史上传记录: 其明细用于对比, 同类型冲突日期的启用文件自动作废 */
+    async enableFile(id) {
+        if (!confirm('启用后该文件数据将用于对比，同类型冲突日期的其他启用文件会自动作废，确定启用？')) {
+            return;
+        }
+        try {
+            await ReportAPI.miRecon({ action: 'enableFile', id });
+            await this.openRecordsModal();
+            this.load();
+        } catch (error) {
+            console.error('Enable mi recon file failed:', error);
+            alert('启用失败：' + error.message);
+        }
     }
 
     async saveType(id) {

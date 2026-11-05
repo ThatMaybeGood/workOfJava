@@ -183,6 +183,48 @@
           AND t.insutype = #{insurType}
     </select>
 
+    <resultMap id="unmatchedNegMap" type="com.reports.dto.response.cash.mi.MiReconUnmatchedNegItem">
+        <result property="setlId" column="setl_id"/>
+        <result property="settleDate" column="settle_date"/>
+        <result property="insurType" column="insur_type"/>
+        <result property="insurTypeName" column="insur_type_name"/>
+        <result property="medfeeSumamt" column="medfee_sumamt"/>
+    </resultMap>
+
+    <!-- 未匹配负交易(找不到对应正交易的退费): pay_bills负交易(TRAN_TYPE=2且zp_flag=-1),
+         在biz表(机构侧块1关联: 同insutype+同mdtrt_id+金额互反+正交易日期不晚于负交易)与
+         pay表正交易(机构侧块3关联: 同setl_id+同insutype)都查不到;
+         仅用于明细弹窗展示差异来源, 不计入机构侧合计, 不影响对平状态 -->
+    <select id="queryUnmatchedNeg" resultMap="unmatchedNegMap">
+        SELECT b.setl_id AS setl_id,
+               b.bill_date AS settle_date,
+               b.insutype AS insur_type,
+               DECODE(b.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民') AS insur_type_name,
+               b.medfee_sumamt AS medfee_sumamt
+        FROM ips_dz_pay_bills b
+        WHERE b.TRAN_TYPE = 2
+          AND b.zp_flag = -1
+          AND b.bill_date = TO_DATE(#{settleDate}, 'yyyy-mm-dd')
+          AND b.insutype = #{insurType}
+          AND NOT EXISTS (
+              SELECT 1 FROM ips_dz_biz_bills a
+              WHERE a.INSUTYPE = b.INSUTYPE
+                AND a.TRAN_TYPE = 1
+                AND a.mdtrt_id = b.mdtrt_id
+                AND a.medfee_sumamt = -b.medfee_sumamt
+                AND a.bill_date <![CDATA[<=]]> b.bill_date
+                AND a.bill_date BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
+          )
+          AND NOT EXISTS (
+              SELECT 1 FROM ips_dz_pay_bills a
+              WHERE a.setl_id = b.setl_id
+                AND a.TRAN_TYPE = 1
+                AND a.INSUTYPE = b.INSUTYPE
+                AND a.bill_date BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
+          )
+        ORDER BY b.setl_id
+    </select>
+
     <!-- 账平差异明细(同一结算日, 两表账平应一致): HIS业务表ips_dz_biz_bills vs 医保支付表ips_dz_pay_bills
          两块对称无主次: 各自zp_flag=1按setl_id反连接(NOT EXISTS)列对方没有的结算号,
          diff_side=账平仅存在的一方(医保支付表/HIS业务表); 对方表不限日期类型, 存在同setl_id账平行即对上;

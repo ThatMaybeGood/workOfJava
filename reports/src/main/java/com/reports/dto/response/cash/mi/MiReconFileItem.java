@@ -29,6 +29,12 @@ public class MiReconFileItem {
     /** 明细行数 */
     private Integer rowCount;
 
+    /** 启用状态: 1启用 0已作废 */
+    private String status;
+
+    /** 启用状态中文: 启用/已作废 */
+    private String statusName;
+
     /** 上传时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;

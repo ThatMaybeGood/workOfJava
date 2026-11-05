@@ -3,6 +3,7 @@ package com.reports.service.impl;
 import com.reports.annotation.DataSource;
 import com.reports.dto.response.cash.mi.MiReconOrgDtlItem;
 import com.reports.dto.response.cash.mi.MiReconTableTotalItem;
+import com.reports.dto.response.cash.mi.MiReconUnmatchedNegItem;
 import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
 import com.reports.mapper.MiReconMedInstMapper;
 import com.reports.service.MiReconMedInstService;
@@ -52,5 +53,13 @@ public class MiReconMedInstServiceImpl implements MiReconMedInstService {
     public List<MiReconTableTotalItem> queryDayTotals(String insurType, String settleDate) {
         log.info("[两表全量合计] powerips查询: insurType={} settleDate={}", insurType, settleDate);
         return miReconMedInstMapper.queryDayTotals(insurType, settleDate);
+    }
+
+    @Override
+    public List<MiReconUnmatchedNegItem> queryUnmatchedNeg(String insurType, String settleDate,
+                                                           String startDate, String endDate) {
+        log.info("[未匹配负交易] powerips查询: insurType={} settleDate={} {}~{}",
+                insurType, settleDate, startDate, endDate);
+        return miReconMedInstMapper.queryUnmatchedNeg(insurType, settleDate, startDate, endDate);
     }
 }

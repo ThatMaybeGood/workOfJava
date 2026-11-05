@@ -6,6 +6,7 @@ import com.reports.dto.response.cash.mi.MiReconFileItem;
 import com.reports.dto.response.cash.mi.MiReconOrgCatItem;
 import com.reports.dto.response.cash.mi.MiReconOrgDtlItem;
 import com.reports.dto.response.cash.mi.MiReconTableTotalItem;
+import com.reports.dto.response.cash.mi.MiReconUnmatchedNegItem;
 import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
 import com.reports.entity.MiReconDetailEntity;
 import com.reports.entity.MiReconFileEntity;
@@ -17,7 +18,6 @@ import com.reports.service.MiReconService;
 import com.reports.util.MiReconExcelUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -178,8 +178,7 @@ public class MiReconServiceImpl implements MiReconService {
 
     /** 某日两表全量合计(不限zp_flag), 校验口径同queryZpDiff, 失败返回空表 */
     @Override
-    public List<MiReconTableTotalItem> queryDayTotals(String insurType, String settleDate) {
-        if (MiReconInsurType.ofCode(insurType) == null) {
+    public List<MiReconTableTotalItem> queryDayTotals(String insurType, String settleDate) {        if (MiReconInsurType.ofCode(insurType) == null) {
             throw new IllegalArgumentException("医保类型无效, 应为310/390/3101/3901之一");
         }
         parseDay(settleDate);
@@ -187,6 +186,25 @@ public class MiReconServiceImpl implements MiReconService {
             return miReconMedInstService.queryDayTotals(insurType.trim(), settleDate.trim());
         } catch (Exception e) {
             log.warn("查询两表全量合计失败: insurType={} settleDate={}", insurType, settleDate, e);
+            return new ArrayList<>();
+        }
+    }
+
+    /** 某日未匹配负交易: 机构侧内连接丢失的退费, 仅明细展示不计入合计、不影响对平状态 */
+    @Override
+    public List<MiReconUnmatchedNegItem> queryUnmatchedNeg(String insurType, String settleDate) {
+        if (MiReconInsurType.ofCode(insurType) == null) {
+            throw new IllegalArgumentException("医保类型无效, 应为310/390/3101/3901之一");
+        }
+        parseDay(settleDate);
+        // NOT EXISTS侧关联条件按整月范围匹配(与机构侧块1/块3口径一致)
+        String month = settleDate.trim().substring(0, 7);
+        String start = month + "-01";
+        String end = lastDayOfMonth(month);
+        try {
+            return miReconMedInstService.queryUnmatchedNeg(insurType.trim(), settleDate.trim(), start, end);
+        } catch (Exception e) {
+            log.warn("查询未匹配负交易失败: insurType={} settleDate={}", insurType, settleDate, e);
             return new ArrayList<>();
         }
     }
@@ -206,6 +224,8 @@ public class MiReconServiceImpl implements MiReconService {
                         : (type == null ? entity.getInsurType() : type.getChineseName()));
                 item.setDataDate(entity.getDataDate());
                 item.setRowCount(entity.getRowCount());
+                item.setStatus(entity.getStatus());
+                item.setStatusName("1".equals(entity.getStatus()) ? "启用" : "已作废");
                 item.setCreateTime(entity.getCreateTime());
                 result.add(item);
             }
@@ -221,14 +241,39 @@ public class MiReconServiceImpl implements MiReconService {
         if (id == null || MiReconInsurType.ofCode(insurType) == null) {
             throw new IllegalArgumentException("记录id或医保类型无效");
         }
-        int affected = miReconMapper.updateFileType(id, insurType.trim(), typeName(insurType));
-        try {
-            miReconMapper.cascadeDetailType(id, insurType.trim(), typeName(insurType));
-        } catch (DataIntegrityViolationException e) {
-            throw new IllegalArgumentException(
-                    "修改失败：目标类型在相同结算日期已存在数据，请先删除冲突类型的上传记录");
+        // 冲突校验(唯一约束已放开, 改代码控制): 目标类型下不能有其他启用文件与本文件结算日期重叠
+        List<String> dates = miReconMapper.queryDetailDatesByFileId(id);
+        if (dates != null && !dates.isEmpty()) {
+            int conflict = miReconMapper.countOverlappedEnabledFiles(insurType.trim(), id, dates);
+            if (conflict > 0) {
+                throw new IllegalArgumentException(
+                        "修改失败：目标类型在相同结算日期已存在启用的上传数据，请先作废冲突类型的启用记录");
+            }
         }
+        int affected = miReconMapper.updateFileType(id, insurType.trim(), typeName(insurType));
+        miReconMapper.cascadeDetailType(id, insurType.trim(), typeName(insurType));
         return affected;
+    }
+
+    /** 启用某条历史上传记录: 其明细用于对比, 同类型冲突日期的其他启用文件自动作废 */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int enableFile(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("记录id不能为空");
+        }
+        MiReconFileEntity file = miReconMapper.queryFileById(id);
+        if (file == null) {
+            throw new IllegalArgumentException("记录不存在");
+        }
+        if ("1".equals(file.getStatus())) {
+            return 0;
+        }
+        List<String> dates = miReconMapper.queryDetailDatesByFileId(id);
+        if (dates != null && !dates.isEmpty()) {
+            miReconMapper.disableOverlappedFiles(file.getInsurType(), id, dates);
+        }
+        return miReconMapper.updateFileStatus(id, "1");
     }
 
     @Override
@@ -262,13 +307,17 @@ public class MiReconServiceImpl implements MiReconService {
         fileEntity.setInsurTypeName(type.getChineseName());
         fileEntity.setDataDate(dataDay);
         fileEntity.setRowCount(details.size());
+        fileEntity.setStatus("1");
         miReconMapper.insertFile(fileEntity);
 
+        // 明细多版本共存不再删除; 同类型冲突日期的其他启用文件自动作废(本文件除外)
         List<String> settleDates = new ArrayList<>();
         for (MiReconDetailEntity d : details) {
             settleDates.add(fmt(d.getSettleDate()));
         }
-        miReconMapper.deleteDetailByTypeAndDates(type.getCode(), settleDates);
+        if (!settleDates.isEmpty()) {
+            miReconMapper.disableOverlappedFiles(type.getCode(), fileEntity.getId(), settleDates);
+        }
         for (MiReconDetailEntity d : details) {
             d.setFileId(fileEntity.getId());
             d.setInsurTypeName(type.getChineseName());

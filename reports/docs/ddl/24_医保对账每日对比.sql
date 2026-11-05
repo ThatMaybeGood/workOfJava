@@ -54,3 +54,48 @@ COMMENT ON COLUMN tr_mi_recon_detail.qty IS '对账数据量(同日多行已聚�
 COMMENT ON COLUMN tr_mi_recon_detail.total_fee IS '医疗费总额(同日多行已聚合)';
 COMMENT ON COLUMN tr_mi_recon_detail.settle_date IS '结算日期';
 COMMENT ON COLUMN tr_mi_recon_detail.create_time IS '创建时间';
+
+-- ============================================================
+-- 2026-11-05 v2: 上传记录加启用状态列——同类型同数据日期重复上传时, 旧记录自动标记作废, 最新一条启用
+-- ============================================================
+-- 幂等: 列已存在则跳过
+DECLARE
+    v_cnt NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_cnt FROM user_tab_columns
+     WHERE table_name = 'TR_MI_RECON_FILE' AND column_name = 'STATUS';
+    IF v_cnt = 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE tr_mi_recon_file ADD status CHAR(1) DEFAULT ''1'' NOT NULL';
+    END IF;
+END;
+/
+-- 存量数据全部视为启用
+UPDATE tr_mi_recon_file SET status = '1' WHERE status IS NULL OR status NOT IN ('0', '1');
+COMMIT;
+
+COMMENT ON COLUMN tr_mi_recon_file.status IS '启用状态: 1启用 0已作废(同类型同数据日期重复上传时旧记录自动作废)';
+
+-- 验证: 第1条应返回1, 第2条按status分组统计
+SELECT COUNT(*) AS status_col_exists FROM user_tab_columns
+ WHERE table_name = 'TR_MI_RECON_FILE' AND column_name = 'STATUS';
+SELECT status, COUNT(*) AS cnt FROM tr_mi_recon_file GROUP BY status;
+
+-- ============================================================
+-- 2026-11-05 v3: 支持上传历史版本切换启用——明细不再物理删除, 多版本共存, 生效性由file.status控制
+-- ============================================================
+-- 1) 放开明细表(类型+结算日期)唯一约束: 多个版本的明细可共存, 同一类型同一天只应有一个启用版本
+DECLARE
+    v_cnt NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_cnt FROM user_constraints
+     WHERE constraint_name = 'UK_TR_MI_RECON_DETAIL_TD' AND table_name = 'TR_MI_RECON_DETAIL';
+    IF v_cnt > 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE tr_mi_recon_detail DROP CONSTRAINT uk_tr_mi_recon_detail_td';
+    END IF;
+END;
+/
+COMMIT;
+
+-- 验证: 应返回0(约束已不存在)
+SELECT COUNT(*) AS uk_exists FROM user_constraints
+ WHERE constraint_name = 'UK_TR_MI_RECON_DETAIL_TD' AND table_name = 'TR_MI_RECON_DETAIL';

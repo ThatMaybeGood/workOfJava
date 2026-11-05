@@ -4,6 +4,7 @@ import com.reports.dto.request.MiReconRequest;
 import com.reports.dto.response.cash.mi.MiReconCompareItem;
 import com.reports.dto.response.cash.mi.MiReconFileItem;
 import com.reports.dto.response.cash.mi.MiReconTableTotalItem;
+import com.reports.dto.response.cash.mi.MiReconUnmatchedNegItem;
 import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
 import com.reports.entity.MiReconDetailEntity;
 import org.springframework.web.multipart.MultipartFile;
@@ -32,6 +33,11 @@ public interface MiReconService {
     List<MiReconTableTotalItem> queryDayTotals(String insurType, String settleDate);
 
     /**
+     * 某日未匹配负交易(找不到对应正交易的退费, 明细弹窗展示差异来源用)
+     */
+    List<MiReconUnmatchedNegItem> queryUnmatchedNeg(String insurType, String settleDate);
+
+    /**
      * 上传记录(最近100条)
      */
     List<MiReconFileItem> queryRecords();
@@ -40,6 +46,11 @@ public interface MiReconService {
      * 修改上传记录类型(级联明细)
      */
     int updateType(Long id, String insurType);
+
+    /**
+     * 启用某条历史上传记录(同类型冲突日期的其他启用文件自动作废)
+     */
+    int enableFile(Long id);
 
     /**
      * 上传医保对账文件: 解析落库, 同类型同结算日期以最新上传为准

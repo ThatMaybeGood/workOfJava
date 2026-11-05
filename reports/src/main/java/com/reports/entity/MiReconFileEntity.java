@@ -39,6 +39,10 @@ public class MiReconFileEntity {
     @TableField("row_count")
     private Integer rowCount;
 
+    /** 启用状态: 1启用 0已作废(同类型同数据日期重复上传时旧记录自动作废) */
+    @TableField("status")
+    private String status;
+
     @TableField("create_time")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;
