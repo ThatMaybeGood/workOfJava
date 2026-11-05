@@ -1,6 +1,7 @@
 package com.reports.mapper;
 
 import com.reports.dto.response.cash.mi.MiReconOrgDtlItem;
+import com.reports.dto.response.cash.mi.MiReconTableTotalItem;
 import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -18,7 +19,16 @@ public interface MiReconMedInstMapper {
                                          @Param("startDate") String startDate,
                                          @Param("endDate") String endDate);
 
+    /** 医保机构侧原始行(ips_dz_pay_bills自身三分类: 账平/医保负金额/医保正金额, 不聚合) */
+    List<MiReconOrgDtlItem> queryMiOrgData(@Param("insurType") String insurType,
+                                           @Param("startDate") String startDate,
+                                           @Param("endDate") String endDate);
+
     /** 账平差异: biz_bills与pay_bills双边zp_flag=1按setl_id比对, 列对方没有的结算号 */
     List<MiReconZpDiffItem> queryZpDiff(@Param("insurType") String insurType,
                                         @Param("settleDate") String settleDate);
+
+    /** 某日两表全量合计(不限zp_flag, 账平差异弹窗顶部对照) */
+    List<MiReconTableTotalItem> queryDayTotals(@Param("insurType") String insurType,
+                                               @Param("settleDate") String settleDate);
 }

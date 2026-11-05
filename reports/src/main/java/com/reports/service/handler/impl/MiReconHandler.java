@@ -6,6 +6,7 @@ import com.reports.dto.common.ApiResponse;
 import com.reports.dto.request.MiReconRequest;
 import com.reports.dto.response.cash.mi.MiReconCompareItem;
 import com.reports.dto.response.cash.mi.MiReconFileItem;
+import com.reports.dto.response.cash.mi.MiReconTableTotalItem;
 import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
 import com.reports.enums.ReportModule;
 import com.reports.service.MiReconService;
@@ -72,8 +73,10 @@ public class MiReconHandler implements ReportHandler<MiReconRequest, Map<String,
             }
             case "zpDiff": {
                 List<MiReconZpDiffItem> list = miReconService.queryZpDiff(body.getInsurType(), body.getSettleDate());
+                List<MiReconTableTotalItem> totals = miReconService.queryDayTotals(body.getInsurType(), body.getSettleDate());
                 result.put("list", list);
                 result.put("total", list.size());
+                result.put("totals", totals);
                 return ApiResponse.success(result, "账平差异查询成功！");
             }
             default: {

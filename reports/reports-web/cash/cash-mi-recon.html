@@ -19,9 +19,13 @@
         .table-section .table-responsive tfoot td { position: sticky; bottom: 0; }
         /* 全局样式把 tbody 最后一行当合计行加粗, 本页有真 tfoot, 覆盖掉 */
         .table-section .table tbody tr:last-child { font-weight: normal; background-color: transparent; }
-        /* 医疗机构金额做成"看起来是普通金额、悬停下划线"的可点击样式 */
-        .table-section .org-dtl-btn { color: inherit; text-decoration: none; font-weight: inherit; vertical-align: baseline; }
-        .table-section .org-dtl-btn:hover { text-decoration: underline; color: inherit; }
+        /* 可点击金额统一绿色凸显: 单日金额(机构/医保数据)与合计行金额, 平时绿色悬停下划线 */
+        .table-section .org-dtl-btn, .table-section .mi-org-dtl-btn, .table-section .cat-month-btn {
+            color: #389e0d; font-weight: 600; text-decoration: none; vertical-align: baseline; font-size: inherit;
+        }
+        .table-section .org-dtl-btn:hover, .table-section .mi-org-dtl-btn:hover, .table-section .cat-month-btn:hover {
+            text-decoration: underline; color: #237804;
+        }
     </style>
 </head>
 <body>
@@ -84,7 +88,10 @@
                             <th class="text-end">医疗机构-数量</th>
                             <th class="text-end">医疗机构-医疗总费用</th>
                             <th class="text-end">差额(医保-医疗机构)</th>
-                            <th class="text-center">状态</th>
+                            <th class="text-end">医保数据-数量</th>
+                            <th class="text-end">医保数据-医疗总费用</th>
+                            <th class="text-end">差额(上传-医保)</th>
+                            <th class="text-center">状态(机构/医保)</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody"></tbody>
@@ -94,8 +101,11 @@
                             <td class="text-end" id="sumMiQty"></td>
                             <td class="text-end" id="sumMiFee"></td>
                             <td class="text-end" id="sumOrgQty"></td>
-                            <td class="text-end" id="sumOrgFee"></td>
+                            <td class="text-end"><button id="footOrgFeeBtn" class="btn btn-sm p-0 cat-month-btn" title="点击查看整月医疗机构来源类型分摊">—</button></td>
                             <td class="text-end" id="sumDiff"></td>
+                            <td class="text-end" id="sumMiOrgQty"></td>
+                            <td class="text-end"><button id="footMiOrgFeeBtn" class="btn btn-sm p-0 cat-month-btn" title="点击查看整月医保数据来源类型分摊">—</button></td>
+                            <td class="text-end" id="sumMiOrgDiff"></td>
                             <td class="text-center" id="sumStatus"></td>
                         </tr>
                     </tfoot>
@@ -213,6 +223,8 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <!-- 两表全量对照(不限账平标志): 总额对平但条数差大时, 多为医保侧一正一负自对冲交易 -->
+                    <div id="zpDiffTotals" class="d-flex flex-wrap gap-2 mb-2 small"></div>
                     <div id="zpDiffSummary" class="small text-muted mb-2"></div>
                     <div class="table-responsive" style="max-height:55vh">
                         <table class="table table-hover table-bordered mb-0">

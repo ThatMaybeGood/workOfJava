@@ -3,6 +3,7 @@ package com.reports.service;
 import com.reports.dto.request.MiReconRequest;
 import com.reports.dto.response.cash.mi.MiReconCompareItem;
 import com.reports.dto.response.cash.mi.MiReconFileItem;
+import com.reports.dto.response.cash.mi.MiReconTableTotalItem;
 import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
 import com.reports.entity.MiReconDetailEntity;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,6 +25,11 @@ public interface MiReconService {
      * 账平差异明细(某日): HIS业务表 vs 医保支付表, 双边账平按setl_id比对
      */
     List<MiReconZpDiffItem> queryZpDiff(String insurType, String settleDate);
+
+    /**
+     * 某日两表全量合计(不限zp_flag, 账平差异弹窗顶部对照)
+     */
+    List<MiReconTableTotalItem> queryDayTotals(String insurType, String settleDate);
 
     /**
      * 上传记录(最近100条)

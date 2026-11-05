@@ -1,6 +1,7 @@
 package com.reports.service;
 
 import com.reports.dto.response.cash.mi.MiReconOrgDtlItem;
+import com.reports.dto.response.cash.mi.MiReconTableTotalItem;
 import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
 
 import java.util.List;
@@ -22,4 +23,14 @@ public interface MiReconMedInstService {
      * 账平差异明细: 同一结算日两表账平应一致, 列对方没有的结算号
      */
     List<MiReconZpDiffItem> queryZpDiff(String insurType, String settleDate);
+
+    /**
+     * 医保机构侧原始行: pay_bills自身按账平/医保负金额/医保正金额三分类
+     */
+    List<MiReconOrgDtlItem> queryMiOrgData(String insurType, String startDate, String endDate);
+
+    /**
+     * 某日两表全量合计(不限zp_flag, 账平差异弹窗顶部对照)
+     */
+    List<MiReconTableTotalItem> queryDayTotals(String insurType, String settleDate);
 }

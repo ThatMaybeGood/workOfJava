@@ -34,9 +34,24 @@ public class MiReconCompareItem {
     /** 差额 = 医保 - 医疗机构 */
     private BigDecimal diffFee;
 
-    /** 是否对平(双侧金额相等) */
+    /** 是否对平(上传 vs 医疗机构, 双侧金额相等) */
     private Boolean matched;
 
     /** 医疗机构侧按来源类型汇总明细(账平/医保负金额/医保正金额), 无机构数据为null */
     private java.util.List<MiReconOrgCatItem> orgDtl;
+
+    /** 医保机构-数量(无数据为null) */
+    private Long miOrgQty;
+
+    /** 医保机构-医疗总费用(无数据为null) */
+    private BigDecimal miOrgFee;
+
+    /** 差额2 = 医保 - 医保机构 */
+    private BigDecimal miOrgDiffFee;
+
+    /** 是否对平(上传 vs 医保机构, 双侧金额相等) */
+    private Boolean miOrgMatched;
+
+    /** 医保机构侧按来源类型汇总明细(账平/医保负金额/医保正金额), 无数据为null */
+    private java.util.List<MiReconOrgCatItem> miOrgDtl;
 }

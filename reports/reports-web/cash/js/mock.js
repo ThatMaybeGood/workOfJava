@@ -898,7 +898,11 @@ const MockService = {
                                 { setlId: '4301002026100100002', settleDate: params.settleDate, insurType: params.insurType, insurTypeName: typeName[params.insurType || '310'], medfeeSumamt: 1180.00, diffSide: '医保支付表' },
                                 { setlId: '4301002026100100003', settleDate: params.settleDate, insurType: params.insurType, insurTypeName: typeName[params.insurType || '310'], medfeeSumamt: 560.50, diffSide: 'HIS业务表' }
                             ],
-                            total: 3
+                            total: 3,
+                            totals: [
+                                { tableName: 'HIS业务表', qty: 486, fee: 1523456.78 },
+                                { tableName: '医保支付表', qty: 492, fee: 1523456.78 }
+                            ]
                         }
                     });
                     return;
