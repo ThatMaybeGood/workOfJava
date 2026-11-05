@@ -123,7 +123,7 @@
             SELECT '医保负金额' AS source_type,
                    a.bill_date AS settle_date,
                    COUNT(a.setl_id) AS qty,
-                   -SUM(a.medfee_sumamt) AS fee,
+                   SUM(a.medfee_sumamt) AS fee,
                    a.insutype AS insur_type,
                    DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民') AS insur_type_name
             FROM ips_dz_pay_bills a
