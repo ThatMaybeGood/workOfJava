@@ -46,3 +46,22 @@ BEGIN
     :NEW.update_time := SYSTIMESTAMP;
 END;
 /
+
+-- ==================== 2026-11-06 版本1: 生成来源列 ====================
+-- 背景: 审核界面查询时若该日期报表未生成，允许自动补生成，需记录报表生成来源
+-- 取值: 1-报表界面生成(默认) 2-审核界面补生成
+DECLARE
+    v_cnt NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_cnt FROM user_tab_columns
+    WHERE table_name = 'MPP_CASH_INP_MASTER' AND column_name = 'GEN_SOURCE';
+    IF v_cnt = 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE mpp_cash_inp_master ADD (gen_source VARCHAR2(1) DEFAULT ''1'')';
+    END IF;
+END;
+/
+
+COMMENT ON COLUMN mpp_cash_inp_master.gen_source IS '生成来源：1-报表界面，2-审核界面补生成';
+
+-- 验证: SELECT column_name FROM user_tab_columns WHERE table_name='MPP_CASH_INP_MASTER' AND column_name='GEN_SOURCE';
+-- ==================== 2026-11-06 版本1 结束 ====================

@@ -16,9 +16,14 @@ public class MiReconRequest extends BaseRequestBody {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 动作: compare/records/updateType/zpDiff, 默认compare
+     * 动作: compare/records/updateType/zpDiff/unmatchedNeg/enableFile/deleteFile/payComp, 默认compare
      */
     private String action;
+
+    /**
+     * payComp: 维度 sum(险种月合计)/cat(险种+类别)/day(按日)/dayCat(按日+类别)/cross(退费跨月配对)
+     */
+    private String dim;
 
     /**
      * compare/zpDiff: 医保类型 310/390/3101/3901, 必填

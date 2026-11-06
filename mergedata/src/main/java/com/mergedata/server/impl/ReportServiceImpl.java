@@ -836,6 +836,11 @@ public class ReportServiceImpl implements ReportService {
         //接收initFlag为1时，即初始化报表
         String initFlag = body.getInitFlag();
         Boolean isInitFlag = (initFlag != null && "1".equalsIgnoreCase(initFlag));
+        //生成来源缺省为报表界面
+        String genSource = body.getGenSource();
+        if (genSource == null || genSource.trim().isEmpty()) {
+            genSource = Constant.INP_GEN_SOURCE_REPORT;
+        }
 
         InpCashMainEntity inpResult = new InpCashMainEntity();
 
@@ -880,7 +885,7 @@ public class ReportServiceImpl implements ReportService {
                 }
 
                 // 生成各段汇总并返回查询日期对应的那段(各段落库前已合并旧汇总行手工列, bt8)
-                inpResult = generateInpHolidayTotals(blockEnd, currentDate);
+                inpResult = generateInpHolidayTotals(blockEnd, currentDate, genSource);
                 fillHolidayRange(inpResult);
             } else {
                 //查询数据库是否有相关数据
@@ -895,6 +900,7 @@ public class ReportServiceImpl implements ReportService {
                 if (inpResult == null) {
                     //获取初始化的数据
                     inpResult = getInpReportData(currentDate, holidayType, Constant.NOT_TOTAL);
+                    inpResult.setGenSource(genSource);
                     //查询时候数据库没有相关的数据，插入数据库，此处调用插入数据
                     isInitInsertInp(inpResult, Constant.YES);
 
@@ -902,6 +908,7 @@ public class ReportServiceImpl implements ReportService {
                     //重新初始化: 提取列(HIS收入/前日暂收款/前日欠条)重新获取, 手工录入列保留原值, 公式列按新值动态重算
                     InpCashMainEntity existMain = inpResult;
                     inpResult = getInpReportData(currentDate, holidayType, Constant.NOT_TOTAL);
+                    inpResult.setGenSource(genSource);
                     mergeManualInpColumns(inpResult, existMain);
                     isInitInsertInp(inpResult, Constant.YES);
                 }
@@ -926,12 +933,25 @@ public class ReportServiceImpl implements ReportService {
     }
 
     /**
-     * 查询住院审核报表数据（只查已有数据，不生成），附带审核日志
+     * 查询住院审核报表数据，附带审核日志；库中无该日期报表时自动补生成（来源记为审核界面）
      */
     @Override
     public InpCashMainEntity getInpAuditReport(InpReportRequestBody body) {
         String holidayTotalFlag = Constant.YES.equals(body.getTotalFlag()) ? Constant.YES : Constant.NOT_TOTAL;
         InpCashMainEntity main = queryInpReportByDate(body.getReportDate(), holidayTotalFlag);
+
+        //库中无数据才补生成，已有报表（含已审核封存）不动
+        if (main == null) {
+            InpReportRequestBody genBody = new InpReportRequestBody();
+            genBody.setReportDate(body.getReportDate());
+            genBody.setTotalFlag(body.getTotalFlag());
+            genBody.setGenSource(Constant.INP_GEN_SOURCE_AUDIT);
+            getInpReport(genBody);
+            main = queryInpReportByDate(body.getReportDate(), holidayTotalFlag);
+            if (main != null) {
+                main.setGeneratedNow(true);
+            }
+        }
 
         //查询历史审核记录，最近的在前
         List<InpAuditLogEntity> auditLogs = Db.lambdaQuery(InpAuditLogEntity.class)
@@ -1002,9 +1022,10 @@ public class ReportServiceImpl implements ReportService {
      *
      * @param blockEnd  连续节假日块最后一天
      * @param queryDate 查询日期(节后首个工作日或月末汇总日)
+     * @param genSource 生成来源(日报/汇总行落库标记)
      * @return 查询日期对应的那一段汇总
      */
-    private InpCashMainEntity generateInpHolidayTotals(LocalDate blockEnd, LocalDate queryDate) {
+    private InpCashMainEntity generateInpHolidayTotals(LocalDate blockEnd, LocalDate queryDate, String genSource) {
         //块起点: 从块尾回溯到第一个非节假日前一天
         LocalDate blockStart = blockEnd;
         while (!holidayService.findByDate(blockStart.minusDays(1)).isEmpty()) {
@@ -1070,6 +1091,7 @@ public class ReportServiceImpl implements ReportService {
                         if (daily == null) {
                             throw new RuntimeException(d + " 住院日报生成失败");
                         }
+                        daily.setGenSource(genSource);
                         isInitInsertInp(daily, Constant.YES);
                     }
                     dailyMap.put(d, daily);
@@ -1089,6 +1111,7 @@ public class ReportServiceImpl implements ReportService {
             InpCashMainEntity summary = inpHolidayTotal(segRows, displayDates.get(i));
             summary.setHolidayStartDate(ranges.get(i)[0]);
             summary.setHolidayEndDate(ranges.get(i)[1]);
+            summary.setGenSource(genSource);
             //bt8 落库前合并该段已存在汇总行的手工列(11)(12)(15), 初始化/重复生成不丢手工值
             InpCashMainEntity existSeg = queryInpReportByDate(displayDates.get(i), Constant.YES);
             if (existSeg != null) {

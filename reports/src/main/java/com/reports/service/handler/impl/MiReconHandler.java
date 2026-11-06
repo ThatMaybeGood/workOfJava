@@ -6,6 +6,9 @@ import com.reports.dto.common.ApiResponse;
 import com.reports.dto.request.MiReconRequest;
 import com.reports.dto.response.cash.mi.MiReconCompareItem;
 import com.reports.dto.response.cash.mi.MiReconFileItem;
+import com.reports.dto.response.cash.mi.MiReconPayCompItem;
+import com.reports.dto.response.cash.mi.MiReconPayCrossItem;
+import com.reports.dto.response.cash.mi.MiReconPayWarnItem;
 import com.reports.dto.response.cash.mi.MiReconTableTotalItem;
 import com.reports.dto.response.cash.mi.MiReconUnmatchedNegItem;
 import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
@@ -96,6 +99,28 @@ public class MiReconHandler implements ReportHandler<MiReconRequest, Map<String,
                 result.put("list", list);
                 result.put("total", list.size());
                 return ApiResponse.success(result, "未匹配负交易查询成功！");
+            }
+            case "payComp": {
+                String dim = body.getDim() == null ? "sum" : body.getDim();
+                if ("cross".equals(dim)) {
+                    List<MiReconPayCrossItem> list =
+                            miReconService.queryPayCross(body.getInsurType(), body.getMonth());
+                    result.put("list", list);
+                    result.put("total", list.size());
+                    return ApiResponse.success(result, "退费跨月配对查询成功！");
+                }
+                if ("warn".equals(dim)) {
+                    List<MiReconPayWarnItem> list =
+                            miReconService.queryPayWarn(body.getInsurType(), body.getMonth());
+                    result.put("list", list);
+                    result.put("total", list.size());
+                    return ApiResponse.success(result, "退费匹配概况查询成功！");
+                }
+                List<MiReconPayCompItem> list =
+                        miReconService.queryPayComp(dim, body.getInsurType(), body.getMonth());
+                result.put("list", list);
+                result.put("total", list.size());
+                return ApiResponse.success(result, "支付构成查询成功！");
             }
             default: {
                 List<MiReconCompareItem> list = miReconService.queryCompare(body);

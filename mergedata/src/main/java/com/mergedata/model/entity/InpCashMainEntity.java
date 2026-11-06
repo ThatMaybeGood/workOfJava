@@ -101,6 +101,14 @@ public class InpCashMainEntity {
     @TableField(value = "holiday_end_date")
     private LocalDate holidayEndDate;
 
+    /** 生成来源：1-报表界面，2-审核界面补生成 */
+    @TableField(value = "gen_source")
+    private String genSource;
+
+    /** 本次查询是否临时补生成（仅展示，不落库） */
+    @TableField(exist = false)
+    private Boolean generatedNow;
+
     /** 缺数提醒（仅展示，不落库） */
     @TableField(exist = false)
     private String warnMsg;

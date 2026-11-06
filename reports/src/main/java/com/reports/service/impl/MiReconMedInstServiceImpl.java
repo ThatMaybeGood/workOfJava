@@ -2,6 +2,9 @@ package com.reports.service.impl;
 
 import com.reports.annotation.DataSource;
 import com.reports.dto.response.cash.mi.MiReconOrgDtlItem;
+import com.reports.dto.response.cash.mi.MiReconPayCompItem;
+import com.reports.dto.response.cash.mi.MiReconPayCrossItem;
+import com.reports.dto.response.cash.mi.MiReconPayWarnItem;
 import com.reports.dto.response.cash.mi.MiReconTableTotalItem;
 import com.reports.dto.response.cash.mi.MiReconUnmatchedNegItem;
 import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
@@ -61,5 +64,38 @@ public class MiReconMedInstServiceImpl implements MiReconMedInstService {
         log.info("[未匹配负交易] powerips查询: insurType={} settleDate={} {}~{}",
                 insurType, settleDate, startDate, endDate);
         return miReconMedInstMapper.queryUnmatchedNeg(insurType, settleDate, startDate, endDate);
+    }
+
+    @Override
+    public List<MiReconPayCompItem> queryPayComp(String dim, String insurType, String startDate,
+                                                 String endDate, String prevStart) {
+        log.info("[支付构成] powerips查询: dim={} insurType={} {}~{} prevStart={}",
+                dim, insurType, startDate, endDate, prevStart);
+        if ("cat".equals(dim)) {
+            return miReconMedInstMapper.queryPayCat(insurType, startDate, endDate, prevStart);
+        }
+        if ("day".equals(dim)) {
+            return miReconMedInstMapper.queryPayDay(insurType, startDate, endDate, prevStart);
+        }
+        if ("dayCat".equals(dim)) {
+            return miReconMedInstMapper.queryPayDayCat(insurType, startDate, endDate, prevStart);
+        }
+        return miReconMedInstMapper.queryPaySum(insurType, startDate, endDate, prevStart);
+    }
+
+    @Override
+    public List<MiReconPayCrossItem> queryPayCross(String insurType, String startDate,
+                                                   String endDate, String prevStart) {
+        log.info("[退费跨月配对] powerips查询: insurType={} {}~{} prevStart={}",
+                insurType, startDate, endDate, prevStart);
+        return miReconMedInstMapper.queryPayCross(insurType, startDate, endDate, prevStart);
+    }
+
+    @Override
+    public List<MiReconPayWarnItem> queryPayWarn(String insurType, String startDate,
+                                                 String endDate, String prevStart) {
+        log.info("[退费匹配概况] powerips查询: insurType={} {}~{} prevStart={}",
+                insurType, startDate, endDate, prevStart);
+        return miReconMedInstMapper.queryPayWarn(insurType, startDate, endDate, prevStart);
     }
 }

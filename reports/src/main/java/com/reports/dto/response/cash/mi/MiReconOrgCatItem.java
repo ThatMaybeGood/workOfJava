@@ -21,4 +21,7 @@ public class MiReconOrgCatItem {
 
     /** 金额 */
     private BigDecimal fee;
+
+    /** 是否不计入对账合计(如金额不等zp_flag=-2, 仅明细展示) */
+    private Boolean excluded;
 }

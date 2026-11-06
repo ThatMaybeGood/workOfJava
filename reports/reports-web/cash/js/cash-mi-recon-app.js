@@ -8,12 +8,25 @@ const INSUR_TYPES = [
     { code: '310', name: '职工' },
     { code: '390', name: '居民' },
     { code: '3101', name: '异地职工' },
-    { code: '3901', name: '异地居民' }
+    { code: '3901', name: '异地居民' },
+    { code: '515253', name: '生育' }
+];
+
+/** 支付构成10个金额列(0=key对应接口字段, 1=合计行td的id后缀) */
+const PAY_COLS = [
+    ['medfeeSumamt', 'Medfee'], ['acctPay', 'Acct'], ['hlfpPay', 'Hlfp'],
+    ['cashPay', 'Cash'], ['cvlservPay', 'Cvlser'], ['hlfesPay', 'Hlfes'],
+    ['hlfmiPay', 'Hlfmi'], ['hlfobPay', 'Hlfob'], ['mafPay', 'Maf'], ['othPay', 'Oth']
 ];
 
 function insurTypeName(code) {
     const t = INSUR_TYPES.find(t => t.code === code);
     return t ? t.name : (code || '');
+}
+
+/** 险种统一显示: 职工(310) */
+function typeLabel(code, name) {
+    return `${name || insurTypeName(code)}(${code || '—'})`;
 }
 
 function fmtNum(v, decimals = 0) {
@@ -47,6 +60,9 @@ class MiReconApp {
         this.editingId = null;
         this.recState = { pageNum: 1, pageSize: 10, insurType: '', dataDate: '' };
         this.recTotal = 0;
+        // 支付构成
+        this.payState = { month: null, insurType: '', sumList: [], dayList: [], crossRows: [] };
+        this.payCtx = { insurType: '', insurTypeName: '' };
         this.bindEvents();
         this.initMonthFilter();
         this.initUploadDatePicker();
@@ -55,6 +71,10 @@ class MiReconApp {
         this.fillPage();
         window.addEventListener('resize', () => this.fillPage());
         this.load();
+        // 地址加 #pay 直达支付构成Tab
+        if (location.hash === '#pay') {
+            document.querySelector('#mainTabBar .tab[data-pane="panePay"]').click();
+        }
     }
 
     bindEvents() {
@@ -145,6 +165,40 @@ class MiReconApp {
         ['zpFilterSide', 'zpFilterPay', 'zpFilterBiz'].forEach(id => {
             document.getElementById(id).addEventListener('change', () => this.refreshZpDiff());
         });
+        // 主Tab切换: 每日对比 / 支付构成
+        document.getElementById('mainTabBar').addEventListener('click', (e) => {
+            const tab = e.target.closest('.tab');
+            if (!tab) return;
+            document.querySelectorAll('#mainTabBar .tab').forEach(t => t.classList.toggle('active', t === tab));
+            document.getElementById('paneDaily').style.display = tab.dataset.pane === 'paneDaily' ? '' : 'none';
+            document.getElementById('panePay').style.display = tab.dataset.pane === 'panePay' ? '' : 'none';
+            this.fillPage();
+            if (tab.dataset.pane === 'panePay') this.loadPaySum();
+        });
+        // 支付构成筛选
+        document.getElementById('payTypeFilter').addEventListener('change', (e) => {
+            this.payState.insurType = e.target.value;
+            this.loadPaySum();
+        });
+        document.getElementById('payQueryBtn').addEventListener('click', () => this.loadPaySum());
+        document.getElementById('payMonthFilter').addEventListener('change', (e) => {
+            if (e.target.value) {
+                this.payState.month = e.target.value;
+                this.loadPaySum();
+            }
+        });
+        // 支付构成主表/每日维度行尾按钮(分类明细/每日维度/当日分类) + 分类弹窗子Tab
+        document.getElementById('paySumBody').addEventListener('click', (e) => this.payRowBtn(e, 'cat'));
+        document.getElementById('payDayBody').addEventListener('click', (e) => this.payRowBtn(e, 'dayCat'));
+        document.querySelectorAll('#payCatModal .sub-tab-bar .tab').forEach(t => {
+            t.addEventListener('click', () => this.switchPaySub(Number(t.dataset.sub)));
+        });
+        // 每日维度弹窗内下钻: 返回每日维度列表层
+        document.getElementById('payDayBackBtn').addEventListener('click', () => {
+            this.showPayDayPane('list');
+            document.getElementById('payDayTitle').textContent =
+                `${this.payCtx.insurTypeName} 每日维度（${this.payState.month}）`;
+        });
     }
 
     initMonthFilter() {
@@ -155,7 +209,7 @@ class MiReconApp {
 
     /** 本页所有弹窗支持拖拉边界/角调整长宽: 左/右边拉宽, 下边拉高, 右下角同时拉 */
     initResizableModals() {
-        document.querySelectorAll('#uploadModal, #recordsModal, #orgDtlModal, #zpDiffModal').forEach(modal => {
+        document.querySelectorAll('#uploadModal, #recordsModal, #orgDtlModal, #zpDiffModal, #payCatModal, #payDayModal').forEach(modal => {
             const dialog = modal.querySelector('.modal-dialog');
             const content = modal.querySelector('.modal-content');
             if (!dialog || !content) return;
@@ -189,12 +243,16 @@ class MiReconApp {
         });
     }
 
-    /** 表格区铺满剩余高度: CSS flex为主, 个别老内核iframe里flex高度失效时JS兜底, 杜绝下方留白 */
+    /** 表格区铺满剩余高度: CSS flex为主, 个别老内核iframe里flex高度失效时JS兜底, 杜绝下方留白; 当前可见Tab的表格区生效 */
     fillPage() {
         const container = document.querySelector('body > .container-fluid');
-        const section = container && container.querySelector('.table-section');
-        if (!section) return;
+        if (!container) return;
         container.style.position = 'relative';
+        const daily = document.getElementById('paneDaily');
+        const pay = document.getElementById('panePay');
+        const pane = (pay && pay.style.display !== 'none') ? pay : daily;
+        const section = pane && pane.querySelector(':scope > .table-section');
+        if (!section) return;
         const remain = container.clientHeight - section.offsetTop - 8;
         if (remain > 200) {
             section.style.height = remain + 'px';
@@ -289,7 +347,7 @@ class MiReconApp {
                 : '<span class="badge bg-success">对平</span>';
             tr.innerHTML = `
                 <td>${item.settleDate || '—'}</td>
-                <td>${item.insurTypeName || insurTypeName(item.insurType)}</td>
+                <td>${typeLabel(item.insurType, item.insurTypeName)}</td>
                 <td class="text-end">${fmtQty(item.miQty)}</td>
                 <td class="text-end">${fmtFee(item.miFee)}</td>
                 <td class="text-end">${fmtQty(item.orgQty)}</td>
@@ -380,14 +438,15 @@ class MiReconApp {
             const dtl = (isMi ? item.miOrgDtl : item.orgDtl) || [];
             dtl.forEach(c => {
                 const key = c.sourceTypeName || c.sourceType || '';
-                const a = agg.get(key) || { name: key, qty: 0, fee: 0 };
+                const a = agg.get(key) || { name: key, qty: 0, fee: 0, excluded: !!c.excluded };
+                if (c.excluded) a.excluded = true;
                 if (c.qty !== null && c.qty !== undefined) a.qty += Number(c.qty);
                 if (c.fee !== null && c.fee !== undefined) a.fee += Number(c.fee);
                 agg.set(key, a);
             });
         });
         // 来源类型固定顺序: 账平/负金额块在前, 未知排后
-        const order = ['账平', '医保负金额-his正交易', '医保负金额-医保正交易', '医保负金额', '医保正金额'];
+        const order = ['账平', '医保负金额-his正交易', '医保负金额-医保正交易', '医保负金额', '医保正金额', '金额不等'];
         const rows = [...agg.values()].sort((a, b) => {
             const ia = order.indexOf(a.name), ib = order.indexOf(b.name);
             return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.name.localeCompare(b.name, 'zh');
@@ -397,7 +456,7 @@ class MiReconApp {
             rows, () => insurTypeName(this.state.insurType));
     }
 
-    /** 来源类型构成弹窗公共渲染: rows=[{name/sourceTypeName, qty, fee}], typeNameOf取类型列显示 */
+    /** 来源类型构成弹窗公共渲染: rows=[{name/sourceTypeName, qty, fee, excluded}], excluded行带'不计入合计'徽章且合计跳过 */
     renderCatModal(title, rows, typeNameOf) {
         document.getElementById('orgDtlTitle').textContent = title;
         const tbody = document.getElementById('orgDtlBody');
@@ -406,12 +465,14 @@ class MiReconApp {
         let sumQty = 0, sumFee = 0, hasQty = false, hasFee = false;
         rows.forEach(c => {
             const tr = document.createElement('tr');
+            const exclBadge = c.excluded ? ' <span class="badge bg-secondary">不计入合计</span>' : '';
             tr.innerHTML = `
-                <td>${c.name || c.sourceTypeName || c.sourceType || '—'}</td>
+                <td>${c.name || c.sourceTypeName || c.sourceType || '—'}${exclBadge}</td>
                 <td>${typeNameOf(c)}</td>
                 <td class="text-end">${c.qty === null || c.qty === undefined ? '—' : fmtQty(c.qty)}</td>
                 <td class="text-end">${c.fee === null || c.fee === undefined ? '—' : fmtFee(c.fee)}</td>`;
             tbody.appendChild(tr);
+            if (c.excluded) return;
             if (c.qty !== null && c.qty !== undefined) { sumQty += Number(c.qty); hasQty = true; }
             if (c.fee !== null && c.fee !== undefined) { sumFee += Number(c.fee); hasFee = true; }
         });
@@ -739,6 +800,311 @@ class MiReconApp {
             console.error('Update mi recon type failed:', error);
             alert('类型修改失败：' + error.message);
         }
+    }
+
+    /* ==================== 支付构成 Tab ==================== */
+
+    /** 金额单元格: 负数标红 */
+    payFeeTd(v) {
+        if (v === null || v === undefined) return '<td class="text-end">—</td>';
+        const cls = Number(v) < 0 ? 'text-end text-danger' : 'text-end';
+        return `<td class="${cls}">${fmtFee(v)}</td>`;
+    }
+
+    /** 底部合计: 条数+10金额列写入 foot, footId 控制显隐 */
+    renderPayFoot(footId, prefix, rows) {
+        document.getElementById(footId).style.display = rows.length > 0 ? '' : 'none';
+        let qty = 0;
+        const sums = {};
+        let any = false;
+        rows.forEach(r => {
+            if (r.qty !== null && r.qty !== undefined) { qty += Number(r.qty); any = true; }
+            PAY_COLS.forEach(([k]) => {
+                if (r[k] !== null && r[k] !== undefined) { sums[k] = (sums[k] || 0) + Number(r[k]); any = true; }
+            });
+        });
+        document.getElementById(prefix + 'Qty').textContent = any ? fmtQty(qty) : '—';
+        PAY_COLS.forEach(([k, suffix]) => {
+            document.getElementById(prefix + suffix).textContent = sums[k] !== undefined ? fmtFee(sums[k]) : '—';
+        });
+    }
+
+    /** 主表: 险种×月合计(账平-退费+收费) */
+    async loadPaySum() {
+        if (!this.payState.month) {
+            const now = new Date();
+            this.payState.month = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+            document.getElementById('payMonthFilter').value = this.payState.month;
+        }
+        document.getElementById('payTypeFilter').value = this.payState.insurType;
+        let rows = [];
+        let warnRows = [];
+        try {
+            const [sumBody, warnBody] = await Promise.all([
+                ReportAPI.miRecon({
+                    action: 'payComp', dim: 'sum',
+                    insurType: this.payState.insurType, month: this.payState.month
+                }),
+                ReportAPI.miRecon({
+                    action: 'payComp', dim: 'warn',
+                    insurType: this.payState.insurType, month: this.payState.month
+                })
+            ]);
+            rows = sumBody.list || [];
+            warnRows = warnBody.list || [];
+        } catch (error) {
+            console.error('Load pay comp sum failed:', error);
+        }
+        this.payState.sumList = rows;
+        const warnMap = {};
+        warnRows.forEach(w => { warnMap[w.insurType] = w; });
+        document.getElementById('payTableTitle').textContent =
+            `支付构成总统计（${this.payState.month}${this.payState.insurType ? ' ' + insurTypeName(this.payState.insurType) : ' 全部类型'}）`;
+        const tbody = document.getElementById('paySumBody');
+        tbody.innerHTML = '';
+        document.getElementById('paySumEmpty').classList.toggle('d-none', rows.length > 0);
+        rows.forEach(r => {
+            const tr = document.createElement('tr');
+            const w = warnMap[r.insurType];
+            const warnCell = this.renderPayWarnCell(w, r.insurType, r.insurTypeName);
+            tr.innerHTML = `
+                <td>${typeLabel(r.insurType, r.insurTypeName)}</td>
+                <td class="text-end">${fmtQty(r.qty)}</td>
+                ${PAY_COLS.map(([k]) => this.payFeeTd(r[k])).join('')}
+                <td class="small">${warnCell}</td>
+                <td class="pay-op-cell"><button class="btn btn-outline-primary btn-sm pay-cat-btn" data-code="${r.insurType}" data-name="${r.insurTypeName || insurTypeName(r.insurType)}">分类明细</button>
+                    <button class="btn btn-outline-secondary btn-sm pay-day-btn" data-code="${r.insurType}" data-name="${r.insurTypeName || insurTypeName(r.insurType)}">每日维度</button></td>`;
+            tbody.appendChild(tr);
+        });
+        // 警示列"查看明细"直达跨月Tab
+        tbody.querySelectorAll('button.pay-warn-btn').forEach(b => b.addEventListener('click', () => {
+            this.openPayCat(b.dataset.code, b.dataset.name).then(() => this.switchPaySub(2));
+        }));
+        this.renderPayFoot('paySumFoot', 'paySum', rows);
+    }
+
+    /** 主表退费匹配警示单元格(简约徽章即按钮): 无退费(灰)/全匹配(绿)/跨月N(黄)、找不到N(红), 点徽章直达跨月明细 */
+    renderPayWarnCell(w, code, name) {
+        if (!w || !w.refundTotal) {
+            return '<span class="text-muted">无退费</span>';
+        }
+        if (!w.crossCnt && !w.noneCnt) {
+            return '<span class="badge bg-success">全匹配</span>';
+        }
+        const parts = [];
+        if (w.crossCnt) {
+            parts.push(`<button class="badge bg-warning text-dark border-0 pay-warn-btn" data-code="${code}" data-name="${name}" title="点击查看跨月配对明细">跨月${w.crossCnt}</button>`);
+        }
+        if (w.noneCnt) {
+            parts.push(`<button class="badge bg-danger border-0 pay-warn-btn" data-code="${code}" data-name="${name}" title="点击查看找不到明细">找不到${w.noneCnt}</button>`);
+        }
+        return parts.join('<br>');
+    }
+
+    /** 行尾按钮委托: kind=cat(主表→月分类弹窗) / dayCat(每日表→当日分类弹窗) */
+    payRowBtn(e, kind) {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        if (btn.classList.contains('pay-cat-btn')) {
+            this.openPayCat(btn.dataset.code, btn.dataset.name);
+        } else if (btn.classList.contains('pay-day-btn')) {
+            this.openPayDay(btn.dataset.code, btn.dataset.name);
+        } else if (btn.classList.contains('pay-daycat-btn')) {
+            this.openPayDayCat(btn.dataset.code, btn.dataset.name, btn.dataset.date);
+        }
+    }
+
+    /** 分类明细弹窗子Tab切换 */
+    switchPaySub(n) {
+        document.getElementById('paySubTab1').classList.toggle('active', n === 1);
+        document.getElementById('paySubTab2').classList.toggle('active', n === 2);
+        document.getElementById('paySubPane1').style.display = n === 1 ? '' : 'none';
+        document.getElementById('paySubPane2').style.display = n === 2 ? '' : 'none';
+    }
+
+    /** 月分类弹窗: 本月匹配Tab(三类各行) + 跨月匹配Tab(退费逐条配对) */
+    async openPayCat(code, name) {
+        this.payCtx = { insurType: code, insurTypeName: name };
+        document.getElementById('payCatTitle').textContent = `${name} 分类明细（${this.payState.month}）`;
+        let catRows = [], crossRows = [];
+        try {
+            const [catBody, crossBody] = await Promise.all([
+                ReportAPI.miRecon({ action: 'payComp', dim: 'cat', insurType: code, month: this.payState.month }),
+                ReportAPI.miRecon({ action: 'payComp', dim: 'cross', insurType: code, month: this.payState.month })
+            ]);
+            catRows = catBody.list || [];
+            crossRows = crossBody.list || [];
+        } catch (error) {
+            console.error('Load pay comp cat failed:', error);
+        }
+        this.payState.crossRows = crossRows;
+        this.renderPayCat(catRows, crossRows);
+        this.renderPayCross(crossRows);
+        this.switchPaySub(1);
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('payCatModal')).show();
+    }
+
+    /** 分类汇总Tab: 账平/退费/收费三类各行; 退费行显示完整匹配breakdown(退费含跨月匹配口径) */
+    renderPayCat(rows, crossRows) {
+        const totalRefund = crossRows.length;
+        const thisMonth = crossRows.filter(c => c.matchStatus === '本月匹配').length;
+        const crossCnt = crossRows.filter(c => c.matchStatus === '跨月匹配').length;
+        const noneCnt = crossRows.filter(c => c.matchStatus === '找不到').length;
+        const tbody = document.getElementById('payCatBody');
+        tbody.innerHTML = '';
+        document.getElementById('payCatEmpty').classList.toggle('d-none', rows.length > 0);
+        rows.forEach(r => {
+            const tr = document.createElement('tr');
+            let matchCell = '<span class="small text-muted">—</span>';
+            if (r.category === '医保负金额-退费') {
+                matchCell = totalRefund === 0
+                    ? '<span class="small text-muted">当月无退费</span>'
+                    : `单边退费${fmtQty(totalRefund)}条：本月匹配${fmtQty(thisMonth)} / 跨月${fmtQty(crossCnt)}`
+                        + (noneCnt > 0 ? ` / <span class="text-danger fw-bold">找不到${fmtQty(noneCnt)}</span>` : '')
+                        + (noneCnt > 0 || crossCnt > 0
+                            ? `<br><button class="btn btn-link btn-sm p-0" data-sub-link="2">查看逐条配对 →</button>` : '');
+                if (noneCnt > 0) tr.className = 'table-warning';
+            }
+            tr.innerHTML = `
+                <td><span class="badge bg-light text-dark border">${r.category || '—'}</span></td>
+                <td class="text-end">${fmtQty(r.qty)}</td>
+                ${PAY_COLS.map(([k]) => this.payFeeTd(r[k])).join('')}
+                <td class="small">${matchCell}</td>`;
+            tbody.appendChild(tr);
+        });
+        // 跨月查找链接(动态生成)切子Tab
+        tbody.querySelectorAll('button[data-sub-link]').forEach(b =>
+            b.addEventListener('click', () => this.switchPaySub(Number(b.dataset.subLink))));
+        this.renderPayFoot('payCatFoot', 'payCat', rows);
+    }
+
+    /** 跨月匹配Tab: 退费↔正交易逐条配对, 找不到红底 */
+    renderPayCross(rows) {
+        const cnt = s => rows.filter(r => r.matchStatus === s).length;
+        const crossCnt = cnt('跨月匹配'), noneCnt = cnt('找不到');
+        const monthDist = {};
+        rows.filter(r => r.matchStatus === '跨月匹配').forEach(r => {
+            monthDist[r.posMonth] = (monthDist[r.posMonth] || 0) + 1;
+        });
+        const distText = Object.entries(monthDist).map(([m, c]) => `${m} ${c}条`).join(' / ');
+        document.getElementById('payCrossAlert').innerHTML =
+            `退费共 <b>${fmtQty(rows.length)}</b> 条：本月匹配 <b>${fmtQty(cnt('本月匹配'))}</b>，跨月 <b>${fmtQty(crossCnt)}</b>`
+            + (distText ? `（${distText}）` : '')
+            + (noneCnt > 0 ? `，<span class="text-danger fw-bold">找不到 ${fmtQty(noneCnt)} 条</span>` : '')
+            + ' · 查找范围：上月月初 ~ 退费当天（正交易日期≤退费日期，仅查询不改数据）';
+        const tbody = document.getElementById('payCrossBody');
+        tbody.innerHTML = '';
+        document.getElementById('payCrossEmpty').classList.toggle('d-none', rows.length > 0);
+        let sumFee = 0, hasFee = false;
+        rows.forEach(r => {
+            const tr = document.createElement('tr');
+            if (r.matchStatus === '跨月匹配') tr.className = 'pay-cross';
+            if (r.matchStatus === '找不到') tr.className = 'pay-none';
+            const badge = r.matchStatus === '本月匹配' ? '<span class="badge bg-success">本月匹配</span>'
+                : r.matchStatus === '跨月匹配' ? `<span class="badge bg-warning text-dark">跨月匹配</span>`
+                : '<span class="badge bg-danger">找不到</span>';
+            const fmtDay = d => (d && d.length >= 10) ? d.slice(5) : (d || '—');
+            tr.innerHTML = `
+                <td>${r.refundSetlId || '—'}</td>
+                <td>${fmtDay(r.refundDate)}</td>
+                <td class="text-end ${Number(r.refundFee) < 0 ? 'text-danger' : ''}">${r.refundFee === null || r.refundFee === undefined ? '—' : fmtFee(r.refundFee)}</td>
+                <td class="text-center">${badge}</td>
+                <td class="text-end">${r.posFee === null || r.posFee === undefined ? '—' : fmtFee(r.posFee)}</td>
+                <td>${fmtDay(r.posDate)}</td>
+                <td>${r.posSetlId || '—'}</td>
+                <td class="small text-muted">${r.matchStatus === '跨月匹配' ? '本月未匹配，跨月找到' : r.matchStatus === '找不到' ? '上月月初至退费当天均无对应正交易' : '正常'}</td>`;
+            tbody.appendChild(tr);
+            if (r.refundFee !== null && r.refundFee !== undefined) { sumFee += Number(r.refundFee); hasFee = true; }
+        });
+        document.getElementById('payCrossCnt').textContent = fmtQty(rows.length) + ' 条退费';
+        document.getElementById('payCrossSumFee').textContent = hasFee ? fmtFee(sumFee) : '—';
+        document.getElementById('payCrossSummary').textContent =
+            `本月${cnt('本月匹配')} / 跨月${crossCnt}` + (noneCnt > 0 ? ` / 找不到${noneCnt}` : '');
+    }
+
+    /** 每日维度弹窗: 每天一行总数, 行尾[分类明细]展开当天三类 */
+    async openPayDay(code, name) {
+        this.payCtx = { insurType: code, insurTypeName: name };
+        document.getElementById('payDayTitle').textContent = `${name} 每日维度（${this.payState.month}）`;
+        let rows = [], crossRows = [];
+        try {
+            const [dayBody, crossBody] = await Promise.all([
+                ReportAPI.miRecon({ action: 'payComp', dim: 'day', insurType: code, month: this.payState.month }),
+                ReportAPI.miRecon({ action: 'payComp', dim: 'cross', insurType: code, month: this.payState.month })
+            ]);
+            rows = dayBody.list || [];
+            crossRows = crossBody.list || [];
+        } catch (error) {
+            console.error('Load pay comp day failed:', error);
+        }
+        this.payState.dayList = rows;
+        this.payState.crossRows = crossRows;
+        const tbody = document.getElementById('payDayBody');
+        tbody.innerHTML = '';
+        document.getElementById('payDayEmpty').classList.toggle('d-none', rows.length > 0);
+        rows.forEach(r => {
+            const tr = document.createElement('tr');
+            const dateStr = r.settleDate || '';
+            tr.innerHTML = `
+                <td>${dateStr.slice(5) || '—'}</td>
+                <td class="text-end">${fmtQty(r.qty)}</td>
+                ${PAY_COLS.map(([k]) => this.payFeeTd(r[k])).join('')}
+                <td><button class="btn btn-outline-primary btn-sm pay-daycat-btn" data-code="${code}" data-name="${name}" data-date="${dateStr}">分类明细</button></td>`;
+            tbody.appendChild(tr);
+        });
+        this.renderPayFoot('payDayFoot', 'payDay', rows);
+        this.showPayDayPane('list');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('payDayModal')).show();
+    }
+
+    /** 每日维度弹窗内切换: list=每天一行总数层, cat=当日分类下钻层(不叠弹窗) */
+    showPayDayPane(which) {
+        document.getElementById('payDayPaneList').style.display = which === 'list' ? '' : 'none';
+        document.getElementById('payDayPaneCat').style.display = which === 'cat' ? '' : 'none';
+        document.getElementById('payDayBackBtn').classList.toggle('d-none', which !== 'cat');
+    }
+
+    /** 当日分类下钻: 同一弹窗内切换内容(标题变+返回按钮), 不叠第二层弹窗 */
+    async openPayDayCat(code, name, date) {
+        document.getElementById('payDayTitle').textContent = `${name} ${date} 当日分类明细`;
+        let dayCatRows = [];
+        try {
+            const body = await ReportAPI.miRecon({ action: 'payComp', dim: 'dayCat', insurType: code, month: this.payState.month });
+            dayCatRows = (body.list || []).filter(r => r.settleDate === date);
+        } catch (error) {
+            console.error('Load pay comp dayCat failed:', error);
+        }
+        const dayCross = (this.payState.crossRows || []).filter(r => r.refundDate === date);
+        const tbody = document.getElementById('payDayCatBody');
+        tbody.innerHTML = '';
+        document.getElementById('payDayCatEmpty').classList.toggle('d-none', dayCatRows.length > 0);
+        dayCatRows.forEach(r => {
+            const tr = document.createElement('tr');
+            let matchCell = '<span class="small text-muted">—</span>';
+            if (r.category === '医保负金额-退费') {
+                if (dayCross.length === 0) {
+                    matchCell = '<span class="small text-muted">当日无退费</span>';
+                } else {
+                    matchCell = dayCross.map(c => {
+                        if (c.matchStatus === '跨月匹配') {
+                            return `<span class="badge bg-warning text-dark">跨月(${c.posMonth})</span> <span class="small">正交易${c.posSetlId || '—'}</span>`;
+                        }
+                        if (c.matchStatus === '找不到') return '<span class="badge bg-danger">找不到</span>';
+                        return '<span class="badge bg-success">本月匹配</span>';
+                    }).join('<br>');
+                }
+                if (dayCross.some(c => c.matchStatus !== '本月匹配')) tr.className = 'table-warning';
+            }
+            tr.innerHTML = `
+                <td>${date.slice(5) || '—'}</td>
+                <td><span class="badge bg-light text-dark border">${r.category || '—'}</span></td>
+                <td class="text-end">${fmtQty(r.qty)}</td>
+                ${PAY_COLS.map(([k]) => this.payFeeTd(r[k])).join('')}
+                <td class="small">${matchCell}</td>`;
+            tbody.appendChild(tr);
+        });
+        this.renderPayFoot('payDayCatFoot', 'payDayCat', dayCatRows);
+        this.showPayDayPane('cat');
     }
 }
 

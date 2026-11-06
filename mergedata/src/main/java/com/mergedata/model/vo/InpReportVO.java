@@ -46,6 +46,9 @@ public class InpReportVO {
 
     private String warnMsg;                 // 缺数提醒（仅展示，如对应汇总未生成）
 
+    private String genSource;               // 生成来源：1-报表界面，2-审核界面补生成
+    private Boolean generatedNow;           // 本次查询是否临时补生成（仅展示）
+
     // 关联的子报表列表（一对多关系）
     @TableField(exist = false)
     private List<InpCashSubEntity> subs;

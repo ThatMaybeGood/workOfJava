@@ -99,3 +99,28 @@ COMMIT;
 -- 验证: 应返回0(约束已不存在)
 SELECT COUNT(*) AS uk_exists FROM user_constraints
  WHERE constraint_name = 'UK_TR_MI_RECON_DETAIL_TD' AND table_name = 'TR_MI_RECON_DETAIL';
+
+-- ============================================================
+-- 2026-11-06 v4: insur_type列加宽到8位——新增生育险种515253(6位), 原VARCHAR2(4)存不下
+-- ============================================================
+DECLARE
+    v_len NUMBER;
+BEGIN
+    SELECT data_length INTO v_len FROM user_tab_columns
+     WHERE table_name = 'TR_MI_RECON_FILE' AND column_name = 'INSUR_TYPE';
+    IF v_len < 8 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE tr_mi_recon_file MODIFY insur_type VARCHAR2(8)';
+    END IF;
+    SELECT data_length INTO v_len FROM user_tab_columns
+     WHERE table_name = 'TR_MI_RECON_DETAIL' AND column_name = 'INSUR_TYPE';
+    IF v_len < 8 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE tr_mi_recon_detail MODIFY insur_type VARCHAR2(8)';
+    END IF;
+END;
+/
+COMMIT;
+
+-- 验证: 两行都应返回8
+SELECT table_name, data_length FROM user_tab_columns
+ WHERE column_name = 'INSUR_TYPE'
+   AND table_name IN ('TR_MI_RECON_FILE', 'TR_MI_RECON_DETAIL');

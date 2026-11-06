@@ -10,8 +10,8 @@ const API_CONFIG = {
     // 前端关掉 mock 才能真正走通 reports/gateway。要回退 mock 改回 true 即可。
     useMock: false,
 
-    // 真实接口基础地址
-    baseUrl: 'http://localhost:18089/reports/gateway',
+    // 真实接口基础地址(内网后端服务器, 上传地址在文件底部由baseUrl自动派生)
+    baseUrl: 'http://168.168.235.209:18089/reports/gateway',
 
     // 医保对账文件上传(multipart, 不走JSON网关)——地址在文件底部由baseUrl派生, 无需单独配置
 
@@ -527,19 +527,9 @@ function initMockMode() {
 initMockMode();
 
 // 在报表壳（iframe）中打开时隐藏页内标题与 mock 开关，避免与壳顶栏重复；
-// 单独打开时同样隐藏页内 mock 开关（壳在 index.html 顶栏提供统一开关）
+// 单独打开（顶层页面）时保留页内开关——不走进面就没有 Mock/接口切换入口，页面会因连不上后端而空白
 if (window.top !== window.self) {
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.page-title').forEach(el => el.style.display = 'none');
-    });
-} else {
-    // 只藏报表页自己那条，别把壳(index.html)顶栏里的开关一起藏了——
-    // 壳也引了这个文件，而壳自己就是顶层页面，不加这个判断会把唯一的开关也藏掉
-    document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('.mock-toggle').forEach(el => {
-            if (!el.closest('.top-bar')) {
-                el.style.display = 'none';
-            }
-        });
     });
 }

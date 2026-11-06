@@ -20,7 +20,10 @@ public enum MiReconInsurType {
     WORKER_NONLOCAL("3101", "异地职工"),
 
     /** 异地居民 */
-    RESIDENT_NONLOCAL("3901", "异地居民");
+    RESIDENT_NONLOCAL("3901", "异地居民"),
+
+    /** 生育 */
+    MATERNITY("515253", "生育");
 
     private final String code;
 

@@ -5,6 +5,9 @@ import com.reports.dto.response.cash.mi.MiReconCompareItem;
 import com.reports.dto.response.cash.mi.MiReconFileItem;
 import com.reports.dto.response.cash.mi.MiReconOrgCatItem;
 import com.reports.dto.response.cash.mi.MiReconOrgDtlItem;
+import com.reports.dto.response.cash.mi.MiReconPayCompItem;
+import com.reports.dto.response.cash.mi.MiReconPayCrossItem;
+import com.reports.dto.response.cash.mi.MiReconPayWarnItem;
 import com.reports.dto.response.cash.mi.MiReconTableTotalItem;
 import com.reports.dto.response.cash.mi.MiReconUnmatchedNegItem;
 import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
@@ -113,7 +116,7 @@ public class MiReconServiceImpl implements MiReconService {
         return list;
     }
 
-    /** 医疗机构/医保机构侧原始行聚合: 日期合计入item, 按来源类型汇总入catMap */
+    /** 医疗机构/医保机构侧原始行聚合: 日期合计入item(仅count_flag=1), 按来源类型汇总入catMap(全部, 金额不等仅展示不计入) */
     private void accOrgRaw(MiReconOrgDtlItem raw, Map<String, MiReconCompareItem> merged,
                            Map<String, Map<String, MiReconOrgCatItem>> catMap, MiReconInsurType type,
                            java.util.function.BiConsumer<MiReconCompareItem, Long> addQty,
@@ -123,8 +126,11 @@ public class MiReconServiceImpl implements MiReconService {
         }
         String day = fmt(raw.getSettleDate());
         MiReconCompareItem item = merged.computeIfAbsent(day, k -> baseItem(k, type));
-        addQty.accept(item, raw.getQty());
-        addFee.accept(item, raw.getFee());
+        boolean counted = raw.getCountFlag() == null || raw.getCountFlag() != 0;
+        if (counted) {
+            addQty.accept(item, raw.getQty());
+            addFee.accept(item, raw.getFee());
+        }
         String sourceType = raw.getSourceType() == null ? "" : raw.getSourceType().trim();
         MiReconOrgCatItem cat = catMap.computeIfAbsent(day, k -> new LinkedHashMap<>())
                 .computeIfAbsent(sourceType, k -> {
@@ -133,6 +139,7 @@ public class MiReconServiceImpl implements MiReconService {
                     c.setSourceTypeName(MiReconOrgCategory.nameOf(k));
                     c.setQty(0L);
                     c.setFee(BigDecimal.ZERO);
+                    c.setExcluded(!counted);
                     return c;
                 });
         if (raw.getQty() != null) {
@@ -205,6 +212,62 @@ public class MiReconServiceImpl implements MiReconService {
             return miReconMedInstService.queryUnmatchedNeg(insurType.trim(), settleDate.trim(), start, end);
         } catch (Exception e) {
             log.warn("查询未匹配负交易失败: insurType={} settleDate={}", insurType, settleDate, e);
+            return new ArrayList<>();
+        }
+    }
+
+    /** 支付构成: dim=sum/cat/day/dayCat, 月份折算当月1号~月末, 退费正交易查找范围=上月月初~当月月末 */
+    @Override
+    public List<MiReconPayCompItem> queryPayComp(String dim, String insurType, String month) {
+        String m = resolveMonth(month);
+        String type = insurType == null ? "" : insurType.trim();
+        if (!type.isEmpty() && MiReconInsurType.ofCode(type) == null) {
+            throw new IllegalArgumentException("医保类型无效, 应为310/390/3101/3901/515253之一");
+        }
+        String start = m + "-01";
+        String end = lastDayOfMonth(m);
+        String prevStart = java.time.YearMonth.parse(m).minusMonths(1).atDay(1).toString();
+        try {
+            return miReconMedInstService.queryPayComp(dim, type, start, end, prevStart);
+        } catch (Exception e) {
+            log.warn("查询支付构成失败: dim={} insurType={} month={}", dim, type, m, e);
+            return new ArrayList<>();
+        }
+    }
+
+    /** 支付构成退费跨月配对明细: 查找范围 上月月初~退费当天(正交易bill_date<=退费日) */
+    @Override
+    public List<MiReconPayCrossItem> queryPayCross(String insurType, String month) {
+        if (MiReconInsurType.ofCode(insurType) == null) {
+            throw new IllegalArgumentException("医保类型无效, 应为310/390/3101/3901/515253之一");
+        }
+        String m = resolveMonth(month);
+        String start = m + "-01";
+        String end = lastDayOfMonth(m);
+        String prevStart = java.time.YearMonth.parse(m).minusMonths(1).atDay(1).toString();
+        try {
+            return miReconMedInstService.queryPayCross(insurType.trim(), start, end, prevStart);
+        } catch (Exception e) {
+            log.warn("查询退费跨月配对失败: insurType={} month={}", insurType, m, e);
+            return new ArrayList<>();
+        }
+    }
+
+    /** 支付构成退费匹配概况(主表警示列): 每险种当月退费 跨月/找不到 条数 */
+    @Override
+    public List<MiReconPayWarnItem> queryPayWarn(String insurType, String month) {
+        String m = resolveMonth(month);
+        String type = insurType == null ? "" : insurType.trim();
+        if (!type.isEmpty() && MiReconInsurType.ofCode(type) == null) {
+            throw new IllegalArgumentException("医保类型无效, 应为310/390/3101/3901/515253之一");
+        }
+        String start = m + "-01";
+        String end = lastDayOfMonth(m);
+        String prevStart = java.time.YearMonth.parse(m).minusMonths(1).atDay(1).toString();
+        try {
+            return miReconMedInstService.queryPayWarn(type, start, end, prevStart);
+        } catch (Exception e) {
+            log.warn("查询退费匹配概况失败: insurType={} month={}", type, m, e);
             return new ArrayList<>();
         }
     }

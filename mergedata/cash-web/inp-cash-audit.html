@@ -878,7 +878,7 @@
 </div>
 
 <script>
-    const API_BASE = "http://127.0.0.1:18081/api/audit";
+    const API_BASE = "http://168.168.235.209:18081/api/audit";
 
     const COMMON_HEAD = {
         charset: "utf-8",
@@ -1202,6 +1202,13 @@
             auditRemarkCurrent = body.audit_remark || "";
 
             updateTitle(dateStr);
+            //补生成的报表标注来源，并提示
+            if (body.gen_source === "2") {
+                document.getElementById("reportDateDisplay").textContent += "（来源：审核界面补生成）";
+            }
+            if (body.generated_now) {
+                showToast("该日期报表此前未生成，本次查询已自动补生成（来源：审核界面）", "warning");
+            }
             applyAuditStatus(body);
             renderTable();
         } catch (error) {

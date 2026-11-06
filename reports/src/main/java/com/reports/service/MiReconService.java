@@ -3,6 +3,9 @@ package com.reports.service;
 import com.reports.dto.request.MiReconRequest;
 import com.reports.dto.response.cash.mi.MiReconCompareItem;
 import com.reports.dto.response.cash.mi.MiReconFileItem;
+import com.reports.dto.response.cash.mi.MiReconPayCompItem;
+import com.reports.dto.response.cash.mi.MiReconPayCrossItem;
+import com.reports.dto.response.cash.mi.MiReconPayWarnItem;
 import com.reports.dto.response.cash.mi.MiReconTableTotalItem;
 import com.reports.dto.response.cash.mi.MiReconUnmatchedNegItem;
 import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
@@ -36,6 +39,21 @@ public interface MiReconService {
      * 某日未匹配负交易(找不到对应正交易的退费, 明细弹窗展示差异来源用)
      */
     List<MiReconUnmatchedNegItem> queryUnmatchedNeg(String insurType, String settleDate);
+
+    /**
+     * 支付构成 dim=sum/cat/day/dayCat: 按维度返回行(月份折算当月1号~月末, 退费正交易查找范围上月月初~月末)
+     */
+    List<MiReconPayCompItem> queryPayComp(String dim, String insurType, String month);
+
+    /**
+     * 支付构成 dim=cross: 退费跨月配对明细
+     */
+    List<MiReconPayCrossItem> queryPayCross(String insurType, String month);
+
+    /**
+     * 支付构成 dim=warn: 每险种当月退费匹配概况(主表警示列)
+     */
+    List<MiReconPayWarnItem> queryPayWarn(String insurType, String month);
 
     /**
      * 上传记录(分页): 同类型排一起, 可按类型/数据日期筛选

@@ -29,6 +29,10 @@ public class InpReportRequestBody {
     @JsonProperty("total_flag")
     private String totalFlag;
 
+    /** 生成来源：1-报表界面(默认)，2-审核界面补生成 */
+    @JsonProperty("gen_source")
+    private String genSource;
+
     private String extendParams1;
     private String extendParams2;
     private String extendParams3;

@@ -875,7 +875,80 @@ const MockService = {
     getMiReconData(params = {}) {
         return new Promise((resolve) => {
             setTimeout(() => {
-                const typeName = { '310': '职工', '390': '居民', '3101': '异地职工', '3901': '异地居民' };
+                const typeName = { '310': '职工', '390': '居民', '3101': '异地职工', '3901': '异地居民', '515253': '生育' };
+                // 支付构成 dim分支
+                if (params && params.action === 'payComp') {
+                    const dim = params.dim || 'sum';
+                    const month = params.month || '2026-10';
+                    const code = params.insurType || '310';
+                    const name = typeName[code] || '职工';
+                    const mk = (qty, fee) => ({
+                        qty, medfeeSumamt: fee, acctPay: Math.round(fee * 0.14 * 100) / 100,
+                        hlfpPay: Math.round(fee * 0.64 * 100) / 100, cashPay: Math.round(fee * 0.012 * 100) / 100,
+                        cvlservPay: 0, hlfesPay: 0, hlfmiPay: Math.round(fee * 0.002 * 100) / 100,
+                        hlfobPay: Math.round(fee * 0.004 * 100) / 100, mafPay: Math.round(fee * 0.0005 * 100) / 100,
+                        othPay: Math.round(fee * 0.0005 * 100) / 100
+                    });
+                    if (dim === 'sum') {
+                        const list = Object.keys(typeName).map(c => ({
+                            insurType: c, insurTypeName: typeName[c], ...mk(c === '515253' ? 156 : 400 + Math.floor(Math.random() * 100), c === '515253' ? 268430 : 1000000 + Math.floor(Math.random() * 500000))
+                        }));
+                        resolve({ code: 200, data: { list: params.insurType ? list.filter(r => r.insurType === params.insurType) : list, total: list.length } });
+                        return;
+                    }
+                    if (dim === 'warn') {
+                        const warnOf = (c, total, cross, none) => ({ insurType: c, insurTypeName: typeName[c], refundTotal: total, crossCnt: cross, noneCnt: none });
+                        const list = [
+                            warnOf('310', 5, 1, 1),
+                            warnOf('390', 12, 3, 0),
+                            warnOf('3101', 4, 0, 0),
+                            warnOf('3901', 0, 0, 0),
+                            warnOf('515253', 2, 0, 1)
+                        ];
+                        resolve({ code: 200, data: { list: params.insurType ? list.filter(r => r.insurType === params.insurType) : list, total: list.length } });
+                        return;
+                    }
+                    if (dim === 'cat') {
+                        const list = [
+                            { insurType: code, insurTypeName: name, category: '账平', ...mk(486, 1524669.90) },
+                            { insurType: code, insurTypeName: name, category: '医保负金额-退费', ...mk(3, -1740.00) },
+                            { insurType: code, insurTypeName: name, category: '医保正金额-收费', ...mk(1, 560.00) }
+                        ];
+                        resolve({ code: 200, data: { list, total: list.length } });
+                        return;
+                    }
+                    if (dim === 'day') {
+                        const list = [1, 2, 3, 4, 5].map(d => ({
+                            insurType: code, insurTypeName: name, settleDate: month + '-' + String(d).padStart(2, '0'), ...mk(30 + d, 90000 + d * 1234.5)
+                        }));
+                        resolve({ code: 200, data: { list, total: list.length } });
+                        return;
+                    }
+                    if (dim === 'dayCat') {
+                        const list = [];
+                        [1, 2, 3].forEach(d => {
+                            const day = month + '-' + String(d).padStart(2, '0');
+                            list.push({ insurType: code, insurTypeName: name, settleDate: day, category: '账平', ...mk(30 + d, 90000 + d * 1000) });
+                            if (d === 2) list.push({ insurType: code, insurTypeName: name, settleDate: day, category: '医保负金额-退费', ...mk(1, -325.00) });
+                            if (d === 3) list.push({ insurType: code, insurTypeName: name, settleDate: day, category: '医保正金额-收费', ...mk(1, 560.00) });
+                        });
+                        resolve({ code: 200, data: { list, total: list.length } });
+                        return;
+                    }
+                    if (dim === 'cross') {
+                        const list = [
+                            { refundSetlId: '4301002026100100007', refundDate: month + '-04', refundFee: -325.00, matchStatus: '本月匹配', posSetlId: '4301002026100111007', posDate: month + '-01', posMonth: month, posFee: 325.00 },
+                            { refundSetlId: '4301002026100100012', refundDate: month + '-08', refundFee: -856.40, matchStatus: '本月匹配', posSetlId: '4301002026100111012', posDate: month + '-06', posMonth: month, posFee: 856.40 },
+                            { refundSetlId: '4301002026100100018', refundDate: month + '-11', refundFee: -440.60, matchStatus: '本月匹配', posSetlId: '4301002026100111018', posDate: month + '-09', posMonth: month, posFee: 440.60 },
+                            { refundSetlId: '4301002026100100023', refundDate: month + '-15', refundFee: -118.00, matchStatus: '跨月匹配', posSetlId: '4301002026090100823', posDate: '2026-09-20', posMonth: '2026-09', posFee: 118.00 },
+                            { refundSetlId: '4301002026100100031', refundDate: month + '-21', refundFee: -260.00, matchStatus: '找不到', posSetlId: null, posDate: null, posMonth: null, posFee: null }
+                        ];
+                        resolve({ code: 200, data: { list, total: list.length } });
+                        return;
+                    }
+                    resolve({ code: 200, data: { list: [], total: 0 } });
+                    return;
+                }
                 if (params && params.action === 'records') {
                     const all = [];
                     for (let i = 1; i <= 23; i++) {
@@ -953,14 +1026,14 @@ const MockService = {
                     const orgQty = matched ? miQty : miQty - 1;
                     const orgFee = matched ? miFee : miFee + rand(1, 999) + 0.5;
                     // 医疗机构侧按来源类型拆三笔, 合计精确等于orgQty/orgFee
-                    const orgDtl = (() => {
+                    const splitCats = (qty, fee) => {
                         const cats = [
                             { sourceType: '1', sourceTypeName: '账平' },
                             { sourceType: '2', sourceTypeName: '医保负金额' },
                             { sourceType: '3', sourceTypeName: '医保正金额' }
                         ];
-                        let restQty = orgQty;
-                        let restFeeCents = Math.round(orgFee * 100);
+                        let restQty = qty;
+                        let restFeeCents = Math.round(fee * 100);
                         return cats.map((c, i) => {
                             if (i < 2) {
                                 const q = Math.floor(restQty * (0.5 + Math.random() * 0.2));
@@ -971,12 +1044,27 @@ const MockService = {
                             }
                             return { ...c, qty: restQty, fee: restFeeCents / 100 };
                         });
-                    })();
+                    };
+                    const orgDtl = splitCats(orgQty, orgFee);
+                    // 金额不等(zp_flag=-2): 不计入合计(excluded), 仅明细展示——每5天造一条
+                    if (idx % 5 === 2) {
+                        orgDtl.push({ sourceType: '金额不等', sourceTypeName: '金额不等', qty: 2, fee: 118.5, excluded: true });
+                    }
+                    // 医保机构侧: 与上传对平(造不平全在机构侧), 带自己的来源类型构成
+                    const miOrgQty = miQty;
+                    const miOrgFee = miFee;
+                    const miOrgDtl = splitCats(miOrgQty, miOrgFee);
+                    if (idx % 5 === 2) {
+                        miOrgDtl.push({ sourceType: '金额不等', sourceTypeName: '金额不等', qty: 1, fee: 118.5, excluded: true });
+                    }
                     return {
                         settleDate: itemDate,
                         insurType: params.insurType || '310',
                         insurTypeName: typeName[params.insurType || '310'],
                         miQty, miFee, orgQty, orgFee, orgDtl,
+                        miOrgQty, miOrgFee, miOrgDtl,
+                        miOrgDiffFee: 0,
+                        miOrgMatched: true,
                         diffFee: matched ? 0 : miFee - orgFee,
                         matched
                     };

@@ -148,6 +148,16 @@ public class Constant {
      */
     public static final String REPORT_NAME_INP = "住院现金报表";
 
+    //===============住院报表生成来源========================
+    /*
+     * 报表界面生成
+     */
+    public static final String INP_GEN_SOURCE_REPORT = "1";
+    /*
+     * 审核界面补生成
+     */
+    public static final String INP_GEN_SOURCE_AUDIT = "2";
+
     //===============门诊现金报表汇总标题========================
     /*
      * 汇总标题

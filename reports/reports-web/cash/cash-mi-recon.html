@@ -13,11 +13,17 @@
            用height:100%逐级继承而非100vh——vh在iframe里对老内核(如Chrome 83)兼容不好, 会导致铺满失效留白 */
         html, body { height: 100%; }
         body > .container-fluid { display: flex; flex-direction: column; height: 100%; }
-        body > .container-fluid > .table-section { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-        body > .container-fluid > .table-section > .table-responsive { flex: 1; min-height: 0; }
+        body > .container-fluid > .table-section,
+        body > .container-fluid > #paneDaily > .table-section,
+        body > .container-fluid > #panePay > .table-section { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+        body > .container-fluid > .table-section > .table-responsive,
+        body > .container-fluid > #paneDaily > .table-section > .table-responsive,
+        body > .container-fluid > #panePay > .table-section > .table-responsive { flex: 1; min-height: 0; }
         /* 行数超出时表头吸顶, 合计行吸底, 滚动时都能看到 */
         .table-section .table-responsive thead th { position: sticky; top: 0; z-index: 1; }
         .table-section .table-responsive tfoot td { position: sticky; bottom: 0; }
+        /* 弹窗内表格(每日维度约30行/上传记录/两表差异)滚动时表头吸顶 */
+        .modal-body .table-responsive thead th { position: sticky; top: 0; z-index: 1; }
         /* 全局样式把 tbody 最后一行当合计行加粗, 本页有真 tfoot, 覆盖掉 */
         .table-section .table tbody tr:last-child { font-weight: normal; background-color: transparent; }
         /* 可点击金额统一绿色凸显: 单日金额(机构/医保数据)与合计行金额, 平时绿色悬停下划线 */
@@ -46,6 +52,23 @@
         #zpDiffModal .modal-dialog { max-width: min(1400px, 94vw); }
         /* 上传记录: 文件名列超长省略号 */
         #recordsBody td.filename-cell { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* 主Tab: 每日对比 / 支付构成 */
+        .tab-bar { display: flex; gap: 4px; border-bottom: 2px solid #0b5e7e; margin-bottom: 12px; }
+        .tab-bar .tab { padding: 7px 22px; cursor: pointer; border: 1px solid #d9d9d9; border-bottom: none;
+            border-radius: 6px 6px 0 0; background: #fafafa; color: #595959; font-weight: 600; }
+        .tab-bar .tab.active { background: #0b5e7e; color: #fff; border-color: #0b5e7e; }
+        /* 分类明细弹窗子Tab: 本月匹配 / 跨月匹配 */
+        .sub-tab-bar { display: flex; gap: 4px; border-bottom: 2px solid #17a2b8; margin-bottom: 10px; }
+        .sub-tab-bar .tab { padding: 5px 18px; cursor: pointer; border: 1px solid #d9d9d9; border-bottom: none;
+            border-radius: 6px 6px 0 0; background: #fafafa; color: #595959; font-weight: 600; font-size: 13px; }
+        .sub-tab-bar .tab.active { background: #17a2b8; color: #fff; border-color: #17a2b8; }
+        tr.pay-cross td { background: #fffbe6; }
+        tr.pay-none td { background: #fff1f0; }
+        /* 支付构成主表: 险种列不换行(异地职工(3101)保持一行, 行高不撑高); 操作列窄列+两按钮上下平铺铺满, 省横向空间 */
+        #paySumTable th:first-child, #paySumTable td:first-child { white-space: nowrap; }
+        #paySumTable .pay-op-cell { white-space: normal; }
+        #paySumTable .pay-op-cell .btn { display: block; width: 100%; padding: 1px 4px; font-size: 12px; line-height: 1.4; white-space: nowrap; }
+        #paySumTable .pay-op-cell .btn + .btn { margin-top: 3px; }
     </style>
 </head>
 <body>
@@ -62,6 +85,12 @@
             </label>
         </div>
 
+        <div class="tab-bar" id="mainTabBar">
+            <div class="tab active" data-pane="paneDaily">每日对比</div>
+            <div class="tab" data-pane="panePay">支付构成</div>
+        </div>
+
+        <div id="paneDaily">
         <div class="filter-section">
             <div class="d-flex align-items-center gap-2 flex-wrap">
                 <div class="d-flex align-items-center gap-2">
@@ -71,6 +100,7 @@
                         <option value="390">居民</option>
                         <option value="3101">异地职工</option>
                         <option value="3901">异地居民</option>
+                        <option value="515253">生育</option>
                     </select>
                 </div>
                 <div class="d-flex align-items-center gap-2">
@@ -102,7 +132,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>结算日期</th>
-                            <th>类型</th>
+                            <th>险种</th>
                             <th class="text-end">标准对账-数量</th>
                             <th class="text-end">标准对账-医疗费总额</th>
                             <th class="text-end">医疗机构-数量</th>
@@ -133,6 +163,64 @@
             </div>
             <div id="tableEmpty" class="text-center text-muted py-4 d-none">暂无数据，请上传医保对账文件或调整查询条件</div>
         </div>
+        </div><!-- /paneDaily -->
+
+        <!-- ==================== 支付构成 Tab ==================== -->
+        <div id="panePay" style="display:none">
+            <div class="filter-section">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="filter-label">类型：</span>
+                        <select class="form-select form-select-sm" id="payTypeFilter" style="width:150px">
+                            <option value="">全部</option>
+                            <option value="310">职工</option>
+                            <option value="390">居民</option>
+                            <option value="3101">异地职工</option>
+                            <option value="3901">异地居民</option>
+                            <option value="515253">生育</option>
+                        </select>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="filter-label">对账月份：</span>
+                        <input type="month" class="form-control form-control-sm" id="payMonthFilter" style="width:160px">
+                    </div>
+                    <button class="btn btn-primary btn-sm" id="payQueryBtn"><i class="bi bi-search me-1"></i>查询</button>
+                    <span class="ms-auto small text-muted">每行 = 账平 − 医保负金额(退费) + 医保正金额(收费) · 行尾按钮看分类明细/每日维度</span>
+                </div>
+            </div>
+            <div class="table-section">
+                <div class="table-header d-flex justify-content-between align-items-center">
+                    <div class="table-title"><i class="bi bi-credit-card"></i><span id="payTableTitle">支付构成总统计</span></div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered table-sm mb-0" id="paySumTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:110px;">险种</th><th class="text-end">条数</th><th class="text-end">医疗总费用</th>
+                                <th class="text-end">个人账户支出</th><th class="text-end">统筹基金支出</th><th class="text-end">现金支出</th>
+                                <th class="text-end">公务员补助金支出</th><th class="text-end">企业补充医保基金支出</th><th class="text-end">居民大病支出</th>
+                                <th class="text-end">职工大病支出</th><th class="text-end">医疗救助支出</th><th class="text-end">其他支出</th>
+                                <th style="width:100px;">退费匹配</th>
+                                <th style="width:96px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paySumBody"></tbody>
+                        <tfoot class="table-light fw-bold" id="paySumFoot" style="display:none;">
+                            <tr>
+                                <td>合计</td>
+                                <td class="text-end" id="paySumQty"></td><td class="text-end" id="paySumMedfee"></td>
+                                <td class="text-end" id="paySumAcct"></td><td class="text-end" id="paySumHlfp"></td>
+                                <td class="text-end" id="paySumCash"></td><td class="text-end" id="paySumCvlser"></td>
+                                <td class="text-end" id="paySumHlfes"></td><td class="text-end" id="paySumHlfmi"></td>
+                                <td class="text-end" id="paySumHlfob"></td><td class="text-end" id="paySumMaf"></td>
+                                <td class="text-end" id="paySumOth"></td><td></td><td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div id="paySumEmpty" class="text-center text-muted py-4 d-none">暂无数据</div>
+            </div>
+        </div><!-- /panePay -->
     </div>
 
     <!-- 上传医保对账文件弹窗: 数据日期(默认当天) + 类型 + 文件 -->
@@ -158,6 +246,7 @@
                             <option value="390">居民</option>
                             <option value="3101">异地职工</option>
                             <option value="3901">异地居民</option>
+                            <option value="515253">生育</option>
                         </select>
                     </div>
                     <div class="mb-2">
@@ -192,6 +281,7 @@
                             <option value="390">居民</option>
                             <option value="3101">异地职工</option>
                             <option value="3901">异地居民</option>
+                            <option value="515253">生育</option>
                         </select>
                         <span class="filter-label">数据日期：</span>
                         <input type="text" class="form-control form-control-sm" id="recDateFilter" readonly style="width:130px">
@@ -320,6 +410,158 @@
                         </table>
                     </div>
                     <div id="zpDiffEmpty" class="text-center text-muted py-2 d-none">两表账平一致，无差异</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 支付构成-分类明细弹窗: 本月匹配(三类各行)/跨月匹配(退费逐条配对) 两个子Tab -->
+    <div class="modal fade" id="payCatModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog" style="max-width:96vw">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="payCatTitle">分类明细</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="sub-tab-bar">
+                        <div class="tab active" id="paySubTab1" data-sub="1">分类汇总</div>
+                        <div class="tab" id="paySubTab2" data-sub="2">跨月匹配</div>
+                    </div>
+                    <div id="paySubPane1">
+                        <div class="table-responsive" style="max-height:56vh">
+                            <table class="table table-hover table-bordered table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:150px;">类别</th><th class="text-end">条数</th><th class="text-end">医疗总费用</th>
+                                        <th class="text-end">个人账户支出</th><th class="text-end">统筹基金支出</th><th class="text-end">现金支出</th>
+                                        <th class="text-end">公务员补助金支出</th><th class="text-end">企业补充医保基金支出</th><th class="text-end">居民大病支出</th>
+                                        <th class="text-end">职工大病支出</th><th class="text-end">医疗救助支出</th><th class="text-end">其他支出</th>
+                                        <th style="width:220px;">退费匹配情况</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="payCatBody"></tbody>
+                                <tfoot class="table-light fw-bold" id="payCatFoot" style="display:none;">
+                                    <tr>
+                                        <td>合计</td><td class="text-end" id="payCatQty"></td><td class="text-end" id="payCatMedfee"></td>
+                                        <td class="text-end" id="payCatAcct"></td><td class="text-end" id="payCatHlfp"></td>
+                                        <td class="text-end" id="payCatCash"></td><td class="text-end" id="payCatCvlser"></td>
+                                        <td class="text-end" id="payCatHlfes"></td><td class="text-end" id="payCatHlfmi"></td>
+                                        <td class="text-end" id="payCatHlfob"></td><td class="text-end" id="payCatMaf"></td>
+                                        <td class="text-end" id="payCatOth"></td><td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        <div id="payCatEmpty" class="text-center text-muted py-2 d-none">该险种当月无数据</div>
+                    </div>
+                    <div id="paySubPane2" style="display:none">
+                        <div class="alert alert-warning py-1 px-2 small mb-2" id="payCrossAlert"></div>
+                        <div class="table-responsive" style="max-height:52vh">
+                            <table class="table table-hover table-bordered table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th colspan="3" class="text-center">退费（医保支付表 ips_dz_pay_bills）</th>
+                                        <th rowspan="2" class="text-center" style="width:96px;">匹配状态</th>
+                                        <th colspan="3" class="text-center">正交易（HIS业务表 ips_dz_biz_bills）</th>
+                                        <th rowspan="2" class="text-center">说明</th>
+                                    </tr>
+                                    <tr>
+                                        <th>结算号</th><th>日期</th><th class="text-end">金额</th>
+                                        <th class="text-end">金额</th><th>日期</th><th>结算号</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="payCrossBody"></tbody>
+                                <tfoot class="table-light fw-bold">
+                                    <tr>
+                                        <td colspan="3">合计（<span id="payCrossCnt"></span>）</td>
+                                        <td class="text-end" id="payCrossSumFee"></td>
+                                        <td colspan="4" id="payCrossSummary" class="small"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        <div id="payCrossEmpty" class="text-center text-muted py-2 d-none">当月无退费数据</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 支付构成-每日维度弹窗: 每天一行总数; 点行尾"分类明细"弹窗内切换为当日三类(不叠层), 可返回 -->
+    <div class="modal fade" id="payDayModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog" style="max-width:96vw">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="payDayTitle">每日维度</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-1"><button id="payDayBackBtn" class="btn btn-link btn-sm p-0 d-none"><i class="bi bi-arrow-left"></i> 返回每日维度</button></div>
+                    <!-- 列表层: 每天一行总数 -->
+                    <div id="payDayPaneList">
+                        <div class="table-responsive" style="max-height:56vh">
+                            <table class="table table-hover table-bordered table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:110px;">日期</th><th class="text-end">条数</th><th class="text-end">医疗总费用</th>
+                                        <th class="text-end">个人账户支出</th><th class="text-end">统筹基金支出</th><th class="text-end">现金支出</th>
+                                        <th class="text-end">公务员补助金支出</th><th class="text-end">企业补充医保基金支出</th><th class="text-end">居民大病支出</th>
+                                        <th class="text-end">职工大病支出</th><th class="text-end">医疗救助支出</th><th class="text-end">其他支出</th>
+                                        <th style="width:110px;">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="payDayBody"></tbody>
+                                <tfoot class="table-light fw-bold" id="payDayFoot" style="display:none;">
+                                    <tr>
+                                        <td>合计</td><td class="text-end" id="payDayQty"></td><td class="text-end" id="payDayMedfee"></td>
+                                        <td class="text-end" id="payDayAcct"></td><td class="text-end" id="payDayHlfp"></td>
+                                        <td class="text-end" id="payDayCash"></td><td class="text-end" id="payDayCvlser"></td>
+                                        <td class="text-end" id="payDayHlfes"></td><td class="text-end" id="payDayHlfmi"></td>
+                                        <td class="text-end" id="payDayHlfob"></td><td class="text-end" id="payDayMaf"></td>
+                                        <td class="text-end" id="payDayOth"></td><td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        <div id="payDayEmpty" class="text-center text-muted py-2 d-none">当月无数据</div>
+                    </div>
+                    <!-- 下钻层: 当天三类各行, 退费带匹配标识 -->
+                    <div id="payDayPaneCat" style="display:none">
+                        <div class="table-responsive" style="max-height:56vh">
+                            <table class="table table-hover table-bordered table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:100px;">日期</th>
+                                        <th style="width:150px;">类别</th><th class="text-end">条数</th><th class="text-end">医疗总费用</th>
+                                        <th class="text-end">个人账户支出</th><th class="text-end">统筹基金支出</th><th class="text-end">现金支出</th>
+                                        <th class="text-end">公务员补助金支出</th><th class="text-end">企业补充医保基金支出</th><th class="text-end">居民大病支出</th>
+                                        <th class="text-end">职工大病支出</th><th class="text-end">医疗救助支出</th><th class="text-end">其他支出</th>
+                                        <th style="width:240px;">退费匹配情况</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="payDayCatBody"></tbody>
+                                <tfoot class="table-light fw-bold" id="payDayCatFoot" style="display:none;">
+                                    <tr>
+                                        <td></td>
+                                        <td>合计</td><td class="text-end" id="payDayCatQty"></td><td class="text-end" id="payDayCatMedfee"></td>
+                                        <td class="text-end" id="payDayCatAcct"></td><td class="text-end" id="payDayCatHlfp"></td>
+                                        <td class="text-end" id="payDayCatCash"></td><td class="text-end" id="payDayCatCvlser"></td>
+                                        <td class="text-end" id="payDayCatHlfes"></td><td class="text-end" id="payDayCatHlfmi"></td>
+                                        <td class="text-end" id="payDayCatHlfob"></td><td class="text-end" id="payDayCatMaf"></td>
+                                        <td class="text-end" id="payDayCatOth"></td><td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        <div id="payDayCatEmpty" class="text-center text-muted py-2 d-none">当日无数据</div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">关闭</button>

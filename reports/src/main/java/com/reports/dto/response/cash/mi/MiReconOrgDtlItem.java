@@ -30,4 +30,7 @@ public class MiReconOrgDtlItem {
 
     /** 来源类型: 账平/医保负金额(his正交易)/医保正金额(SQL直出中文, 兼容1/2/3代码) */
     private String sourceType;
+
+    /** 是否计入对账合计: 1计入(默认) 0不计入(仅明细展示, 如金额不等zp_flag=-2) */
+    private Integer countFlag;
 }

@@ -1,6 +1,9 @@
 package com.reports.mapper;
 
 import com.reports.dto.response.cash.mi.MiReconOrgDtlItem;
+import com.reports.dto.response.cash.mi.MiReconPayCompItem;
+import com.reports.dto.response.cash.mi.MiReconPayCrossItem;
+import com.reports.dto.response.cash.mi.MiReconPayWarnItem;
 import com.reports.dto.response.cash.mi.MiReconTableTotalItem;
 import com.reports.dto.response.cash.mi.MiReconUnmatchedNegItem;
 import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
@@ -38,4 +41,40 @@ public interface MiReconMedInstMapper {
                                                     @Param("settleDate") String settleDate,
                                                     @Param("startDate") String startDate,
                                                     @Param("endDate") String endDate);
+
+    /** 支付构成 dim=sum: 按险种月合计(账平-退费+收费) */
+    List<MiReconPayCompItem> queryPaySum(@Param("insurType") String insurType,
+                                         @Param("startDate") String startDate,
+                                         @Param("endDate") String endDate,
+                                         @Param("prevStart") String prevStart);
+
+    /** 支付构成 dim=cat: 按险种+类别(退费仅本月匹配到HIS正交易的部分) */
+    List<MiReconPayCompItem> queryPayCat(@Param("insurType") String insurType,
+                                         @Param("startDate") String startDate,
+                                         @Param("endDate") String endDate,
+                                         @Param("prevStart") String prevStart);
+
+    /** 支付构成 dim=day: 某险种按日合计(三类汇总) */
+    List<MiReconPayCompItem> queryPayDay(@Param("insurType") String insurType,
+                                         @Param("startDate") String startDate,
+                                         @Param("endDate") String endDate,
+                                         @Param("prevStart") String prevStart);
+
+    /** 支付构成 dim=dayCat: 某险种按日+类别 */
+    List<MiReconPayCompItem> queryPayDayCat(@Param("insurType") String insurType,
+                                            @Param("startDate") String startDate,
+                                            @Param("endDate") String endDate,
+                                            @Param("prevStart") String prevStart);
+
+    /** 支付构成 dim=cross: 退费跨月配对明细(查找范围 上月月初~退费当天) */
+    List<MiReconPayCrossItem> queryPayCross(@Param("insurType") String insurType,
+                                            @Param("startDate") String startDate,
+                                            @Param("endDate") String endDate,
+                                            @Param("prevStart") String prevStart);
+
+    /** 支付构成 dim=warn: 每险种当月退费匹配概况(主表警示列) */
+    List<MiReconPayWarnItem> queryPayWarn(@Param("insurType") String insurType,
+                                          @Param("startDate") String startDate,
+                                          @Param("endDate") String endDate,
+                                          @Param("prevStart") String prevStart);
 }

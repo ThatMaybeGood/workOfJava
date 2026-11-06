@@ -1,6 +1,9 @@
 package com.reports.service;
 
 import com.reports.dto.response.cash.mi.MiReconOrgDtlItem;
+import com.reports.dto.response.cash.mi.MiReconPayCompItem;
+import com.reports.dto.response.cash.mi.MiReconPayCrossItem;
+import com.reports.dto.response.cash.mi.MiReconPayWarnItem;
 import com.reports.dto.response.cash.mi.MiReconTableTotalItem;
 import com.reports.dto.response.cash.mi.MiReconUnmatchedNegItem;
 import com.reports.dto.response.cash.mi.MiReconZpDiffItem;
@@ -40,4 +43,20 @@ public interface MiReconMedInstService {
      */
     List<MiReconUnmatchedNegItem> queryUnmatchedNeg(String insurType, String settleDate,
                                                     String startDate, String endDate);
+
+    /**
+     * 支付构成 dim=sum/cat/day/dayCat: 按维度返回行
+     */
+    List<MiReconPayCompItem> queryPayComp(String dim, String insurType, String startDate,
+                                          String endDate, String prevStart);
+
+    /**
+     * 支付构成 dim=cross: 退费跨月配对明细(查找范围 上月月初~退费当天)
+     */
+    List<MiReconPayCrossItem> queryPayCross(String insurType, String startDate, String endDate, String prevStart);
+
+    /**
+     * 支付构成 dim=warn: 每险种当月退费匹配概况(主表警示列)
+     */
+    List<MiReconPayWarnItem> queryPayWarn(String insurType, String startDate, String endDate, String prevStart);
 }

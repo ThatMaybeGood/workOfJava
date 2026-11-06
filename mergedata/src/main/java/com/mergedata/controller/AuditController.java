@@ -54,7 +54,7 @@ public class AuditController {
         return ApiResponse.success("门诊审核报表数据保存成功！");
     }
 
-    @Operation(summary = "根据日期查询住院审核报表数据", description = "只查询已有数据，不生成")
+    @Operation(summary = "根据日期查询住院审核报表数据", description = "查询已有数据，无则自动补生成（来源记为审核界面）")
     @PostMapping("/inp_findbydate")
     public ApiResponse<InpReportVO> getInpAuditReport(@Valid @RequestBody ApiRequest<InpReportRequestBody> request)  {
 
