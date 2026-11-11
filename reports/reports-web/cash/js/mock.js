@@ -771,7 +771,7 @@ const MockService = {
                     if (dimension === 'payType') {
                         channels.forEach(channel => {
                             payTypes.forEach(payType => {
-                                list.push({ itemDate, feeType: '普通患者', settleChannel: channel, payType, cnt: rand(3, 60) });
+                                list.push({ itemDate, feeType: '普通患者', settleChannel: channel, payType, cnt: rand(3, 60), invoicePrintedTotal: channel === '自助结算' ? rand(0, 40) : 0 });
                             });
                         });
                         return;
@@ -784,11 +784,12 @@ const MockService = {
                                     list.push({
                                         itemDate, feeType, settleChannel: channel,
                                         operatorNo: op.operatorNo, operatorName: op.operatorName,
-                                        cnt: rand(3, 40)
+                                        cnt: rand(3, 40),
+                                        invoicePrintedTotal: channel === '自助结算' ? rand(0, 20) : 0
                                     });
                                 });
                             } else {
-                                list.push({ itemDate, feeType, settleChannel: channel, cnt: rand(10, 120) });
+                                list.push({ itemDate, feeType, settleChannel: channel, cnt: rand(10, 120), invoicePrintedTotal: channel === '自助结算' ? rand(0, 60) : 0 });
                             }
                         });
                     });

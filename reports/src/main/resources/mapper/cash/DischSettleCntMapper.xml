@@ -21,6 +21,11 @@
         CASE WHEN a.OPERATOR_NO IN ('E700', '9111') THEN 'SELF' ELSE 'WINDOW' END
     </sql>
 
+    <!-- 自助结算打印发票: 结算表对账户表(acct_no+operator_no)多对一, LEFT JOIN无关联计0 -->
+    <sql id="invoiceExpr">
+        NVL(SUM(m.INVOICE_PRINTED_TOTAL), 0)
+    </sql>
+
     <!-- ============================================================ -->
     <!-- 按费别汇总: 日期、费别、结算类别、收据量、人次                              -->
     <!-- ============================================================ -->
@@ -30,8 +35,10 @@
             <include refid="feeTypeExpr"/> AS feeType,
             <include refid="channelExpr"/> AS settleChannel,
             COUNT(1) AS cnt,
-            COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt
+            COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt,
+            <include refid="invoiceExpr"/> AS invoicePrintedTotal
         FROM inp_settle_master a
+        LEFT JOIN inp_acct_master m ON m.ACCT_NO = a.ACCT_NO AND m.OPERATOR_NO = a.OPERATOR_NO
         WHERE a.SETTLING_DATE &gt;= #{startDate}
           AND a.SETTLING_DATE &lt; #{endDate} + 1
         GROUP BY
@@ -52,8 +59,10 @@
             a.OPERATOR_NO AS operatorNo,
             RAWTOHEX(NVL(u.USER_NAME, a.OPERATOR_NO)) AS operatorName,
             COUNT(1) AS cnt,
-            COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt
+            COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt,
+            <include refid="invoiceExpr"/> AS invoicePrintedTotal
         FROM inp_settle_master a
+        LEFT JOIN inp_acct_master m ON m.ACCT_NO = a.ACCT_NO AND m.OPERATOR_NO = a.OPERATOR_NO
         LEFT JOIN users u ON u.USER_ID = a.OPERATOR_NO
         WHERE a.SETTLING_DATE &gt;= #{startDate}
           AND a.SETTLING_DATE &lt; #{endDate} + 1
@@ -76,8 +85,10 @@
             <include refid="channelExpr"/> AS settleChannel,
             RAWTOHEX(TRIM(a.CHARGE_TYPE)) AS payType,
             COUNT(1) AS cnt,
-            COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt
+            COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt,
+            <include refid="invoiceExpr"/> AS invoicePrintedTotal
         FROM inp_settle_master a
+        LEFT JOIN inp_acct_master m ON m.ACCT_NO = a.ACCT_NO AND m.OPERATOR_NO = a.OPERATOR_NO
         WHERE a.SETTLING_DATE &gt;= #{startDate}
           AND a.SETTLING_DATE &lt; #{endDate} + 1
         GROUP BY

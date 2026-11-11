@@ -51,4 +51,9 @@ public class PersonCountItem implements Serializable {
      * 人次（count distinct patient_id）
      */
     private Integer personCnt;
+
+    /**
+     * 自助结算打印发票（inp_acct_master.invoice_printed_total 求和，无关联为0）
+     */
+    private Integer invoicePrintedTotal;
 }

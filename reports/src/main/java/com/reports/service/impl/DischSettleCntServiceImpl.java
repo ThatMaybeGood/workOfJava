@@ -124,11 +124,14 @@ public class DischSettleCntServiceImpl implements DischSettleCntService {
                 it.setSettleChannel(channel);
                 it.setCnt(0);
                 it.setPersonCnt(0);
+                it.setInvoicePrintedTotal(0);
                 return it;
             });
             item.setCnt(item.getCnt() + (r.getCnt() == null ? 0 : r.getCnt()));
             // 人次=各原始组(person_id+visit_id去重)人次之和; 同一就诊跨多个原始费别组会重复计(极少, 与原宽表口径一致)
             item.setPersonCnt(item.getPersonCnt() + (r.getPersonCnt() == null ? 0 : r.getPersonCnt()));
+            item.setInvoicePrintedTotal(item.getInvoicePrintedTotal()
+                    + (r.getInvoicePrintedTotal() == null ? 0 : r.getInvoicePrintedTotal()));
         }
         return new ArrayList<>(merged.values());
     }
@@ -150,10 +153,13 @@ public class DischSettleCntServiceImpl implements DischSettleCntService {
                 it.setOperatorName(operatorName);
                 it.setCnt(0);
                 it.setPersonCnt(0);
+                it.setInvoicePrintedTotal(0);
                 return it;
             });
             item.setCnt(item.getCnt() + (r.getCnt() == null ? 0 : r.getCnt()));
             item.setPersonCnt(item.getPersonCnt() + (r.getPersonCnt() == null ? 0 : r.getPersonCnt()));
+            item.setInvoicePrintedTotal(item.getInvoicePrintedTotal()
+                    + (r.getInvoicePrintedTotal() == null ? 0 : r.getInvoicePrintedTotal()));
         }
         return new ArrayList<>(merged.values());
     }
@@ -173,6 +179,7 @@ public class DischSettleCntServiceImpl implements DischSettleCntService {
             item.setPayType(payType);
             item.setCnt(r.getCnt());
             item.setPersonCnt(r.getPersonCnt());
+            item.setInvoicePrintedTotal(r.getInvoicePrintedTotal());
             result.add(item);
         }
         return result;

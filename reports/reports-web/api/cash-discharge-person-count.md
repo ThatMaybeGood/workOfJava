@@ -8,6 +8,7 @@
   - 结算类别：`OPERATOR_NO IN ('E700','9111')` → 自助结算，其余 → 窗口结算
   - 按支付类别维度仅统计普通患者（`CHARGE_TYPE != '军队医改'`），支付类别取原始 `CHARGE_TYPE`
   - 操作员姓名：`LEFT JOIN users u ON u.USER_ID = OPERATOR_NO` 取 `USER_NAME`，无匹配显示工号
+  - 自助结算打印发票：`LEFT JOIN inp_acct_master m ON m.ACCT_NO = a.ACCT_NO AND m.OPERATOR_NO = a.OPERATOR_NO`（结算表对账户表多对一，不影响收据量/人次），取 `NVL(SUM(m.INVOICE_PRINTED_TOTAL), 0)`，无关联计 0
 
 ## 请求体（body）
 
@@ -35,4 +36,6 @@ list 元素（按维度取对应字段，其余为空）：
 | operatorNo | 操作员工号（按操作员维度） |
 | operatorName | 操作员姓名（按操作员维度） |
 | payType | 支付类别（按支付类别维度） |
-| cnt | 人次 |
+| cnt | 收据量 |
+| personCnt | 人次 |
+| invoicePrintedTotal | 自助结算打印发票（关联不上为 0） |

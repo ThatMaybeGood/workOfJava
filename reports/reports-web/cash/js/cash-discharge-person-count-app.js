@@ -15,7 +15,8 @@ const TABLE_COLUMNS = {
         { key: 'feeType', label: '费别' },
         { key: 'settleChannel', label: '结算类别' },
         { key: 'cnt', label: '收据量' },
-        { key: 'personCnt', label: '人次' }
+        { key: 'personCnt', label: '人次' },
+        { key: 'invoicePrintedTotal', label: '自助结算打印发票' }
     ],
     operator: [
         { key: 'itemDate', label: '日期' },
@@ -24,7 +25,8 @@ const TABLE_COLUMNS = {
         { key: 'operatorNo', label: '操作员工号' },
         { key: 'operatorName', label: '操作员姓名' },
         { key: 'cnt', label: '收据量' },
-        { key: 'personCnt', label: '人次' }
+        { key: 'personCnt', label: '人次' },
+        { key: 'invoicePrintedTotal', label: '自助结算打印发票' }
     ],
     payType: [
         { key: 'itemDate', label: '日期' },
@@ -32,7 +34,8 @@ const TABLE_COLUMNS = {
         { key: 'settleChannel', label: '结算类别' },
         { key: 'payType', label: '支付类别' },
         { key: 'cnt', label: '收据量' },
-        { key: 'personCnt', label: '人次' }
+        { key: 'personCnt', label: '人次' },
+        { key: 'invoicePrintedTotal', label: '自助结算打印发票' }
     ]
 };
 
@@ -257,8 +260,8 @@ class PersonCountApp {
         document.getElementById('tableEmpty').classList.toggle('d-none', all.length > 0);
         const clickable = this.state.dimension === 'summary' ? 'cnt' : null;
         let html = this.buildRowsHtml(list, columns, mergeKeys, clickable);
-        // 合计行：本页合计(当前页行求和) + 总计(筛选结果集求和)，收据量/人次两列各自求和
-        const sumKeys = ['cnt', 'personCnt'];
+        // 合计行：本页合计(当前页行求和) + 总计(筛选结果集求和)，收据量/人次/打印发票三列各自求和
+        const sumKeys = ['cnt', 'personCnt', 'invoicePrintedTotal'];
         const pageSum = sumKeys.reduce((m, k) => (m[k] = list.reduce((s, r) => s + (Number(r[k]) || 0), 0), m), {});
         const totalSum = sumKeys.reduce((m, k) => (m[k] = all.reduce((s, r) => s + (Number(r[k]) || 0), 0), m), {});
         const totalRow = (label, sums, cls) =>
@@ -344,8 +347,10 @@ class PersonCountApp {
         let html = this.buildRowsHtml(list, columns, MERGE_KEYS.operator, null);
         const total = all.reduce((sum, row) => sum + (Number(row.cnt) || 0), 0);
         const totalPerson = all.reduce((sum, row) => sum + (Number(row.personCnt) || 0), 0);
+        const totalInvoice = all.reduce((sum, row) => sum + (Number(row.invoicePrintedTotal) || 0), 0);
         html += `<tr class="table-secondary fw-bold">` + columns.map(c =>
             c.key === 'cnt' ? `<td>${total}</td>` : c.key === 'personCnt' ? `<td>${totalPerson}</td>`
+                : c.key === 'invoicePrintedTotal' ? `<td>${totalInvoice}</td>`
                 : c.key === 'itemDate' ? '<td>总计</td>' : '<td></td>'
         ).join('') + '</tr>';
         document.getElementById('drillTableBody').innerHTML = html;
