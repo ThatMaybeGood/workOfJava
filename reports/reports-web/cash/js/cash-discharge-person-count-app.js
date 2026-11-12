@@ -34,8 +34,7 @@ const TABLE_COLUMNS = {
         { key: 'settleChannel', label: '结算类别' },
         { key: 'payType', label: '支付类别' },
         { key: 'cnt', label: '收据量' },
-        { key: 'personCnt', label: '人次' },
-        { key: 'invoicePrintedTotal', label: '自助结算打印发票' }
+        { key: 'personCnt', label: '人次' }
     ]
 };
 

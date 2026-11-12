@@ -21,9 +21,29 @@
         CASE WHEN a.OPERATOR_NO IN ('E700', '9111') THEN 'SELF' ELSE 'WINDOW' END
     </sql>
 
-    <!-- 自助结算打印发票: 结算表对账户表(acct_no+operator_no)多对一, LEFT JOIN无关联计0 -->
+    <!-- 结算表子查询: 一账户(acct_no+operator_no)在日期+结算类别内可能多条结算记录(不可能跨结算类别), -->
+    <!-- 打行号后只取首条的发票数, 避免同账户发票数被结算条数放大; 分区不含费别, 费别组间不重复计发票(合计不受影响); 收据量/人次仍按全量行统计 -->
+    <sql id="settleDedup">
+        (
+            SELECT t.*,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY t.ACCT_NO, t.OPERATOR_NO,
+                           <choose>
+                               <when test="timeDimension == 'month'">TO_CHAR(t.SETTLING_DATE, 'YYYY-MM')</when>
+                               <otherwise>TO_CHAR(TRUNC(t.SETTLING_DATE), 'YYYY-MM-DD')</otherwise>
+                           </choose>,
+                           CASE WHEN t.OPERATOR_NO IN ('E700', '9111') THEN 'SELF' ELSE 'WINDOW' END
+                       ORDER BY t.SETTLING_DATE
+                   ) AS acct_rn
+            FROM inp_settle_master t
+            WHERE t.SETTLING_DATE &gt;= #{startDate}
+              AND t.SETTLING_DATE &lt; #{endDate} + 1
+        ) a
+    </sql>
+
+    <!-- 自助结算打印发票: 账户表一账户一行无需聚合, 只取结算表去重后首条(关联不上计0) -->
     <sql id="invoiceExpr">
-        NVL(SUM(m.INVOICE_PRINTED_TOTAL), 0)
+        NVL(SUM(CASE WHEN a.acct_rn = 1 THEN m.INVOICE_PRINTED_TOTAL END), 0)
     </sql>
 
     <!-- ============================================================ -->
@@ -37,10 +57,8 @@
             COUNT(1) AS cnt,
             COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt,
             <include refid="invoiceExpr"/> AS invoicePrintedTotal
-        FROM inp_settle_master a
+        FROM <include refid="settleDedup"/>
         LEFT JOIN inp_acct_master m ON m.ACCT_NO = a.ACCT_NO AND m.OPERATOR_NO = a.OPERATOR_NO
-        WHERE a.SETTLING_DATE &gt;= #{startDate}
-          AND a.SETTLING_DATE &lt; #{endDate} + 1
         GROUP BY
             <include refid="dateExpr"/>,
             <include refid="feeTypeExpr"/>,
@@ -61,11 +79,9 @@
             COUNT(1) AS cnt,
             COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt,
             <include refid="invoiceExpr"/> AS invoicePrintedTotal
-        FROM inp_settle_master a
+        FROM <include refid="settleDedup"/>
         LEFT JOIN inp_acct_master m ON m.ACCT_NO = a.ACCT_NO AND m.OPERATOR_NO = a.OPERATOR_NO
         LEFT JOIN users u ON u.USER_ID = a.OPERATOR_NO
-        WHERE a.SETTLING_DATE &gt;= #{startDate}
-          AND a.SETTLING_DATE &lt; #{endDate} + 1
         GROUP BY
             <include refid="dateExpr"/>,
             <include refid="feeTypeExpr"/>,
@@ -77,6 +93,7 @@
 
     <!-- ============================================================ -->
     <!-- 按支付类别: 日期、原始费别、结算类别、支付类别、收据量、人次；军队医改过滤由Java做 -->
+    <!-- 无自助结算打印发票列: 一账户天然跨多个支付类别, 发票数无法归属到单个支付类别 -->
     <!-- ============================================================ -->
     <select id="queryByPayType" resultType="com.reports.dto.response.cash.discharge.settlement.PersonCountItem">
         SELECT
@@ -85,10 +102,8 @@
             <include refid="channelExpr"/> AS settleChannel,
             RAWTOHEX(TRIM(a.CHARGE_TYPE)) AS payType,
             COUNT(1) AS cnt,
-            COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt,
-            <include refid="invoiceExpr"/> AS invoicePrintedTotal
+            COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt
         FROM inp_settle_master a
-        LEFT JOIN inp_acct_master m ON m.ACCT_NO = a.ACCT_NO AND m.OPERATOR_NO = a.OPERATOR_NO
         WHERE a.SETTLING_DATE &gt;= #{startDate}
           AND a.SETTLING_DATE &lt; #{endDate} + 1
         GROUP BY

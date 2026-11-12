@@ -771,7 +771,7 @@ const MockService = {
                     if (dimension === 'payType') {
                         channels.forEach(channel => {
                             payTypes.forEach(payType => {
-                                list.push({ itemDate, feeType: '普通患者', settleChannel: channel, payType, cnt: rand(3, 60), invoicePrintedTotal: channel === '自助结算' ? rand(0, 40) : 0 });
+                                list.push({ itemDate, feeType: '普通患者', settleChannel: channel, payType, cnt: rand(3, 60) });
                             });
                         });
                         return;

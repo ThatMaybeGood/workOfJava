@@ -8,7 +8,7 @@
   - 结算类别：`OPERATOR_NO IN ('E700','9111')` → 自助结算，其余 → 窗口结算
   - 按支付类别维度仅统计普通患者（`CHARGE_TYPE != '军队医改'`），支付类别取原始 `CHARGE_TYPE`
   - 操作员姓名：`LEFT JOIN users u ON u.USER_ID = OPERATOR_NO` 取 `USER_NAME`，无匹配显示工号
-  - 自助结算打印发票：`LEFT JOIN inp_acct_master m ON m.ACCT_NO = a.ACCT_NO AND m.OPERATOR_NO = a.OPERATOR_NO`（结算表对账户表多对一，不影响收据量/人次），取 `NVL(SUM(m.INVOICE_PRINTED_TOTAL), 0)`，无关联计 0
+  - 自助结算打印发票（仅按费别/按操作员维度）：结算表一账户（`ACCT_NO + OPERATOR_NO`）在日期+结算类别内可能多条结算记录，按此分区 `ROW_NUMBER` 去重取首条再 `LEFT JOIN inp_acct_master`（`acct_no` 主键一账户一行），取首条 `INVOICE_PRINTED_TOTAL` 求和，无关联计 0；分区不含费别，一账户跨多个费别时发票只落在首条结算记录的费别组（合计不受影响）；收据量/人次仍按结算表全量行统计。按支付类别维度不含此列——一账户天然跨多个支付类别，发票数无法归属
 
 ## 请求体（body）
 
