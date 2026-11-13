@@ -372,11 +372,14 @@ class PersonCountApp {
             });
             // 去掉日期维度：按费别+结算类别+操作员聚合整范围
             const agg = new Map();
+            const groupOrder = new Map();
             (body.list || []).filter(r =>
                 (!this.state.feeTypeFilter || r.feeType === this.state.feeTypeFilter)
                 && (!this.state.channelFilter || r.settleChannel === this.state.channelFilter)
             ).forEach(r => {
-                const key = [r.feeType, r.settleChannel, r.operatorNo, r.operatorName].join('|');
+                const gk = r.feeType + '|' + r.settleChannel;
+                if (!groupOrder.has(gk)) groupOrder.set(gk, groupOrder.size);
+                const key = gk + '|' + r.operatorNo + '|' + r.operatorName;
                 const cur = agg.get(key) || {
                     feeType: r.feeType, settleChannel: r.settleChannel,
                     operatorNo: r.operatorNo, operatorName: r.operatorName,
@@ -387,7 +390,13 @@ class PersonCountApp {
                 cur.invoicePrintedTotal += Number(r.invoicePrintedTotal) || 0;
                 agg.set(key, cur);
             });
-            this.drillList = [...agg.values()];
+            // 按费别+结算类别分组排序(组序保持后端顺序)，同组相邻才能合并单元格
+            this.drillList = [...agg.values()].sort((a, b) => {
+                const g = groupOrder.get(a.feeType + '|' + a.settleChannel) - groupOrder.get(b.feeType + '|' + b.settleChannel);
+                if (g) return g;
+                return String(a.operatorNo).localeCompare(String(b.operatorNo), 'zh')
+                    || String(a.operatorName).localeCompare(String(b.operatorName), 'zh');
+            });
             this.renderDrill();
         } catch (error) {
             console.error('Drill total failed:', error);
