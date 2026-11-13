@@ -113,6 +113,7 @@ class PersonCountApp {
             if (this.state.dimension !== 'summary') return;
             const td = e.target.closest('td.drill-cnt');
             if (!td) return;
+            if (td.classList.contains('drill-total')) { this.drillTotal(); return; }
             const tr = td.closest('tr');
             const idx = Array.from(tr.parentNode.children).indexOf(tr);
             const all = this.filteredList();
@@ -265,6 +266,9 @@ class PersonCountApp {
         const totalSum = sumKeys.reduce((m, k) => (m[k] = all.reduce((s, r) => s + (Number(r[k]) || 0), 0), m), {});
         const totalRow = (label, sums, cls) =>
             `<tr class="${cls} fw-bold">` + columns.map(c => {
+                // 总计行的收据量也可钻取：整个查询范围按操作员明细
+                if (c.key === 'cnt' && label === '总计' && this.state.dimension === 'summary')
+                    return `<td class="text-primary drill-cnt drill-total" style="cursor:pointer">${sums.cnt}</td>`;
                 if (sums[c.key] !== undefined) return `<td>${sums[c.key]}</td>`;
                 if (c.key === 'itemDate') return `<td>${label}</td>`;
                 return '<td></td>';
@@ -333,6 +337,37 @@ class PersonCountApp {
             this.renderDrill();
         } catch (error) {
             console.error('Drill failed:', error);
+        }
+    }
+
+    /** 总计行钻取：整个查询范围(带费别/结算类别筛选)按操作员明细 */
+    async drillTotal() {
+        const range = this.state.timeDimension === 'month'
+            ? `${this.state.startDate.slice(0, 7)}~${this.state.endDate.slice(0, 7)}`
+            : `${this.state.startDate}~${this.state.endDate}`;
+        const feeType = this.state.feeTypeFilter || '全部';
+        const settleChannel = this.state.channelFilter || '全部';
+        this.drillContext = { itemDate: range, feeType, settleChannel };
+        this.drillList = [];
+        this.drillPage = 1;
+        document.getElementById('drillModalTitle').textContent =
+            `收据量明细（按操作员）：${range} ${feeType} ${settleChannel}`;
+        document.getElementById('drillTableBody').innerHTML = '';
+        document.getElementById('drillEmpty').classList.remove('d-none');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('drillModal')).show();
+        try {
+            const body = await ReportAPI.getDischSettlePersonCount({
+                dimension: 'operator',
+                timeDimension: this.state.timeDimension,
+                startDate: this.state.startDate,
+                endDate: this.state.endDate
+            });
+            this.drillList = (body.list || []).filter(r =>
+                (!this.state.feeTypeFilter || r.feeType === this.state.feeTypeFilter)
+                && (!this.state.channelFilter || r.settleChannel === this.state.channelFilter));
+            this.renderDrill();
+        } catch (error) {
+            console.error('Drill total failed:', error);
         }
     }
 
