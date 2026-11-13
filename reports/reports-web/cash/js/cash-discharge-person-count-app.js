@@ -265,7 +265,7 @@ class PersonCountApp {
         const pageSum = sumKeys.reduce((m, k) => (m[k] = list.reduce((s, r) => s + (Number(r[k]) || 0), 0), m), {});
         const totalSum = sumKeys.reduce((m, k) => (m[k] = all.reduce((s, r) => s + (Number(r[k]) || 0), 0), m), {});
         const totalRow = (label, sums, cls) =>
-            `<tr class="${cls} fw-bold">` + columns.map(c => {
+            `<tr class="${cls} fw-bold sticky-total">` + columns.map(c => {
                 // 总计行的收据量也可钻取：整个查询范围按操作员明细
                 if (c.key === 'cnt' && label === '总计' && this.state.dimension === 'summary')
                     return `<td class="text-primary drill-cnt drill-total" style="cursor:pointer">${sums.cnt}</td>`;
@@ -276,6 +276,12 @@ class PersonCountApp {
         html += totalRow('本页合计', pageSum, 'table-light');
         html += totalRow('总计', totalSum, 'table-secondary');
         tbody.innerHTML = html;
+        // 本页合计冻结在总计上方：bottom偏移=总计行高
+        const [pageTr, totalTr] = tbody.querySelectorAll('tr.sticky-total');
+        if (pageTr && totalTr) {
+            const h = totalTr.offsetHeight + 'px';
+            pageTr.querySelectorAll('td').forEach(td => td.style.bottom = h);
+        }
         this.renderPagination();
     }
 
@@ -311,6 +317,7 @@ class PersonCountApp {
 
     /** 人次钻取：按操作员维度查该日期+费别+结算类别，弹窗展示（带分页） */
     async drill(row) {
+        this.drillMode = 'row';
         this.drillContext = { itemDate: row.itemDate, feeType: row.feeType, settleChannel: row.settleChannel };
         this.drillList = [];
         this.drillPage = 1;
@@ -347,6 +354,7 @@ class PersonCountApp {
             : `${this.state.startDate}~${this.state.endDate}`;
         const feeType = this.state.feeTypeFilter || '全部';
         const settleChannel = this.state.channelFilter || '全部';
+        this.drillMode = 'total';
         this.drillContext = { itemDate: range, feeType, settleChannel };
         this.drillList = [];
         this.drillPage = 1;
@@ -362,30 +370,57 @@ class PersonCountApp {
                 startDate: this.state.startDate,
                 endDate: this.state.endDate
             });
-            this.drillList = (body.list || []).filter(r =>
+            // 去掉日期维度：按费别+结算类别+操作员聚合整范围
+            const agg = new Map();
+            (body.list || []).filter(r =>
                 (!this.state.feeTypeFilter || r.feeType === this.state.feeTypeFilter)
-                && (!this.state.channelFilter || r.settleChannel === this.state.channelFilter));
+                && (!this.state.channelFilter || r.settleChannel === this.state.channelFilter)
+            ).forEach(r => {
+                const key = [r.feeType, r.settleChannel, r.operatorNo, r.operatorName].join('|');
+                const cur = agg.get(key) || {
+                    feeType: r.feeType, settleChannel: r.settleChannel,
+                    operatorNo: r.operatorNo, operatorName: r.operatorName,
+                    cnt: 0, personCnt: 0, invoicePrintedTotal: 0
+                };
+                cur.cnt += Number(r.cnt) || 0;
+                cur.personCnt += Number(r.personCnt) || 0;
+                cur.invoicePrintedTotal += Number(r.invoicePrintedTotal) || 0;
+                agg.set(key, cur);
+            });
+            this.drillList = [...agg.values()];
             this.renderDrill();
         } catch (error) {
             console.error('Drill total failed:', error);
         }
     }
 
+    /** 弹窗列：总计钻取去掉日期列，整范围一行一个操作员 */
+    drillColumns() {
+        return this.drillMode === 'total'
+            ? TABLE_COLUMNS.operator.filter(c => c.key !== 'itemDate')
+            : TABLE_COLUMNS.operator;
+    }
+
+    drillMergeKeys() {
+        return this.drillMode === 'total' ? ['feeType', 'settleChannel'] : MERGE_KEYS.operator;
+    }
+
     renderDrill() {
         const all = this.drillList;
         document.getElementById('drillEmpty').classList.toggle('d-none', all.length > 0);
-        const columns = TABLE_COLUMNS.operator;
+        const columns = this.drillColumns();
+        document.getElementById('drillTableHead').innerHTML = columns.map(c => `<th>${c.label}</th>`).join('');
         const pages = Math.max(1, Math.ceil(all.length / this.drillPageSize));
         if (this.drillPage > pages) this.drillPage = pages;
         const list = all.slice((this.drillPage - 1) * this.drillPageSize, this.drillPage * this.drillPageSize);
-        let html = this.buildRowsHtml(list, columns, MERGE_KEYS.operator, null);
+        let html = this.buildRowsHtml(list, columns, this.drillMergeKeys(), null);
         const total = all.reduce((sum, row) => sum + (Number(row.cnt) || 0), 0);
         const totalPerson = all.reduce((sum, row) => sum + (Number(row.personCnt) || 0), 0);
         const totalInvoice = all.reduce((sum, row) => sum + (Number(row.invoicePrintedTotal) || 0), 0);
-        html += `<tr class="table-secondary fw-bold">` + columns.map(c =>
-            c.key === 'cnt' ? `<td>${total}</td>` : c.key === 'personCnt' ? `<td>${totalPerson}</td>`
-                : c.key === 'invoicePrintedTotal' ? `<td>${totalInvoice}</td>`
-                : c.key === 'itemDate' ? '<td>总计</td>' : '<td></td>'
+        html += `<tr class="table-secondary fw-bold sticky-total">` + columns.map((c, i) =>
+            i === 0 ? '<td>总计</td>'
+                : c.key === 'cnt' ? `<td>${total}</td>` : c.key === 'personCnt' ? `<td>${totalPerson}</td>`
+                : c.key === 'invoicePrintedTotal' ? `<td>${totalInvoice}</td>` : '<td></td>'
         ).join('') + '</tr>';
         document.getElementById('drillTableBody').innerHTML = html;
         this.renderDrillPagination(pages, all.length);
@@ -498,8 +533,8 @@ class PersonCountApp {
     exportDrill() {
         if (!this.drillContext) return;
         const { itemDate, feeType, settleChannel } = this.drillContext;
-        this.exportData(this.drillList || [], TABLE_COLUMNS.operator,
-            `${itemDate}_按操作员_费别-${feeType}_结算类别-${settleChannel}.xlsx`, MERGE_KEYS.operator);
+        this.exportData(this.drillList || [], this.drillColumns(),
+            `${itemDate}_按操作员_费别-${feeType}_结算类别-${settleChannel}.xlsx`, this.drillMergeKeys());
     }
 
     renderPagination() {

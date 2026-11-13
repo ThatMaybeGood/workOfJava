@@ -949,6 +949,15 @@ body {
     background-color: #f8f9fa;
 }
 
+/* 合计/总计行冻结在表格底部 */
+.table tr.sticky-total td {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+}
+.table tr.sticky-total.table-light td { background-color: #f8f9fa; }
+.table tr.sticky-total.table-secondary td { background-color: #e2e3e5; }
+
 /* ===== 饼图自定义图例列表（参考门诊财务）：饼在下无常驻标签，悬停扇区才出百分比，图例横条在饼下方 ===== */
 .chart-legend-list {
     margin-top: 6px;
