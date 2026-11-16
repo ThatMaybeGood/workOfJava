@@ -1,10 +1,12 @@
 package com.reports.service.impl;
 
+import com.reports.config.HisMidTableSwitchConfig;
 import com.reports.config.ReportDataConfig;
 import com.reports.dto.request.PreHospTransRequest;
 import com.reports.dto.response.cash.prehosp.PreHospTransItem;
 import com.reports.entity.PreHospOperEntity;
 import com.reports.mapper.PreHospOperMapper;
+import com.reports.mapper.PreHospTransMidMapper;
 import com.reports.service.PreHospTransHisService;
 import com.reports.service.PreHospTransService;
 import lombok.extern.slf4j.Slf4j;
@@ -20,26 +22,33 @@ import java.util.Map;
 /**
  * 院前转住院统计服务实现(报表库侧)
  * 维护表/人员字典在报表库, 统计在HIS(经PreHospTransHisService切换), 只统计维护的有效操作员
+ * 开关 reports.his-mid-table.pre-hosp-trans=true 时统计改查报表库中间表tr_prehosp_trans_d
  */
 @Slf4j
 @Service
 public class PreHospTransServiceImpl implements PreHospTransService {
 
     private final ReportDataConfig dataConfig;
+    private final HisMidTableSwitchConfig midTableSwitch;
     private final PreHospOperMapper preHospOperMapper;
+    private final PreHospTransMidMapper preHospTransMidMapper;
     private final PreHospTransHisService preHospTransHisService;
 
     @Autowired
-    public PreHospTransServiceImpl(ReportDataConfig dataConfig, PreHospOperMapper preHospOperMapper,
+    public PreHospTransServiceImpl(ReportDataConfig dataConfig, HisMidTableSwitchConfig midTableSwitch,
+                                   PreHospOperMapper preHospOperMapper,
+                                   PreHospTransMidMapper preHospTransMidMapper,
                                    PreHospTransHisService preHospTransHisService) {
         this.dataConfig = dataConfig;
+        this.midTableSwitch = midTableSwitch;
         this.preHospOperMapper = preHospOperMapper;
+        this.preHospTransMidMapper = preHospTransMidMapper;
         this.preHospTransHisService = preHospTransHisService;
     }
 
     @Override
     public List<PreHospTransItem> queryStats(PreHospTransRequest request) {
-        log.info("查询院前转住院统计，mode={}", dataConfig.getMode());
+        log.info("查询院前转住院统计，mode={}，midTable={}", dataConfig.getMode(), midTableSwitch.isPreHospTrans());
         if (request.getStartDate() == null || request.getEndDate() == null) {
             return new ArrayList<>();
         }
@@ -50,9 +59,17 @@ public class PreHospTransServiceImpl implements PreHospTransService {
                 return new ArrayList<>();
             }
             String timeDimension = request.getTimeDimension() == null ? "day" : request.getTimeDimension();
-            List<PreHospTransItem> rows = preHospTransHisService.queryStats(
-                    sqlDay(request.getStartDate()), sqlDay(request.getEndDate()),
-                    timeDimension, operatorNos, operatorNo);
+            List<PreHospTransItem> rows;
+            if (midTableSwitch.isPreHospTrans()) {
+                // 中间表模式: 查报表库 tr_prehosp_trans_d(口径同直查HIS)
+                rows = preHospTransMidMapper.queryStats(
+                        sqlDay(request.getStartDate()), sqlDay(request.getEndDate()),
+                        timeDimension, operatorNos, operatorNo);
+            } else {
+                rows = preHospTransHisService.queryStats(
+                        sqlDay(request.getStartDate()), sqlDay(request.getEndDate()),
+                        timeDimension, operatorNos, operatorNo);
+            }
             fillOperName(rows);
             return rows;
         } catch (Exception e) {

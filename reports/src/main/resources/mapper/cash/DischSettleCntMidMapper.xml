@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.DischSettleCntMidMapper">
+
+    <!-- 时间粒度表达式(按天/按月): stat_date已截断到日, 同直查HIS按SETTLING_DATE表达式对应 -->
+    <sql id="dateExpr">
+        <choose>
+            <when test="timeDimension == 'month'">TO_CHAR(a.stat_date, 'YYYY-MM')</when>
+            <otherwise>TO_CHAR(a.stat_date, 'YYYY-MM-DD')</otherwise>
+        </choose>
+    </sql>
+
+    <!-- 费别/支付类别口径: 中间表直接存HIS侧SP算好的RAWTOHEX原文(纯ASCII), 由Java解GBK, 同直查HIS -->
+    <!-- 勿改成直接存中文。原委与无效方案见 docs/his-charset.md -->
+    <sql id="feeTypeExpr">
+        a.charge_type_hex
+    </sql>
+
+    <!-- 结算类别口径: 自助结算(E700/9111 自助机)/窗口结算，出ASCII码由Java翻译 -->
+    <sql id="channelExpr">
+        CASE WHEN a.operator_no IN ('E700', '9111') THEN 'SELF' ELSE 'WINDOW' END
+    </sql>
+
+    <!-- 结算行子查询: 口径同直查HIS的settleDedup——一账户(acct_no+operator_no)在日期+结算类别内 -->
+    <!-- 可能多条, 打行号后只取首条的发票数; 分区不含费别, 费别组间不重复计发票; 收据量/人次按全量行统计 -->
+    <sql id="settleDedup">
+        (
+            SELECT t.*,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY t.acct_no, t.operator_no,
+                           <choose>
+                               <when test="timeDimension == 'month'">TO_CHAR(t.stat_date, 'YYYY-MM')</when>
+                               <otherwise>TO_CHAR(t.stat_date, 'YYYY-MM-DD')</otherwise>
+                           </choose>,
+                           CASE WHEN t.operator_no IN ('E700', '9111') THEN 'SELF' ELSE 'WINDOW' END
+                       ORDER BY t.settling_date
+                   ) AS acct_rn
+            FROM tr_disch_settle_cnt_d t
+            WHERE t.stat_date &gt;= #{startDate}
+              AND t.stat_date &lt; #{endDate} + 1
+        ) a
+    </sql>
+
+    <!-- 自助结算打印发票: 发票数由SP抽取时关联inp_acct_master挂在行上(无匹配为NULL), -->
+    <!-- 只取结算去重后首条(关联不上SUM自然计0), 口径同直查HIS的LEFT JOIN账户表 -->
+    <sql id="invoiceExpr">
+        NVL(SUM(CASE WHEN a.acct_rn = 1 THEN a.invoice_printed_total END), 0)
+    </sql>
+
+    <!-- ============================================================ -->
+    <!-- 按费别汇总: 日期、费别、结算类别、收据量、人次                              -->
+    <!-- ============================================================ -->
+    <select id="queryByFeeChannel" resultType="com.reports.dto.response.cash.discharge.settlement.PersonCountItem">
+        SELECT
+            <include refid="dateExpr"/> AS itemDate,
+            <include refid="feeTypeExpr"/> AS feeType,
+            <include refid="channelExpr"/> AS settleChannel,
+            COUNT(1) AS cnt,
+            COUNT(DISTINCT a.patient_id || '|' || a.visit_id) AS personCnt,
+            <include refid="invoiceExpr"/> AS invoicePrintedTotal
+        FROM <include refid="settleDedup"/>
+        GROUP BY
+            <include refid="dateExpr"/>,
+            <include refid="feeTypeExpr"/>,
+            <include refid="channelExpr"/>
+        ORDER BY itemDate, feeType, settleChannel
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 按操作员: 日期、费别、结算类别、操作员工号/姓名、收据量、人次                 -->
+    <!-- 姓名原文hex(HIS侧SP拼users, 无用户时回退工号hex), 由Java解GBK              -->
+    <!-- ============================================================ -->
+    <select id="queryByOperator" resultType="com.reports.dto.response.cash.discharge.settlement.PersonCountItem">
+        SELECT
+            <include refid="dateExpr"/> AS itemDate,
+            <include refid="feeTypeExpr"/> AS feeType,
+            <include refid="channelExpr"/> AS settleChannel,
+            a.operator_no AS operatorNo,
+            a.operator_name_hex AS operatorName,
+            COUNT(1) AS cnt,
+            COUNT(DISTINCT a.patient_id || '|' || a.visit_id) AS personCnt,
+            <include refid="invoiceExpr"/> AS invoicePrintedTotal
+        FROM <include refid="settleDedup"/>
+        GROUP BY
+            <include refid="dateExpr"/>,
+            <include refid="feeTypeExpr"/>,
+            <include refid="channelExpr"/>,
+            a.operator_no,
+            a.operator_name_hex
+        ORDER BY itemDate, feeType, settleChannel, operatorNo
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- 按支付类别: 日期、原始费别、结算类别、支付类别、收据量、人次；军队医改过滤由Java做 -->
+    <!-- 无自助结算打印发票列: 一账户天然跨多个支付类别, 发票数无法归属到单个支付类别 -->
+    <!-- ============================================================ -->
+    <select id="queryByPayType" resultType="com.reports.dto.response.cash.discharge.settlement.PersonCountItem">
+        SELECT
+            <include refid="dateExpr"/> AS itemDate,
+            <include refid="feeTypeExpr"/> AS feeType,
+            <include refid="channelExpr"/> AS settleChannel,
+            a.charge_type_hex AS payType,
+            COUNT(1) AS cnt,
+            COUNT(DISTINCT a.patient_id || '|' || a.visit_id) AS personCnt
+        FROM tr_disch_settle_cnt_d a
+        WHERE a.stat_date &gt;= #{startDate}
+          AND a.stat_date &lt; #{endDate} + 1
+        GROUP BY
+            <include refid="dateExpr"/>,
+            <include refid="channelExpr"/>,
+            a.charge_type_hex
+        ORDER BY itemDate, settleChannel, payType
+    </select>
+
+</mapper>

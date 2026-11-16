@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.PreHospTransMidMapper">
+
+    <!-- ============================================================ -->
+    <!-- 院前转住院统计(中间表模式): 就诊日×操作员出负交易收据张数/人次              -->
+    <!-- 表: 报表库 tr_prehosp_trans_d, 由HIS侧SP_PREHOSP_TRANS_1116按日灌入       -->
+    <!-- 口径同直查HIS: 负交易(total_charges<0)且refunded_rcpt_no非空; SP抽取时已    -->
+    <!-- 过滤, 此处保留同条件双保险; 人次=count(distinct patient_id); 只统计维护表  -->
+    <!-- 有效操作员(IN); stat_date为VISIT_DATE截断到日, WHERE半开区间走索引        -->
+    <!-- ============================================================ -->
+    <select id="queryStats" resultType="com.reports.dto.response.cash.prehosp.PreHospTransItem">
+        SELECT
+            <choose>
+                <when test="timeDimension == 'month'">
+                    TO_CHAR(TRUNC(n.stat_date, 'MM'), 'YYYY-MM')
+                </when>
+                <otherwise>
+                    TO_CHAR(n.stat_date, 'YYYY-MM-DD')
+                </otherwise>
+            </choose> AS itemDate,
+            n.operator_no AS operNo,
+            COUNT(1) AS rcptCnt,
+            COUNT(DISTINCT n.patient_id) AS personCnt
+        FROM tr_prehosp_trans_d n
+        WHERE n.stat_date &gt;= #{startDate}
+          AND n.stat_date &lt; #{endDate} + 1
+          AND n.total_charges &lt; 0
+          AND n.refunded_rcpt_no IS NOT NULL
+          AND n.operator_no IN
+          <foreach collection="operatorNos" item="op" open="(" separator="," close=")">
+              #{op}
+          </foreach>
+        <if test="operatorNo != null and operatorNo != ''">
+          AND n.operator_no = #{operatorNo}
+        </if>
+        GROUP BY
+            n.operator_no,
+            <choose>
+                <when test="timeDimension == 'month'">
+                    TRUNC(n.stat_date, 'MM')
+                </when>
+                <otherwise>
+                    n.stat_date
+                </otherwise>
+            </choose>
+        ORDER BY itemDate, operNo
+    </select>
+
+</mapper>

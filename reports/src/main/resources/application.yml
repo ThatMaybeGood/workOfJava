@@ -23,6 +23,13 @@ reports:
   data:
     # 数据模式: mock(默认) / jdbc / mybatis-plus
     mode: mybatis-plus
+  # 直查HIS报表的中间表开关: false(默认)=直查HIS, 同现有逻辑;
+  # true=查报表库中间表, 需先在HIS建SP按日抽数(docs/his-sp/)并灌入中间表(docs/ddl)
+  his-mid-table:
+    # 出院结算人次统计 -> tr_disch_settle_cnt_d
+    disch-settle-cnt: false
+    # 院前转住院统计 -> tr_prehosp_trans_d
+    pre-hosp-trans: false
   # ===== ETL 按需补数触发（新增独立功能，不挂 @EtlTask 注解即零影响） =====
   etl:
     # 总开关：false = 整个 ETL 触发关闭（出问题可一键停用，报表不受影响）
