@@ -101,6 +101,7 @@
                COUNT(CASE WHEN t.eval_content IS NOT NULL AND t.eval_score &lt; 5 THEN 1 END) AS contentLowCnt
         FROM powerihsp_consult_eval_record t
         WHERE t.SATISFACTION_TYPE = '1'
+          AND t.eval_score IS NOT NULL
           AND t.created_time &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
           AND t.created_time &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
     </select>
@@ -114,6 +115,7 @@
                COUNT(CASE WHEN t.eval_content IS NOT NULL AND t.eval_score &lt; 5 THEN 1 END) AS contentLowCnt
         FROM powerihsp_consult_eval_record t
         WHERE t.SATISFACTION_TYPE = '1'
+          AND t.eval_score IS NOT NULL
           AND t.created_time &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
           AND t.created_time &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
         GROUP BY TRUNC(t.created_time)
