@@ -3,6 +3,7 @@
  */
 
 // ==================== 菜单配置 ====================
+// 菜单项加 hidden: true 即隐藏入口(页面文件保留, 直接输地址仍可访问)
 const menuConfig = [
     {
         group: '门诊报表',
@@ -19,7 +20,7 @@ const menuConfig = [
             { label: '互医质控运营月报', file: 'outpatient/outpatient-internet-hospital.html', icon: 'bi-clipboard-data' },
             { label: '门诊预警统计',     file: 'outpatient/outpatient-alert.html',          icon: 'bi-bell-fill' },
             { label: '诊室使用率',       file: 'outpatient/outpatient-room-usage.html',     icon: 'bi-door-open' },
-            { label: '专科治疗量',       file: 'outpatient/outpatient-specialty-treatment.html', icon: 'bi-activity' },
+            { label: '专科治疗量',       file: 'outpatient/outpatient-specialty-treatment.html', icon: 'bi-activity', hidden: true },
             { label: '治疗统计报表',     file: 'outpatient/outpatient-treatment-stats.html', icon: 'bi-clipboard2-pulse' },
             { label: '预测门诊量',       file: 'outpatient/outpatient-forecast.html',       icon: 'bi-graph-down' },
             { label: '爽约退号分析',     file: 'outpatient/outpatient-no-show.html',        icon: 'bi-x-circle-fill' },
@@ -41,13 +42,19 @@ const menuConfig = [
 ];
 
 // ==================== 渲染菜单 ====================
+function visibleItems(group) {
+    return (group.items || []).filter(item => !item.hidden);
+}
+
 function renderMenu() {
     const nav = document.getElementById('sidebarNav');
     let html = '';
     menuConfig.forEach(group => {
+        const items = visibleItems(group);
+        if (items.length === 0) return;
         html += `<div class="menu-group">
             <div class="menu-group-title"><i class="bi ${group.icon}"></i> ${group.group}</div>`;
-        group.items.forEach(item => {
+        items.forEach(item => {
             html += `<div class="menu-item" data-file="${item.file}" data-label="${item.label}">
                 <i class="bi ${item.icon}"></i>
                 <span class="menu-text">${item.label}</span>
@@ -137,8 +144,10 @@ document.getElementById('sidebarToggle').addEventListener('click', () => {
 document.addEventListener('DOMContentLoaded', () => {
     renderMenu();
 
-    // 默认打开第一个页面
-    const defaultFile = menuConfig[0].items[0].file;
-    const defaultLabel = menuConfig[0].items[0].label;
-    openPage(defaultFile, defaultLabel);
+    // 默认打开第一个可见页面(hidden 的跳过)
+    const firstGroup = menuConfig.find(group => visibleItems(group).length > 0);
+    if (firstGroup) {
+        const first = visibleItems(firstGroup)[0];
+        openPage(first.file, first.label);
+    }
 });
