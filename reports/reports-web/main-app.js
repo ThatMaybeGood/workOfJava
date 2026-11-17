@@ -38,6 +38,13 @@ const menuConfig = [
             { label: '院前转住院统计',   file: 'cash/cash-prehosp-trans.html',            icon: 'bi-hospital' },
             { label: '医保对账每日对比', file: 'cash/cash-mi-recon.html',                 icon: 'bi-shield-check' },
         ]
+    },
+    {
+        group: '数据统计',
+        icon: 'bi-bar-chart-steps',
+        items: [
+            { label: '运营数据统计', file: 'stat/stat-data-summary.html', icon: 'bi-clipboard2-data' },
+        ]
     }
 ];
 

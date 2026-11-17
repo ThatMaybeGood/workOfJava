@@ -304,6 +304,17 @@ public enum ReportModule {
                     new ReportMethod("queryCompare", "查询对账对比"),
                     new ReportMethod("queryRecords", "查询上传记录"),
                     new ReportMethod("updateType", "修改上传类型")
+            )),
+
+    // ==================== 数据统计类 ====================
+
+    /**
+     * 运营数据统计
+     */
+    STAT_DATA_SUMMARY("运营数据统计",
+            "com.reports.service.StatDataSummaryService",
+            Arrays.asList(
+                    new ReportMethod("query", "按页签查询统计数据")
             ));
 
     /**

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.StatDataSummaryHisMapper">
+
+    <!-- bt6 分析tab： 医生出诊单元(汇总)。US7ASCII库, clinic_label中文全走RAWTOHEX与GBK hex匹配 -->
+    <select id="bt6ClinicUnitOverall" resultType="java.util.LinkedHashMap">
+        SELECT COUNT(1) AS unitCnt,
+               COUNT(DISTINCT t.clinic_label) AS labelCnt
+        FROM clinic_for_regist t
+        WHERE RAWTOHEX(t.clinic_label) IN (
+                  SELECT RAWTOHEX(i.clinic_label)
+                  FROM clinic_index i
+                  WHERE i.clinic_class = 10
+                    AND RAWTOHEX(i.clinic_label) NOT LIKE #{olNurseHex}
+                    AND RAWTOHEX(i.clinic_label) NOT LIKE #{olPharmHex}
+                    AND RAWTOHEX(i.clinic_label) NOT LIKE #{olTeamHex}
+                    AND RAWTOHEX(i.clinic_label) NOT LIKE #{revisitHex}
+                    AND RAWTOHEX(i.clinic_label) != #{quankeHex}
+              )
+          AND t.clinic_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+          AND t.clinic_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+          AND t.registration_limits &gt; 1
+    </select>
+
+    <!-- bt6 分析tab： 医生出诊单元(按日) -->
+    <select id="bt6ClinicUnitDaily" resultType="java.util.LinkedHashMap">
+        SELECT TRUNC(t.clinic_date) AS itemDate,
+               COUNT(1) AS unitCnt,
+               COUNT(DISTINCT t.clinic_label) AS labelCnt
+        FROM clinic_for_regist t
+        WHERE RAWTOHEX(t.clinic_label) IN (
+                  SELECT RAWTOHEX(i.clinic_label)
+                  FROM clinic_index i
+                  WHERE i.clinic_class = 10
+                    AND RAWTOHEX(i.clinic_label) NOT LIKE #{olNurseHex}
+                    AND RAWTOHEX(i.clinic_label) NOT LIKE #{olPharmHex}
+                    AND RAWTOHEX(i.clinic_label) NOT LIKE #{olTeamHex}
+                    AND RAWTOHEX(i.clinic_label) NOT LIKE #{revisitHex}
+                    AND RAWTOHEX(i.clinic_label) != #{quankeHex}
+              )
+          AND t.clinic_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+          AND t.clinic_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+          AND t.registration_limits &gt; 1
+        GROUP BY TRUNC(t.clinic_date)
+        ORDER BY itemDate DESC
+    </select>
+
+</mapper>

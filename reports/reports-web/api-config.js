@@ -151,6 +151,10 @@ const API_CONFIG = {
         // 医保对账每日对比
         'reports.cash.mi-recon': {
             endpoint: '/api/cash/mi-recon'
+        },
+        // 运营数据统计
+        'reports.stat.data-summary': {
+            endpoint: '/api/stat/data-summary'
         }
     }
 };
@@ -480,6 +484,10 @@ function callMockService(methodKey, endpointKey, params) {
         // 医保对账每日对比
         'reports.cash.mi-recon': {
             endpoint: (p) => MockService.getMiReconData(p)
+        },
+        // 运营数据统计(mock结构: 空表)
+        'reports.stat.data-summary': {
+            endpoint: () => Promise.resolve({ cards: [], columns: [], list: [], total: 0, paged: false })
         }
     };
 

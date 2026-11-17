@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reports.mapper.StatDataSummaryMapper">
+
+    <!-- bt1 分析tab： 特殊制剂快递 -->
+    <select id="bt1SpecialExpress" resultType="java.util.LinkedHashMap">
+        SELECT TRUNC(t.create_time) AS itemDate,
+               COUNT(1) AS expressCnt,
+               SUM(CASE
+                       WHEN t2.consult_type_name = '特色制剂'
+                            AND t2.pay_status = 1
+                            AND t2.pay_flowno IS NOT NULL
+                       THEN 1 ELSE 0 END) AS specialCnt
+        FROM powerihsp_outp_drug_master t
+        LEFT JOIN powerihsp_outp_bills_order t1 ON t.order_id = t1.order_id
+        LEFT JOIN powerihsp_register_order t2 ON t.register_order_id = t2.order_id
+        WHERE t.prescription_status = '13'
+          AND t1.is_express IN ('1')
+          AND t.enterprise_id = 'xinqiao'
+          AND t.create_time &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+          AND t.create_time &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+        GROUP BY TRUNC(t.create_time)
+        ORDER BY itemDate DESC
+    </select>
+
+    <!-- bt2 分析tab： 长时间不接诊 -->
+    <select id="bt2NoAcceptLong" resultType="java.util.LinkedHashMap">
+        SELECT ro.dept_code AS deptCode,
+               ro.dept_name AS deptName,
+               ro.doctor_name AS doctorName,
+               ro.close_reason AS closeReason,
+               COUNT(1) AS cnt
+        FROM powerihsp_register_order ro
+        JOIN public_order_master om ON ro.order_id = om.order_id
+        WHERE ro.close_reason = '医生长时间不接诊'
+          AND ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+          AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+        GROUP BY ro.dept_code, ro.dept_name, ro.doctor_name, ro.close_reason
+        ORDER BY cnt DESC
+    </select>
+
+    <!-- bt3 分析tab： 超时未接诊 -->
+    <select id="bt3NoAccept24h" resultType="java.util.LinkedHashMap">
+        SELECT ro.dept_code AS deptCode,
+               ro.dept_name AS deptName,
+               ro.doctor_name AS doctorName,
+               ro.cancel_reason AS cancelReason,
+               COUNT(1) AS cnt
+        FROM powerihsp_register_order ro
+        JOIN public_order_master om ON ro.order_id = om.order_id
+        WHERE ro.order_status = '5'
+          AND ro.cancel_reason LIKE '医生未接诊过期订单，系统自动关闭%'
+          AND ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+          AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+        GROUP BY ro.dept_code, ro.dept_name, ro.doctor_name, ro.cancel_reason
+        ORDER BY cnt DESC
+    </select>
+
+    <!-- bt4 分析tab： 医生响应排名 -->
+    <select id="bt4DoctorResponse" resultType="java.util.LinkedHashMap">
+        SELECT a.doctor_code AS doctorCode,
+               a.doctor_name AS doctorName,
+               a.response_duration AS responseDuration,
+               a.sort - 200 AS rankNum
+        FROM powerihsp_doctor_info a
+        WHERE a.sort IS NOT NULL
+          AND a.sort - 200 &gt; 0
+        ORDER BY a.sort
+    </select>
+
+    <!-- bt5 分析tab： 处方审核时长(汇总) -->
+    <select id="bt5RxAuditOverall" resultType="java.util.LinkedHashMap">
+        SELECT COUNT(1) AS cnt,
+               ROUND(SUM((t.examine_time - t.create_time)) * 24 * 60 / COUNT(1), 1) AS avgMinutes
+        FROM powerihsp_outp_drug_master t
+        WHERE t.examine_status = 1
+          AND t.examine_time IS NOT NULL
+          AND t.create_time &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+          AND t.create_time &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+    </select>
+
+    <!-- bt5 分析tab： 处方审核时长(按日) -->
+    <select id="bt5RxAuditDaily" resultType="java.util.LinkedHashMap">
+        SELECT TRUNC(t.create_time) AS itemDate,
+               COUNT(1) AS cnt,
+               ROUND(SUM((t.examine_time - t.create_time)) * 24 * 60 / COUNT(1), 1) AS avgMinutes
+        FROM powerihsp_outp_drug_master t
+        WHERE t.examine_status = 1
+          AND t.examine_time IS NOT NULL
+          AND t.create_time &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+          AND t.create_time &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+        GROUP BY TRUNC(t.create_time)
+        ORDER BY itemDate DESC
+    </select>
+
+    <!-- bt7 分析tab： 患者评价(汇总) -->
+    <select id="bt7EvalOverall" resultType="java.util.LinkedHashMap">
+        SELECT COUNT(1) AS totalCnt,
+               COUNT(CASE WHEN t.eval_score &lt; 5 THEN 1 END) AS lowCnt,
+               COUNT(CASE WHEN t.eval_content IS NOT NULL THEN 1 END) AS contentCnt,
+               COUNT(CASE WHEN t.eval_content IS NOT NULL AND t.eval_score &lt; 5 THEN 1 END) AS contentLowCnt
+        FROM powerihsp_consult_eval_record t
+        WHERE t.SATISFACTION_TYPE = '1'
+          AND t.created_time &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+          AND t.created_time &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+    </select>
+
+    <!-- bt7 分析tab： 患者评价(按日) -->
+    <select id="bt7EvalDaily" resultType="java.util.LinkedHashMap">
+        SELECT TRUNC(t.created_time) AS itemDate,
+               COUNT(1) AS totalCnt,
+               COUNT(CASE WHEN t.eval_score &lt; 5 THEN 1 END) AS lowCnt,
+               COUNT(CASE WHEN t.eval_content IS NOT NULL THEN 1 END) AS contentCnt,
+               COUNT(CASE WHEN t.eval_content IS NOT NULL AND t.eval_score &lt; 5 THEN 1 END) AS contentLowCnt
+        FROM powerihsp_consult_eval_record t
+        WHERE t.SATISFACTION_TYPE = '1'
+          AND t.created_time &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+          AND t.created_time &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+        GROUP BY TRUNC(t.created_time)
+        ORDER BY itemDate DESC
+    </select>
+
+    <!-- bt8 分析tab： 预约取消原因(分页) -->
+    <select id="bt8CancelReasonPaged" resultType="java.util.LinkedHashMap">
+        SELECT * FROM (
+            SELECT a.DEPART_NAME AS deptName,
+                   a.DOCTOR_NAME AS doctorName,
+                   a.OUT_CALL_DATE AS outCallDate,
+                   b.CREATE_USER AS createUser,
+                   b.USER_NAME AS userName,
+                   b.CANCEL_REASON AS cancelReason,
+                   DECODE(a.SEX, 1, '男', 2, '女') AS sex,
+                   a.BIRTHDAY AS birthday,
+                   TRUNC(MONTHS_BETWEEN(SYSDATE,
+                       TO_DATE(NVL(SUBSTR(a.BIRTHDAY, 1, 10), TO_CHAR(SYSDATE, 'YYYY-MM-DD')), 'YYYY-MM-DD')) / 12) AS age,
+                   ROWNUM AS rn
+            FROM powerrsp.rsp_order_info a
+            JOIN powerrsp.public_order_master b ON a.order_id = b.order_id
+            WHERE b.order_back_time IS NOT NULL
+              AND b.cancel_reason IS NOT NULL
+              AND NOT REGEXP_LIKE(b.cancel_reason, ' ')
+              AND b.cancel_reason NOT IN ('自动释放订单',
+                                          '该号类未进行安排，请联系工作人员',
+                                          '该预约号源已经挂完!',
+                                          '接口远程请求军字一号-统一预约平台超时或不可用',
+                                          '退号数量过大，不可自助挂号，确需就诊请到窗口挂号！',
+                                          '当前科室下挂号次数超限，请到窗口办理！',
+                                          '已有该号的挂号记录，不可重复办理',
+                                          '当日挂号次数超限，请到窗口办理！',
+                                          '您已挂过该号，不允许重复挂号!||',
+                                          '该时段已经挂完，请选择其他时段!',
+                                          '该分时已无序号！',
+                                          '您已挂过该号，不允许重复挂号!',
+                                          '该班次已约满！',
+                                          '该号源已经挂完!',
+                                          '已经挂完')
+              AND a.out_call_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+              AND a.out_call_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+            ORDER BY a.out_call_date
+        )
+        WHERE rn &gt;= #{startRow} AND rn &lt;= #{endRow}
+    </select>
+
+    <!-- bt8 分析tab： 预约取消原因(总数) -->
+    <select id="bt8CancelReasonCount" resultType="long">
+        SELECT COUNT(1)
+        FROM powerrsp.rsp_order_info a
+        JOIN powerrsp.public_order_master b ON a.order_id = b.order_id
+        WHERE b.order_back_time IS NOT NULL
+          AND b.cancel_reason IS NOT NULL
+          AND NOT REGEXP_LIKE(b.cancel_reason, ' ')
+          AND b.cancel_reason NOT IN ('自动释放订单',
+                                      '该号类未进行安排，请联系工作人员',
+                                      '该预约号源已经挂完!',
+                                      '接口远程请求军字一号-统一预约平台超时或不可用',
+                                      '退号数量过大，不可自助挂号，确需就诊请到窗口挂号！',
+                                      '当前科室下挂号次数超限，请到窗口办理！',
+                                      '已有该号的挂号记录，不可重复办理',
+                                      '当日挂号次数超限，请到窗口办理！',
+                                      '您已挂过该号，不允许重复挂号!||',
+                                      '该时段已经挂完，请选择其他时段!',
+                                      '该分时已无序号！',
+                                      '您已挂过该号，不允许重复挂号!',
+                                      '该班次已约满！',
+                                      '该号源已经挂完!',
+                                      '已经挂完')
+          AND a.out_call_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+          AND a.out_call_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+    </select>
+
+    <!-- bt9 分析tab： 退号未再挂号(分页)。原SQL关联条件笔误(g=g恒真)已改为 gg=g -->
+    <select id="bt9ReturnNoRegPaged" resultType="java.util.LinkedHashMap">
+        SELECT * FROM (
+            SELECT g.USER_NAME AS userName,
+                   g.CREATE_USER AS createUser,
+                   t.out_call_date AS outCallDate,
+                   t.DOCTOR_NAME AS doctorName,
+                   g.LOCK_OPERATOR AS lockOperator,
+                   DECODE(t.ADD_SCHEDULER_FLAG, '1', '预约加号', '其他') AS addFlag,
+                   g.cancel_reason AS cancelReason,
+                   DECODE(g.order_status, '3', '挂号', '5', '退号', '6', '退号') AS orderStatus,
+                   ROWNUM AS rn
+            FROM powerrsp.rsp_order_info t
+            JOIN powerrsp.public_order_master g ON g.order_id = t.order_id
+            WHERE t.out_call_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+              AND t.out_call_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+              AND t.queue_num IS NOT NULL
+              AND g.confirm_operator IS NOT NULL
+              AND g.order_status IN ('5', '6')
+              AND NOT EXISTS (
+                    SELECT 1
+                    FROM powerrsp.rsp_order_info tt
+                    JOIN powerrsp.public_order_master gg ON gg.order_id = tt.order_id
+                    WHERE tt.out_call_date &gt;= t.out_call_date
+                      AND tt.out_call_date &lt;= ADD_MONTHS(t.out_call_date, 1)
+                      AND tt.queue_num IS NOT NULL
+                      AND gg.confirm_operator IS NOT NULL
+                      AND gg.order_status IN ('3')
+                      AND gg.CREATE_USER = g.CREATE_USER
+              )
+            ORDER BY t.out_call_date DESC
+        )
+        WHERE rn &gt;= #{startRow} AND rn &lt;= #{endRow}
+    </select>
+
+    <!-- bt9 分析tab： 退号未再挂号(总数) -->
+    <select id="bt9ReturnNoRegCount" resultType="long">
+        SELECT COUNT(1)
+        FROM powerrsp.rsp_order_info t
+        JOIN powerrsp.public_order_master g ON g.order_id = t.order_id
+        WHERE t.out_call_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+          AND t.out_call_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+          AND t.queue_num IS NOT NULL
+          AND g.confirm_operator IS NOT NULL
+          AND g.order_status IN ('5', '6')
+          AND NOT EXISTS (
+                SELECT 1
+                FROM powerrsp.rsp_order_info tt
+                JOIN powerrsp.public_order_master gg ON gg.order_id = tt.order_id
+                WHERE tt.out_call_date &gt;= t.out_call_date
+                  AND tt.out_call_date &lt;= ADD_MONTHS(t.out_call_date, 1)
+                  AND tt.queue_num IS NOT NULL
+                  AND gg.confirm_operator IS NOT NULL
+                  AND gg.order_status IN ('3')
+                  AND gg.CREATE_USER = g.CREATE_USER
+          )
+    </select>
+
+    <!-- bt10 分析tab： 先后支付退号 -->
+    <select id="bt10PayReturn" resultType="java.util.LinkedHashMap">
+        SELECT t.HIS_DEPART_CODE AS deptCode,
+               t.DEPART_NAME AS deptName,
+               DECODE(g.PAY_MODULE, 'before_pay', '先支付', 'after_pay', '后支付', '未付款') AS payType,
+               COUNT(1) AS payCnt,
+               SUM(CASE WHEN g.order_status IN ('5', '6') AND TRUNC(g.ORDER_BACK_TIME) = t.out_call_date
+                        THEN 1 ELSE 0 END) AS returnCnt
+        FROM powerrsp.rsp_order_info t
+        JOIN powerrsp.public_order_master g ON g.order_id = t.order_id
+        WHERE t.out_call_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+          AND t.out_call_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+          AND t.queue_num IS NOT NULL
+          AND g.confirm_operator IS NOT NULL
+          AND t.HIS_DEPART_CODE IN ('220520', '220550', '222520')
+          AND g.PAY_MODULE IN ('before_pay', 'after_pay')
+        GROUP BY t.HIS_DEPART_CODE, t.DEPART_NAME, g.PAY_MODULE
+        ORDER BY t.HIS_DEPART_CODE, g.PAY_MODULE
+    </select>
+
+    <!-- bt11 分析tab： 科室候诊时长 -->
+    <select id="bt11DeptWaitTime" resultType="java.util.LinkedHashMap">
+        SELECT ro.dept_code AS deptCode,
+               ro.dept_name AS deptName,
+               ROUND(AVG((ro.reception_time - ro.create_time) * 24 * 60), 1) AS waitMinutes,
+               ROUND(AVG((NVL(ro.reply_date, ro.valid_time) - ro.reception_time) * 24 * 60), 1) AS receptMinutes
+        FROM powerihsp_register_order ro
+        JOIN public_order_master om ON ro.order_id = om.order_id
+        WHERE ro.out_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+          AND ro.out_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+          AND ro.reception_time IS NOT NULL
+          AND ro.order_status IN (5, 6, 4)
+        GROUP BY ro.dept_code, ro.dept_name
+        ORDER BY waitMinutes DESC
+    </select>
+
+    <!-- bt12 分析tab： 预约成功挂号量(排除非当天预约) -->
+    <select id="bt12ApptSuccess" resultType="java.util.LinkedHashMap">
+        SELECT a.OUT_CALL_DATE AS outCallDate,
+               a.DEPART_CODE AS deptCode,
+               a.DEPART_NAME AS deptName,
+               COUNT(1) AS cnt
+        FROM powerrsp.rsp_order_info a
+        JOIN powerrsp.public_order_master b ON a.order_id = b.order_id
+        WHERE a.out_call_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+          AND a.out_call_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+          AND b.order_status IN (3, 4)
+          AND TRUNC(a.create_time) &lt; a.out_call_date
+        GROUP BY a.OUT_CALL_DATE, a.DEPART_CODE, a.DEPART_NAME
+        ORDER BY a.OUT_CALL_DATE DESC, cnt DESC
+    </select>
+
+    <!-- bt13 分析tab： 复诊预约量 -->
+    <select id="bt13RecheckAppt" resultType="java.util.LinkedHashMap">
+        SELECT a.DEPART_CODE AS deptCode,
+               d.DEPART_NAME AS deptName,
+               a.PAR_ID AS parId,
+               b.doctor_name AS doctorName,
+               a.CREATE_USER AS createUser,
+               COUNT(1) AS cnt
+        FROM powerrsp.rsp_recheck_regist_order a
+        LEFT JOIN powerrsp.rsp_doctor_info b ON a.par_id = b.HIS_DOCTOR_CODE
+        LEFT JOIN powerrsp.rsp_department_info d ON a.DEPART_CODE = d.DEPART_CODE
+        WHERE a.PAR_ID != '67390375171764056933972'
+        GROUP BY a.DEPART_CODE, d.DEPART_NAME, a.PAR_ID, b.doctor_name, a.CREATE_USER
+        ORDER BY a.DEPART_CODE, a.PAR_ID
+    </select>
+
+</mapper>
