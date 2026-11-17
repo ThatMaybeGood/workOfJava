@@ -60,7 +60,7 @@
     <select id="bt4DoctorResponse" resultType="java.util.LinkedHashMap">
         SELECT a.doctor_code AS doctorCode,
                a.doctor_name AS doctorName,
-               a.response_duration AS responseDuration,
+               ROUND(a.response_duration, 2) AS responseDuration,
                a.sort - 200 AS rankNum
         FROM powerihsp_doctor_info a
         WHERE a.sort IS NOT NULL
