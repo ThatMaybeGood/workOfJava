@@ -71,7 +71,7 @@
         <if test="deptName != null and deptName != ''">
             AND d.dept_name LIKE '%' || #{deptName} || '%'
         </if>
-        GROUP BY t.identity_name, t.patient_type, t.dept_code, d.dept_name
+        GROUP BY t.identity_name, t.patient_type
         ORDER BY patientCount DESC
     </select>
 
