@@ -3,14 +3,13 @@
  */
 
 /**
- * 默认统计月份区间：往前 12 个月 ~ 当月。
- * 原先写死成 2025-01 ~ 2025-12，是过期的固定区间，页面一打开就查不到数据。
+ * 默认统计月份区间：近一年(含当月共 12 个月)。
  * 返回 {startDate, endDate}，格式 yyyy-MM。
  */
 function defaultMonthRange() {
     const fmt = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
     const end = new Date();
-    const start = new Date(end.getFullYear(), end.getMonth() - 12, 1);
+    const start = new Date(end.getFullYear(), end.getMonth() - 11, 1);
     return { startDate: fmt(start), endDate: fmt(end) };
 }
 
@@ -48,94 +47,21 @@ class QualityControlController {
         this.loadData();
     }
 
-    /** 初始化月份范围选择面板 */
+    /** 初始化月份范围选择器 */
     initMonthRangePicker() {
-        this.monthRange = {
+        this.monthPicker = new MonthRangePicker(document.getElementById('monthRangePicker'), {
             start: this.state.filter.startDate,
-            end: this.state.filter.endDate
-        };
-        const input = document.getElementById('monthRange');
-        const panel = document.getElementById('monthRangePanel');
-
-        input.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const opening = panel.style.display === 'none';
-            panel.style.display = opening ? 'block' : 'none';
-            if (opening) {
-                this.renderMonthRangePanel();
-            }
-        });
-        panel.addEventListener('click', (e) => e.stopPropagation());
-        document.addEventListener('click', () => {
-            panel.style.display = 'none';
-        });
-
-        panel.querySelectorAll('.mrp-nav-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const target = btn.dataset.target;
-                const dir = parseInt(btn.dataset.dir, 10);
-                const [y, m] = this.monthRange[target].split('-').map(Number);
-                this.monthRange[target] = `${y + dir}-${String(m).padStart(2, '0')}`;
-                this.renderMonthRangePanel();
-            });
-        });
-
-        document.getElementById('mrpCancel').addEventListener('click', () => {
-            panel.style.display = 'none';
-        });
-        document.getElementById('mrpConfirm').addEventListener('click', () => {
-            input.value = `${this.monthRange.start} ~ ${this.monthRange.end}`;
-            panel.style.display = 'none';
-            input.dispatchEvent(new Event('change'));
-        });
-    }
-
-    renderMonthRangePanel() {
-        const { start, end } = this.monthRange;
-        const [startYear, startMonth] = start.split('-').map(Number);
-        const [endYear, endMonth] = end.split('-').map(Number);
-        document.getElementById('mrpStartYear').textContent = startYear;
-        document.getElementById('mrpEndYear').textContent = endYear;
-        this.renderMonthGrid('mrpStartMonths', startYear, startMonth, 'start');
-        this.renderMonthGrid('mrpEndMonths', endYear, endMonth, 'end');
-    }
-
-    renderMonthGrid(containerId, year, selectedMonth, target) {
-        const container = document.getElementById(containerId);
-        container.innerHTML = '';
-        for (let m = 1; m <= 12; m++) {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'mrp-month' + (m === selectedMonth ? ' active' : '');
-            btn.textContent = `${m}月`;
-            btn.addEventListener('click', () => {
-                const value = `${year}-${String(m).padStart(2, '0')}`;
-                // 保持 start <= end
-                if (target === 'start' && value > this.monthRange.end) {
-                    this.monthRange.end = value;
-                }
-                if (target === 'end' && value < this.monthRange.start) {
-                    this.monthRange.start = value;
-                }
-                this.monthRange[target] = value;
-                this.renderMonthRangePanel();
-            });
-            container.appendChild(btn);
-        }
-    }
-
-    bindEvents() {
-        document.getElementById('monthRange').addEventListener('change', (e) => {
-            const val = e.target.value;
-            if (val && val.includes(' ~ ')) {
-                const [start, end] = val.split(' ~ ');
+            end: this.state.filter.endDate,
+            onConfirm: (start, end) => {
                 this.state.filter.startDate = start;
                 this.state.filter.endDate = end;
                 this.state.currentPage = 1;
                 this.loadData();
             }
         });
+    }
 
+    bindEvents() {
         document.getElementById('pageSizeSelect').addEventListener('change', (e) => {
             this.state.pageSize = parseInt(e.target.value);
             this.state.currentPage = 1;
