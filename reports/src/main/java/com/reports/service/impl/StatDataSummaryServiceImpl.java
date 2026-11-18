@@ -61,7 +61,7 @@ public class StatDataSummaryServiceImpl implements StatDataSummaryService {
                         statDataSummaryMapper.bt3NoAccept24h(startDate, endDate));
             case "doctor-response":
                 return table(cols(col("rankNum", "排名"), col("doctorCode", "医生工号"), col("doctorName", "医生"),
-                                col("responseDuration", "响应时间(小时)")),
+                                col("responseDuration", "响应时间(分钟)")),
                         statDataSummaryMapper.bt4DoctorResponse());
             case "rx-audit-time": {
                 Map<String, Object> overall = statDataSummaryMapper.bt5RxAuditOverall(startDate, endDate);
