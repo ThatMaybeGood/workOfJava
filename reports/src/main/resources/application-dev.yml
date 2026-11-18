@@ -29,6 +29,7 @@ spring:
     his:
       driver-class-name: oracle.jdbc.OracleDriver
       url: jdbc:oracle:thin:@//168.168.232.100:1521/orcl?oracle.net.CONNECT_TIMEOUT=5000
+      socket-timeout: 120000
       username: netcen_yb
       password: xqyyyqyb
       # Druid连接池配置
@@ -48,6 +49,7 @@ spring:
     yq_powersfp:
       driver-class-name: oracle.jdbc.OracleDriver
       url: jdbc:oracle:thin:@//168.168.235.68:1521/yuanqi?oracle.net.CONNECT_TIMEOUT=5000
+      socket-timeout: 120000
       username: powersfp
       password: orgine123
       # Druid连接池配置
@@ -66,6 +68,7 @@ spring:
     yq_powerihsp:
       driver-class-name: oracle.jdbc.OracleDriver
       url: jdbc:oracle:thin:@//168.168.235.68:1521/yuanqi?oracle.net.CONNECT_TIMEOUT=5000
+      socket-timeout: 120000
       username: powerihsp
       password: yuanqi
       # Druid连接池配置
@@ -84,6 +87,7 @@ spring:
     yq_powercfp:
       driver-class-name: oracle.jdbc.OracleDriver
       url: jdbc:oracle:thin:@//168.168.235.68:1521/yuanqi?oracle.net.CONNECT_TIMEOUT=5000
+      socket-timeout: 120000
       username: powercfp
       password: yuanqi
       # Druid连接池配置

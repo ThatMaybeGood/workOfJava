@@ -78,8 +78,22 @@ public class GlobalExceptionHandler {
                 ResultCode.SYSTEM_ERROR.getCode(),
                 ResultCode.SYSTEM_ERROR.getMsg(),
                 ResultCode.SYSTEM_ERROR.getSubCode(),
-                e.getMessage()
+                friendlyMsg(e)
         );
+    }
+
+    /** 异常明细(含SQL)只进服务端日志, 响应只回脱敏提示 */
+    private String friendlyMsg(Exception e) {
+        Throwable t = e;
+        while (t != null) {
+            if (t instanceof java.net.SocketTimeoutException || t instanceof java.sql.SQLTimeoutException
+                    || (t.getMessage() != null && t.getMessage().toLowerCase().contains("socket read time out"))) {
+                return "查询超时，请缩小时间范围后重试";
+            }
+            t = t.getCause();
+        }
+        String traceId = MDC.get("traceId");
+        return "系统异常，请稍后重试或联系管理员" + (traceId != null ? "（TraceId:" + traceId + "）" : "");
     }
 
 }
