@@ -172,10 +172,16 @@ const StatDataSummaryApp = {
             this.tableState.total = this.lastResponse.total || 0;
             this.renderCards(this.lastResponse.cards);
             this.renderTable(this.lastResponse.columns, this.lastResponse.list);
-            this.renderPager(this.lastResponse.paged);
         } catch (e) {
+            // 取数失败也重置界面: 清空表格并照常显示分页条(分页是页签属性, 不依赖本次响应)
             console.error('Load stat data failed:', e);
+            this.lastResponse = { columns: [], list: [] };
+            this.tableState.total = 0;
+            this.renderCards(null);
+            this.renderTable(null, null);
         }
+        // 分页条按页签配置显示(后端是否成功都显示), 共0条/翻页禁用
+        this.renderPager(tab.paged);
     },
 
     renderCards(cards) {
