@@ -122,45 +122,47 @@
         ORDER BY itemDate DESC
     </select>
 
-    <!-- bt8 分析tab： 预约取消原因(分页) -->
+    <!-- bt8 分析tab： 预约取消原因(分页, 有序子查询包一层再编ROWNUM) -->
     <select id="bt8CancelReasonPaged" resultType="java.util.LinkedHashMap">
         SELECT * FROM (
-            SELECT a.DEPART_NAME AS deptName,
-                   a.DOCTOR_NAME AS doctorName,
-                   a.OUT_CALL_DATE AS outCallDate,
-                   b.CREATE_USER AS createUser,
-                   b.USER_NAME AS userName,
-                   b.CANCEL_REASON AS cancelReason,
-                   DECODE(a.SEX, 1, '男', 2, '女') AS sex,
-                   a.BIRTHDAY AS birthday,
-                   TRUNC(MONTHS_BETWEEN(SYSDATE,
-                       TO_DATE(NVL(SUBSTR(a.BIRTHDAY, 1, 10), TO_CHAR(SYSDATE, 'YYYY-MM-DD')), 'YYYY-MM-DD')) / 12) AS age,
-                   ROWNUM AS rn
-            FROM powerrsp.rsp_order_info a
-            JOIN powerrsp.public_order_master b ON a.order_id = b.order_id
-            WHERE b.order_back_time IS NOT NULL
-              AND b.cancel_reason IS NOT NULL
-              AND NOT REGEXP_LIKE(b.cancel_reason, ' ')
-              AND b.cancel_reason NOT IN ('自动释放订单',
-                                          '该号类未进行安排，请联系工作人员',
-                                          '该预约号源已经挂完!',
-                                          '接口远程请求军字一号-统一预约平台超时或不可用',
-                                          '退号数量过大，不可自助挂号，确需就诊请到窗口挂号！',
-                                          '当前科室下挂号次数超限，请到窗口办理！',
-                                          '已有该号的挂号记录，不可重复办理',
-                                          '当日挂号次数超限，请到窗口办理！',
-                                          '您已挂过该号，不允许重复挂号!||',
-                                          '该时段已经挂完，请选择其他时段!',
-                                          '该分时已无序号！',
-                                          '您已挂过该号，不允许重复挂号!',
-                                          '该班次已约满！',
-                                          '该号源已经挂完!',
-                                          '已经挂完')
-              AND a.out_call_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
-              AND a.out_call_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
-            ORDER BY a.out_call_date
+            SELECT inner8.*, ROWNUM AS rn FROM (
+                SELECT a.DEPART_NAME AS deptName,
+                       a.DOCTOR_NAME AS doctorName,
+                       a.OUT_CALL_DATE AS outCallDate,
+                       b.CREATE_USER AS createUser,
+                       b.USER_NAME AS userName,
+                       b.CANCEL_REASON AS cancelReason,
+                       DECODE(a.SEX, 1, '男', 2, '女') AS sex,
+                       a.BIRTHDAY AS birthday,
+                       TRUNC(MONTHS_BETWEEN(SYSDATE,
+                           TO_DATE(NVL(SUBSTR(a.BIRTHDAY, 1, 10), TO_CHAR(SYSDATE, 'YYYY-MM-DD')), 'YYYY-MM-DD')) / 12) AS age
+                FROM powerrsp.rsp_order_info a
+                JOIN powerrsp.public_order_master b ON a.order_id = b.order_id
+                WHERE b.order_back_time IS NOT NULL
+                  AND b.cancel_reason IS NOT NULL
+                  AND NOT REGEXP_LIKE(b.cancel_reason, ' ')
+                  AND b.cancel_reason NOT IN ('自动释放订单',
+                                              '该号类未进行安排，请联系工作人员',
+                                              '该预约号源已经挂完!',
+                                              '接口远程请求军字一号-统一预约平台超时或不可用',
+                                              '退号数量过大，不可自助挂号，确需就诊请到窗口挂号！',
+                                              '当前科室下挂号次数超限，请到窗口办理！',
+                                              '已有该号的挂号记录，不可重复办理',
+                                              '当日挂号次数超限，请到窗口办理！',
+                                              '您已挂过该号，不允许重复挂号!||',
+                                              '该时段已经挂完，请选择其他时段!',
+                                              '该分时已无序号！',
+                                              '您已挂过该号，不允许重复挂号!',
+                                              '该班次已约满！',
+                                              '该号源已经挂完!',
+                                              '已经挂完')
+                  AND a.out_call_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+                  AND a.out_call_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+                ORDER BY a.out_call_date
+            ) inner8
+            WHERE ROWNUM &lt;= #{endRow}
         )
-        WHERE rn &gt;= #{startRow} AND rn &lt;= #{endRow}
+        WHERE rn &gt;= #{startRow}
     </select>
 
     <!-- bt8 分析tab： 预约取消原因(总数) -->
@@ -190,39 +192,41 @@
           AND a.out_call_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
     </select>
 
-    <!-- bt9 分析tab： 退号未再挂号(分页)。原SQL关联条件笔误(g=g恒真)已改为 gg=g -->
+    <!-- bt9 分析tab： 退号未再挂号(分页, 有序子查询包一层再编ROWNUM)。原SQL关联条件笔误(g=g恒真)已改为 gg=g -->
     <select id="bt9ReturnNoRegPaged" resultType="java.util.LinkedHashMap">
         SELECT * FROM (
-            SELECT g.USER_NAME AS userName,
-                   g.CREATE_USER AS createUser,
-                   t.out_call_date AS outCallDate,
-                   t.DOCTOR_NAME AS doctorName,
-                   g.LOCK_OPERATOR AS lockOperator,
-                   DECODE(t.ADD_SCHEDULER_FLAG, '1', '预约加号', '其他') AS addFlag,
-                   g.cancel_reason AS cancelReason,
-                   DECODE(g.order_status, '3', '挂号', '5', '退号', '6', '退号') AS orderStatus,
-                   ROWNUM AS rn
-            FROM powerrsp.rsp_order_info t
-            JOIN powerrsp.public_order_master g ON g.order_id = t.order_id
-            WHERE t.out_call_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
-              AND t.out_call_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
-              AND t.queue_num IS NOT NULL
-              AND g.confirm_operator IS NOT NULL
-              AND g.order_status IN ('5', '6')
-              AND NOT EXISTS (
-                    SELECT 1
-                    FROM powerrsp.rsp_order_info tt
-                    JOIN powerrsp.public_order_master gg ON gg.order_id = tt.order_id
-                    WHERE tt.out_call_date &gt;= t.out_call_date
-                      AND tt.out_call_date &lt;= ADD_MONTHS(t.out_call_date, 1)
-                      AND tt.queue_num IS NOT NULL
-                      AND gg.confirm_operator IS NOT NULL
-                      AND gg.order_status IN ('3')
-                      AND gg.CREATE_USER = g.CREATE_USER
-              )
-            ORDER BY t.out_call_date DESC
+            SELECT inner9.*, ROWNUM AS rn FROM (
+                SELECT g.USER_NAME AS userName,
+                       g.CREATE_USER AS createUser,
+                       t.out_call_date AS outCallDate,
+                       t.DOCTOR_NAME AS doctorName,
+                       g.LOCK_OPERATOR AS lockOperator,
+                       DECODE(t.ADD_SCHEDULER_FLAG, '1', '预约加号', '其他') AS addFlag,
+                       g.cancel_reason AS cancelReason,
+                       DECODE(g.order_status, '3', '挂号', '5', '退号', '6', '退号') AS orderStatus
+                FROM powerrsp.rsp_order_info t
+                JOIN powerrsp.public_order_master g ON g.order_id = t.order_id
+                WHERE t.out_call_date &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+                  AND t.out_call_date &lt; TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
+                  AND t.queue_num IS NOT NULL
+                  AND g.confirm_operator IS NOT NULL
+                  AND g.order_status IN ('5', '6')
+                  AND NOT EXISTS (
+                        SELECT 1
+                        FROM powerrsp.rsp_order_info tt
+                        JOIN powerrsp.public_order_master gg ON gg.order_id = tt.order_id
+                        WHERE tt.out_call_date &gt;= t.out_call_date
+                          AND tt.out_call_date &lt;= ADD_MONTHS(t.out_call_date, 1)
+                          AND tt.queue_num IS NOT NULL
+                          AND gg.confirm_operator IS NOT NULL
+                          AND gg.order_status IN ('3')
+                          AND gg.CREATE_USER = g.CREATE_USER
+                  )
+                ORDER BY t.out_call_date DESC
+            ) inner9
+            WHERE ROWNUM &lt;= #{endRow}
         )
-        WHERE rn &gt;= #{startRow} AND rn &lt;= #{endRow}
+        WHERE rn &gt;= #{startRow}
     </select>
 
     <!-- bt9 分析tab： 退号未再挂号(总数) -->
