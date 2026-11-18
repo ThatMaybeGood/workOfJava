@@ -347,19 +347,18 @@ class PersonCountApp {
         }
     }
 
-    /** 总计行钻取：整个查询范围(带费别/结算类别筛选)按操作员明细 */
+    /** 总计行钻取：整个查询范围(带费别/结算类别筛选)按结算类别+操作员聚合，费别不进分组 */
     async drillTotal() {
         const range = this.state.timeDimension === 'month'
             ? `${this.state.startDate.slice(0, 7)}~${this.state.endDate.slice(0, 7)}`
             : `${this.state.startDate}~${this.state.endDate}`;
-        const feeType = this.state.feeTypeFilter || '全部';
         const settleChannel = this.state.channelFilter || '全部';
         this.drillMode = 'total';
-        this.drillContext = { itemDate: range, feeType, settleChannel };
+        this.drillContext = { itemDate: range, settleChannel };
         this.drillList = [];
         this.drillPage = 1;
         document.getElementById('drillModalTitle').textContent =
-            `收据量明细（按操作员）：${range} ${feeType} ${settleChannel}`;
+            `收据量明细（按操作员）：${range}${this.state.channelFilter ? ' ' + settleChannel : ''}`;
         document.getElementById('drillTableBody').innerHTML = '';
         document.getElementById('drillEmpty').classList.remove('d-none');
         bootstrap.Modal.getOrCreateInstance(document.getElementById('drillModal')).show();
@@ -370,18 +369,15 @@ class PersonCountApp {
                 startDate: this.state.startDate,
                 endDate: this.state.endDate
             });
-            // 去掉日期维度：按费别+结算类别+操作员聚合整范围
+            // 去掉日期+费别维度：按结算类别+操作员聚合整范围
             const agg = new Map();
-            const groupOrder = new Map();
             (body.list || []).filter(r =>
                 (!this.state.feeTypeFilter || r.feeType === this.state.feeTypeFilter)
                 && (!this.state.channelFilter || r.settleChannel === this.state.channelFilter)
             ).forEach(r => {
-                const gk = r.feeType + '|' + r.settleChannel;
-                if (!groupOrder.has(gk)) groupOrder.set(gk, groupOrder.size);
-                const key = gk + '|' + r.operatorNo + '|' + r.operatorName;
+                const key = r.settleChannel + '|' + r.operatorNo + '|' + r.operatorName;
                 const cur = agg.get(key) || {
-                    feeType: r.feeType, settleChannel: r.settleChannel,
+                    settleChannel: r.settleChannel,
                     operatorNo: r.operatorNo, operatorName: r.operatorName,
                     cnt: 0, personCnt: 0, invoicePrintedTotal: 0
                 };
@@ -390,28 +386,25 @@ class PersonCountApp {
                 cur.invoicePrintedTotal += Number(r.invoicePrintedTotal) || 0;
                 agg.set(key, cur);
             });
-            // 按费别+结算类别分组排序(组序保持后端顺序)，同组相邻才能合并单元格
-            this.drillList = [...agg.values()].sort((a, b) => {
-                const g = groupOrder.get(a.feeType + '|' + a.settleChannel) - groupOrder.get(b.feeType + '|' + b.settleChannel);
-                if (g) return g;
-                return String(a.operatorNo).localeCompare(String(b.operatorNo), 'zh')
-                    || String(a.operatorName).localeCompare(String(b.operatorName), 'zh');
-            });
+            // 操作员姓名排序为主，工号次之（一操作员可能既有窗口又有自助，两行相邻）
+            this.drillList = [...agg.values()].sort((a, b) =>
+                String(a.operatorName).localeCompare(String(b.operatorName), 'zh')
+                || String(a.operatorNo).localeCompare(String(b.operatorNo), 'zh'));
             this.renderDrill();
         } catch (error) {
             console.error('Drill total failed:', error);
         }
     }
 
-    /** 弹窗列：总计钻取去掉日期列，整范围一行一个操作员 */
+    /** 弹窗列：总计钻取去掉日期和费别列，整范围一行一个操作员 */
     drillColumns() {
         return this.drillMode === 'total'
-            ? TABLE_COLUMNS.operator.filter(c => c.key !== 'itemDate')
+            ? TABLE_COLUMNS.operator.filter(c => c.key !== 'itemDate' && c.key !== 'feeType')
             : TABLE_COLUMNS.operator;
     }
 
     drillMergeKeys() {
-        return this.drillMode === 'total' ? ['feeType', 'settleChannel'] : MERGE_KEYS.operator;
+        return this.drillMode === 'total' ? [] : MERGE_KEYS.operator;
     }
 
     renderDrill() {
