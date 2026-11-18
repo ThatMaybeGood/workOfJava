@@ -27,6 +27,17 @@ function fmtDate(d) {
         String(d.getDate()).padStart(2, '0');
 }
 
+/** HTML转义: 数据库字段(取消原因/评价/姓名等用户输入)未经转义进innerHTML会导致存储型XSS */
+function esc(v) {
+    if (v == null) return '';
+    return String(v)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 /** 默认按月=上个月(如今天11-17则默认2026-10-01~2026-10-31) */
 function lastMonthRange() {
     const end = new Date();
@@ -199,8 +210,8 @@ const StatDataSummaryApp = {
                     <div class="card-body d-flex align-items-center">
                         <div class="stat-icon ${icon}"><i class="bi bi-bar-chart-fill"></i></div>
                         <div class="ms-3">
-                            <div class="stat-value text-${icon}">${c.value == null ? '0' : c.value}${c.unit ? `<span class="stat-unit"> ${c.unit}</span>` : ''}</div>
-                            <div class="stat-label">${c.label}</div>
+                            <div class="stat-value text-${icon}">${esc(c.value)}${c.unit ? `<span class="stat-unit"> ${esc(c.unit)}</span>` : ''}</div>
+                            <div class="stat-label">${esc(c.label)}</div>
                         </div>
                     </div>
                 </div>
@@ -214,14 +225,14 @@ const StatDataSummaryApp = {
         columns = columns || [];
         list = list || [];
         head.innerHTML = columns.length
-            ? '<tr>' + columns.map(c => `<th>${c.label}</th>`).join('') + '</tr>'
+            ? '<tr>' + columns.map(c => `<th>${esc(c.label)}</th>`).join('') + '</tr>'
             : '';
         if (!columns.length || !list.length) {
             body.innerHTML = `<tr><td colspan="${Math.max(columns.length, 1)}" class="text-center text-secondary py-4">暂无数据</td></tr>`;
             return;
         }
         body.innerHTML = list.map(row =>
-            '<tr>' + columns.map(c => `<td>${row[c.key] == null ? '' : row[c.key]}</td>`).join('') + '</tr>'
+            '<tr>' + columns.map(c => `<td>${esc(row[c.key])}</td>`).join('') + '</tr>'
         ).join('');
     },
 
