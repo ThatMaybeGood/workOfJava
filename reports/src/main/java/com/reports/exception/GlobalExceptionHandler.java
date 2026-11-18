@@ -36,7 +36,7 @@ public class GlobalExceptionHandler {
                 ResultCode.PARAM_ERROR.getCode(),
                 ResultCode.PARAM_ERROR.getMsg(),
                 ResultCode.PARAM_ERROR.getSubCode(),
-                e.getMessage()
+                traceTip()
         );
     }
 
@@ -50,7 +50,7 @@ public class GlobalExceptionHandler {
                 ResultCode.PARAM_ERROR.getCode(),
                 ResultCode.PARAM_ERROR.getMsg(),
                 ResultCode.PARAM_ERROR.getSubCode(),
-                e.getMessage()
+                traceTip()
         );
     }
 
@@ -92,6 +92,11 @@ public class GlobalExceptionHandler {
             }
             t = t.getCause();
         }
+        return traceTip();
+    }
+
+    /** 带TraceId的通用提示, 便于拿日志定位 */
+    private String traceTip() {
         String traceId = MDC.get("traceId");
         return "系统异常，请稍后重试或联系管理员" + (traceId != null ? "（TraceId:" + traceId + "）" : "");
     }
