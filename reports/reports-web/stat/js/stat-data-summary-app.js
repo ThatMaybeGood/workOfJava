@@ -91,7 +91,7 @@ const StatDataSummaryApp = {
         document.getElementById('pageSizeSelect').addEventListener('change', (e) => {
             this.tableState.pageSize = parseInt(e.target.value, 10);
             this.tableState.currentPage = 1;
-            this.load();
+            this.refreshPage();
         });
         document.getElementById('exportBtn').addEventListener('click', () => this.exportExcel());
     },
@@ -180,7 +180,14 @@ const StatDataSummaryApp = {
         try {
             const data = await apiRequest('reports.stat.data-summary', 'endpoint', body);
             this.lastResponse = data || {};
-            this.tableState.total = this.lastResponse.total || 0;
+            if (tab.paged) {
+                // 后端分页: 总行数以响应为准, 翻页重新请求
+                this.tableState.total = this.lastResponse.total || 0;
+            } else {
+                // 前端分页: 一次取回全量, 总行数=列表长度, 翻页本地切片不重新请求
+                this.tableState.total = (this.lastResponse.list || []).length;
+                this.tableState.currentPage = 1;
+            }
             this.renderCards(this.lastResponse.cards);
             this.renderTable(this.lastResponse.columns, this.lastResponse.list);
         } catch (e) {
@@ -188,11 +195,32 @@ const StatDataSummaryApp = {
             console.error('Load stat data failed:', e);
             this.lastResponse = { columns: [], list: [] };
             this.tableState.total = 0;
+            this.tableState.currentPage = 1;
             this.renderCards(null);
             this.renderTable(null, null);
         }
-        // 分页条按页签配置显示(后端是否成功都显示), 共0条/翻页禁用
-        this.renderPager(tab.paged);
+        // 全部页签都显示分页条(后端是否成功都显示), 共0条/翻页禁用
+        this.renderPager(true);
+    },
+
+    /** 当前页应显示的行: 后端分页tab直接用响应列表; 其余tab本地切片 */
+    pagedList(list) {
+        if (currentTab().paged) return list || [];
+        const { currentPage, pageSize } = this.tableState;
+        return (list || []).slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    },
+
+    /** 翻页/改每页条数后刷新表格+分页条(后端分页tab需重新取数) */
+    refreshPage() {
+        const tab = currentTab();
+        if (tab.paged) {
+            this.load();
+            return;
+        }
+        if (this.lastResponse) {
+            this.renderTable(this.lastResponse.columns, this.lastResponse.list);
+        }
+        this.renderPager(true);
     },
 
     renderCards(cards) {
@@ -223,26 +251,26 @@ const StatDataSummaryApp = {
         const head = document.getElementById('statTableHead');
         const body = document.getElementById('statTableBody');
         columns = columns || [];
-        list = list || [];
+        const all = list || [];
+        const rows = this.pagedList(all);
         head.innerHTML = columns.length
             ? '<tr>' + columns.map(c => `<th>${esc(c.label)}</th>`).join('') + '</tr>'
             : '';
-        if (!columns.length || !list.length) {
+        if (!columns.length || !all.length) {
             body.innerHTML = `<tr><td colspan="${Math.max(columns.length, 1)}" class="text-center text-secondary py-4">暂无数据</td></tr>`;
             return;
         }
-        body.innerHTML = list.map(row =>
+        if (!rows.length) {
+            // 数据变少后当前页码越界(如切换筛选后), 回到第一页重渲
+            this.tableState.currentPage = 1;
+            return this.renderTable(columns, all);
+        }
+        body.innerHTML = rows.map(row =>
             '<tr>' + columns.map(c => `<td>${esc(row[c.key])}</td>`).join('') + '</tr>'
         ).join('');
     },
 
-    renderPager(paged) {
-        const wrapper = document.getElementById('pagerWrapper');
-        if (!paged) {
-            wrapper.style.display = 'none';
-            return;
-        }
-        wrapper.style.display = '';
+    renderPager() {
         const { currentPage, pageSize, total } = this.tableState;
         const totalPages = Math.max(1, Math.ceil(total / pageSize));
         document.getElementById('pageInfo').textContent =
@@ -270,7 +298,7 @@ const StatDataSummaryApp = {
                 const p = parseInt(a.dataset.page, 10);
                 if (p >= 1 && p <= totalPages && p !== currentPage) {
                     this.tableState.currentPage = p;
-                    this.load();
+                    this.refreshPage();
                 }
             });
         });
