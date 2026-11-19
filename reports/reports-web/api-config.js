@@ -173,6 +173,13 @@ API_CONFIG.miReconUploadUrl = API_CONFIG.baseUrl.replace(/\/gateway$/, '/mi-reco
  * @returns {Promise}
  */
 async function apiRequest(methodKey, endpointKey, requestBody = null) {
+    // 按天查询跨度限制(1个月/31天): 防日期框选几年把共享库打满, 按月不受限(月份控件本身限12个月)
+    const spanErr = daySpanError(requestBody);
+    if (spanErr) {
+        GlobalErrorDialog.error(spanErr);
+        throw new Error(spanErr);
+    }
+
     // 如果开启 Mock，直接返回 MockService 数据
     if (API_CONFIG.useMock) {
         const response = await callMockService(methodKey, endpointKey, requestBody);
@@ -520,6 +527,17 @@ function escHtml(v) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+/** 按天查询起始~结束跨度校验: 超1个月(31天)返回错误文案, 否则null。body里dimension/timeDimension=day才生效 */
+function daySpanError(body) {
+    if (!body || typeof body !== 'object') return null;
+    const dim = body.dimension || body.timeDimension;
+    if (dim !== 'day') return null;
+    const s = body.startDate, e = body.endDate;
+    if (!s || !e) return null;
+    const span = Math.round((new Date(e) - new Date(s)) / 86400000);
+    return span > 31 ? '按天查询时间范围不能超过1个月，请缩小起始和结束日期' : null;
 }
 
 /**
