@@ -529,10 +529,10 @@ function escHtml(v) {
         .replace(/'/g, '&#39;');
 }
 
-/** 按天查询起始~结束跨度校验: 超1个月(31天)返回错误文案, 否则null。body里dimension/timeDimension=day才生效 */
+/** 按天查询起始~结束跨度校验: 超1个月(31天)返回错误文案, 否则null。timeDimension优先于dimension(出院结算人次的dimension是统计维度非时间维度) */
 function daySpanError(body) {
     if (!body || typeof body !== 'object') return null;
-    const dim = body.dimension || body.timeDimension;
+    const dim = body.timeDimension || body.dimension;
     if (dim !== 'day') return null;
     const s = body.startDate, e = body.endDate;
     if (!s || !e) return null;
