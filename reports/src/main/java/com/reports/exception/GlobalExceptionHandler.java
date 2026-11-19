@@ -41,7 +41,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 非法参数异常
+     * 非法参数异常(代码内主动抛的业务校验提示, 如"日期格式无效/文件为空", 文案面向用户)
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ApiResponse<Void> handleIllegalArgumentException(IllegalArgumentException e, HttpServletRequest request) {
@@ -50,7 +50,7 @@ public class GlobalExceptionHandler {
                 ResultCode.PARAM_ERROR.getCode(),
                 ResultCode.PARAM_ERROR.getMsg(),
                 ResultCode.PARAM_ERROR.getSubCode(),
-                traceTip()
+                e.getMessage()
         );
     }
 

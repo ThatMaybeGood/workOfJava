@@ -6,6 +6,11 @@ server:
 spring:
   application:
     name: reports-gateway
+  servlet:
+    multipart:
+      # 医保对账上传限额(对账单日明细通常远小于1MB, 限额防御异常大文件打满内存/磁盘)
+      max-file-size: 20MB
+      max-request-size: 25MB
   profiles:
     # dev  = 生产库（168.168.235.105/yuanqi），test = 测试库（192.168.31.35/orcl）
     # 测试库的表结构与测试数据由 com.reports.tools.ReportDbInitializer 生成，可重复执行
