@@ -307,9 +307,9 @@ class PersonCountApp {
                 if (spans[i][c.key] === 0) return '';
                 const rs = spans[i][c.key] > 1 ? ` rowspan="${spans[i][c.key]}"` : '';
                 if (c.key === clickableKey) {
-                    return `<td${rs} class="text-primary drill-cnt" style="cursor:pointer">${row.cnt != null ? row.cnt : ''}</td>`;
+                    return `<td${rs} class="text-primary drill-cnt" style="cursor:pointer">${escHtml(row.cnt)}</td>`;
                 }
-                return `<td${rs}>${row[c.key] != null ? row[c.key] : ''}</td>`;
+                return `<td${rs}>${escHtml(row[c.key])}</td>`;
             }).join('');
             return `<tr>${tds}</tr>`;
         }).join('');

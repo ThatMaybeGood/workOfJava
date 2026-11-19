@@ -231,9 +231,9 @@ class RevenueController {
         this.deptState.data.forEach(row => {
             html += `
                 <tr>
-                    <td>${row.deptName}</td>
-                    <td>${row.outpatientRevenue}</td>
-                    <td>${row.serviceRevenue}</td>
+                    <td>${escHtml(row.deptName)}</td>
+                    <td>${escHtml(row.outpatientRevenue)}</td>
+                    <td>${escHtml(row.serviceRevenue)}</td>
                 </tr>
             `;
         });
@@ -268,10 +268,10 @@ class RevenueController {
         this.doctorState.data.forEach(row => {
             html += `
                 <tr>
-                    <td>${row.doctorName}</td>
-                    <td>${row.deptName}</td>
-                    <td>${row.doctorBenefit}</td>
-                    <td>${row.serviceRevenue}</td>
+                    <td>${escHtml(row.doctorName)}</td>
+                    <td>${escHtml(row.deptName)}</td>
+                    <td>${escHtml(row.doctorBenefit)}</td>
+                    <td>${escHtml(row.serviceRevenue)}</td>
                 </tr>
             `;
         });

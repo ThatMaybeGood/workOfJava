@@ -511,6 +511,33 @@ function mockStorageKey() {
     return 'reports_use_mock_' + (location.pathname.split('/').pop() || 'index');
 }
 
+/** HTML转义(防存储型XSS): 数据库字段经innerHTML拼进页面前必须转义, 只影响<>&"'五个字符的显示, 中文数字正常 */
+function escHtml(v) {
+    if (v == null) return '';
+    return String(v)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
+ * onclick等内联JS属性里的字符串参数转义。
+ * 单独用escHtml不够: HTML会先解码实体再执行JS, &#39;解码成'照样跳出JS字符串。
+ * 这里引号转成\x27/\x22(属性里不出现引号字符, HTML层破不出去), 反斜杠翻倍, 实体注入先杀&。
+ */
+function escAttrJs(v) {
+    if (v == null) return '';
+    return String(v)
+        .replace(/&/g, '&amp;')
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, '\\x27')
+        .replace(/"/g, '\\x22')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r');
+}
+
 /**
  * 切换 Mock / 真实接口模式
  * @param {boolean} enabled - true 使用 Mock，false 使用真实接口

@@ -194,11 +194,11 @@ class RoomUsageController {
         this.state.data.forEach(row => {
             html += `
                 <tr>
-                    <td>${row.deptName}</td>
-                    <td>${row.avgUsage}</td>
-                    <td>${row.amUsage}</td>
-                    <td>${row.pmUsage}</td>
-                    <td>${row.holidayUsage}</td>
+                    <td>${escHtml(row.deptName)}</td>
+                    <td>${escHtml(row.avgUsage)}</td>
+                    <td>${escHtml(row.amUsage)}</td>
+                    <td>${escHtml(row.pmUsage)}</td>
+                    <td>${escHtml(row.holidayUsage)}</td>
                 </tr>
             `;
         });

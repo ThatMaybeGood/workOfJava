@@ -224,7 +224,7 @@ class QualityControlController {
             return '<p class="text-muted">该区间暂无数据</p>';
         }
         const paragraphs = this.indicatorConfig.map((ind, i) => {
-            const value = overview[ind.key] != null ? overview[ind.key] : '-';
+            const value = overview[ind.key] != null ? escHtml(overview[ind.key]) : '-';
             return `<p><strong>（${chineseNumber(i + 1)}）${ind.label}</strong></p>
                 <p>${label}我院${ind.label}为${value}。</p>`;
         }).join('');
@@ -266,9 +266,9 @@ class QualityControlController {
         let html = '';
 
         this.state.data.forEach(row => {
-            html += `<tr><td>${row.month}</td>`;
+            html += `<tr><td>${escHtml(row.month)}</td>`;
             this.indicatorConfig.forEach(ind => {
-                html += `<td>${row[ind.key]}</td>`;
+                html += `<td>${escHtml(row[ind.key])}</td>`;
             });
             html += '</tr>';
         });
@@ -278,7 +278,7 @@ class QualityControlController {
             html += `<tr><td>全列表数据平均值</td>`;
             this.indicatorConfig.forEach(ind => {
                 const val = this.state.overview[ind.key];
-                html += `<td>${val != null ? val : '-'}</td>`;
+                html += `<td>${val != null ? escHtml(val) : '-'}</td>`;
             });
             html += '</tr>';
         } else {

@@ -319,23 +319,23 @@ class NoShowController {
         this.state.data.forEach(row => {
             html += `
                 <tr>
-                    <td>${row.deptName}</td>
-                    <td>${row.refundCount}</td>
-                    <td>${row.refundRate}</td>
-                    <td>${row.refundOrigin.chongqing}</td>
-                    <td>${row.refundOrigin.sichuan}</td>
-                    <td>${row.refundOrigin.guizhou}</td>
-                    <td>${row.refundOrigin.yunnan}</td>
-                    <td>${row.refundOrigin.other}</td>
-                    <td>${row.refundChannel.window}</td>
-                    <td>${row.refundChannel.miniprogram}</td>
-                    <td>${row.noShowCount}</td>
-                    <td>${row.noShowRate}</td>
-                    <td>${row.noShowOrigin.chongqing}</td>
-                    <td>${row.noShowOrigin.sichuan}</td>
-                    <td>${row.noShowOrigin.guizhou}</td>
-                    <td>${row.noShowOrigin.yunnan}</td>
-                    <td>${row.noShowOrigin.other}</td>
+                    <td>${escHtml(row.deptName)}</td>
+                    <td>${escHtml(row.refundCount)}</td>
+                    <td>${escHtml(row.refundRate)}</td>
+                    <td>${escHtml(row.refundOrigin.chongqing)}</td>
+                    <td>${escHtml(row.refundOrigin.sichuan)}</td>
+                    <td>${escHtml(row.refundOrigin.guizhou)}</td>
+                    <td>${escHtml(row.refundOrigin.yunnan)}</td>
+                    <td>${escHtml(row.refundOrigin.other)}</td>
+                    <td>${escHtml(row.refundChannel.window)}</td>
+                    <td>${escHtml(row.refundChannel.miniprogram)}</td>
+                    <td>${escHtml(row.noShowCount)}</td>
+                    <td>${escHtml(row.noShowRate)}</td>
+                    <td>${escHtml(row.noShowOrigin.chongqing)}</td>
+                    <td>${escHtml(row.noShowOrigin.sichuan)}</td>
+                    <td>${escHtml(row.noShowOrigin.guizhou)}</td>
+                    <td>${escHtml(row.noShowOrigin.yunnan)}</td>
+                    <td>${escHtml(row.noShowOrigin.other)}</td>
                 </tr>
             `;
         });

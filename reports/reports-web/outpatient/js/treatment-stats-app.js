@@ -325,12 +325,12 @@ class TreatmentStatsController {
         this.state.data.forEach(row => {
             html += `
                 <tr>
-                    <td>${row.rank}</td>
-                    <td>${row.deptName}</td>
-                    <td>${row.patientCount}</td>
-                    <td>${row.treatmentCount}</td>
-                    <td>${row.treatmentAmount.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</td>
-                    <td>${row.avgAmount.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</td>
+                    <td>${escHtml(row.rank)}</td>
+                    <td>${escHtml(row.deptName)}</td>
+                    <td>${escHtml(row.patientCount)}</td>
+                    <td>${escHtml(row.treatmentCount)}</td>
+                    <td>${escHtml(row.treatmentAmount.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }))}</td>
+                    <td>${escHtml(row.avgAmount.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }))}</td>
                 </tr>
             `;
         });

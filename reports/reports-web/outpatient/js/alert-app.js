@@ -262,10 +262,10 @@ class AlertController {
             const deptCode = this._resolveDeptCode(row.deptName);
             html += `
                 <tr>
-                    <td>${row.deptName}</td>
-                    <td>${row.remainAlert}</td>
-                    <td>${row.appointmentAlert}</td>
-                    <td class="clickable" onclick="openDeptDetailModal('${deptCode || ''}', '${row.deptName || ''}', '${this.filter.startDate}', '${this.filter.endDate}')">${row.earlyLeave}</td>
+                    <td>${escHtml(row.deptName)}</td>
+                    <td>${escHtml(row.remainAlert)}</td>
+                    <td>${escHtml(row.appointmentAlert)}</td>
+                    <td class="clickable" onclick="openDeptDetailModal('${escAttrJs(deptCode)}', '${escAttrJs(row.deptName)}', '${escAttrJs(this.filter.startDate)}', '${escAttrJs(this.filter.endDate)}')">${escHtml(row.earlyLeave)}</td>
                 </tr>
             `;
         });
@@ -310,11 +310,11 @@ class AlertController {
             const deptCode = this._resolveDeptCode(row.deptName);
             html += `
                 <tr>
-                    <td>${row.doctorName}</td>
-                    <td>${row.deptName}</td>
-                    <td>${row.remainAlert}</td>
-                    <td>${row.appointmentAlert}</td>
-                    <td class="clickable" onclick="openDoctorDetailModal('${deptCode || ''}', '${row.deptName || ''}', '${row.doctorName || ''}', '${this.filter.startDate}', '${this.filter.endDate}')">${row.earlyLeave}</td>
+                    <td>${escHtml(row.doctorName)}</td>
+                    <td>${escHtml(row.deptName)}</td>
+                    <td>${escHtml(row.remainAlert)}</td>
+                    <td>${escHtml(row.appointmentAlert)}</td>
+                    <td class="clickable" onclick="openDoctorDetailModal('${escAttrJs(deptCode)}', '${escAttrJs(row.deptName)}', '${escAttrJs(row.doctorName)}', '${escAttrJs(this.filter.startDate)}', '${escAttrJs(this.filter.endDate)}')">${escHtml(row.earlyLeave)}</td>
                 </tr>
             `;
         });
@@ -685,12 +685,12 @@ function renderDetailTable() {
     empty.classList.add('d-none');
     tbody.innerHTML = rows.map(r => `
         <tr>
-            <td>${r.statDate || ''}</td>
-            <td>${r.deptName || ''}</td>
-            <td>${r.doctorName || ''}</td>
-            <td>${r.clinicPeriod || ''}</td>
-            <td>${r.hisLogoutTime || ''}</td>
-            <td>${r.earlyLeave != null ? r.earlyLeave : 0}</td>
+            <td>${escHtml(r.statDate)}</td>
+            <td>${escHtml(r.deptName)}</td>
+            <td>${escHtml(r.doctorName)}</td>
+            <td>${escHtml(r.clinicPeriod)}</td>
+            <td>${escHtml(r.hisLogoutTime)}</td>
+            <td>${r.earlyLeave != null ? escHtml(r.earlyLeave) : 0}</td>
         </tr>
     `).join('');
 }

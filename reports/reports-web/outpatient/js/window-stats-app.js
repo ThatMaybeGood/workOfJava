@@ -272,7 +272,7 @@ class WindowStatsController {
         // 渲染表头
         let headHtml = '<tr><th>业务</th>';
         tableData.headers.forEach(h => {
-            headHtml += `<th>${h}</th>`;
+            headHtml += `<th>${escHtml(h)}</th>`;
         });
         headHtml += '</tr>';
         thead.innerHTML = headHtml;
@@ -281,9 +281,9 @@ class WindowStatsController {
         let bodyHtml = '';
         const colSums = new Array(tableData.headers.length).fill(0);
         tableData.rows.forEach(row => {
-            bodyHtml += `<tr><td>${row.business}</td>`;
+            bodyHtml += `<tr><td>${escHtml(row.business)}</td>`;
             row.data.forEach((val, idx) => {
-                bodyHtml += `<td>${val}</td>`;
+                bodyHtml += `<td>${escHtml(val)}</td>`;
                 colSums[idx] += val;
             });
             bodyHtml += '</tr>';

@@ -285,7 +285,7 @@ class PreHospTransApp {
             const tds = TABLE_COLUMNS.map(c => {
                 if (spans[i][c.key] === 0) return '';
                 const rs = spans[i][c.key] > 1 ? ` rowspan="${spans[i][c.key]}"` : '';
-                return `<td${rs}>${row[c.key] != null ? row[c.key] : ''}</td>`;
+                return `<td${rs}>${escHtml(row[c.key])}</td>`;
             }).join('');
             return `<tr>${tds}</tr>`;
         }).join('');
@@ -342,8 +342,8 @@ class PreHospTransApp {
         }
         html += pageRows.map(row => `
             <tr>
-                <td>${row.operName != null ? row.operName : ''}</td>
-                <td>${row.dbuser != null ? row.dbuser : ''}</td>
+                <td>${escHtml(row.operName)}</td>
+                <td>${escHtml(row.dbuser)}</td>
                 <td>
                     <div class="form-check form-switch mb-0">
                         <input type="checkbox" class="form-check-input valid-toggle" data-id="${row.id}"

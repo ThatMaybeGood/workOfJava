@@ -174,7 +174,7 @@ class CashierSettlementController {
         }
         select.style.display = '';
         select.innerHTML = dims.map(d =>
-            `<option value="${d.value}" ${d.value === this.selectedCashier ? 'selected' : ''}>${d.label}</option>`).join('');
+            `<option value="${escHtml(d.value)}" ${d.value === this.selectedCashier ? 'selected' : ''}>${escHtml(d.label)}</option>`).join('');
         if (!this.selectedCashier || !dims.some(d => d.value === this.selectedCashier)) {
             this.selectedCashier = dims[0].value;
             select.value = this.selectedCashier;
@@ -200,7 +200,7 @@ class CashierSettlementController {
         }
         select.style.display = '';
         select.innerHTML = dims.map(d =>
-            `<option value="${d.value}" ${d.value === this.selectedSourceDim ? 'selected' : ''}>${d.label}</option>`).join('');
+            `<option value="${escHtml(d.value)}" ${d.value === this.selectedSourceDim ? 'selected' : ''}>${escHtml(d.label)}</option>`).join('');
         if (!this.selectedSourceDim || !dims.some(d => d.value === this.selectedSourceDim)) {
             this.selectedSourceDim = dims[0].value;
             select.value = this.selectedSourceDim;
@@ -230,7 +230,7 @@ class CashierSettlementController {
         }
         dateSelect.style.display = '';
         dateSelect.innerHTML = dates.map(d =>
-            `<option value="${d}" ${d === this.selectedSourceDate ? 'selected' : ''}>${d}</option>`).join('');
+            `<option value="${escHtml(d)}" ${d === this.selectedSourceDate ? 'selected' : ''}>${escHtml(d)}</option>`).join('');
         if (!this.selectedSourceDate || !dates.includes(this.selectedSourceDate)) {
             this.selectedSourceDate = dates[0];
             dateSelect.value = this.selectedSourceDate;
@@ -399,9 +399,9 @@ class CashierSettlementController {
                             <div class="card-body d-flex align-items-center">
                                 <div class="stat-icon ${item.icon}"><i class="bi bi-bar-chart-fill"></i></div>
                                 <div class="ms-3">
-                                    <div class="stat-value text-${item.icon}">${value.toLocaleString('zh-CN')}</div>
+                                    <div class="stat-value text-${item.icon}">${escHtml(value.toLocaleString('zh-CN'))}</div>
                                     <div class="stat-label">${item.label} <i class="bi bi-info-circle info-icon" title="${tips[item.label] || ''}"></i></div>
-                                    <div class="stat-compare ${compareClass}">同比${compareText}</div>
+                                    <div class="stat-compare ${compareClass}">同比${escHtml(compareText)}</div>
                                 </div>
                             </div>
                         </div>
@@ -458,11 +458,11 @@ class CashierSettlementController {
 
             let bodyHtml = '';
             this.tableState.data.forEach(row => {
-                bodyHtml += `<tr><td>${row.date}</td><td>${row['操作员'] || ''}</td>`;
+                bodyHtml += `<tr><td>${escHtml(row.date)}</td><td>${escHtml(row['操作员'])}</td>`;
                 WORKLOAD_METRICS.forEach(name => {
-                    bodyHtml += `<td class="text-center">${this.formatNumber(row[name])}</td>`;
+                    bodyHtml += `<td class="text-center">${escHtml(this.formatNumber(row[name]))}</td>`;
                 });
-                bodyHtml += `<td class="text-center"><strong>${this.formatNumber(row['汇总'])}</strong></td></tr>`;
+                bodyHtml += `<td class="text-center"><strong>${escHtml(this.formatNumber(row['汇总']))}</strong></td></tr>`;
             });
             tbody.innerHTML = bodyHtml;
             return;
@@ -484,18 +484,18 @@ class CashierSettlementController {
         let headHtml = `<tr><th>${dateLabel}</th>`;
         const colTips = this.filter.tab === 'source' ? SOURCE_TIPS : CASHIER_TIPS;
         columns.forEach(name => {
-            headHtml += `<th class="text-center" title="${colTips[name] || ''}">${name}</th>`;
+            headHtml += `<th class="text-center" title="${colTips[name] || ''}">${escHtml(name)}</th>`;
         });
         headHtml += `<th class="text-center">汇总</th></tr>`;
         thead.innerHTML = headHtml;
 
         let bodyHtml = '';
         this.tableState.data.forEach(row => {
-            bodyHtml += `<tr><td>${row.date}</td>`;
+            bodyHtml += `<tr><td>${escHtml(row.date)}</td>`;
             columns.forEach(name => {
-                bodyHtml += `<td class="text-center">${this.formatNumber(row[name])}</td>`;
+                bodyHtml += `<td class="text-center">${escHtml(this.formatNumber(row[name]))}</td>`;
             });
-            bodyHtml += `<td class="text-center"><strong>${this.formatNumber(row['汇总'])}</strong></td></tr>`;
+            bodyHtml += `<td class="text-center"><strong>${escHtml(this.formatNumber(row['汇总']))}</strong></td></tr>`;
         });
 
         // 汇总行

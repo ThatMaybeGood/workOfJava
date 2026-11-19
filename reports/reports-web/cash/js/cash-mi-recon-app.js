@@ -26,7 +26,7 @@ function insurTypeName(code) {
 
 /** 险种统一显示: 职工(310) */
 function typeLabel(code, name) {
-    return `${name || insurTypeName(code)}(${code || '—'})`;
+    return `${escHtml(name || insurTypeName(code))}(${code ? escHtml(code) : '—'})`;
 }
 
 function fmtNum(v, decimals = 0) {
@@ -330,23 +330,23 @@ class MiReconApp {
             const hasMiOrgFee = item.miOrgFee !== null && item.miOrgFee !== undefined;
             // 点绿色金额弹该日来源类型构成
             const orgFeeCell = hasOrgFee
-                ? `<button class="btn btn-sm p-0 org-dtl-btn" data-date="${item.settleDate}"
+                ? `<button class="btn btn-sm p-0 org-dtl-btn" data-date="${escHtml(item.settleDate)}"
                        title="点击查看该日医疗机构来源类型构成">${fmtFee(item.orgFee)}</button>`
                 : '—';
             const miOrgFeeCell = hasMiOrgFee
-                ? `<button class="btn btn-sm p-0 mi-org-dtl-btn" data-date="${item.settleDate}"
+                ? `<button class="btn btn-sm p-0 mi-org-dtl-btn" data-date="${escHtml(item.settleDate)}"
                        title="点击查看该日医保机构来源类型构成">${fmtFee(item.miOrgFee)}</button>`
                 : '—';
             const orgBadge = item.matched === false
-                ? `<button class="badge bg-danger border-0 zp-diff-btn" data-date="${item.settleDate}"
+                ? `<button class="badge bg-danger border-0 zp-diff-btn" data-date="${escHtml(item.settleDate)}"
                        title="点击查看两表差异明细(含单边/金额不等)">不平</button>`
                 : '<span class="badge bg-success">对平</span>';
             const miBadge = item.miOrgMatched === false
-                ? `<button class="badge bg-danger border-0 zp-diff-btn" data-date="${item.settleDate}"
+                ? `<button class="badge bg-danger border-0 zp-diff-btn" data-date="${escHtml(item.settleDate)}"
                        title="点击查看两表差异明细(含单边/金额不等)">不平</button>`
                 : '<span class="badge bg-success">对平</span>';
             tr.innerHTML = `
-                <td>${item.settleDate || '—'}</td>
+                <td>${item.settleDate ? escHtml(item.settleDate) : '—'}</td>
                 <td>${typeLabel(item.insurType, item.insurTypeName)}</td>
                 <td class="text-end">${fmtQty(item.miQty)}</td>
                 <td class="text-end">${fmtFee(item.miFee)}</td>
@@ -420,7 +420,7 @@ class MiReconApp {
         list.forEach(c => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${c.setlId || '—'}</td>
+                <td>${c.setlId ? escHtml(c.setlId) : '—'}</td>
                 <td class="text-end">${fmtFee(c.medfeeSumamt)}</td>`;
             tbody.appendChild(tr);
             if (c.medfeeSumamt !== null && c.medfeeSumamt !== undefined) { sumFee += Number(c.medfeeSumamt); hasFee = true; }
@@ -467,8 +467,8 @@ class MiReconApp {
             const tr = document.createElement('tr');
             const exclBadge = c.excluded ? ' <span class="badge bg-secondary">不计入合计</span>' : '';
             tr.innerHTML = `
-                <td>${c.name || c.sourceTypeName || c.sourceType || '—'}${exclBadge}</td>
-                <td>${typeNameOf(c)}</td>
+                <td>${escHtml(c.name || c.sourceTypeName || c.sourceType) || '—'}${exclBadge}</td>
+                <td>${escHtml(typeNameOf(c))}</td>
                 <td class="text-end">${c.qty === null || c.qty === undefined ? '—' : fmtQty(c.qty)}</td>
                 <td class="text-end">${c.fee === null || c.fee === undefined ? '—' : fmtFee(c.fee)}</td>`;
             tbody.appendChild(tr);
@@ -564,7 +564,7 @@ class MiReconApp {
             const sel = document.getElementById(id);
             const prev = sel.value;
             sel.innerHTML = '<option value="">全部</option>'
-                + values.map(v => `<option value="${v}">${v}</option>`).join('');
+                + values.map(v => `<option value="${escHtml(v)}">${escHtml(v)}</option>`).join('');
             sel.value = values.includes(prev) ? prev : '';
         };
         const distinct = fn => [...new Set(this.zpDiffList.map(fn)
@@ -605,12 +605,12 @@ class MiReconApp {
                 ? `<span class="badge bg-info">自相冲销${c._pairNo ? ' 对' + c._pairNo : ''}</span>`
                 : '—';
             tr.innerHTML = `${bracketCell}
-                <td>${c.setlId || '—'}</td>
-                <td>${c.insurTypeName || insurTypeName(c.insurType)}</td>
-                <td>${c.diffSide || '—'}</td>
+                <td>${c.setlId ? escHtml(c.setlId) : '—'}</td>
+                <td>${escHtml(c.insurTypeName || insurTypeName(c.insurType))}</td>
+                <td>${c.diffSide ? escHtml(c.diffSide) : '—'}</td>
                 <td>${offsetCell}</td>
-                <td>${c.payZpName || '—'}</td>
-                <td>${c.bizZpName || '—'}</td>
+                <td>${c.payZpName ? escHtml(c.payZpName) : '—'}</td>
+                <td>${c.bizZpName ? escHtml(c.bizZpName) : '—'}</td>
                 <td class="text-end">${c.payFee === null || c.payFee === undefined ? '—' : fmtFee(c.payFee)}</td>
                 <td class="text-end">${c.bizFee === null || c.bizFee === undefined ? '—' : fmtFee(c.bizFee)}</td>`;
             tbody.appendChild(tr);
@@ -729,7 +729,7 @@ class MiReconApp {
                 ? `<select class="form-select form-select-sm edit-type-select" data-id="${item.id}">
                        ${INSUR_TYPES.map(t => `<option value="${t.code}" ${t.code === item.insurType ? 'selected' : ''}>${t.name}</option>`).join('')}
                    </select>`
-                : `<span class="badge bg-light text-dark border">${item.insurTypeName || insurTypeName(item.insurType)}</span>`;
+                : `<span class="badge bg-light text-dark border">${escHtml(item.insurTypeName || insurTypeName(item.insurType))}</span>`;
             const opCell = editing
                 ? `<button class="btn btn-success btn-sm save-type-btn" data-id="${item.id}">保存</button>
                    <button class="btn btn-outline-secondary btn-sm cancel-type-btn" data-id="${item.id}">取消</button>`
@@ -740,11 +740,11 @@ class MiReconApp {
                 ? '<span class="badge bg-success">启用</span>'
                 : '<span class="badge bg-secondary">已作废</span>';
             tr.innerHTML = `
-                <td>${item.dataDate || '—'}</td>
+                <td>${item.dataDate ? escHtml(item.dataDate) : '—'}</td>
                 <td>${typeCell}</td>
-                <td class="filename-cell" title="${item.fileName || ''}">${item.fileName || '—'}</td>
+                <td class="filename-cell" title="${escHtml(item.fileName)}">${item.fileName ? escHtml(item.fileName) : '—'}</td>
                 <td>${fmtQty(item.rowCount)}</td>
-                <td>${item.createTime || '—'}</td>
+                <td>${item.createTime ? escHtml(item.createTime) : '—'}</td>
                 <td>${statusCell}</td>
                 <td>${opCell}</td>`;
             tbody.appendChild(tr);
@@ -872,8 +872,8 @@ class MiReconApp {
                 <td class="text-end">${fmtQty(r.qty)}</td>
                 ${PAY_COLS.map(([k]) => this.payFeeTd(r[k])).join('')}
                 <td class="small">${warnCell}</td>
-                <td class="pay-op-cell"><button class="btn btn-outline-primary btn-sm pay-cat-btn" data-code="${r.insurType}" data-name="${r.insurTypeName || insurTypeName(r.insurType)}">分类明细</button>
-                    <button class="btn btn-outline-secondary btn-sm pay-day-btn" data-code="${r.insurType}" data-name="${r.insurTypeName || insurTypeName(r.insurType)}">每日维度</button></td>`;
+                <td class="pay-op-cell"><button class="btn btn-outline-primary btn-sm pay-cat-btn" data-code="${escHtml(r.insurType)}" data-name="${escHtml(r.insurTypeName || insurTypeName(r.insurType))}">分类明细</button>
+                    <button class="btn btn-outline-secondary btn-sm pay-day-btn" data-code="${escHtml(r.insurType)}" data-name="${escHtml(r.insurTypeName || insurTypeName(r.insurType))}">每日维度</button></td>`;
             tbody.appendChild(tr);
         });
         // 警示列"查看明细"直达跨月Tab
@@ -893,10 +893,10 @@ class MiReconApp {
         }
         const parts = [];
         if (w.crossCnt) {
-            parts.push(`<button class="badge bg-warning text-dark border-0 pay-warn-btn" data-code="${code}" data-name="${name}" title="点击查看跨月配对明细">跨月${w.crossCnt}</button>`);
+            parts.push(`<button class="badge bg-warning text-dark border-0 pay-warn-btn" data-code="${escHtml(code)}" data-name="${escHtml(name)}" title="点击查看跨月配对明细">跨月${w.crossCnt}</button>`);
         }
         if (w.noneCnt) {
-            parts.push(`<button class="badge bg-danger border-0 pay-warn-btn" data-code="${code}" data-name="${name}" title="点击查看找不到明细">找不到${w.noneCnt}</button>`);
+            parts.push(`<button class="badge bg-danger border-0 pay-warn-btn" data-code="${escHtml(code)}" data-name="${escHtml(name)}" title="点击查看找不到明细">找不到${w.noneCnt}</button>`);
         }
         return parts.join('<br>');
     }
@@ -966,7 +966,7 @@ class MiReconApp {
                 if (noneCnt > 0) tr.className = 'table-warning';
             }
             tr.innerHTML = `
-                <td><span class="badge bg-light text-dark border">${r.category || '—'}</span></td>
+                <td><span class="badge bg-light text-dark border">${r.category ? escHtml(r.category) : '—'}</span></td>
                 <td class="text-end">${fmtQty(r.qty)}</td>
                 ${PAY_COLS.map(([k]) => this.payFeeTd(r[k])).join('')}
                 <td class="small">${matchCell}</td>`;
@@ -986,7 +986,7 @@ class MiReconApp {
         rows.filter(r => r.matchStatus === '跨月匹配').forEach(r => {
             monthDist[r.posMonth] = (monthDist[r.posMonth] || 0) + 1;
         });
-        const distText = Object.entries(monthDist).map(([m, c]) => `${m} ${c}条`).join(' / ');
+        const distText = Object.entries(monthDist).map(([m, c]) => `${escHtml(m)} ${c}条`).join(' / ');
         document.getElementById('payCrossAlert').innerHTML =
             `退费共 <b>${fmtQty(rows.length)}</b> 条：本月匹配 <b>${fmtQty(cnt('本月匹配'))}</b>，跨月 <b>${fmtQty(crossCnt)}</b>`
             + (distText ? `（${distText}）` : '')
@@ -1005,13 +1005,13 @@ class MiReconApp {
                 : '<span class="badge bg-danger">找不到</span>';
             const fmtDay = d => (d && d.length >= 10) ? d.slice(5) : (d || '—');
             tr.innerHTML = `
-                <td>${r.refundSetlId || '—'}</td>
-                <td>${fmtDay(r.refundDate)}</td>
+                <td>${r.refundSetlId ? escHtml(r.refundSetlId) : '—'}</td>
+                <td>${escHtml(fmtDay(r.refundDate))}</td>
                 <td class="text-end ${Number(r.refundFee) < 0 ? 'text-danger' : ''}">${r.refundFee === null || r.refundFee === undefined ? '—' : fmtFee(r.refundFee)}</td>
                 <td class="text-center">${badge}</td>
                 <td class="text-end">${r.posFee === null || r.posFee === undefined ? '—' : fmtFee(r.posFee)}</td>
-                <td>${fmtDay(r.posDate)}</td>
-                <td>${r.posSetlId || '—'}</td>
+                <td>${escHtml(fmtDay(r.posDate))}</td>
+                <td>${r.posSetlId ? escHtml(r.posSetlId) : '—'}</td>
                 <td class="small text-muted">${r.matchStatus === '跨月匹配' ? '本月未匹配，跨月找到' : r.matchStatus === '找不到' ? '上月月初至退费当天均无对应正交易' : '正常'}</td>`;
             tbody.appendChild(tr);
             if (r.refundFee !== null && r.refundFee !== undefined) { sumFee += Number(r.refundFee); hasFee = true; }
@@ -1046,10 +1046,10 @@ class MiReconApp {
             const tr = document.createElement('tr');
             const dateStr = r.settleDate || '';
             tr.innerHTML = `
-                <td>${dateStr.slice(5) || '—'}</td>
+                <td>${escHtml(dateStr.slice(5)) || '—'}</td>
                 <td class="text-end">${fmtQty(r.qty)}</td>
                 ${PAY_COLS.map(([k]) => this.payFeeTd(r[k])).join('')}
-                <td><button class="btn btn-outline-primary btn-sm pay-daycat-btn" data-code="${code}" data-name="${name}" data-date="${dateStr}">分类明细</button></td>`;
+                <td><button class="btn btn-outline-primary btn-sm pay-daycat-btn" data-code="${escHtml(code)}" data-name="${escHtml(name)}" data-date="${escHtml(dateStr)}">分类明细</button></td>`;
             tbody.appendChild(tr);
         });
         this.renderPayFoot('payDayFoot', 'payDay', rows);
@@ -1087,7 +1087,7 @@ class MiReconApp {
                 } else {
                     matchCell = dayCross.map(c => {
                         if (c.matchStatus === '跨月匹配') {
-                            return `<span class="badge bg-warning text-dark">跨月(${c.posMonth})</span> <span class="small">正交易${c.posSetlId || '—'}</span>`;
+                            return `<span class="badge bg-warning text-dark">跨月(${escHtml(c.posMonth)})</span> <span class="small">正交易${c.posSetlId ? escHtml(c.posSetlId) : '—'}</span>`;
                         }
                         if (c.matchStatus === '找不到') return '<span class="badge bg-danger">找不到</span>';
                         return '<span class="badge bg-success">本月匹配</span>';
@@ -1096,8 +1096,8 @@ class MiReconApp {
                 if (dayCross.some(c => c.matchStatus !== '本月匹配')) tr.className = 'table-warning';
             }
             tr.innerHTML = `
-                <td>${date.slice(5) || '—'}</td>
-                <td><span class="badge bg-light text-dark border">${r.category || '—'}</span></td>
+                <td>${escHtml(date.slice(5)) || '—'}</td>
+                <td><span class="badge bg-light text-dark border">${r.category ? escHtml(r.category) : '—'}</span></td>
                 <td class="text-end">${fmtQty(r.qty)}</td>
                 ${PAY_COLS.map(([k]) => this.payFeeTd(r[k])).join('')}
                 <td class="small">${matchCell}</td>`;

@@ -202,16 +202,16 @@ class ServiceQualityController {
             this.state.data.forEach(row => {
                 html += `
                     <tr>
-                        <td>${row.source || ''}</td>
-                        <td>${row.time || ''}</td>
-                        <td>${row.dept || ''}</td>
-                        <td>${row.person || ''}</td>
-                        <td>${row.position || ''}</td>
-                        <td>${row.category || ''}</td>
-                        <td>${row.result || ''}</td>
+                        <td>${escHtml(row.source)}</td>
+                        <td>${escHtml(row.time)}</td>
+                        <td>${escHtml(row.dept)}</td>
+                        <td>${escHtml(row.person)}</td>
+                        <td>${escHtml(row.position)}</td>
+                        <td>${escHtml(row.category)}</td>
+                        <td>${escHtml(row.result)}</td>
                         <td class="cell-ellipsis" title="${escapeHtml(row.content)}">${escapeHtml(row.content)}</td>
                         <td class="cell-ellipsis" title="${escapeHtml(row.appeal)}">${escapeHtml(row.appeal)}</td>
-                        <td>${row.remark || ''}</td>
+                        <td>${escHtml(row.remark)}</td>
                     </tr>
                 `;
             });
@@ -232,15 +232,15 @@ class ServiceQualityController {
             this.state.data.forEach(row => {
                 html += `
                     <tr>
-                        <td>${row.source || ''}</td>
-                        <td>${row.time || ''}</td>
-                        <td>${row.dept || ''}</td>
-                        <td>${row.person || ''}</td>
-                        <td>${row.position || ''}</td>
-                        <td>${row.method || ''}</td>
-                        <td>${row.feedback || ''}</td>
+                        <td>${escHtml(row.source)}</td>
+                        <td>${escHtml(row.time)}</td>
+                        <td>${escHtml(row.dept)}</td>
+                        <td>${escHtml(row.person)}</td>
+                        <td>${escHtml(row.position)}</td>
+                        <td>${escHtml(row.method)}</td>
+                        <td>${escHtml(row.feedback)}</td>
                         <td class="cell-ellipsis" title="${escapeHtml(row.content)}">${escapeHtml(row.content)}</td>
-                        <td>${row.remark || ''}</td>
+                        <td>${escHtml(row.remark)}</td>
                     </tr>
                 `;
             });
@@ -456,8 +456,8 @@ class DictManager {
         }
         tbody.innerHTML = this.state.data.map(item => `
             <tr>
-                <td>${item.dictName}</td>
-                <td><a href="#" class="text-danger" data-id="${item.id}">删除</a></td>
+                <td>${escHtml(item.dictName)}</td>
+                <td><a href="#" class="text-danger" data-id="${escHtml(item.id)}">删除</a></td>
             </tr>
         `).join('');
         tbody.querySelectorAll('a[data-id]').forEach(link => {
@@ -758,14 +758,14 @@ class MaintainManager {
             return;
         }
         tbody.innerHTML = this.state.rows.map(row => `
-            <tr data-id="${row.id != null ? row.id : ''}">
-                <td><input type="text" class="form-control form-control-sm maintain-time" value="${row.time || ''}"></td>
+            <tr data-id="${row.id != null ? escHtml(row.id) : ''}">
+                <td><input type="text" class="form-control form-control-sm maintain-time" value="${escHtml(row.time)}"></td>
                 <td><div class="fz-dept"></div></td>
                 <td><div class="fz-person"></div></td>
                 <td><select class="form-select form-select-sm maintain-position">${this.dictOptions('position', row.position)}</select></td>
                 <td><select class="form-select form-select-sm maintain-attr1">${this.dictOptions(isComplaint ? 'complaintCategory' : 'praiseMethod', isComplaint ? row.category : row.method)}</select></td>
                 <td><select class="form-select form-select-sm maintain-attr2">${this.dictOptions(isComplaint ? 'complaintResult' : 'feedback', isComplaint ? row.result : row.feedback)}</select></td>
-                <td><input type="text" class="form-control form-control-sm maintain-remark" value="${row.remark || ''}"></td>
+                <td><input type="text" class="form-control form-control-sm maintain-remark" value="${escHtml(row.remark)}"></td>
                 <td><a href="#" class="text-danger maintain-delete">删除</a></td>
             </tr>
         `).join('');
@@ -814,7 +814,7 @@ class MaintainManager {
         const options = ['<option value=""></option>'];
         values.forEach(v => {
             const sel = v === selectedValue ? ' selected' : '';
-            options.push(`<option value="${v}"${sel}>${v}</option>`);
+            options.push(`<option value="${escHtml(v)}"${sel}>${escHtml(v)}</option>`);
         });
         return options.join('');
     }

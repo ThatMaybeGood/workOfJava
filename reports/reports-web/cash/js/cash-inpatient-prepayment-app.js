@@ -381,13 +381,13 @@ class InpatientPrepaymentController {
         this.summaryTableState.data.forEach(row => {
             html += `
                 <tr>
-                    <td>${row.date}</td>
+                    <td>${escHtml(row.date)}</td>
                     <td>${row.countLast.toLocaleString('zh-CN')}</td>
                     <td>${row.countCurrent.toLocaleString('zh-CN')}</td>
-                    <td class="${row.countCompare >= 0 ? 'text-up' : 'text-down'}">${row.countCompare >= 0 ? '+' : ''}${row.countCompare}%</td>
+                    <td class="${row.countCompare >= 0 ? 'text-up' : 'text-down'}">${row.countCompare >= 0 ? '+' : ''}${escHtml(row.countCompare)}%</td>
                     <td>${row.amountLast.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td>${row.amountCurrent.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td class="${row.amountCompare >= 0 ? 'text-up' : 'text-down'}">${row.amountCompare >= 0 ? '+' : ''}${row.amountCompare}%</td>
+                    <td class="${row.amountCompare >= 0 ? 'text-up' : 'text-down'}">${row.amountCompare >= 0 ? '+' : ''}${escHtml(row.amountCompare)}%</td>
                 </tr>
             `;
         });
@@ -510,13 +510,13 @@ class InpatientPrepaymentController {
         this.incomeTableState.data.forEach(row => {
             html += `
                 <tr>
-                    <td>${row.date}</td>
+                    <td>${escHtml(row.date)}</td>
                     <td>${row.countLast.toLocaleString('zh-CN')}</td>
                     <td>${row.countCurrent.toLocaleString('zh-CN')}</td>
-                    <td class="${row.countCompare >= 0 ? 'text-up' : 'text-down'}">${row.countCompare >= 0 ? '+' : ''}${row.countCompare}%</td>
+                    <td class="${row.countCompare >= 0 ? 'text-up' : 'text-down'}">${row.countCompare >= 0 ? '+' : ''}${escHtml(row.countCompare)}%</td>
                     <td>${row.amountLast.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td>${row.amountCurrent.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td class="${row.amountCompare >= 0 ? 'text-up' : 'text-down'}">${row.amountCompare >= 0 ? '+' : ''}${row.amountCompare}%</td>
+                    <td class="${row.amountCompare >= 0 ? 'text-up' : 'text-down'}">${row.amountCompare >= 0 ? '+' : ''}${escHtml(row.amountCompare)}%</td>
                 </tr>
             `;
         });
@@ -639,13 +639,13 @@ class InpatientPrepaymentController {
         this.refundTableState.data.forEach(row => {
             html += `
                 <tr>
-                    <td>${row.date}</td>
+                    <td>${escHtml(row.date)}</td>
                     <td>${row.countLast.toLocaleString('zh-CN')}</td>
                     <td>${row.countCurrent.toLocaleString('zh-CN')}</td>
-                    <td class="${row.countCompare >= 0 ? 'text-up' : 'text-down'}">${row.countCompare >= 0 ? '+' : ''}${row.countCompare}%</td>
+                    <td class="${row.countCompare >= 0 ? 'text-up' : 'text-down'}">${row.countCompare >= 0 ? '+' : ''}${escHtml(row.countCompare)}%</td>
                     <td>${row.amountLast.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td>${row.amountCurrent.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td class="${row.amountCompare >= 0 ? 'text-up' : 'text-down'}">${row.amountCompare >= 0 ? '+' : ''}${row.amountCompare}%</td>
+                    <td class="${row.amountCompare >= 0 ? 'text-up' : 'text-down'}">${row.amountCompare >= 0 ? '+' : ''}${escHtml(row.amountCompare)}%</td>
                 </tr>
             `;
         });
@@ -924,7 +924,7 @@ class InpatientPrepaymentController {
                 formatter: (params) => {
                     const item = data[params.dataIndex];
                     const compareText = item.compare >= 0 ? `+${item.compare}%` : `${item.compare}%`;
-                    return `${params.name}: ${params.value} (${params.percent}%)<br/>同比${compareText}`;
+                    return `${escHtml(params.name)}: ${escHtml(params.value)} (${escHtml(params.percent)}%)<br/>同比${escHtml(compareText)}`;
                 }
             },
             legend: { show: false },
@@ -994,7 +994,7 @@ class InpatientPrepaymentController {
             const perCls = item.compare >= 0 ? 'up' : 'down';
             return `<div class="chart-legend-item">
                 <span class="chart-legend-dot" style="background:${colors[(start + idx) % colors.length]}"></span>
-                <span class="chart-legend-name">${item.name}</span>
+                <span class="chart-legend-name">${escHtml(item.name)}</span>
                 <span class="chart-legend-val">${val}</span>
                 <span class="chart-legend-pct">${pct}</span>
                 <span class="chart-legend-per ${perCls}">${perText}</span>

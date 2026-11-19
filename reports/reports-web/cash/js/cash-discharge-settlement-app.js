@@ -244,7 +244,7 @@ class DischargeSettlementController {
                 formatter: (params) => {
                     const item = data[params.dataIndex];
                     const compareText = item.compare == null ? '—' : (item.compare >= 0 ? `+${item.compare}%` : `${item.compare}%`);
-                    return `${params.name}: ${params.value} (${params.percent}%)<br/>同比${compareText}`;
+                    return `${escHtml(params.name)}: ${escHtml(params.value)} (${escHtml(params.percent)}%)<br/>同比${escHtml(compareText)}`;
                 }
             },
             legend: { show: false },
@@ -321,10 +321,10 @@ class DischargeSettlementController {
             const perText = item.compare == null ? '—' : (item.compare >= 0 ? '+' : '') + item.compare + '%';
             const perCls = item.compare == null ? '' : (item.compare >= 0 ? 'up' : 'down');
             const drillable = drillType ? ' drillable' : '';
-            const drillAttr = drillType ? ` data-drill="${item.name}" title="点击查看明细"` : '';
+            const drillAttr = drillType ? ` data-drill="${escHtml(item.name)}" title="点击查看明细"` : '';
             return `<div class="chart-legend-item${drillable}"${drillAttr}>
                 <span class="chart-legend-dot" style="background:${colors[(start + idx) % colors.length]}"></span>
-                <span class="chart-legend-name">${item.name}</span>
+                <span class="chart-legend-name">${escHtml(item.name)}</span>
                 <span class="chart-legend-val">${val}</span>
                 <span class="chart-legend-pct">${pct}</span>
                 <span class="chart-legend-per ${perCls}">${perText}</span>
@@ -395,7 +395,7 @@ class DischargeSettlementController {
         this.drillChart.setOption({
             tooltip: {
                 trigger: 'item',
-                formatter: (params) => `${params.name}: ${params.value} (${params.percent}%)`
+                formatter: (params) => `${escHtml(params.name)}: ${escHtml(params.value)} (${escHtml(params.percent)}%)`
             },
             legend: { show: false },
             color: colors,
@@ -443,7 +443,7 @@ class DischargeSettlementController {
             const pct = total > 0 ? (val / total * 100).toFixed(1) + '%' : '';
             return `<div class="chart-legend-item">
                 <span class="chart-legend-dot" style="background:${state.colors[(start + idx) % state.colors.length]}"></span>
-                <span class="chart-legend-name">${item.name}</span>
+                <span class="chart-legend-name">${escHtml(item.name)}</span>
                 <span class="chart-legend-val">${val}</span>
                 <span class="chart-legend-pct">${pct}</span>
             </div>`;
@@ -493,7 +493,7 @@ class DischargeSettlementController {
     /** 同比单元格：同期无数据(null)显示—, 不带涨跌色 */
     compareCell(compare) {
         if (compare == null) return '<td>—</td>';
-        return `<td class="${compare >= 0 ? 'text-up' : 'text-down'}">${compare >= 0 ? '+' : ''}${compare}%</td>`;
+        return `<td class="${compare >= 0 ? 'text-up' : 'text-down'}">${compare >= 0 ? '+' : ''}${escHtml(compare)}%</td>`;
     }
 
     renderTable() {
@@ -502,9 +502,9 @@ class DischargeSettlementController {
         this.tableState.data.forEach(row => {
             html += `
                 <tr>
-                    <td>${row.date}</td>
-                    <td>${row.totalLast}</td>
-                    <td>${row.totalCurrent}</td>
+                    <td>${escHtml(row.date)}</td>
+                    <td>${escHtml(row.totalLast)}</td>
+                    <td>${escHtml(row.totalCurrent)}</td>
                     ${this.compareCell(row.totalCompare)}
                     <td>${row.dischargedLast.toLocaleString('zh-CN')}</td>
                     <td>${row.dischargedCurrent.toLocaleString('zh-CN')}</td>

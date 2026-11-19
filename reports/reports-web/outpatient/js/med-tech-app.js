@@ -176,12 +176,12 @@ class MedTechController {
         this.state.data.forEach(row => {
             html += `
                 <tr>
-                    <td>${row.deptName}</td>
-                    <td>${row.checkCount}</td>
-                    <td>${row.onTimeRate}</td>
-                    <td>${row.waitTime}</td>
-                    <td>${row.avgWaitLate}</td>
-                    <td>${row.avgReportTime}</td>
+                    <td>${escHtml(row.deptName)}</td>
+                    <td>${escHtml(row.checkCount)}</td>
+                    <td>${escHtml(row.onTimeRate)}</td>
+                    <td>${escHtml(row.waitTime)}</td>
+                    <td>${escHtml(row.avgWaitLate)}</td>
+                    <td>${escHtml(row.avgReportTime)}</td>
                 </tr>
             `;
         });

@@ -206,10 +206,10 @@ class InternetHospitalController {
             const growthColor = isNegative ? 'text-danger' : 'text-success';
             html += `
                 <tr>
-                    <td>${row.name || ''}</td>
-                    <td>${row.current || 0}</td>
-                    <td>${row.last || 0}</td>
-                    <td class="${growthColor}">${row.growth || '-'}</td>
+                    <td>${escHtml(row.name)}</td>
+                    <td>${escHtml(row.current) || 0}</td>
+                    <td>${escHtml(row.last) || 0}</td>
+                    <td class="${growthColor}">${escHtml(row.growth) || '-'}</td>
                 </tr>
             `;
         });
@@ -289,11 +289,11 @@ class InternetHospitalController {
             const growthColor = isNegative ? 'text-danger' : 'text-success';
             html += `
                 <tr>
-                    <td>${row.rank || ''}</td>
-                    <td>${row.deptName || ''}</td>
-                    <td>${row.currentMonth || 0}</td>
-                    <td>${row.lastMonth || 0}</td>
-                    <td class="${growthColor}">${row.growth || '-'}</td>
+                    <td>${escHtml(row.rank)}</td>
+                    <td>${escHtml(row.deptName)}</td>
+                    <td>${escHtml(row.currentMonth) || 0}</td>
+                    <td>${escHtml(row.lastMonth) || 0}</td>
+                    <td class="${growthColor}">${escHtml(row.growth) || '-'}</td>
                 </tr>
             `;
         });
@@ -310,11 +310,11 @@ class InternetHospitalController {
         rankData.forEach(row => {
             html += `
                 <tr>
-                    <td>${row.rank || ''}</td>
-                    <td>${row.doctorName || ''}</td>
-                    <td>${row.deptName || ''}</td>
-                    <td>${row.title || ''}</td>
-                    <td>${row.currentMonth || 0}</td>
+                    <td>${escHtml(row.rank)}</td>
+                    <td>${escHtml(row.doctorName)}</td>
+                    <td>${escHtml(row.deptName)}</td>
+                    <td>${escHtml(row.title)}</td>
+                    <td>${escHtml(row.currentMonth) || 0}</td>
                 </tr>
             `;
         });
@@ -339,7 +339,7 @@ class InternetHospitalController {
                 formatter: (params) => {
                     const item = Array.isArray(params) ? params[0] : params;
                     const month = parseInt(this.state.filter.month.split('-')[1], 10);
-                    return `${item.name}<br/>${month}月平均候诊时长: ${item.value}`;
+                    return `${escHtml(item.name)}<br/>${month}月平均候诊时长: ${escHtml(item.value)}`;
                 }
             },
             grid: {

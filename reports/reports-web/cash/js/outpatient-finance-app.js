@@ -222,7 +222,7 @@ function renderTable(outerType) {
         var amYoy = calcYoy(row.currentDateAmount, row.lastYearAmount);
 
         html += '<tr>';
-        html += '<td>' + (row.dateTime || '') + '</td>';
+        html += '<td>' + escHtml(row.dateTime) + '</td>';
         html += '<td>' + fmtCell(row.lastYearOutpatientVolume) + '</td>';
         html += '<td>' + fmtCell(row.currentDateOutpatientVolume) + '</td>';
         html += '<td>' + ovYoy + '</td>';
@@ -503,9 +503,9 @@ function renderPieLegend(domId, pieData) {
         var pct = total > 0 ? (val / total * 100).toFixed(1) + '%' : '';
         var drillMatched = isDrillableLegend(domId, item.name);
         html += '<div class="pie-legend-item' + (drillMatched ? ' pie-legend-drillable' : '') + '"'
-             + (drillMatched ? ' data-drill="' + (item.name || '') + '" title="点击查看支付方式明细"' : '') + '>';
+             + (drillMatched ? ' data-drill="' + escHtml(item.name) + '" title="点击查看支付方式明细"' : '') + '>';
         html += '<span class="pie-legend-dot" style="background:' + color + '"></span>';
-        html += '<span class="pie-legend-name">' + (item.name || '未知') + '</span>';
+        html += '<span class="pie-legend-name">' + escHtml(item.name || '未知') + '</span>';
         html += '<span class="pie-legend-val">' + (item.disp != null ? item.disp : item.value) + '</span>';
         html += '<span class="pie-legend-pct">' + pct + '</span>';
         if (item.per) {
@@ -566,7 +566,7 @@ function updatePieChart(domId, pieData) {
             trigger: 'item',
             formatter: function (params) {
                 var d = params.data;
-                return d.name + ': ' + (d.disp != null ? d.disp : params.value) + ' (' + params.percent + '%)<br/>同比: ' + (d.per || '-');
+                return escHtml(d.name) + ': ' + (d.disp != null ? d.disp : params.value) + ' (' + params.percent + '%)<br/>同比: ' + (d.per || '-');
             }
         },
         legend: { show: false },
