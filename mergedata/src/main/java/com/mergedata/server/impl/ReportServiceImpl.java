@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -56,6 +57,10 @@ public class ReportServiceImpl implements ReportService {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
+    /** 住院保存是否保留作废历史: true=旧版本置valid_flag=0保留(排查期), false=物理删除只留一份 */
+    @Value("${app.cash.inp-keep-history:false}")
+    private boolean inpKeepHistory;
+
     /**
      * 获取门诊报表数据
      *
@@ -65,6 +70,7 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public OutpReportMainVO getOutpReport(OutpReportRequestBody body) {
 
+        log.info("{} {} 查询请求, 汇总标志{}", Constant.REPORT_NAME_OUTP, body.getReportDate(), body.getTotalFlag());
 
         try {
             //查询数据库是否有数据
@@ -393,6 +399,8 @@ public class ReportServiceImpl implements ReportService {
         if (reportDate == null) {
             reportDate = LocalDate.now();
         }
+
+        log.info("{} {} 保存请求, 汇总标志{}, 明细{}行", Constant.REPORT_NAME_OUTP, reportDate, mainVO.getTotalFlag(), mainVO.getSubList().size());
 
         //查询出具体的类型
         String type = holidayService.queryDateType(reportDate, Constant.TYPE_OUTP);
@@ -844,6 +852,8 @@ public class ReportServiceImpl implements ReportService {
 
         InpCashMainEntity inpResult = new InpCashMainEntity();
 
+        log.info("{} {} 查询请求, 汇总标志{}, 初始化标志{}, 来源{}", Constant.REPORT_NAME_INP, currentDate, totalFlag, initFlag, genSource);
+
         try {
             //查询日期类型
             String holidayType = holidayService.queryDateType(currentDate, Constant.TYPE_INP);
@@ -853,6 +863,7 @@ public class ReportServiceImpl implements ReportService {
                 //已有汇总数据直接返回，不重复生成，避免覆盖审核状态
                 InpCashMainEntity existTotal = queryInpReportByDate(currentDate, Constant.YES);
                 if (existTotal != null && !isInitFlag) {
+                    log.info("{} {} 汇总已存在, 直接返回不重复生成", Constant.REPORT_NAME_INP, currentDate);
                     fillHolidayRange(existTotal);
                     return existTotal;
                 }
@@ -898,6 +909,7 @@ public class ReportServiceImpl implements ReportService {
 
                 // 1. 查主表单条 是否存在
                 if (inpResult == null) {
+                    log.info("{} {} 库中无数据, 自动补生成", Constant.REPORT_NAME_INP, currentDate);
                     //获取初始化的数据
                     inpResult = getInpReportData(currentDate, holidayType, Constant.NOT_TOTAL);
                     inpResult.setGenSource(genSource);
@@ -905,6 +917,7 @@ public class ReportServiceImpl implements ReportService {
                     isInitInsertInp(inpResult, Constant.YES);
 
                 } else if (isInitFlag) {
+                    log.info("{} {} 重新初始化, 保留手工录入列", Constant.REPORT_NAME_INP, currentDate);
                     //重新初始化: 提取列(HIS收入/前日暂收款/前日欠条)重新获取, 手工录入列保留原值, 公式列按新值动态重算
                     InpCashMainEntity existMain = inpResult;
                     inpResult = getInpReportData(currentDate, holidayType, Constant.NOT_TOTAL);
@@ -1525,6 +1538,9 @@ public class ReportServiceImpl implements ReportService {
     public Integer isInitInsertInp(InpCashMainEntity main, String isInitFlag) {
          String pk = PrimaryKeyGenerator.generateKey();
 
+        log.info("{} {} 保存请求, 汇总标志{}, 明细{}行, 初始化标志{}", Constant.REPORT_NAME_INP, main.getReportDate(),
+                main.getHolidayTotalFlag(), main.getSubs() == null ? 0 : main.getSubs().size(), isInitFlag);
+
         //已审核通过的报表封存，禁止保存修改
         InpCashMainEntity existMain = Db.lambdaQuery(InpCashMainEntity.class)
                 .eq(InpCashMainEntity::getReportDate, main.getReportDate())
@@ -1561,26 +1577,43 @@ public class ReportServiceImpl implements ReportService {
         return transactionTemplate.execute(status -> {
             try {
                 /*
-                 * 删除旧数据(物理删除, 同一日期+类型只保留一条): 先按旧主表serial_no删子表, 再删主表
+                 * 旧数据处理: 默认物理删除只留一份; keep-history=true时改逻辑作废保留历史(排查期用)
                  */
-                List<String> oldSerialNos = Db.lambdaQuery(InpCashMainEntity.class)
-                        .select(InpCashMainEntity::getSerialNo)
-                        .eq(InpCashMainEntity::getReportDate, main.getReportDate())
-                        .eq(InpCashMainEntity::getHolidayTotalFlag, main.getHolidayTotalFlag())
-                        .list()
-                        .stream()
-                        .map(InpCashMainEntity::getSerialNo)
-                        .collect(Collectors.toList());
-                if (!oldSerialNos.isEmpty()) {
-                    Db.lambdaUpdate(InpCashSubEntity.class)
-                            .in(InpCashSubEntity::getSerialNo, oldSerialNos)
-                            .remove();
+                if (inpKeepHistory) {
                     Db.lambdaUpdate(InpCashMainEntity.class)
-                            .in(InpCashMainEntity::getSerialNo, oldSerialNos)
-                            .remove();
+                            .eq(InpCashMainEntity::getReportDate, main.getReportDate())
+                            .eq(InpCashMainEntity::getHolidayTotalFlag, main.getHolidayTotalFlag())
+                            .eq(InpCashMainEntity::getValidFlag, Constant.YES)
+                            .set(InpCashMainEntity::getValidFlag, Constant.NO)
+                            .update();
+                    log.info("{} {}  旧版本已逻辑作废保留历史(keep-history=true)", Constant.REPORT_NAME_INP, main.getReportDate());
+                } else {
+                    /*
+                     * 删除旧数据(物理删除, 同一日期+类型只保留一条): 先按旧主表serial_no删子表, 再删主表
+                     */
+                    List<String> oldSerialNos = Db.lambdaQuery(InpCashMainEntity.class)
+                            .select(InpCashMainEntity::getSerialNo)
+                            .eq(InpCashMainEntity::getReportDate, main.getReportDate())
+                            .eq(InpCashMainEntity::getHolidayTotalFlag, main.getHolidayTotalFlag())
+                            .list()
+                            .stream()
+                            .map(InpCashMainEntity::getSerialNo)
+                            .collect(Collectors.toList());
+                    if (!oldSerialNos.isEmpty()) {
+                        Db.lambdaUpdate(InpCashSubEntity.class)
+                                .in(InpCashSubEntity::getSerialNo, oldSerialNos)
+                                .remove();
+                        Db.lambdaUpdate(InpCashMainEntity.class)
+                                .in(InpCashMainEntity::getSerialNo, oldSerialNos)
+                                .remove();
+                    }
+
+                    log.info("{} {}  历史报表数据删除完成, 共{}个旧版本", Constant.REPORT_NAME_INP, main.getReportDate(), oldSerialNos.size());
                 }
 
-                log.info("{} {}  历史报表数据删除完成", Constant.REPORT_NAME_INP, main.getReportDate());
+                if (main.getSubs().isEmpty()) {
+                    log.warn("{} {}  保存明细为空, 主从表均未落库但返回成功, 需人工核对", Constant.REPORT_NAME_INP, main.getReportDate());
+                }
 
                 if (!main.getSubs().isEmpty()) {
                     /*

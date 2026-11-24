@@ -63,6 +63,9 @@ app:
     # 3. 定义日志文件保留的最大天数 (maxHistory)
     max-history: 30
 
+    # 4. 链路追踪号前缀(如CASH_), 留空无前缀; 仅作用于自动生成的号, 前端传入的X-Trace-Id原样沿用
+    trace-prefix:
+
     #请求头的配置
 request:
   head:

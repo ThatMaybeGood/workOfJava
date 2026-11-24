@@ -95,7 +95,8 @@ public class HisDataServiceImpl implements HisDataService {
             apiRequest.setBody(comBody);
 
             // 2. 调用 API
-            log.debug("调用 {} HIS {}现金报表 API", apiType, method);
+            log.info("调用HIS收入接口, 类型{}, 方法{}, 入参报表日期{}", apiType, method, reportdate);
+            log.debug("HIS收入接口请求体: {}", apiRequest);
 
             ApiResponse<ApiResponseBodyList<T>> apiResponse = restApiUtil.postForObject(
                     URL_API_HISINCOME,
@@ -105,10 +106,15 @@ public class HisDataServiceImpl implements HisDataService {
 
             // 3. 检查业务状态码
             if (apiResponse.getResult().isSuccess()) {
-                log.info("{} HIS API 调用成功，业务处理成功。", apiType);
-                return Optional.ofNullable(apiResponse.getBody())
+                List<T> list = Optional.ofNullable(apiResponse.getBody())
                         .map(ApiResponseBodyList::getList)
                         .orElse(Collections.emptyList());
+                log.info("HIS收入接口返回成功, 类型{}, 日期{}, 共{}条", apiType, reportdate, list.size());
+                log.debug("HIS收入接口返回明细, 类型{}, 日期{}: {}", apiType, reportdate, list);
+                if (list.isEmpty()) {
+                    log.warn("HIS收入接口返回空列表, 类型{}, 日期{}, 报表来源数据将按0处理", apiType, reportdate);
+                }
+                return list;
             } else {
                 String errMsg = String.format("%s HIS API 业务失败。Code: %s, Msg: %s",
                         apiType, apiResponse.getResult().getCode(), apiResponse.getResult().getMsg());
@@ -117,12 +123,12 @@ public class HisDataServiceImpl implements HisDataService {
             }
 
         } catch (BusinessException e) {
-            log.error("{} HIS API 调用失败: {}", apiType, e.getMessage());
+            log.error("{} HIS API 调用失败: {}, 来源数据按空处理, 报表HIS列将为0", apiType, e.getMessage());
             // ⚠️ VULN: 吞掉BusinessException异常返回空列表，上层调用方无法感知HIS接口失败
             // 建议：根据业务需要决定是否向上抛出异常，而不是静默返回空数据
             return Collections.emptyList();
         } catch (Exception e) {
-            log.error("{} HIS API 调用发生未知异常: {}", apiType, e.getMessage(), e);
+            log.error("{} HIS API 调用发生未知异常: {}, 来源数据按空处理, 报表HIS列将为0", apiType, e.getMessage(), e);
             // ⚠️ VULN: 同上，吞掉所有未知异常，会导致报表数据异常时难以排查
             return Collections.emptyList();
         }

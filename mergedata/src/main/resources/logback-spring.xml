@@ -5,14 +5,16 @@
     <springProperty scope="system" name="MAX_FILE_SIZE" source="app.log.max-file-size"/>
     <springProperty scope="system" name="MAX_HISTORY" source="app.log.max-history" defaultValue="30"/>
 
-    <property name="DEFAULT_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{40} - %msg%n"/>
+    <conversionRule conversionWord="lineSeq" converterClass="com.mergedata.config.LogLineSeqConverter"/>
+
+    <property name="DEFAULT_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%X{traceId}] [%lineSeq] %-5level %logger{40} - %msg%n"/>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder><pattern>${DEFAULT_PATTERN}</pattern></encoder>
     </appender>
 
     <appender name="INFO_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}/info/info.log</file>
+        <file>${LOG_HOME}/info.log</file>
         <encoder><pattern>${DEFAULT_PATTERN}</pattern></encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_HOME}/info/%d{yyyy-MM-dd}/info-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
@@ -28,8 +30,25 @@
         </filter>
     </appender>
 
+    <appender name="WARN_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/warn.log</file>
+        <encoder><pattern>${DEFAULT_PATTERN}</pattern></encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/warn/%d{yyyy-MM-dd}/warn-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>${MAX_HISTORY}</maxHistory>
+        </rollingPolicy>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>WARN</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
     <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}/error/error.log</file>
+        <file>${LOG_HOME}/error.log</file>
         <encoder><pattern>${DEFAULT_PATTERN}</pattern></encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_HOME}/error/%d{yyyy-MM-dd}/error-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
@@ -44,7 +63,7 @@
     </appender>
 
     <appender name="DEBUG_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}/debug/debug.log</file>
+        <file>${LOG_HOME}/debug.log</file>
         <encoder><pattern>${DEFAULT_PATTERN}</pattern></encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_HOME}/debug/%d{yyyy-MM-dd}/debug-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
@@ -64,12 +83,14 @@
         <appender-ref ref="DEBUG_FILE"/>
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="INFO_FILE"/>
+        <appender-ref ref="WARN_FILE"/>
         <appender-ref ref="ERROR_FILE"/>
     </logger>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="INFO_FILE"/>
+        <appender-ref ref="WARN_FILE"/>
         <appender-ref ref="ERROR_FILE"/>
     </root>
 </configuration>

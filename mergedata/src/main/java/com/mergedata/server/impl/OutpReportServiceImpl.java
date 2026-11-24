@@ -14,6 +14,7 @@ import com.mergedata.server.OutpReportService;
 import com.mergedata.util.PrimaryKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,10 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class OutpReportServiceImpl implements OutpReportService {
+
+    /** 门诊保存是否保留作废历史: true=旧版本置valid_flag=0保留(现状), false=物理删除只留一份 */
+    @Value("${app.cash.outp-keep-history:true}")
+    private boolean outpKeepHistory;
 
     @Override
     public OutpCashMainEntity findByRequestBody(OutpReportRequestBody requestBody) {
@@ -296,10 +301,35 @@ public class OutpReportServiceImpl implements OutpReportService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Boolean insertOrUpdate(OutpCashMainEntity entity) {
-        //先修改  后写入
-        updateByDate(entity.getReportDate(), entity.getTotalFlag());
+        //先处理旧数据  后写入
+        if (outpKeepHistory) {
+            updateByDate(entity.getReportDate(), entity.getTotalFlag());
+        } else {
+            deleteByDate(entity.getReportDate(), entity.getTotalFlag());
+        }
         insert(entity);
         return true;
+    }
+
+    /** bt9 物理删除该日期+类型的全部旧版本(含历史作废行), 不保留作废数据 */
+    private void deleteByDate(LocalDate date, String totalFlag) {
+        List<String> oldSerialNos = Db.lambdaQuery(OutpCashMainEntity.class)
+                .select(OutpCashMainEntity::getSerialNo)
+                .eq(OutpCashMainEntity::getReportDate, date)
+                .eq(OutpCashMainEntity::getTotalFlag, totalFlag)
+                .list()
+                .stream()
+                .map(OutpCashMainEntity::getSerialNo)
+                .collect(Collectors.toList());
+        if (!oldSerialNos.isEmpty()) {
+            Db.lambdaUpdate(OutpCashSubEntity.class)
+                    .in(OutpCashSubEntity::getSerialNo, oldSerialNos)
+                    .remove();
+            Db.lambdaUpdate(OutpCashMainEntity.class)
+                    .in(OutpCashMainEntity::getSerialNo, oldSerialNos)
+                    .remove();
+        }
+        log.info("{} {} 历史数据物理删除完成, 共{}个旧版本(keep-history=false)", Constant.REPORT_NAME_OUTP, date, oldSerialNos.size());
     }
 
     @Override
@@ -311,6 +341,7 @@ public class OutpReportServiceImpl implements OutpReportService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Boolean updateByDate(LocalDate date, String totalFlag) {
+        log.info("{} {} 旧版本逻辑作废保留历史(keep-history=true)", Constant.REPORT_NAME_OUTP, date);
         return Db.lambdaUpdate(OutpCashMainEntity.class)
                 .eq(OutpCashMainEntity::getReportDate, date)
                 .eq(OutpCashMainEntity::getTotalFlag, totalFlag)

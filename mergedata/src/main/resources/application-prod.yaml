@@ -3,6 +3,13 @@ spring:
   config:
     activate:
       on-profile: prod
+
+# 2026-11-24 排查期临时开启: 住院保存保留作废历史, 便于追溯; 稳定后改回 false 或删除本节
+# 门诊开关 app.cash.outp-keep-history 默认 true(逻辑作废保留), 一般不用写; 需物理删除时显式置 false
+app:
+  cash:
+    inp-keep-history: true
+
   # ----------------------------------------
   # 1. Druid DataSource 配置
   # ----------------------------------------
