@@ -1598,6 +1598,43 @@ public class ReportServiceImpl implements ReportService {
         }
     }
 
+    /** bt21 住院HIS三列兜底: 手工保存时强制为系统值(日报=HIS实时, 汇总=库中现值, 不能用单日值冲期间加总)并剔除三列公式 */
+    private void enforceInpHisColumns(InpCashMainEntity main) {
+        if (main.getSubs() == null || main.getSubs().isEmpty()) {
+            return;
+        }
+        boolean isTotal = Constant.YES.equals(main.getHolidayTotalFlag());
+        Map<String, HisInpIncomeResponseDTO> hisDataMap = Collections.emptyMap();
+        Map<String, InpCashSubEntity> curSubMap = Collections.emptyMap();
+        if (!isTotal) {
+            hisDataMap = hisdata.findByDateInp(main.getReportDate().toString()).stream()
+                    .collect(Collectors.toMap(HisInpIncomeResponseDTO::getDbUser, Function.identity(), (v1, v2) -> v1));
+        } else {
+            InpCashMainEntity cur = queryInpReportByDate(main.getReportDate(), Constant.YES);
+            if (cur != null && cur.getSubs() != null) {
+                curSubMap = cur.getSubs().stream()
+                        .collect(Collectors.toMap(InpCashSubEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
+            }
+        }
+        for (InpCashSubEntity sub : main.getSubs()) {
+            if (!isTotal) {
+                HisInpIncomeResponseDTO his = hisDataMap.get(sub.getDbUser());
+                sub.setTodayAdvancePayment(his != null ? getSafeBigDecimal(his.getHisAdvancePayment()) : BigDecimal.ZERO);
+                sub.setTodaySettlementIncome(his != null ? getSafeBigDecimal(his.getHisSettlementIncome()) : BigDecimal.ZERO);
+                sub.setTodayPreHospitalIncome(his != null ? getSafeBigDecimal(his.getHisPreHospitalIncome()) : BigDecimal.ZERO);
+            } else {
+                InpCashSubEntity cur = curSubMap.get(sub.getDbUser());
+                if (cur != null) {
+                    sub.setTodayAdvancePayment(cur.getTodayAdvancePayment());
+                    sub.setTodaySettlementIncome(cur.getTodaySettlementIncome());
+                    sub.setTodayPreHospitalIncome(cur.getTodayPreHospitalIncome());
+                }
+            }
+            sub.setCellFormula(removeCellFormulaFields(sub.getCellFormula(),
+                    "today_advance_payment", "today_settlement_income", "today_pre_hospital_income"));
+        }
+    }
+
     /** bt18 不可输入操作员HIS两列恢复库中现值(汇总/月初不能取HIS单日覆盖期间/月初值)并剔除两列公式 */
     private void restoreHisColumns(OutpCashSubEntity dto, OutpCashSubEntity curSub) {
         dto.setHisAdvancePayment(curSub.getHisAdvancePayment());
@@ -1656,6 +1693,8 @@ public class ReportServiceImpl implements ReportService {
 
         //界面手工录入修改时候，保存数据重新计算明细的公式
         if (isInitFlag.equals(Constant.NO)) {
+            // bt21 HIS三列兜底: 手工保存强制为系统值(日报=HIS实时, 汇总=库中现值), 三列公式不落库, 防伪造请求改HIS列
+            enforceInpHisColumns(main);
             main.setSubs(exchangeInpReportData(main.getSubs()));
         }
 

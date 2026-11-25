@@ -177,6 +177,8 @@
         .table-main-title .t-title.total-mode { color: #e64545; }
 
         .cell-money { cursor: pointer; min-height: 18px; }
+        /* bt22 不可输入操作员的HIS两列置灰锁定 */
+        .data-table td.cell-locked { background: #f5f5f5; color: #999; cursor: not-allowed; }
         /* bt13 备注不换行: 内容多了整表向右撑出横向滚动, 不挤前面列 */
         .cell-money[data-field="remarks"], td.cell-remarks { white-space: pre; }
         .cell-money.neg { color: #e91e8c; }
@@ -693,6 +695,8 @@
 
     function isEditableCell(row, field) {
         const name = row.operator_name;
+        // bt22 不可输入操作员的HIS两列前端关门(与后端防护口径一致, 后端本就会丢弃改动)
+        if (isHisLocked(row, field)) return false;
         if (field === "his_advance_payment") {
             return ["合计", "当日暂收款", "日报表数"].indexOf(name) < 0;
         }
@@ -708,6 +712,13 @@
     }
 
     function cellChangedKey(rowIdx, field) { return rowIdx + "_" + field; }
+
+    // bt22 不可输入操作员(input_flag=0)的HIS两列判定: 仅对真实收费员行, 计算行不受影响
+    function isHisLocked(row, field) {
+        return (field === "his_advance_payment" || field === "his_medical_income")
+            && Number(row.input_flag) === 0
+            && COMPUTED_NAMES.indexOf(row.operator_name) < 0;
+    }
 
     function render() {
         const tbody = document.getElementById("tableBody");
@@ -776,7 +787,9 @@
                         html.push('<td' + edgeCls + '><div class="cell-money' + negCls + editCls + '" data-row="' + i + '" data-field="' + field + '"' +
                             (formulaTip ? ' title="' + escapeHtml(formulaTip) + '"' : "") + '>' + fmtMoney(val) + "</div></td>");
                     } else {
-                        html.push('<td' + edgeCls + '><span class="' + (negCls + editCls).trim() + '">' + fmtMoney(val) + "</span></td>");
+                        // bt22 不可输入操作员的HIS两列加置灰样式
+                        const lockCls = isHisLocked(row, field) ? ' class="cell-locked"' : "";
+                        html.push('<td' + (edgeCls || lockCls) + '><span class="' + (negCls + editCls).trim() + '">' + fmtMoney(val) + "</span></td>");
                     }
                 });
             }
