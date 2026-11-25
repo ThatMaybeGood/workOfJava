@@ -135,6 +135,8 @@ public class ReportServiceImpl implements ReportService {
             // 进行筛选
             return mainVO;
 
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             log.error("获取报表数据异常", e);
             throw new RuntimeException("获取报表数据异常");
@@ -201,6 +203,13 @@ public class ReportServiceImpl implements ReportService {
             // 预加载 HIS 数据和现金记录
             Map<String, HisOutpIncomeResponseDTO> hisDataMap = hisdata.findByDateOutp(currtDate.toString()).stream()
                     .collect(Collectors.toMap(HisOutpIncomeResponseDTO::getDbUser, Function.identity(), (v1, v2) -> v1));
+
+            // bt10 HIS有数据但账号完全匹配不上操作员: 生成必为全0, 阻止不落库; HIS返回空=真零业务量仍生成(空列表已有warn留痕)
+            warnUnknownHisOperators(Constant.REPORT_NAME_OUTP, currtDate, hisDataMap.keySet(), operatorMap.keySet());
+            if (hisAllUnknown(hisDataMap.keySet(), operatorMap.keySet())) {
+                log.warn("{} {} HIS收入数据完全无法匹配操作员, 阻止生成报表", Constant.REPORT_NAME_OUTP, currtDate);
+                throw new BusinessException(currtDate + " 无效数据来源，报表生成失败！");
+            }
 
             LocalDate cashDate = currtDate;
             if(calculationType == 1){
@@ -372,8 +381,12 @@ public class ReportServiceImpl implements ReportService {
             //判断是否合计后金额替换组装
             setSpecialRowsValues(main, resultList, subsDown,body.getTotalFlag(),type);
 
+            log.info("{} {} 初始化生成完成, 共{}行, HIS账号命中{}个", Constant.REPORT_NAME_OUTP, currtDate,
+                    main.getSubs().size(), hisDataMap.keySet().stream().filter(operatorMap::containsKey).count());
 
             return main;
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             log.error("门诊报表初始化生成失败", e);
             return null;
@@ -445,6 +458,7 @@ public class ReportServiceImpl implements ReportService {
 
         try {
             outpReportService.insertOrUpdate(main);
+            log.info("{} {} 保存成功", Constant.REPORT_NAME_OUTP, reportDate);
         } catch (Exception e) {
             log.error("保存门诊报表数据异常", e);
             throw new RuntimeException("保存门诊报表数据异常", e);
@@ -1384,6 +1398,9 @@ public class ReportServiceImpl implements ReportService {
              String pk = PrimaryKeyGenerator.generateKey();
 
             int count = 0;
+            // bt10 HIS命中数: 完成日志展示用
+            int hisMatched = 0;
+            Set<String> operatorDbUsers = operators.stream().map(YQOperatorEntity::getDbUser).collect(Collectors.toSet());
             // 4. 以操作员为主，遍历构建报表数据
             for (YQOperatorEntity operator : operators) {
                 InpCashSubEntity inpCashSub = new InpCashSubEntity();
@@ -1411,6 +1428,7 @@ public class ReportServiceImpl implements ReportService {
 
                 // --- 填充 HIS 收入和 ReportAmount (保持不变) ---
                 if (hisInpIncomeResponseDTO != null) {
+                    hisMatched++;
                     inpCashSub.setTodayAdvancePayment(getSafeBigDecimal(hisInpIncomeResponseDTO.getHisAdvancePayment()));
                     inpCashSub.setTodaySettlementIncome(getSafeBigDecimal(hisInpIncomeResponseDTO.getHisSettlementIncome()));
                     inpCashSub.setTodayPreHospitalIncome(getSafeBigDecimal(hisInpIncomeResponseDTO.getHisPreHospitalIncome()));
@@ -1438,19 +1456,42 @@ public class ReportServiceImpl implements ReportService {
                 inpCashSubList.add(inpCashSub);
             }
 
+            // bt10 HIS有数据但账号完全匹配不上操作员: 生成必为全0, 阻止不落库; HIS返回空=真零业务量仍生成(空列表已有warn留痕)
+            warnUnknownHisOperators(Constant.REPORT_NAME_INP, currtDate, hisDataMap.keySet(), operatorDbUsers);
+            if (!operators.isEmpty() && hisAllUnknown(hisDataMap.keySet(), operatorDbUsers)) {
+                log.warn("{} {} HIS收入数据完全无法匹配操作员(共{}人), 阻止生成报表", Constant.REPORT_NAME_INP, currtDate, operators.size());
+                throw new BusinessException(currtDate + " 无效数据来源，报表生成失败！");
+            }
+
             resultVo.setReportDate(currtDate);
             resultVo.setReportYear(currtDate.getYear());
             resultVo.setSubs(inpCashSubList);
 
-            log.info("{}生成住院报表完成，共处理 {} 个操作员", currtDate.toString(), inpCashSubList.size());
+            log.info("{}生成住院报表完成，共处理 {} 个操作员, HIS命中 {} 人", currtDate.toString(), inpCashSubList.size(), hisMatched);
             return resultVo;
 
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             log.error("住院报表生成失败", e);
             return null;
         }
     }
 
+    /** bt10 HIS返回账号是否完全无法匹配操作员维护表(HIS有数据但零交集才true, 返回空不算) */
+    private boolean hisAllUnknown(Set<String> hisDbUsers, Set<String> operatorDbUsers) {
+        return !hisDbUsers.isEmpty() && hisDbUsers.stream().noneMatch(operatorDbUsers::contains);
+    }
+
+    /** bt10 HIS返回账号漂移告警: 部分账号不在操作员维护表时列出(最多10个), 不阻断 */
+    private void warnUnknownHisOperators(String reportName, LocalDate date, Set<String> hisDbUsers, Set<String> operatorDbUsers) {
+        List<String> unknown = hisDbUsers.stream().filter(u -> !operatorDbUsers.contains(u)).collect(Collectors.toList());
+        if (unknown.isEmpty()) {
+            return;
+        }
+        log.warn("{} {} HIS返回的{}个账号未匹配操作员维护表: {}", reportName, date, unknown.size(),
+                unknown.size() <= 10 ? unknown : unknown.subList(0, 10));
+    }
 
     /**
      * 重新初始化合并已存手工列: 提取列(HIS收入/前日暂收款/前日欠条)用新获取值, 手工录入列保留旧值, 公式列重算
@@ -1846,6 +1887,14 @@ public class ReportServiceImpl implements ReportService {
             Map<String, HisOutpIncomeResponseDTO> hisDataMap = hisdata.findByDateOutp(currtDate.toString()).stream()
                     .collect(Collectors.toMap(HisOutpIncomeResponseDTO::getDbUser, Function.identity(), (v1, v2) -> v1));
 
+            // bt10 HIS有数据但账号完全匹配不上操作员: 生成必为全0, 阻止不落库; HIS返回空=真零业务量仍生成(空列表已有warn留痕)
+            Set<String> operatorDbUsers = operators.stream().map(YQOperatorEntity::getDbUser).collect(Collectors.toSet());
+            warnUnknownHisOperators(Constant.REPORT_NAME_OUTP, currtDate, hisDataMap.keySet(), operatorDbUsers);
+            if (hisAllUnknown(hisDataMap.keySet(), operatorDbUsers)) {
+                log.warn("{} {} HIS收入数据完全无法匹配操作员, 阻止生成报表", Constant.REPORT_NAME_OUTP, currtDate);
+                throw new BusinessException(currtDate + " 无效数据来源，报表生成失败！");
+            }
+
             LocalDate cashDate = currtDate ;
             if (calculationType == 1) {
                 cashDate = currtDate.minusDays(1);
@@ -2007,8 +2056,12 @@ public class ReportServiceImpl implements ReportService {
 
             main.setSubs(resultList);
 
+            log.info("{} {} 生成完成, 共{}行, HIS账号命中{}个", Constant.REPORT_NAME_OUTP, currtDate,
+                    resultList.size(), hisDataMap.keySet().stream().filter(operatorDbUsers::contains).count());
 
             return main;
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             log.error("门诊报表生成失败", e);
             return null;
