@@ -6,14 +6,13 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 日志全局行号: 每条日志事件全局递增(000000-999999循环), 与traceId配合定位; 同一事件写多文件时共享序列, 单文件内可能跳号
+ * 链路内日志行号: 同一traceId(同一次请求)内从001递增, 请求结束随线程上下文回收; 非请求线程(定时/推送)显示[-]
  */
 public class LogLineSeqConverter extends ClassicConverter {
 
-    private static final AtomicInteger SEQ = new AtomicInteger(0);
-
     @Override
     public String convert(ILoggingEvent event) {
-        return String.format("%06d", SEQ.getAndIncrement() % 1000000);
+        AtomicInteger seq = TraceIdFilter.LINE_SEQ.get();
+        return seq == null ? "-" : String.format("%03d", seq.incrementAndGet());
     }
 }

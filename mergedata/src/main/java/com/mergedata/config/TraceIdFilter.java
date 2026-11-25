@@ -24,6 +24,9 @@ public class TraceIdFilter extends OncePerRequestFilter {
     public static final String TRACE_ID = "traceId";
     public static final String HEADER = "X-Trace-Id";
 
+    /** 链路内日志行号: 请求进入时初始化, 同一线程(本系统无异步)内由LogLineSeqConverter递增 */
+    public static final ThreadLocal<AtomicInteger> LINE_SEQ = new ThreadLocal<>();
+
     /** 追踪号前缀(如CASH_), 仅拼接自动生成的号; 前端传入的X-Trace-Id原样沿用 */
     @Value("${app.log.trace-prefix:}")
     private String tracePrefix;
@@ -42,11 +45,13 @@ public class TraceIdFilter extends OncePerRequestFilter {
                     + System.currentTimeMillis() + "_" + String.format("%02d", SEQ.getAndIncrement() % 100);
         }
         MDC.put(TRACE_ID, traceId);
+        LINE_SEQ.set(new AtomicInteger(0));
         response.setHeader(HEADER, traceId);
         try {
             chain.doFilter(request, response);
         } finally {
             MDC.clear();
+            LINE_SEQ.remove();
         }
     }
 }
