@@ -273,6 +273,8 @@
             .data-table { font-size: 12px; border-collapse: collapse; border: 2px solid #333;
                 -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .data-table th, .data-table td { border: 1px solid #333 !important; }
+            /* bt19 打印行距放宽: 行更高更舒展, 两页分布均匀且第二页承载更多 */
+            .data-table th, .data-table td { padding: 10px 6px; }
             .cell-money, .merge-remarks { cursor: default; }
         }
     </style>
@@ -585,10 +587,10 @@
             dayReport.his_advance_payment = holidayMode ? 0 : totals.actual_report_amount;
         }
         if (outpReal) {
+            // bt20 口径与后端setSpecialRowsValues一致: 实存=暂收款+日报表数+回款-借款; 合计存款金额=暂收款+日报表数, 再加会翻倍
             outpReal.his_advance_payment =
                 toNumber(curTemp && curTemp.his_advance_payment) +
                 toNumber(dayReport && dayReport.his_advance_payment) +
-                toNumber(deposit && deposit.his_advance_payment) +
                 toNumber(inpBack && inpBack.his_advance_payment) +
                 toNumber(outpBack && outpBack.his_advance_payment) -
                 toNumber(outpBorrow && outpBorrow.his_advance_payment) -
@@ -969,7 +971,9 @@
     function fitToA4() {
         const card = document.querySelector(".table-card");
         const table = document.getElementById("reportTable");
-        if (!table.offsetParent) { card.style.zoom = ""; return; }
+        // bt19 先还原再上一次的zoom, 防止取消打印后基于已缩放尺寸反复叠加缩小
+        card.style.zoom = "";
+        if (!table.offsetParent) { return; }
         const mm = 96 / 25.4;
         const w = table.offsetWidth;
         const h = table.offsetHeight + document.getElementById("signLine").offsetHeight + 16;
@@ -1006,6 +1010,8 @@
         document.getElementById("btnPrint").addEventListener("click", function () {
             fitToA4();
             window.print();
+            // bt19 print()返回(含点取消)即还原, 不依赖afterprint事件(取消时部分浏览器不触发)
+            document.querySelector(".table-card").style.zoom = "";
         });
         window.addEventListener("afterprint", function () {
             document.querySelector(".table-card").style.zoom = "";
