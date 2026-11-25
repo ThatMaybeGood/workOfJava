@@ -327,8 +327,8 @@
                     <th>应交报表数<br>（1）</th>
                     <th>前日暂收款<br>（2）</th>
                     <th id="thHoliday">节假日暂收款</th>
-                    <th>实交报表数<br>（3=1-2）</th>
-                    <th>当日暂收款1<br>（4）</th>
+                    <th style="color:#d00000">实交报表数<br>（3=1-2）</th>
+                    <th style="color:#d00000">当日暂收款1<br>（4）</th>
                     <th>实收现金数<br>（5=3+4）</th>
                     <th>留存差额数<br>（6=7-3-8）</th>
                     <th>留存现金数<br>（7）</th>
@@ -965,7 +965,7 @@
         URL.revokeObjectURL(a.href);
     }
 
-    // bt12 打印自适应A4: 按内容宽高算出zoom压到一张A4(190x277mm可打印区), 打完还原
+    // bt12 打印自适应A4: 按内容宽高算出zoom压到至多两张A4(宽190mm, 高2x277mm可打印区), 打完还原
     function fitToA4() {
         const card = document.querySelector(".table-card");
         const table = document.getElementById("reportTable");
@@ -973,7 +973,7 @@
         const mm = 96 / 25.4;
         const w = table.offsetWidth;
         const h = table.offsetHeight + document.getElementById("signLine").offsetHeight + 16;
-        card.style.zoom = Math.min(190 * mm / w, 277 * mm / h, 1);
+        card.style.zoom = Math.min(190 * mm / w, 2 * 277 * mm / h, 1);
     }
 
     function bindGroup(id, onChange) {

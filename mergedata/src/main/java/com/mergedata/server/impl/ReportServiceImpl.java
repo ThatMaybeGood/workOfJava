@@ -451,6 +451,9 @@ public class ReportServiceImpl implements ReportService {
                 //判断是否合计后金额替换组装
                 setSpecialRowsValues(main, subsUp, subsDown,mainVO.getTotalFlag(),type);
             }
+        } else {
+            // bt18 月初保存不走校验: 不可输入操作员HIS两列恢复库中现值, 手工改动/公式不落库
+            restoreHisColumnsForMonthFirst(reportDate, main.getTotalFlag(), subsUp);
         }
 
         // 旧前端保存不带公式字段, 落库前回补库中已有公式避免被覆盖清空
@@ -699,6 +702,10 @@ public class ReportServiceImpl implements ReportService {
                     dto.setPettyCash(BigDecimal.ZERO);  // 设置默认值
                 } else {
                     dto.setPettyCash(operator.getPettyCash());
+                    // bt18 不可输入操作员(维护表与库行均inputFlag=0): HIS列公式文本不落库, 防前端查询时重算回显绕过HIS覆盖
+                    if (curSub.getInputFlag() == 0 && operator.getInputFlag() == 0) {
+                        dto.setCellFormula(removeCellFormulaFields(dto.getCellFormula(), "his_advance_payment", "his_medical_income"));
+                    }
                     //增加合计情况不
                     if (calculationType != 1) {
                         // 如果是不可以输入的人或者前一天也是非人工录入的  需要提取 his 数据
@@ -716,6 +723,9 @@ public class ReportServiceImpl implements ReportService {
                                 dto.setAcctDate(null);
                             }
                         }
+                    } else if (curSub != null && curSub.getInputFlag() == 0 && operator.getInputFlag() == 0) {
+                        // bt18 汇总保存: HIS接口仅当日数据不能覆盖期间加总值, 不可输入操作员恢复库中现值, 手工改动不落库
+                        restoreHisColumns(dto, curSub);
                     }
                 }
 
@@ -925,7 +935,7 @@ public class ReportServiceImpl implements ReportService {
                 if (inpResult == null) {
                     log.info("{} {} 库中无数据, 自动补生成", Constant.REPORT_NAME_INP, currentDate);
                     //获取初始化的数据
-                    inpResult = getInpReportData(currentDate, holidayType, Constant.NOT_TOTAL);
+                    inpResult = getInpReportData(currentDate, holidayType, Constant.NOT_TOTAL, false);
                     inpResult.setGenSource(genSource);
                     //查询时候数据库没有相关的数据，插入数据库，此处调用插入数据
                     isInitInsertInp(inpResult, Constant.YES);
@@ -934,7 +944,7 @@ public class ReportServiceImpl implements ReportService {
                     log.info("{} {} 重新初始化, 保留手工录入列", Constant.REPORT_NAME_INP, currentDate);
                     //重新初始化: 提取列(HIS收入/前日暂收款/前日欠条)重新获取, 手工录入列保留原值, 公式列按新值动态重算
                     InpCashMainEntity existMain = inpResult;
-                    inpResult = getInpReportData(currentDate, holidayType, Constant.NOT_TOTAL);
+                    inpResult = getInpReportData(currentDate, holidayType, Constant.NOT_TOTAL, false);
                     inpResult.setGenSource(genSource);
                     mergeManualInpColumns(inpResult, existMain);
                     isInitInsertInp(inpResult, Constant.YES);
@@ -1114,7 +1124,7 @@ public class ReportServiceImpl implements ReportService {
                 if (!dailyMap.containsKey(d)) {
                     InpCashMainEntity daily = queryInpReportByDate(d, Constant.NOT_TOTAL);
                     if (daily == null) {
-                        daily = getInpReportData(d, holidayService.queryDateType(d, Constant.TYPE_INP), Constant.NOT_TOTAL);
+                        daily = getInpReportData(d, holidayService.queryDateType(d, Constant.TYPE_INP), Constant.NOT_TOTAL, true);
                         if (daily == null) {
                             throw new RuntimeException(d + " 住院日报生成失败");
                         }
@@ -1334,9 +1344,10 @@ public class ReportServiceImpl implements ReportService {
      * @param currtDate        报表日期
      * @param holidayType      节假日类型
      * @param holidayTotalFlag 节假日汇总标志 0：非节假日汇总 1：节假日汇总
+     * @param allowEmptyHis    true=HIS返回空仍生成(节假日汇总内部补生成用); false=HIS空也阻止(报表/初始化查询路径)
      * @return 住院现金统计
      */
-    public InpCashMainEntity getInpReportData(LocalDate currtDate, String holidayType, String holidayTotalFlag) {
+    public InpCashMainEntity getInpReportData(LocalDate currtDate, String holidayType, String holidayTotalFlag, boolean allowEmptyHis) {
         try {
             LocalDate preDate = currtDate.minusDays(1);
 
@@ -1456,10 +1467,10 @@ public class ReportServiceImpl implements ReportService {
                 inpCashSubList.add(inpCashSub);
             }
 
-            // bt10 HIS有数据但账号完全匹配不上操作员: 生成必为全0, 阻止不落库; HIS返回空=真零业务量仍生成(空列表已有warn留痕)
+            // bt10 HIS无有效数据(空返回/完全匹配不上操作员): 全0报表无意义, 阻止不落库; 汇总补生成路径(allowEmptyHis=true)放行
             warnUnknownHisOperators(Constant.REPORT_NAME_INP, currtDate, hisDataMap.keySet(), operatorDbUsers);
-            if (!operators.isEmpty() && hisAllUnknown(hisDataMap.keySet(), operatorDbUsers)) {
-                log.warn("{} {} HIS收入数据完全无法匹配操作员(共{}人), 阻止生成报表", Constant.REPORT_NAME_INP, currtDate, operators.size());
+            if (!operators.isEmpty() && (hisAllUnknown(hisDataMap.keySet(), operatorDbUsers) || (!allowEmptyHis && hisDataMap.isEmpty()))) {
+                log.warn("{} {} 无有效HIS来源数据(HIS返回{}条), 阻止生成报表", Constant.REPORT_NAME_INP, currtDate, hisDataMap.size());
                 throw new BusinessException(currtDate + " 无效数据来源，报表生成失败！");
             }
 
@@ -1566,6 +1577,51 @@ public class ReportServiceImpl implements ReportService {
         } catch (Exception e) {
             log.warn("公式JSON解析失败, 原样保留: {}", cellFormula);
             return cellFormula;
+        }
+    }
+
+    /** bt18 从公式JSON移除指定字段, 解析失败原样保留 */
+    private String removeCellFormulaFields(String cellFormula, String... removeFields) {
+        if (cellFormula == null || cellFormula.isEmpty()) {
+            return cellFormula;
+        }
+        try {
+            Map<String, Object> formulaMap = CELL_FORMULA_MAPPER.readValue(cellFormula, Map.class);
+            for (String f : removeFields) {
+                formulaMap.remove(f);
+            }
+            return formulaMap.isEmpty() ? null : CELL_FORMULA_MAPPER.writeValueAsString(formulaMap);
+        } catch (Exception e) {
+            log.warn("公式JSON解析失败, 原样保留: {}", cellFormula);
+            return cellFormula;
+        }
+    }
+
+    /** bt18 不可输入操作员HIS两列恢复库中现值(汇总/月初不能取HIS单日覆盖期间/月初值)并剔除两列公式 */
+    private void restoreHisColumns(OutpCashSubEntity dto, OutpCashSubEntity curSub) {
+        dto.setHisAdvancePayment(curSub.getHisAdvancePayment());
+        dto.setHisMedicalIncome(curSub.getHisMedicalIncome());
+        dto.setAcctNo(curSub.getAcctNo());
+        dto.setAcctDate(curSub.getAcctDate());
+        dto.setCellFormula(removeCellFormulaFields(dto.getCellFormula(), "his_advance_payment", "his_medical_income"));
+    }
+
+    /** bt18 月初保存(不走校验): 不可输入操作员HIS两列恢复库中现值防手工改动落库 */
+    private void restoreHisColumnsForMonthFirst(LocalDate reportDate, String totalFlag, List<OutpCashSubEntity> subs) {
+        Map<String, YQOperatorEntity> operatorMap = operatorService.findByCategory(Constant.TYPE_OUTP).stream()
+                .collect(Collectors.toMap(YQOperatorEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
+        OutpCashMainEntity curMain = outpReportService.findByDateExclude(reportDate, totalFlag);
+        Map<String, OutpCashSubEntity> curSubsMap = (curMain == null || curMain.getSubs() == null) ? Collections.emptyMap()
+                : curMain.getSubs().stream().collect(Collectors.toMap(OutpCashSubEntity::getDbUser, Function.identity(), (v1, v2) -> v1));
+        for (OutpCashSubEntity dto : subs) {
+            YQOperatorEntity operator = operatorMap.get(dto.getDbUser());
+            OutpCashSubEntity curSub = curSubsMap.get(dto.getDbUser());
+            if (operator == null || curSub == null) {
+                continue;
+            }
+            if (curSub.getInputFlag() == 0 && operator.getInputFlag() == 0) {
+                restoreHisColumns(dto, curSub);
+            }
         }
     }
 
