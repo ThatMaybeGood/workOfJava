@@ -27,11 +27,11 @@
 
     <!-- 上传记录分页: 同类型排一起(类型→数据日期倒序→上传时间倒序), 可选类型/数据日期筛选, Oracle 11g ROWNUM分页 -->
     <select id="queryFileList" resultMap="fileMap">
-        SELECT id, file_name, insur_type, insur_type_name, data_date, row_count, status, create_time, update_time
+        SELECT id, file_name, insur_type, insur_type_name, data_date, row_count, status, create_time, update_time -- 主键,文件名,医保类型,类型中文名,数据日期,明细行数,启用状态,上传时间,更新时间
         FROM (
-            SELECT f.*, ROWNUM AS rn
+            SELECT f.*, ROWNUM AS rn -- 行号
             FROM (
-                SELECT id, file_name, insur_type, insur_type_name, data_date, row_count, status, create_time, update_time
+                SELECT id, file_name, insur_type, insur_type_name, data_date, row_count, status, create_time, update_time -- 主键,文件名,医保类型,类型中文名,数据日期,明细行数,启用状态,上传时间,更新时间
                 FROM tr_mi_recon_file
                 <where>
                     <if test="insurType != null and insurType != ''">
@@ -49,7 +49,7 @@
     </select>
 
     <select id="queryFileCount" resultType="int">
-        SELECT COUNT(*)
+        SELECT COUNT(*) -- 数量
         FROM tr_mi_recon_file
         <where>
             <if test="insurType != null and insurType != ''">
@@ -71,14 +71,14 @@
     </delete>
 
     <select id="queryFileById" resultMap="fileMap">
-        SELECT id, file_name, insur_type, insur_type_name, data_date, row_count, status, create_time, update_time
+        SELECT id, file_name, insur_type, insur_type_name, data_date, row_count, status, create_time, update_time -- 主键,文件名,医保类型,类型中文名,数据日期,明细行数,启用状态,上传时间,更新时间
         FROM tr_mi_recon_file
         WHERE id = #{id}
     </select>
 
     <!-- 医保侧按结算日期聚合(对比用, 仅启用文件的明细) -->
     <select id="queryMiAgg" resultMap="detailMap">
-        SELECT d.settle_date, SUM(d.qty) AS qty, SUM(d.total_fee) AS total_fee
+        SELECT d.settle_date, SUM(d.qty) AS qty, SUM(d.total_fee) AS total_fee -- 结算日期,对账数据量,医疗费总额
         FROM tr_mi_recon_detail d
         JOIN tr_mi_recon_file f ON f.id = d.file_id AND f.status = '1'
         WHERE d.insur_type = #{insurType}
@@ -118,7 +118,7 @@
 
     <!-- 某上传记录的明细结算日期(yyyy-MM-dd字符串) -->
     <select id="queryDetailDatesByFileId" resultType="string">
-        SELECT TO_CHAR(settle_date, 'yyyy-mm-dd') AS settle_date
+        SELECT TO_CHAR(settle_date, 'yyyy-mm-dd') AS settle_date -- 结算日期
         FROM tr_mi_recon_detail
         WHERE file_id = #{fileId}
     </select>
@@ -143,7 +143,7 @@
 
     <!-- 同类型下与给定结算日期重叠的启用文件数(改类型/启用前的冲突校验) -->
     <select id="countOverlappedEnabledFiles" resultType="int">
-        SELECT COUNT(*)
+        SELECT COUNT(*) -- 数量
         FROM tr_mi_recon_file f
         WHERE f.insur_type = #{insurType}
           AND f.status = '1'

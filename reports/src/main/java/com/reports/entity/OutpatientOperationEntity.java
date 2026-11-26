@@ -32,6 +32,18 @@ public class OutpatientOperationEntity implements Serializable {
     @TableField("unit")
     private String unit;
 
+    /** 平均等候时长(查询别名efficiency: 概览取tr_hrap_opd_overview.avg_waiting_time_new, 科室取tr_hrap_opd_waiting_time.waiting_time) */
+    @TableField(exist = false)
+    private Double efficiency;
+
+    /** 自助缴费总数(智慧结算率分母) */
+    @TableField("self_pay_total")
+    private Integer selfPayTotal;
+
+    /** 自助结算数(智慧结算率分子) */
+    @TableField("self_settle_count")
+    private Integer selfSettleCount;
+
     /** 门诊量 */
     @TableField("total_visits")
     private Integer totalVisits;
@@ -120,8 +132,8 @@ public class OutpatientOperationEntity implements Serializable {
     @TableField("return_visits")
     private Integer returnVisits;
 
-    /** 检查检验开单数 */
-    @TableField("treat_count")
+    /** 非窗口挂号数(预约诊疗率分子基数) */
+    @TableField("no_window_count")
     private Integer treatCount;
 
     /** 创建时间 */

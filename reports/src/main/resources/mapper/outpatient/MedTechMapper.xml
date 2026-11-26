@@ -7,11 +7,11 @@
     <!-- ============================================================ -->
     <select id="queryOverview" resultType="com.reports.entity.MedTechOvEntity">
         SELECT
-        NVL(SUM(check_count), 0) AS checkCount,
-        ROUND(AVG(NVL(on_time_rate, 0)), 2) || '%' AS onTimeRate,
-        MAX(wait_time) AS waitTime,
-        MAX(avg_wait_late) AS avgWaitLate,
-        MAX(avg_report_time) AS avgReportTime
+        NVL(SUM(check_count), 0) AS checkCount, -- 检查人次
+        ROUND(AVG(NVL(on_time_rate, 0)), 2) || '%' AS onTimeRate, -- 准时率
+        MAX(wait_time) AS waitTime, -- 等候时长
+        MAX(avg_wait_late) AS avgWaitLate, -- 平均迟到
+        MAX(avg_report_time) AS avgReportTime -- 平均报告时长
         FROM TR_MEDTECH_OV
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
     </select>
@@ -21,12 +21,12 @@
     <!-- ============================================================ -->
     <select id="queryDeptDetail" resultType="com.reports.entity.MedTechDtlEntity">
         SELECT
-        dept_name AS deptName,
-        NVL(SUM(check_count), 0) AS checkCount,
-        ROUND(AVG(NVL(on_time_rate, 0)), 2) || '%' AS onTimeRate,
-        ROUND(AVG(NVL(wait_time, 0)), 2) AS waitTime,
-        ROUND(AVG(NVL(avg_wait_late, 0)), 2) AS avgWaitLate,
-        ROUND(AVG(NVL(avg_report_time, 0)), 2) AS avgReportTime
+        dept_name AS deptName, -- 科室名称
+        NVL(SUM(check_count), 0) AS checkCount, -- 检查人次
+        ROUND(AVG(NVL(on_time_rate, 0)), 2) || '%' AS onTimeRate, -- 准时率
+        ROUND(AVG(NVL(wait_time, 0)), 2) AS waitTime, -- 等候时长
+        ROUND(AVG(NVL(avg_wait_late, 0)), 2) AS avgWaitLate, -- 平均迟到
+        ROUND(AVG(NVL(avg_report_time, 0)), 2) AS avgReportTime -- 平均报告时长
         FROM TR_MEDTECH_DTL d
         WHERE d.stat_date BETWEEN #{startDate} AND #{endDate}
         GROUP BY d.dept_name

@@ -203,7 +203,7 @@ public final class ReportTestDataSeeder {
      */
     public static void verify(Connection conn) throws SQLException {
         String[] tables = {
-                "TR_DEPT_DICT", "TR_OUTP_OP", "TR_OUTP_OP_DTL", "TR_OUTP_ALT_OV",
+                "TR_DEPT_DICT", "TR_OUTP_OP", "TR_OUTP_ALT_OV",
                 "TR_FC_APPOINT", "TR_FC_WEATHER", "TR_FC_HOLIDAY",
                 "TR_INET_HOSP_OV", "TR_INET_HOSP_OP", "TR_INET_HOSP_BIZ",
                 "TR_INET_HOSP_DEPT_RNK", "TR_INET_HOSP_DOC_RNK", "TR_INET_HOSP_GRW",
@@ -342,7 +342,6 @@ public final class ReportTestDataSeeder {
 
     private static void seedOutpatientOperation(Connection conn) throws SQLException {
         List<Object[]> op = new ArrayList<Object[]>();
-        List<Object[]> dtl = new ArrayList<Object[]>();
         for (int d = 0; d < DAYS; d++) {
             Date day = dayAt(d);
             for (int i = 0; i < DEPTS.length; i++) {
@@ -389,18 +388,6 @@ public final class ReportTestDataSeeder {
                         (d % 2 == 0) ? "上午" : "下午"
                 });
 
-                int effTotal = uFamousE + uSpecialE + uKnownE + uAE + uBE + uOrdE;
-                int allTotal = uFamousT + uSpecialT + uKnownT + uAT + uBT + uOrdT;
-
-                // TR_OUTP_OP_DTL —— 门诊运行科室明细(同粒度, 另带比率列)
-                dtl.add(new Object[]{
-                        day, code, name, Integer.valueOf(total),
-                        rate(60, 95), rate(40, 80), dec(3, 12), Integer.valueOf(total),
-                        Integer.valueOf(famous), Integer.valueOf(special), Integer.valueOf(known),
-                        Integer.valueOf(expertA), Integer.valueOf(expertB), Integer.valueOf(ordinary),
-                        Integer.valueOf(effTotal), Integer.valueOf(effTotal - rnd(0, 5)),
-                        Integer.valueOf(allTotal)
-                });
             }
         }
         batch(conn, "INSERT INTO TR_OUTP_OP (stat_date, dept_code, total_visits, famous_expert,"
@@ -411,12 +398,7 @@ public final class ReportTestDataSeeder {
                 + " return_visits, treat_count, unit)"
                 + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", op);
 
-        batch(conn, "INSERT INTO TR_OUTP_OP_DTL (stat_date, dept_code, dept_name, visits,"
-                + " appointment_rate, exam_rate, efficiency, visit_count, famous_expert, special_expert,"
-                + " known_expert, expert_a, expert_b, ordinary, effective_total, effective_detail, total_detail)"
-                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", dtl);
-
-        out.println("  [门诊运行] TR_OUTP_OP=" + op.size() + ", TR_OUTP_OP_DTL=" + dtl.size());
+        out.println("  [门诊运行] TR_OUTP_OP=" + op.size());
     }
 
     private static void seedOutpatientAlert(Connection conn) throws SQLException {

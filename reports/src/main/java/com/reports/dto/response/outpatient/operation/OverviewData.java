@@ -14,7 +14,7 @@ public class OverviewData {
     private Integer totalVisits;
 
     /**
-     * 预约挂号率
+     * 预约诊疗率
      */
     private String appointmentRate;
 
@@ -24,12 +24,12 @@ public class OverviewData {
     private Integer visitCount;
 
     /**
-     * 预约诊察率
+     * 智慧结算率
      */
     private String examRate;
 
     /**
-     * 接诊效率
+     * 平均等候时长(tr_hrap_opd_overview.avg_waiting_time_new)
      */
     private Double efficiency;
 

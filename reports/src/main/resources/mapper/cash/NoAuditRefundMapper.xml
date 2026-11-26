@@ -4,7 +4,7 @@
 
     <!-- bt14 无审退费张数：t_t_refund_apply 已退(is_return=1)按申请日期区间计数 -->
     <select id="queryNoAuditRefundCount" resultType="map">
-        SELECT '无审退费' AS "name", COUNT(1) AS "cnt"
+        SELECT '无审退费' AS "name", COUNT(1) AS "cnt" -- 报表名,无审退费张数
         FROM t_t_refund_apply
         WHERE is_refund = 1
           AND TRUNC(apply_time) BETWEEN #{startDate} AND #{endDate}
@@ -12,9 +12,9 @@
 
     <!-- bt15 无审退费金额：refund_amount 是 varchar(20)，先 REGEXP 过滤再 TO_NUMBER，防 ORA-01722 -->
     <select id="queryNoAuditRefundAmount" resultType="map">
-        SELECT '无审退费' AS "name",
+        SELECT '无审退费' AS "name", -- 报表名
                NVL(SUM(CASE WHEN REGEXP_LIKE(refund_amount, '^-?[0-9]+(\.[0-9]+)?$')
-                            THEN TO_NUMBER(refund_amount) ELSE 0 END), 0) AS "amount"
+                            THEN TO_NUMBER(refund_amount) ELSE 0 END), 0) AS "amount" -- 无审退费金额
         FROM t_t_refund_apply
         WHERE is_refund = 1
           AND TRUNC(apply_time) BETWEEN #{startDate} AND #{endDate}

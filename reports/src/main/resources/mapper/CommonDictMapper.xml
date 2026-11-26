@@ -7,15 +7,15 @@
     <!-- ============================================================ -->
     <select id="queryByType" resultType="com.reports.entity.CommonDictEntity">
         SELECT
-            id,
-            dict_type AS dictType,
-            dict_code AS dictCode,
-            dict_name AS dictName,
-            sort_no   AS sortNo,
-            status,
-            create_time AS createTime,
-            update_time AS updateTime,
-            ext1, ext2, ext3
+            id, -- 主键ID
+            dict_type AS dictType, -- 字典类型
+            dict_code AS dictCode, -- 字典编码
+            dict_name AS dictName, -- 字典名称
+            sort_no   AS sortNo, -- 排序号
+            status, -- 状态：1启用 0停用
+            create_time AS createTime, -- 创建时间
+            update_time AS updateTime, -- 更新时间
+            ext1, ext2, ext3 -- 扩展字段1/2/3
         FROM TR_COMMON_DICT
         WHERE status = 1
         <if test="dictType != null and dictType != ''">

@@ -15,8 +15,8 @@
         <!-- 归期列：T3按退号日，其余按挂号日 -->
         <bind name="dateCol" value="statisticType == 3 ? 'c.RETURNED_DATE' : 'c.STAT_DATE'"/>
         SELECT
-            <include refid="periodExpr"><property name="col" value="${dateCol}"/></include> AS "period",
-            COUNT(1) AS "cnt"
+            <include refid="periodExpr"><property name="col" value="${dateCol}"/></include> AS "period", -- 周期(月YYYY-MM/天YYYY-MM-DD)
+            COUNT(1) AS "cnt" -- 门诊量
         FROM TR_OUTP_FIN_CLINIC_MASTER c
         WHERE ${dateCol} BETWEEN #{startDate} AND #{endDate}
           AND c.APPOINTS_INDICATOR = 2
@@ -36,8 +36,8 @@
     <!-- 退项门诊量悬浮标注：当日挂号退号(STAT_DATE=RETURNED_DATE)与非当日各多少，口径同queryClinicCounts的T3 -->
     <select id="queryRefundVisitSplit" resultType="map">
         SELECT
-            SUM(CASE WHEN c.STAT_DATE = c.RETURNED_DATE THEN 1 ELSE 0 END) AS "sameDay",
-            SUM(CASE WHEN c.STAT_DATE != c.RETURNED_DATE THEN 1 ELSE 0 END) AS "crossDay"
+            SUM(CASE WHEN c.STAT_DATE = c.RETURNED_DATE THEN 1 ELSE 0 END) AS "sameDay", -- 当日挂号退号数
+            SUM(CASE WHEN c.STAT_DATE != c.RETURNED_DATE THEN 1 ELSE 0 END) AS "crossDay" -- 跨天挂号退号数
         FROM TR_OUTP_FIN_CLINIC_MASTER c
         WHERE c.RETURNED_DATE BETWEEN #{startDate} AND #{endDate}
           AND c.IS_RETURN_TYPE = -1
@@ -48,17 +48,17 @@
     <!-- 收据张数/金额·明细：结账主表按 STAT_DATE 分组（T1小计=TOTAL_INCOMES/收据张数扣退/T2进项=TOTAL_COSTS/T3退费） -->
     <select id="queryAcctAmounts" resultType="map">
         SELECT
-        <include refid="periodExpr"><property name="col" value="a.STAT_DATE"/></include> AS "period",
+        <include refid="periodExpr"><property name="col" value="a.STAT_DATE"/></include> AS "period", -- 周期
         <choose>
             <when test="statisticType == 1">SUM(NVL(a.TOTAL_INCOMES, 0))</when>
             <when test="statisticType == 2">SUM(NVL(a.TOTAL_COSTS, 0))</when>
             <otherwise>SUM(NVL(a.REFUND_AMOUNT, 0))</otherwise>
-        </choose> AS "amount",
+        </choose> AS "amount", -- 金额
         <choose>
             <when test="statisticType == 1">SUM(NVL(a.RCPTS_NUM, 0)) - SUM(NVL(a.REFUND_NUM, 0))</when>
             <when test="statisticType == 2">SUM(NVL(a.RCPTS_NUM, 0))</when>
             <otherwise>SUM(NVL(a.REFUND_NUM, 0))</otherwise>
-        </choose> AS "receipt"
+        </choose> AS "receipt" -- 收据张数
         FROM TR_OUTP_FIN_ACCT_MASTER a
         WHERE a.STAT_DATE BETWEEN #{startDate} AND #{endDate}
         GROUP BY <include refid="periodExpr"><property name="col" value="a.STAT_DATE"/></include>
@@ -68,17 +68,17 @@
     <!-- 人次·明细/柱图：全部读日汇总表(VisitDaySummaryTask 维护, 毫秒级); 当天由 live_today UNION 实时算; 口径: T1=CNT_ALL T2=CNT_IN T3=CNT_REFUND -->
     <select id="queryVisitCounts" resultType="map">
         WITH live_today AS (
-            SELECT <include refid="periodExpr"><property name="col" value="TRUNC(SYSDATE)"/></include> AS period,
-                   SUM(flag) AS cnt
+            SELECT <include refid="periodExpr"><property name="col" value="TRUNC(SYSDATE)"/></include> AS period, -- 周期(当天)
+                   SUM(flag) AS cnt -- 人次(当天实时)
             FROM (
                 SELECT CASE
                            WHEN PATIENT_ID IS NOT NULL
                             AND num_part = LAG(num_part) OVER (PARTITION BY PATIENT_ID, prefix ORDER BY num_part) + 1
-                           THEN 0 ELSE 1 END AS flag
+                           THEN 0 ELSE 1 END AS flag -- 同患者同前缀票号连续合并:1=计1人次
                 FROM (
                     SELECT r.PATIENT_ID,
-                           NVL(RTRIM(r.RCPT_NO, '0123456789'), '#') AS prefix,
-                           TO_NUMBER(SUBSTR(r.RCPT_NO, NVL(LENGTH(RTRIM(r.RCPT_NO, '0123456789')), 0) + 1)) AS num_part
+                           NVL(RTRIM(r.RCPT_NO, '0123456789'), '#') AS prefix, -- 票号前缀
+                           TO_NUMBER(SUBSTR(r.RCPT_NO, NVL(LENGTH(RTRIM(r.RCPT_NO, '0123456789')), 0) + 1)) AS num_part -- 票号数字段
                     FROM TR_OUTP_FIN_RCPT_ACCT r
                     WHERE r.STAT_DATE >= TRUNC(SYSDATE)
                     <choose>
@@ -94,15 +94,15 @@
             )
             GROUP BY <include refid="periodExpr"><property name="col" value="TRUNC(SYSDATE)"/></include>
         )
-        SELECT period AS "period", SUM(cnt) AS "cnt"
+        SELECT period AS "period", SUM(cnt) AS "cnt" -- 周期,人次
         FROM (
             SELECT
-                <include refid="periodExpr"><property name="col" value="d.STAT_DATE"/></include> AS period,
+                <include refid="periodExpr"><property name="col" value="d.STAT_DATE"/></include> AS period, -- 周期
                 <choose>
                     <when test="statisticType == 2">SUM(d.CNT_IN)</when>
                     <when test="statisticType == 3">SUM(d.CNT_REFUND)</when>
                     <otherwise>SUM(d.CNT_ALL)</otherwise>
-                </choose> AS cnt
+                </choose> AS cnt -- 人次
             FROM TR_OUTP_FIN_VISIT_DAY d
             WHERE d.STAT_DATE BETWEEN #{startDate} AND #{endDate}
             GROUP BY <include refid="periodExpr"><property name="col" value="d.STAT_DATE"/></include>
@@ -171,7 +171,7 @@
 
     <!-- 人次日汇总维护：明细已有但汇总缺失的日期（不含当天，当天数据未抽完），历史回填/断档补齐用 -->
     <select id="selectMissingSummaryDates" resultType="java.util.Date">
-        SELECT DISTINCT TRUNC(r.STAT_DATE) AS dt
+        SELECT DISTINCT TRUNC(r.STAT_DATE) AS dt -- 缺失汇总的日期
         FROM TR_OUTP_FIN_RCPT_ACCT r
         <![CDATA[WHERE TRUNC(r.STAT_DATE) < TRUNC(SYSDATE)]]>
           AND NOT EXISTS (
@@ -183,8 +183,8 @@
 
     <!-- bt1 门诊量分析： 订单来源分析（口径同 queryClinicCounts：T1汇总=收 T2进项=全部 T3退） -->
     <select id="queryClinicCountBySource" resultType="map">
-         SELECT nvl(q.SOURCE_NAME,decode(c.operator_no,'9101','互联网订单','当日挂号')) AS "name",
-               COUNT(1) AS "cnt"
+         SELECT nvl(q.SOURCE_NAME,decode(c.operator_no,'9101','互联网订单','当日挂号')) AS "name", -- 订单来源
+               COUNT(1) AS "cnt" -- 门诊量
         FROM TR_OUTP_FIN_CLINIC_MASTER c
         LEFT JOIN TR_OUTP_FIN_MOP_QUEUE q
         ON q.STAT_DATE = c.STAT_DATE
@@ -211,8 +211,8 @@
 
     <!-- bt2 门诊量分析： 取号渠道分析（口径同 queryClinicCounts：T1汇总=收 T2进项=全部 T3退） -->
     <select id="queryQueueCountByOperator" resultType="map">
-         SELECT DECODE(c.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
-               COUNT(1) AS "cnt"
+         SELECT DECODE(c.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name", -- 取号渠道
+               COUNT(1) AS "cnt" -- 门诊量
         FROM TR_OUTP_FIN_CLINIC_MASTER c
         <!-- T3退项按退号日归期(STAT_DATE=挂号日,退号可跨天)；其余按挂号日 -->
         <choose>
@@ -235,8 +235,8 @@
 
     <!-- bt3 门诊量分析： 预约订单渠道分析（挂号日≠就诊日即预约号） -->
     <select id="queryClinicCountByOperator" resultType="map">
-         SELECT DECODE(r.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
-               COUNT(1) AS "cnt"
+         SELECT DECODE(r.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name", -- 预约订单渠道
+               COUNT(1) AS "cnt" -- 门诊量
         FROM TR_OUTP_FIN_CLINIC_MASTER r
         <!-- T3退项按退号日归期(STAT_DATE=挂号日,退号可跨天)；其余按挂号日 -->
         <choose>
@@ -262,7 +262,7 @@
     <!-- bt4 缴费人次分析： 渠道分析（全部读日汇总表; 当天 live_today UNION 实时算; 口径同 queryVisitCounts） -->
     <select id="queryRcptCountByOperator" resultType="map">
         WITH live_today AS (
-            SELECT NVL(OPERATOR_NO, '-') AS OPERATOR_NO, SUM(flag) AS cnt
+            SELECT NVL(OPERATOR_NO, '-') AS OPERATOR_NO, SUM(flag) AS cnt -- 操作员,人次(当天实时)
             FROM (
                 SELECT OPERATOR_NO,
                     CASE
@@ -271,8 +271,8 @@
                         THEN 0 ELSE 1 END AS flag
                 FROM (
                     SELECT r.OPERATOR_NO, r.PATIENT_ID,
-                           NVL(RTRIM(r.RCPT_NO, '0123456789'), '#') AS prefix,
-                           TO_NUMBER(SUBSTR(r.RCPT_NO, NVL(LENGTH(RTRIM(r.RCPT_NO, '0123456789')), 0) + 1)) AS num_part
+                           NVL(RTRIM(r.RCPT_NO, '0123456789'), '#') AS prefix, -- 票号前缀
+                           TO_NUMBER(SUBSTR(r.RCPT_NO, NVL(LENGTH(RTRIM(r.RCPT_NO, '0123456789')), 0) + 1)) AS num_part -- 票号数字段
                     FROM TR_OUTP_FIN_RCPT_ACCT r
                     WHERE r.STAT_DATE >= TRUNC(SYSDATE)
                     <choose>
@@ -288,19 +288,19 @@
             )
             GROUP BY NVL(OPERATOR_NO, '-')
         )
-        SELECT "name", SUM(cnt) AS "cnt"
+        SELECT "name", SUM(cnt) AS "cnt" -- 渠道,缴费人次
         FROM (
-            SELECT DECODE(d.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
+            SELECT DECODE(d.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name", -- 渠道
                 <choose>
                     <when test="statisticType == 2">SUM(d.CNT_IN)</when>
                     <when test="statisticType == 3">SUM(d.CNT_REFUND)</when>
                     <otherwise>SUM(d.CNT_ALL)</otherwise>
-                </choose> AS cnt
+                </choose> AS cnt -- 人次
             FROM TR_OUTP_FIN_VISIT_DAY d
             WHERE d.STAT_DATE BETWEEN #{startDate} AND #{endDate}
             GROUP BY DECODE(d.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口')
             UNION ALL
-            SELECT DECODE(OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name", cnt
+            SELECT DECODE(OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name", cnt -- 渠道,人次(当天实时)
             FROM live_today
         )
         GROUP BY "name"
@@ -309,12 +309,12 @@
 
     <!-- bt5 缴费人次分析： 支付方式金额分析 -->
     <select id="queryPaymentCountByMoneyType" resultType="map">
-        SELECT p.MONEY_TYPE AS "name",
+        SELECT p.MONEY_TYPE AS "name", -- 支付方式
                <choose>
                    <when test="statisticType == 1">NVL(SUM(NVL(p.PAYMENT_AMOUNT,0) - NVL(p.REFUNDED_AMOUNT,0)),0)</when>
                    <when test="statisticType == 2">NVL(SUM(NVL(p.PAYMENT_AMOUNT,0)),0)</when>
                    <otherwise>NVL(SUM(NVL(p.REFUNDED_AMOUNT,0)),0)</otherwise>
-               </choose> AS "amount"
+               </choose> AS "amount" -- 金额
         FROM TR_OUTP_FIN_PAYMENTS_MONEY p
         JOIN TR_OUTP_FIN_RCPT_ACCT r ON r.RCPT_NO = p.RCPT_NO
         WHERE r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
@@ -332,12 +332,12 @@
 
     <!-- bt6 收据张数分析： 渠道分析（张数口径同 queryAcctAmounts：T1=RCPTS_NUM-REFUND_NUM，T3=REFUND_NUM） -->
     <select id="queryRcptSumByOperator" resultType="map">
-        SELECT DECODE(a.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
+        SELECT DECODE(a.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name", -- 渠道
                <choose>
                    <when test="statisticType == 1">SUM(NVL(a.RCPTS_NUM, 0)) - SUM(NVL(a.REFUND_NUM, 0))</when>
                    <when test="statisticType == 2">SUM(NVL(a.RCPTS_NUM, 0))</when>
                    <otherwise>SUM(NVL(a.REFUND_NUM, 0))</otherwise>
-               </choose> AS "cnt"
+               </choose> AS "cnt" -- 收据张数
         FROM TR_OUTP_FIN_ACCT_MASTER a
         WHERE a.STAT_DATE BETWEEN #{startDate} AND #{endDate}
         GROUP BY DECODE(a.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口')
@@ -347,12 +347,12 @@
 
     <!-- bt7 收据张数分析： 支付方式金额分析 -->
     <select id="queryPaymentSumByMoneyType" resultType="map">
-        SELECT m.MONEY_TYPE AS "name",
+        SELECT m.MONEY_TYPE AS "name", -- 支付方式
                <choose>
                    <when test="statisticType == 1">NVL(SUM(NVL(m.INCOME_AMOUNT,0) - NVL(m.REFUNDED_AMOUNT,0)),0)</when>
                    <when test="statisticType == 2">NVL(SUM(NVL(m.INCOME_AMOUNT,0)),0)</when>
                    <otherwise>NVL(SUM(NVL(m.REFUNDED_AMOUNT,0)),0)</otherwise>
-               </choose> AS "amount"
+               </choose> AS "amount" -- 金额
         FROM TR_OUTP_FIN_ACCT_MONEY m
         JOIN TR_OUTP_FIN_ACCT_MASTER a ON a.ACCT_NO = m.ACCT_NO
         WHERE a.STAT_DATE BETWEEN #{startDate} AND #{endDate}
@@ -362,18 +362,18 @@
 
     <!-- bt8 收入金额分析： 业务类型金额分析 -->
     <select id="queryBizTypeAmount" resultType="map">
-        SELECT "name", NVL(SUM(amt), 0) AS "amount"
+        SELECT "name", NVL(SUM(amt), 0) AS "amount" -- 业务类型,金额
         FROM (
-            SELECT '当日挂号' AS "name",
-                   NVL(c.REGIST_FEE, 0) + NVL(c.CLINIC_FEE, 0) AS amt
+            SELECT '当日挂号' AS "name", -- 业务类型
+                   NVL(c.REGIST_FEE, 0) + NVL(c.CLINIC_FEE, 0) AS amt -- 金额(挂号费+诊查费)
             FROM TR_OUTP_FIN_CLINIC_MASTER c
             WHERE c.STAT_DATE BETWEEN #{startDate} AND #{endDate}
               AND c.APPOINTS_INDICATOR = 2
               <![CDATA[ AND c.VISIT_DATE < DATE '2025-02-08' ]]>
             UNION ALL
             SELECT CASE WHEN r.VISIT_DATE >= DATE '2025-02-08' AND r.BILL_CLASS = '1'
-                        THEN '当日挂号' ELSE '门诊缴费' END AS "name",
-                   r.TOTAL_COSTS AS amt
+                        THEN '当日挂号' ELSE '门诊缴费' END AS "name", -- 业务类型
+                   r.TOTAL_COSTS AS amt -- 金额
             FROM TR_OUTP_FIN_RCPT_ACCT r
             WHERE r.STAT_DATE BETWEEN #{startDate} AND #{endDate}
             <choose>
@@ -396,12 +396,12 @@
                 WHEN m.MONEY_TYPE IN ('医改统筹','医院垫支') THEN '医改统筹/医院垫支'
                 WHEN m.MONEY_TYPE IN ('支付宝','现金','信用卡','银行卡','微信','自助POS','支票') THEN '实收金额'
                 ELSE '应收账款'
-            END AS "name",
+            END AS "name", -- 金额类别
             <choose>
                 <when test="statisticType == 1">NVL(SUM(NVL(m.INCOME_AMOUNT,0) - NVL(m.REFUNDED_AMOUNT,0)),0)</when>
                 <when test="statisticType == 2">NVL(SUM(NVL(m.INCOME_AMOUNT,0)),0)</when>
                 <otherwise>NVL(SUM(NVL(m.REFUNDED_AMOUNT,0)),0)</otherwise>
-            </choose> AS "amount"
+            </choose> AS "amount" -- 金额
         FROM TR_OUTP_FIN_ACCT_MONEY m
         JOIN TR_OUTP_FIN_ACCT_MASTER a ON a.ACCT_NO = m.ACCT_NO
         WHERE a.STAT_DATE BETWEEN #{startDate} AND #{endDate}
@@ -416,12 +416,12 @@
 
     <!-- bt10 收入金额分析： 应收金额分析（bt9「金额应收/实收分析」里点"应收账款"弹窗看的就是它） -->
     <select id="queryPaymentSumReceivable" resultType="map">
-        SELECT p.MONEY_TYPE AS "name",
+        SELECT p.MONEY_TYPE AS "name", -- 支付方式
                <choose>
                    <when test="statisticType == 1">NVL(SUM(NVL(p.PAYMENT_AMOUNT,0)-NVL(p.REFUNDED_AMOUNT,0)),0)</when>
                    <when test="statisticType == 2">NVL(SUM(NVL(p.PAYMENT_AMOUNT,0)),0)</when>
                    <otherwise>NVL(SUM(NVL(p.REFUNDED_AMOUNT,0)),0)</otherwise>
-               </choose> AS "amount"
+               </choose> AS "amount" -- 应收金额
         FROM TR_OUTP_FIN_PAYMENTS_MONEY p
         JOIN TR_OUTP_FIN_RCPT_ACCT rc ON rc.RCPT_NO = p.RCPT_NO
         WHERE rc.STAT_DATE BETWEEN #{startDate} AND #{endDate}
@@ -432,12 +432,12 @@
 
     <!-- bt13 收入金额分析： 实收金额分析（bt9「金额应收/实收分析」里点"实收金额"弹窗看的就是它，与 bt10 只差支付方式取反） -->
     <select id="queryPaymentSumReceived" resultType="map">
-        SELECT p.MONEY_TYPE AS "name",
+        SELECT p.MONEY_TYPE AS "name", -- 支付方式
                <choose>
                    <when test="statisticType == 1">NVL(SUM(NVL(p.PAYMENT_AMOUNT,0)-NVL(p.REFUNDED_AMOUNT,0)),0)</when>
                    <when test="statisticType == 2">NVL(SUM(NVL(p.PAYMENT_AMOUNT,0)),0)</when>
                    <otherwise>NVL(SUM(NVL(p.REFUNDED_AMOUNT,0)),0)</otherwise>
-               </choose> AS "amount"
+               </choose> AS "amount" -- 实收金额
         FROM TR_OUTP_FIN_PAYMENTS_MONEY p
         JOIN TR_OUTP_FIN_RCPT_ACCT rc ON rc.RCPT_NO = p.RCPT_NO
         WHERE rc.STAT_DATE BETWEEN #{startDate} AND #{endDate}
@@ -448,12 +448,12 @@
 
     <!-- bt11 收入金额分析： 渠道分析（金额口径同 queryAcctAmounts：T1=TOTAL_INCOMES，T2=TOTAL_COSTS） -->
     <select id="queryIncomeSumByOperator" resultType="map">
-        SELECT DECODE(a.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name",
+        SELECT DECODE(a.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口') AS "name", -- 渠道
                <choose>
                    <when test="statisticType == 1">NVL(SUM(NVL(a.TOTAL_INCOMES, 0) ), 0)</when>
                    <when test="statisticType == 2">NVL(SUM(NVL(a.TOTAL_COSTS, 0)), 0)</when>
                    <otherwise>NVL(SUM(NVL(a.REFUND_AMOUNT, 0)), 0)</otherwise>
-               </choose> AS "amount"
+               </choose> AS "amount" -- 金额
         FROM TR_OUTP_FIN_ACCT_MASTER a
         WHERE a.STAT_DATE BETWEEN #{startDate} AND #{endDate}
         GROUP BY DECODE(a.OPERATOR_NO, '9101','自助机', 'C746','线上退费', '窗口')
@@ -462,12 +462,12 @@
 
     <!-- bt12 收入金额分析： 支付方式分析 -->
     <select id="queryIncomeSumByMoneyType" resultType="map">
-        SELECT m.MONEY_TYPE AS "name",
+        SELECT m.MONEY_TYPE AS "name", -- 支付方式
                <choose>
                    <when test="statisticType == 1">SUM(NVL(m.INCOME_AMOUNT,0)-NVL(m.REFUNDED_AMOUNT,0))</when>
                    <when test="statisticType == 2">SUM(NVL(m.INCOME_AMOUNT,0))</when>
                    <otherwise>NVL(SUM(NVL(m.REFUNDED_AMOUNT,0)),0)</otherwise>
-               </choose> AS "amount"
+               </choose> AS "amount" -- 金额
         FROM TR_OUTP_FIN_ACCT_MONEY m
         JOIN TR_OUTP_FIN_ACCT_MASTER a ON a.ACCT_NO = m.ACCT_NO
         WHERE a.STAT_DATE BETWEEN #{startDate} AND #{endDate}

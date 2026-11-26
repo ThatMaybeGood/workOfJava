@@ -15,8 +15,8 @@
 
     <!-- 本期/同期标志列 in_current/in_last: 0/1 -->
     <sql id="periodFlags">
-        CASE WHEN ${alias}stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
-        CASE WHEN ${alias}stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last
+        CASE WHEN ${alias}stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current, -- 本期标志(0/1)
+        CASE WHEN ${alias}stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last -- 同期标志(0/1)
     </sql>
 
     <!-- 同期日期平移到本期轴(明细同比对齐) -->
@@ -44,29 +44,29 @@
     <!-- ============================================================ -->
     <select id="queryOverview" resultType="com.reports.dto.response.cash.discharge.settlement.OverviewData">
         SELECT
-            v.totalDischargeCount,
-            <include refid="yoy"><property name="cur" value="v.totalDischargeCount"/><property name="last" value="v.totalDischargeLast"/></include> AS totalDischargeCompare,
-            v.dischargedCount,
-            <include refid="yoy"><property name="cur" value="v.dischargedCount"/><property name="last" value="v.dischargedLast"/></include> AS dischargedCompare,
-            v.notDischargedCount,
-            <include refid="yoy"><property name="cur" value="v.notDischargedCount"/><property name="last" value="v.notDischargedLast"/></include> AS notDischargedCompare,
-            NVL(m.settlementAmount, 0) AS settlementAmount,
-            <include refid="yoy"><property name="cur" value="m.settlementAmount"/><property name="last" value="m.settlementAmountLast"/></include> AS settlementAmountCompare
+            v.totalDischargeCount, -- 出院人次(本期)
+            <include refid="yoy"><property name="cur" value="v.totalDischargeCount"/><property name="last" value="v.totalDischargeLast"/></include> AS totalDischargeCompare, -- 出院人次同比%
+            v.dischargedCount, -- 已结算人次(本期)
+            <include refid="yoy"><property name="cur" value="v.dischargedCount"/><property name="last" value="v.dischargedLast"/></include> AS dischargedCompare, -- 已结算人次同比%
+            v.notDischargedCount, -- 未结算人次(本期)
+            <include refid="yoy"><property name="cur" value="v.notDischargedCount"/><property name="last" value="v.notDischargedLast"/></include> AS notDischargedCompare, -- 未结算人次同比%
+            NVL(m.settlementAmount, 0) AS settlementAmount, -- 结算金额(本期)
+            <include refid="yoy"><property name="cur" value="m.settlementAmount"/><property name="last" value="m.settlementAmountLast"/></include> AS settlementAmountCompare -- 结算金额同比%
         FROM (
             SELECT
-                COUNT(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 END) AS totalDischargeCount,
-                COUNT(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 END) AS totalDischargeLast,
-                COUNT(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} AND settle_status = 1 THEN 1 END) AS dischargedCount,
-                COUNT(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} AND settle_status = 1 THEN 1 END) AS dischargedLast,
-                COUNT(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} AND settle_status = 2 THEN 1 END) AS notDischargedCount,
-                COUNT(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} AND settle_status = 2 THEN 1 END) AS notDischargedLast
+                COUNT(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 END) AS totalDischargeCount, -- 出院人次(本期)
+                COUNT(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 END) AS totalDischargeLast, -- 出院人次(同期)
+                COUNT(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} AND settle_status = 1 THEN 1 END) AS dischargedCount, -- 已结算人次(本期)
+                COUNT(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} AND settle_status = 1 THEN 1 END) AS dischargedLast, -- 已结算人次(同期)
+                COUNT(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} AND settle_status = 2 THEN 1 END) AS notDischargedCount, -- 未结算人次(本期)
+                COUNT(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} AND settle_status = 2 THEN 1 END) AS notDischargedLast -- 未结算人次(同期)
             FROM tr_disch_settle_visit
             WHERE (<include refid="periodRange"><property name="alias" value=""/></include>)
         ) v,
         (
             SELECT
-                NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN charges ELSE 0 END), 0) AS settlementAmount,
-                NVL(SUM(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN charges ELSE 0 END), 0) AS settlementAmountLast
+                NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN charges ELSE 0 END), 0) AS settlementAmount, -- 结算金额(本期)
+                NVL(SUM(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN charges ELSE 0 END), 0) AS settlementAmountLast -- 结算金额(同期)
             FROM tr_settle_master
             WHERE (<include refid="periodRange"><property name="alias" value=""/></include>)
         ) m
@@ -80,31 +80,31 @@
             <choose>
                 <when test="month">TO_CHAR(v.itemDate, 'YYYY-MM')</when>
                 <otherwise>TO_CHAR(v.itemDate, 'YYYY-MM-DD')</otherwise>
-            </choose> AS "date",
-            NVL(v.totalCurrent, 0)    AS totalCurrent,
-            NVL(v.totalLast, 0)       AS totalLast,
-            <include refid="yoy"><property name="cur" value="v.totalCurrent"/><property name="last" value="v.totalLast"/></include> AS totalCompare,
-            NVL(v.dischargedCurrent, 0) AS dischargedCurrent,
-            NVL(v.dischargedLast, 0)    AS dischargedLast,
-            <include refid="yoy"><property name="cur" value="v.dischargedCurrent"/><property name="last" value="v.dischargedLast"/></include> AS dischargedCompare,
-            NVL(v.notDischargedCurrent, 0) AS notDischargedCurrent,
-            NVL(v.notDischargedLast, 0)    AS notDischargedLast,
-            <include refid="yoy"><property name="cur" value="v.notDischargedCurrent"/><property name="last" value="v.notDischargedLast"/></include> AS notDischargedCompare,
-            NVL(m.amountCurrent, 0) AS amountCurrent,
-            NVL(m.amountLast, 0)    AS amountLast,
-            <include refid="yoy"><property name="cur" value="m.amountCurrent"/><property name="last" value="m.amountLast"/></include> AS amountCompare
+            </choose> AS "date", -- 日期
+            NVL(v.totalCurrent, 0)    AS totalCurrent, -- 出院人次(本期)
+            NVL(v.totalLast, 0)       AS totalLast, -- 出院人次(同期)
+            <include refid="yoy"><property name="cur" value="v.totalCurrent"/><property name="last" value="v.totalLast"/></include> AS totalCompare, -- 出院人次同比%
+            NVL(v.dischargedCurrent, 0) AS dischargedCurrent, -- 已结算人次(本期)
+            NVL(v.dischargedLast, 0)    AS dischargedLast, -- 已结算人次(同期)
+            <include refid="yoy"><property name="cur" value="v.dischargedCurrent"/><property name="last" value="v.dischargedLast"/></include> AS dischargedCompare, -- 已结算人次同比%
+            NVL(v.notDischargedCurrent, 0) AS notDischargedCurrent, -- 未结算人次(本期)
+            NVL(v.notDischargedLast, 0)    AS notDischargedLast, -- 未结算人次(同期)
+            <include refid="yoy"><property name="cur" value="v.notDischargedCurrent"/><property name="last" value="v.notDischargedLast"/></include> AS notDischargedCompare, -- 未结算人次同比%
+            NVL(m.amountCurrent, 0) AS amountCurrent, -- 结算金额(本期)
+            NVL(m.amountLast, 0)    AS amountLast, -- 结算金额(同期)
+            <include refid="yoy"><property name="cur" value="m.amountCurrent"/><property name="last" value="m.amountLast"/></include> AS amountCompare -- 结算金额同比%
         FROM (
             SELECT
-                <include refid="axisGrain"/> AS itemDate,
-                COUNT(CASE WHEN in_current = 1 THEN 1 END) AS totalCurrent,
-                COUNT(CASE WHEN in_last = 1 THEN 1 END)    AS totalLast,
-                COUNT(CASE WHEN in_current = 1 AND settle_status = 1 THEN 1 END) AS dischargedCurrent,
-                COUNT(CASE WHEN in_last = 1 AND settle_status = 1 THEN 1 END)    AS dischargedLast,
-                COUNT(CASE WHEN in_current = 1 AND settle_status = 2 THEN 1 END) AS notDischargedCurrent,
-                COUNT(CASE WHEN in_last = 1 AND settle_status = 2 THEN 1 END)    AS notDischargedLast
+                <include refid="axisGrain"/> AS itemDate, -- 日期轴
+                COUNT(CASE WHEN in_current = 1 THEN 1 END) AS totalCurrent, -- 出院人次(本期)
+                COUNT(CASE WHEN in_last = 1 THEN 1 END)    AS totalLast, -- 出院人次(同期)
+                COUNT(CASE WHEN in_current = 1 AND settle_status = 1 THEN 1 END) AS dischargedCurrent, -- 已结算人次(本期)
+                COUNT(CASE WHEN in_last = 1 AND settle_status = 1 THEN 1 END)    AS dischargedLast, -- 已结算人次(同期)
+                COUNT(CASE WHEN in_current = 1 AND settle_status = 2 THEN 1 END) AS notDischargedCurrent, -- 未结算人次(本期)
+                COUNT(CASE WHEN in_last = 1 AND settle_status = 2 THEN 1 END)    AS notDischargedLast -- 未结算人次(同期)
             FROM (
-                SELECT settle_status,
-                       <include refid="axisShift"><property name="alias" value=""/></include> AS axis_date,
+                SELECT settle_status, -- 结算状态(1已结算 2未结算)
+                       <include refid="axisShift"><property name="alias" value=""/></include> AS axis_date, -- 日期轴(同期平移+12月)
                        <include refid="periodFlags"><property name="alias" value=""/></include>
                 FROM tr_disch_settle_visit
                 WHERE (<include refid="periodRange"><property name="alias" value=""/></include>)
@@ -113,12 +113,12 @@
         ) v
         LEFT JOIN (
             SELECT
-                <include refid="axisGrain"/> AS itemDate,
-                SUM(CASE WHEN in_current = 1 THEN charges ELSE 0 END) AS amountCurrent,
-                SUM(CASE WHEN in_last = 1 THEN charges ELSE 0 END)    AS amountLast
+                <include refid="axisGrain"/> AS itemDate, -- 日期轴
+                SUM(CASE WHEN in_current = 1 THEN charges ELSE 0 END) AS amountCurrent, -- 结算金额(本期)
+                SUM(CASE WHEN in_last = 1 THEN charges ELSE 0 END)    AS amountLast -- 结算金额(同期)
             FROM (
-                SELECT charges,
-                       <include refid="axisShift"><property name="alias" value=""/></include> AS axis_date,
+                SELECT charges, -- 结算金额
+                       <include refid="axisShift"><property name="alias" value=""/></include> AS axis_date, -- 日期轴(同期平移+12月)
                        <include refid="periodFlags"><property name="alias" value=""/></include>
                 FROM tr_settle_master
                 WHERE (<include refid="periodRange"><property name="alias" value=""/></include>)
@@ -133,15 +133,15 @@
     <!-- ============================================================ -->
     <select id="queryChannelChart" resultType="com.reports.dto.response.cash.discharge.settlement.ChartItem">
         SELECT
-            channel AS name,
-            COUNT(CASE WHEN in_current = 1 THEN 1 END) AS value,
+            channel AS name, -- 渠道(窗口/自助机)
+            COUNT(CASE WHEN in_current = 1 THEN 1 END) AS value, -- 本期人次
             NVL(<include refid="yoy">
                     <property name="cur" value="COUNT(CASE WHEN in_current = 1 THEN 1 END)"/>
                     <property name="last" value="COUNT(CASE WHEN in_last = 1 THEN 1 END)"/>
-                </include>, 0) AS compare
+                </include>, 0) AS compare -- 同比%
         FROM (
             SELECT
-                CASE WHEN operator_no = '9111' THEN '自助机' ELSE '窗口' END AS channel,
+                CASE WHEN operator_no = '9111' THEN '自助机' ELSE '窗口' END AS channel, -- 渠道(9111=自助机)
                 <include refid="periodFlags"><property name="alias" value=""/></include>
             FROM tr_settle_master
             WHERE (<include refid="periodRange"><property name="alias" value=""/></include>)
@@ -155,15 +155,15 @@
     <!-- ============================================================ -->
     <select id="queryFeeTypeChart" resultType="com.reports.dto.response.cash.discharge.settlement.ChartItem">
         SELECT
-            charge_type AS name,
-            COUNT(CASE WHEN in_current = 1 THEN 1 END) AS value,
+            charge_type AS name, -- 结算费别
+            COUNT(CASE WHEN in_current = 1 THEN 1 END) AS value, -- 本期人次
             NVL(<include refid="yoy">
                     <property name="cur" value="COUNT(CASE WHEN in_current = 1 THEN 1 END)"/>
                     <property name="last" value="COUNT(CASE WHEN in_last = 1 THEN 1 END)"/>
-                </include>, 0) AS compare
+                </include>, 0) AS compare -- 同比%
         FROM (
             SELECT
-                charge_type,
+                charge_type, -- 结算费别
                 <include refid="periodFlags"><property name="alias" value=""/></include>
             FROM tr_settle_master
             WHERE charge_type IS NOT NULL
@@ -178,16 +178,16 @@
     <!-- ============================================================ -->
     <select id="queryPayTypeChart" resultType="com.reports.dto.response.cash.discharge.settlement.ChartItem">
         SELECT
-            money_type AS name,
-            NVL(SUM(CASE WHEN in_current = 1 THEN payment_amount ELSE 0 END), 0) AS value,
+            money_type AS name, -- 支付方式
+            NVL(SUM(CASE WHEN in_current = 1 THEN payment_amount ELSE 0 END), 0) AS value, -- 本期收金额
             NVL(<include refid="yoy">
                     <property name="cur" value="SUM(CASE WHEN in_current = 1 THEN payment_amount ELSE 0 END)"/>
                     <property name="last" value="SUM(CASE WHEN in_last = 1 THEN payment_amount ELSE 0 END)"/>
-                </include>, 0) AS compare
+                </include>, 0) AS compare -- 同比%
         FROM (
             SELECT
-                money_type,
-                payment_amount,
+                money_type, -- 支付方式
+                payment_amount, -- 支付金额(收)
                 <include refid="periodFlags"><property name="alias" value=""/></include>
             FROM tr_settle_payments
             WHERE money_type IS NOT NULL
@@ -202,9 +202,9 @@
     <!-- ============================================================ -->
     <select id="queryChannelDetail" resultType="com.reports.dto.response.cash.discharge.settlement.ChartItem">
         SELECT
-            charge_type AS name,
-            COUNT(1) AS value,
-            0 AS compare
+            charge_type AS name, -- 结算费别
+            COUNT(1) AS value, -- 本期人次
+            0 AS compare -- 同比(恒0)
         FROM tr_settle_master
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
           AND charge_type IS NOT NULL
@@ -217,12 +217,12 @@
     <!-- 支付方式钻取: 该方式的收/退金额 -->
     <!-- ============================================================ -->
     <select id="queryPayDetail" resultType="com.reports.dto.response.cash.discharge.settlement.ChartItem">
-        SELECT name, value, 0 AS compare
+        SELECT name, value, 0 AS compare -- 类型(收/退),金额,同比(恒0)
         FROM (
-            SELECT '收' AS name, NVL(SUM(payment_amount), 0) AS value, 1 AS ord FROM tr_settle_payments
+            SELECT '收' AS name, NVL(SUM(payment_amount), 0) AS value, 1 AS ord FROM tr_settle_payments -- 收金额
             WHERE stat_date BETWEEN #{startDate} AND #{endDate} AND money_type = #{moneyType}
             UNION ALL
-            SELECT '退' AS name, NVL(SUM(refunded_amount), 0) AS value, 2 AS ord FROM tr_settle_payments
+            SELECT '退' AS name, NVL(SUM(refunded_amount), 0) AS value, 2 AS ord FROM tr_settle_payments -- 退金额
             WHERE stat_date BETWEEN #{startDate} AND #{endDate} AND money_type = #{moneyType}
         )
         ORDER BY ord

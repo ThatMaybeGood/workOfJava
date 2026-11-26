@@ -7,16 +7,16 @@
     <!-- ============================================================ -->
     <select id="queryDeptDict" resultType="com.reports.entity.DeptDictEntity">
         SELECT
-            serial_no AS serialNo,
-            dept_code AS deptCode,
-            dept_name AS deptName,
-            dept_alias AS deptAlias,
-            clinic_attr AS clinicAttr,
-            outp_or_inp AS outpOrInp,
-            internal_or_sergery AS internalOrSergery,
-            input_code AS inputCode,
-            type_code AS typeCode,
-            group_unit_name AS groupUnitName
+            serial_no AS serialNo, -- 排序号
+            dept_code AS deptCode, -- 科室编码
+            dept_name AS deptName, -- 科室名称
+            dept_alias AS deptAlias, -- 科室别名
+            clinic_attr AS clinicAttr, -- 临床属性(0临床/1辅诊/2护理单元/3机关/9其他)
+            outp_or_inp AS outpOrInp, -- 门诊住院标志(0门诊/1住院/2两者/9其他)
+            internal_or_sergery AS internalOrSergery, -- 内外科标志(0内科/1外科)
+            input_code AS inputCode, -- 输入码
+            type_code AS typeCode, -- 科室类型
+            group_unit_name AS groupUnitName -- 所属单元
         FROM TR_DEPT_DICT
         <where>
             <choose>

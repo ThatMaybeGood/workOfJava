@@ -159,6 +159,14 @@ class PatientPortraitController {
         const archiveData = (ageData && ageData.archiveData) ? ageData.archiveData : [];
         const outpatientData = (ageData && ageData.outpatientData) ? ageData.outpatientData : [];
         const isOutpatient = this.state.patientType !== 'inp';
+        // 标题旁显示总数
+        const sum = arr => arr.reduce((s, v) => s + (Number(v) || 0), 0);
+        const totalText = document.getElementById('ageTotalText');
+        if (totalText) {
+            totalText.textContent = isOutpatient
+                ? `（建档量 ${sum(archiveData)} · 门诊量 ${sum(outpatientData)}）`
+                : `（建档量 ${sum(archiveData)}）`;
+        }
         const option = {
             tooltip: {
                 trigger: 'axis',

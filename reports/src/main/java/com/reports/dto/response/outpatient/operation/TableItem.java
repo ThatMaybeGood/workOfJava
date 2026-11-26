@@ -24,7 +24,7 @@ public class TableItem {
     private Integer totalVisits;
 
     /**
-     * 预约挂号率
+     * 预约诊疗率
      */
     private String appointmentRate;
 
@@ -34,12 +34,7 @@ public class TableItem {
     private Integer visitCount;
 
     /**
-     * 预约诊察率
-     */
-    private String examRate;
-
-    /**
-     * 接诊效率
+     * 平均等候时长(tr_hrap_opd_waiting_time.waiting_time按stat_date+dept_code关联,空取0)
      */
     private Double efficiency;
 

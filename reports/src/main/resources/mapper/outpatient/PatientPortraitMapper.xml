@@ -7,10 +7,10 @@
     <!-- ============================================================ -->
     <select id="queryAgeAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitAgeEntity">
         SELECT
-        age_group AS ageGroup,
-        NVL(SUM(archive_count), 0) AS archiveCount,
-        NVL(SUM(outpatient_count), 0) AS outpatientCount,
-        patient_type AS patientType
+        age_group AS ageGroup, -- 年龄段
+        NVL(SUM(archive_count), 0) AS archiveCount, -- 建档人数
+        NVL(SUM(outpatient_count), 0) AS outpatientCount, -- 门诊人数
+        patient_type AS patientType -- 患者类型
         FROM TR_PAT_PORTRAIT_AGE a
         LEFT JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
         WHERE a.stat_date BETWEEN #{startDate} AND #{endDate}
@@ -32,9 +32,9 @@
     <!-- ============================================================ -->
     <select id="queryInsuranceAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitInsurEntity">
         SELECT
-        insurance_name AS insuranceName,
-        NVL(SUM(patient_count), 0) AS patientCount,
-        patient_type AS patientType
+        insurance_name AS insuranceName, -- 医保名称
+        NVL(SUM(patient_count), 0) AS patientCount, -- 患者人数
+        patient_type AS patientType -- 患者类型
         FROM TR_PAT_PORTRAIT_INSUR i
         LEFT JOIN TR_DEPT_DICT d ON i.dept_code = d.dept_code
         WHERE i.stat_date BETWEEN #{startDate} AND #{endDate}
@@ -56,9 +56,9 @@
     <!-- ============================================================ -->
     <select id="queryIdentityAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitIdtyEntity">
         SELECT
-        identity_name AS identityName,
-        NVL(SUM(patient_count), 0) AS patientCount,
-        patient_type AS patientType
+        identity_name AS identityName, -- 身份名称
+        NVL(SUM(patient_count), 0) AS patientCount, -- 患者人数
+        patient_type AS patientType -- 患者类型
         FROM TR_PAT_PORTRAIT_IDTY t
         LEFT JOIN TR_DEPT_DICT d ON t.dept_code = d.dept_code
         WHERE t.stat_date BETWEEN #{startDate} AND #{endDate}
@@ -80,9 +80,9 @@
     <!-- ============================================================ -->
     <select id="queryRegOriginAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitRegEntity">
         SELECT
-        source_name AS sourceName,
-        NVL(SUM(patient_count), 0) AS patientCount,
-        patient_type AS patientType
+        source_name AS sourceName, -- 来源名称
+        NVL(SUM(patient_count), 0) AS patientCount, -- 患者人数
+        patient_type AS patientType -- 患者类型
         FROM TR_PAT_PORTRAIT_REG r
         LEFT JOIN TR_DEPT_DICT d ON r.dept_code = d.dept_code
         WHERE r.stat_date BETWEEN #{startDate} AND #{endDate}
@@ -104,9 +104,9 @@
     <!-- ============================================================ -->
     <select id="queryArcOriginAnalysis" resultType="com.reports.entity.OutpatientPatientPortraitArcEntity">
         SELECT
-        source_name AS sourceName,
-        NVL(SUM(patient_count), 0) AS patientCount,
-        patient_type AS patientType
+        source_name AS sourceName, -- 来源名称
+        NVL(SUM(patient_count), 0) AS patientCount, -- 患者人数
+        patient_type AS patientType -- 患者类型
         FROM TR_PAT_PORTRAIT_ARC a
         LEFT JOIN TR_DEPT_DICT d ON a.dept_code = d.dept_code
         WHERE a.stat_date BETWEEN #{startDate} AND #{endDate}

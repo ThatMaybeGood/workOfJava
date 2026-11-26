@@ -34,7 +34,7 @@
                            </choose>,
                            CASE WHEN t.OPERATOR_NO IN ('E700', '9111') THEN 'SELF' ELSE 'WINDOW' END
                        ORDER BY t.SETTLING_DATE
-                   ) AS acct_rn
+                   ) AS acct_rn <!-- 账户内行号(发票去重取首条) -->
             FROM inp_settle_master t
             WHERE t.SETTLING_DATE &gt;= #{startDate}
               AND t.SETTLING_DATE &lt; #{endDate} + 1
@@ -51,12 +51,12 @@
     <!-- ============================================================ -->
     <select id="queryByFeeChannel" resultType="com.reports.dto.response.cash.discharge.settlement.PersonCountItem">
         SELECT
-            <include refid="dateExpr"/> AS itemDate,
-            <include refid="feeTypeExpr"/> AS feeType,
-            <include refid="channelExpr"/> AS settleChannel,
-            COUNT(1) AS cnt,
-            COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt,
-            <include refid="invoiceExpr"/> AS invoicePrintedTotal
+            <include refid="dateExpr"/> AS itemDate, <!-- 日期 -->
+            <include refid="feeTypeExpr"/> AS feeType, <!-- 费别 -->
+            <include refid="channelExpr"/> AS settleChannel, <!-- 结算类别 -->
+            COUNT(1) AS cnt, <!-- 收据量 -->
+            COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt, <!-- 人次 -->
+            <include refid="invoiceExpr"/> AS invoicePrintedTotal <!-- 自助结算打印发票数 -->
         FROM <include refid="settleDedup"/>
         LEFT JOIN inp_acct_master m ON m.ACCT_NO = a.ACCT_NO AND m.OPERATOR_NO = a.OPERATOR_NO
         GROUP BY
@@ -71,14 +71,14 @@
     <!-- ============================================================ -->
     <select id="queryByOperator" resultType="com.reports.dto.response.cash.discharge.settlement.PersonCountItem">
         SELECT
-            <include refid="dateExpr"/> AS itemDate,
-            <include refid="feeTypeExpr"/> AS feeType,
-            <include refid="channelExpr"/> AS settleChannel,
-            a.OPERATOR_NO AS operatorNo,
-            RAWTOHEX(NVL(u.USER_NAME, a.OPERATOR_NO)) AS operatorName,
-            COUNT(1) AS cnt,
-            COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt,
-            <include refid="invoiceExpr"/> AS invoicePrintedTotal
+            <include refid="dateExpr"/> AS itemDate, <!-- 日期 -->
+            <include refid="feeTypeExpr"/> AS feeType, <!-- 费别 -->
+            <include refid="channelExpr"/> AS settleChannel, <!-- 结算类别 -->
+            a.OPERATOR_NO AS operatorNo, <!-- 操作员工号 -->
+            RAWTOHEX(NVL(u.USER_NAME, a.OPERATOR_NO)) AS operatorName, <!-- 操作员姓名(hex) -->
+            COUNT(1) AS cnt, <!-- 收据量 -->
+            COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt, <!-- 人次 -->
+            <include refid="invoiceExpr"/> AS invoicePrintedTotal <!-- 自助结算打印发票数 -->
         FROM <include refid="settleDedup"/>
         LEFT JOIN inp_acct_master m ON m.ACCT_NO = a.ACCT_NO AND m.OPERATOR_NO = a.OPERATOR_NO
         LEFT JOIN users u ON u.USER_ID = a.OPERATOR_NO
@@ -97,12 +97,12 @@
     <!-- ============================================================ -->
     <select id="queryByPayType" resultType="com.reports.dto.response.cash.discharge.settlement.PersonCountItem">
         SELECT
-            <include refid="dateExpr"/> AS itemDate,
-            <include refid="feeTypeExpr"/> AS feeType,
-            <include refid="channelExpr"/> AS settleChannel,
-            RAWTOHEX(TRIM(a.CHARGE_TYPE)) AS payType,
-            COUNT(1) AS cnt,
-            COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt
+            <include refid="dateExpr"/> AS itemDate, <!-- 日期 -->
+            <include refid="feeTypeExpr"/> AS feeType, <!-- 费别 -->
+            <include refid="channelExpr"/> AS settleChannel, <!-- 结算类别 -->
+            RAWTOHEX(TRIM(a.CHARGE_TYPE)) AS payType, <!-- 支付类别 -->
+            COUNT(1) AS cnt, <!-- 收据量 -->
+            COUNT(DISTINCT a.PATIENT_ID || '|' || a.VISIT_ID) AS personCnt <!-- 人次 -->
         FROM inp_settle_master a
         WHERE a.SETTLING_DATE &gt;= #{startDate}
           AND a.SETTLING_DATE &lt; #{endDate} + 1

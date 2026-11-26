@@ -34,7 +34,7 @@
                            </choose>,
                            CASE WHEN t.operator_no IN ('E700', '9111') THEN 'SELF' ELSE 'WINDOW' END
                        ORDER BY t.settling_date
-                   ) AS acct_rn
+                   ) AS acct_rn -- 账户内行号(发票去重取首条)
             FROM tr_disch_settle_cnt_d t
             WHERE t.stat_date &gt;= #{startDate}
               AND t.stat_date &lt; #{endDate} + 1
@@ -52,12 +52,12 @@
     <!-- ============================================================ -->
     <select id="queryByFeeChannel" resultType="com.reports.dto.response.cash.discharge.settlement.PersonCountItem">
         SELECT
-            <include refid="dateExpr"/> AS itemDate,
-            <include refid="feeTypeExpr"/> AS feeType,
-            <include refid="channelExpr"/> AS settleChannel,
-            COUNT(1) AS cnt,
-            COUNT(DISTINCT a.patient_id || '|' || a.visit_id) AS personCnt,
-            <include refid="invoiceExpr"/> AS invoicePrintedTotal
+            <include refid="dateExpr"/> AS itemDate, -- 日期
+            <include refid="feeTypeExpr"/> AS feeType, -- 费别
+            <include refid="channelExpr"/> AS settleChannel, -- 结算类别
+            COUNT(1) AS cnt, -- 收据量
+            COUNT(DISTINCT a.patient_id || '|' || a.visit_id) AS personCnt, -- 人次
+            <include refid="invoiceExpr"/> AS invoicePrintedTotal -- 自助结算打印发票数
         FROM <include refid="settleDedup"/>
         GROUP BY
             <include refid="dateExpr"/>,
@@ -72,14 +72,14 @@
     <!-- ============================================================ -->
     <select id="queryByOperator" resultType="com.reports.dto.response.cash.discharge.settlement.PersonCountItem">
         SELECT
-            <include refid="dateExpr"/> AS itemDate,
-            <include refid="feeTypeExpr"/> AS feeType,
-            <include refid="channelExpr"/> AS settleChannel,
-            a.operator_no AS operatorNo,
-            a.operator_name_hex AS operatorName,
-            COUNT(1) AS cnt,
-            COUNT(DISTINCT a.patient_id || '|' || a.visit_id) AS personCnt,
-            <include refid="invoiceExpr"/> AS invoicePrintedTotal
+            <include refid="dateExpr"/> AS itemDate, -- 日期
+            <include refid="feeTypeExpr"/> AS feeType, -- 费别
+            <include refid="channelExpr"/> AS settleChannel, -- 结算类别
+            a.operator_no AS operatorNo, -- 操作员工号
+            a.operator_name_hex AS operatorName, -- 操作员姓名(hex)
+            COUNT(1) AS cnt, -- 收据量
+            COUNT(DISTINCT a.patient_id || '|' || a.visit_id) AS personCnt, -- 人次
+            <include refid="invoiceExpr"/> AS invoicePrintedTotal -- 自助结算打印发票数
         FROM <include refid="settleDedup"/>
         GROUP BY
             <include refid="dateExpr"/>,
@@ -96,12 +96,12 @@
     <!-- ============================================================ -->
     <select id="queryByPayType" resultType="com.reports.dto.response.cash.discharge.settlement.PersonCountItem">
         SELECT
-            <include refid="dateExpr"/> AS itemDate,
-            <include refid="feeTypeExpr"/> AS feeType,
-            <include refid="channelExpr"/> AS settleChannel,
-            a.charge_type_hex AS payType,
-            COUNT(1) AS cnt,
-            COUNT(DISTINCT a.patient_id || '|' || a.visit_id) AS personCnt
+            <include refid="dateExpr"/> AS itemDate, -- 日期
+            <include refid="feeTypeExpr"/> AS feeType, -- 费别
+            <include refid="channelExpr"/> AS settleChannel, -- 结算类别
+            a.charge_type_hex AS payType, -- 支付类别
+            COUNT(1) AS cnt, -- 收据量
+            COUNT(DISTINCT a.patient_id || '|' || a.visit_id) AS personCnt -- 人次
         FROM tr_disch_settle_cnt_d a
         WHERE a.stat_date &gt;= #{startDate}
           AND a.stat_date &lt; #{endDate} + 1

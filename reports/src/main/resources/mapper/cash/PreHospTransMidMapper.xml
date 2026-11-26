@@ -18,10 +18,10 @@
                 <otherwise>
                     TO_CHAR(n.stat_date, 'YYYY-MM-DD')
                 </otherwise>
-            </choose> AS itemDate,
-            n.operator_no AS operNo,
-            COUNT(1) AS rcptCnt,
-            COUNT(DISTINCT n.patient_id) AS personCnt
+            </choose> AS itemDate, -- 日期
+            n.operator_no AS operNo, -- 操作员工号
+            COUNT(1) AS rcptCnt, -- 收据张数
+            COUNT(DISTINCT n.patient_id) AS personCnt -- 人次
         FROM tr_prehosp_trans_d n
         WHERE n.stat_date &gt;= #{startDate}
           AND n.stat_date &lt; #{endDate} + 1

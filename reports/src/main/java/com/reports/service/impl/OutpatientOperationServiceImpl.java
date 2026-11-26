@@ -117,7 +117,6 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
             item.setTotalVisits(350 + i * 10);
             item.setAppointmentRate("70.00%");
             item.setVisitCount(30 + i);
-            item.setExamRate("75.00%");
             item.setEfficiency(25.00 + i);
             item.setEffectiveUnits(45 + i);
             item.setTotalUnits(50 + i);
@@ -151,6 +150,9 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
         log.info("使用 JdbcTemplate 查询概览数据");
 
         String sql = "SELECT " +
+                // 平均等候时长: tr_hrap_opd_overview.avg_waiting_time_new(替代原有效单元/总单元)
+                "(SELECT ROUND(AVG(NVL(o.avg_waiting_time_new, 0)), 1) FROM tr_hrap_opd_overview o " +
+                "WHERE o.stat_date BETWEEN ? AND ?) AS efficiency, " +
                 "SUM(NVL(total_visits, 0)) AS totalVisits, " +
                 "SUM(NVL(famous_expert, 0)) AS famousExpert, " +
                 "SUM(NVL(special_expert, 0)) AS specialExpert, " +
@@ -172,12 +174,16 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
                 "SUM(NVL(unit_ordinary_total, 0)) AS unitOrdinaryTotal, " +
                 "SUM(NVL(appointment_total, 0)) AS appointmentTotal, " +
                 "SUM(NVL(appointment_count, 0)) AS appointmentCount, " +
+                "SUM(NVL(self_pay_total, 0)) AS selfPayTotal, " +
+                "SUM(NVL(self_settle_count, 0)) AS selfSettleCount, " +
                 "SUM(NVL(return_visits, 0)) AS returnVisits, " +
-                "SUM(NVL(treat_count, 0)) AS treatCount " +
+                "SUM(NVL(no_window_count, 0)) AS treatCount " +
                 "FROM TR_OUTP_OP " +
                 "WHERE stat_date BETWEEN ? AND ? ";
 
         List<Object> params = new ArrayList<>();
+        params.add(request.getStartDate()); // efficiency子查询
+        params.add(request.getEndDate());
         params.add(request.getStartDate());
         params.add(request.getEndDate());
         if (request.getDeptCode() != null && !request.getDeptCode().isEmpty()) {
@@ -197,7 +203,7 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
     private PageResult<TableItem> queryTableByJdbc(OutpatientOperationRequest request, Integer page, Integer pageSize) {
         log.info("使用 JdbcTemplate 查询表格数据");
 
-        String baseSql = "SELECT dept_code AS deptCode, dept_name AS deptName, " +
+        String baseSql = "SELECT a.dept_code AS deptCode, a.dept_name AS deptName, " +
                 "SUM(NVL(total_visits, 0)) AS totalVisits, " +
                 "SUM(NVL(famous_expert, 0)) AS famousExpert, " +
                 "SUM(NVL(special_expert, 0)) AS specialExpert, " +
@@ -220,22 +226,25 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
                 "SUM(NVL(appointment_total, 0)) AS appointmentTotal, " +
                 "SUM(NVL(appointment_count, 0)) AS appointmentCount, " +
                 "SUM(NVL(return_visits, 0)) AS returnVisits, " +
-                "SUM(NVL(treat_count, 0)) AS treatCount " +
-                "FROM TR_OUTP_OP " +
-                "WHERE stat_date BETWEEN ? AND ? ";
+                "SUM(NVL(no_window_count, 0)) AS treatCount, " +
+                // 平均等候时长: tr_hrap_opd_waiting_time.waiting_time按stat_date+dept_code关联,空取0
+                "ROUND(AVG(NVL(w.waiting_time, 0)), 1) AS efficiency " +
+                "FROM TR_OUTP_OP a " +
+                "LEFT JOIN tr_hrap_opd_waiting_time w ON w.stat_date = a.stat_date AND w.dept_code = a.dept_code " +
+                "WHERE a.stat_date BETWEEN ? AND ? ";
 
         List<Object> params = new ArrayList<>();
         params.add(request.getStartDate());
         params.add(request.getEndDate());
         if (request.getDeptCode() != null && !request.getDeptCode().isEmpty()) {
-            baseSql += "AND dept_code = ? ";
+            baseSql += "AND a.dept_code = ? ";
             params.add(request.getDeptCode());
         }
         if (request.getDeptName() != null && !request.getDeptName().isEmpty()) {
-            baseSql += "AND dept_name LIKE '%' || ? || '%' ";
+            baseSql += "AND a.dept_name LIKE '%' || ? || '%' ";
             params.add(request.getDeptName());
         }
-        baseSql += "GROUP BY dept_code, dept_name ORDER BY totalVisits DESC";
+        baseSql += "GROUP BY a.dept_code, a.dept_name ORDER BY totalVisits DESC";
 
         String pageSql = OraclePageUtil.wrapOffsetFetchPage(baseSql, page, pageSize);
 
@@ -318,9 +327,8 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
         int expertA = getInt(map, "expertA");
         int expertB = getInt(map, "expertB");
         int ordinary = getInt(map, "ordinary");
-        int appointmentTotal = getInt(map, "appointmentTotal");
-        int appointmentCount = getInt(map, "appointmentCount");
         int treatCount = getInt(map, "treatCount");
+        int returnVisits = getInt(map, "returnVisits");
 
         // 出诊人次 = 所有专家类人次之和
         int visitCount = famousExpert + specialExpert + knownExpert + expertA + expertB + ordinary;
@@ -342,10 +350,11 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
 
         OverviewData overview = new OverviewData();
         overview.setTotalVisits(totalVisits);
-        overview.setAppointmentRate(calcRate(appointmentCount, appointmentTotal));
+        // 预约诊疗率 = (非窗口挂号数-退号量)/(total_visits-return_visits)
+        overview.setAppointmentRate(calcRate(treatCount - returnVisits, totalVisits - returnVisits));
         overview.setVisitCount(visitCount);
-        overview.setExamRate(calcRate(treatCount, visitCount));
-        overview.setEfficiency(calcEfficiency(effectiveUnits, totalUnits));
+        overview.setExamRate(calcRate(getInt(map, "selfSettleCount"), getInt(map, "selfPayTotal")));
+        overview.setEfficiency(getDbl(map, "efficiency"));
         overview.setEffectiveUnits(effectiveUnits);
         overview.setTotalUnits(totalUnits);
         overview.setFamousExpert(famousExpert);
@@ -381,9 +390,7 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
         int expertA = entity.getExpertA() != null ? entity.getExpertA() : 0;
         int expertB = entity.getExpertB() != null ? entity.getExpertB() : 0;
         int ordinary = entity.getOrdinary() != null ? entity.getOrdinary() : 0;
-        int appointmentTotal = entity.getAppointmentTotal() != null ? entity.getAppointmentTotal() : 0;
         int returnVisits = entity.getReturnVisits() != null ? entity.getReturnVisits() : 0;
-        int appointmentCount = entity.getAppointmentCount() != null ? entity.getAppointmentCount() : 0;
         int treatCount = entity.getTreatCount() != null ? entity.getTreatCount() : 0;
 
         int visitCount = famousExpert + specialExpert + knownExpert + expertA + expertB + ordinary;
@@ -398,10 +405,14 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
 
         OverviewData overview = new OverviewData();
         overview.setTotalVisits(totalVisits);
-        overview.setAppointmentRate(calcRate(appointmentCount, appointmentTotal-returnVisits));
+        // 预约诊疗率 = (非窗口挂号数-退号量)/门诊量(totalVisits在SQL已=total_visits-return_visits)
+        overview.setAppointmentRate(calcRate(treatCount - returnVisits, totalVisits));
         overview.setVisitCount(visitCount);
-        overview.setExamRate(calcRate(appointmentCount + treatCount, visitCount+appointmentCount+treatCount));
-        overview.setEfficiency(calcEfficiency(effectiveUnits, totalUnits));
+        // 智慧结算率 = 自助结算数/自助缴费总数
+        int selfSettleCount = entity.getSelfSettleCount() != null ? entity.getSelfSettleCount() : 0;
+        int selfPayTotal = entity.getSelfPayTotal() != null ? entity.getSelfPayTotal() : 0;
+        overview.setExamRate(calcRate(selfSettleCount, selfPayTotal));
+        overview.setEfficiency(entity.getEfficiency() != null ? entity.getEfficiency() : 0.0);
         overview.setEffectiveUnits(effectiveUnits);
         overview.setTotalUnits(totalUnits);
         overview.setFamousExpert(famousExpert);
@@ -435,9 +446,8 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
         int expertA = entity.getExpertA() != null ? entity.getExpertA() : 0;
         int expertB = entity.getExpertB() != null ? entity.getExpertB() : 0;
         int ordinary = entity.getOrdinary() != null ? entity.getOrdinary() : 0;
-        int appointmentTotal = entity.getAppointmentTotal() != null ? entity.getAppointmentTotal() : 0;
-        int appointmentCount = entity.getAppointmentCount() != null ? entity.getAppointmentCount() : 0;
         int treatCount = entity.getTreatCount() != null ? entity.getTreatCount() : 0;
+        int returnVisits = entity.getReturnVisits() != null ? entity.getReturnVisits() : 0;
 
         int visitCount = famousExpert + specialExpert + knownExpert + expertA + expertB + ordinary;
         int effectiveUnits = sumNonNull(
@@ -453,10 +463,9 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
         item.setDeptCode(entity.getDeptCode());
         item.setDeptName(entity.getDeptName());
         item.setTotalVisits(entity.getTotalVisits() != null ? entity.getTotalVisits() : 0);
-        item.setAppointmentRate(calcRate(appointmentCount, appointmentTotal));
+        item.setAppointmentRate(calcRate(treatCount - returnVisits, item.getTotalVisits() - returnVisits));
         item.setVisitCount(visitCount);
-        item.setExamRate(calcRate(treatCount, visitCount));
-        item.setEfficiency(calcEfficiency(effectiveUnits, totalUnits));
+        item.setEfficiency(entity.getEfficiency() != null ? entity.getEfficiency() : 0.0);
         item.setEffectiveUnits(effectiveUnits);
         item.setTotalUnits(totalUnits);
         item.setFamousExpert(famousExpert);
@@ -487,9 +496,8 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
         int expertA = rs.getInt("EXPERTA");
         int expertB = rs.getInt("EXPERTB");
         int ordinary = rs.getInt("ORDINARY");
-        int appointmentTotal = rs.getInt("APPOINTMENTTOTAL");
-        int appointmentCount = rs.getInt("APPOINTMENTCOUNT");
         int treatCount = rs.getInt("TREATCOUNT");
+        int returnVisits = rs.getInt("RETURNVISITS");
 
         int visitCount = famousExpert + specialExpert + knownExpert + expertA + expertB + ordinary;
         int effectiveUnits = rs.getInt("UNITFAMOUSEFFECTIVE")
@@ -509,10 +517,9 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
         item.setDeptCode(rs.getString("DEPTCODE"));
         item.setDeptName(rs.getString("DEPTNAME"));
         item.setTotalVisits(rs.getInt("TOTALVISITS"));
-        item.setAppointmentRate(calcRate(appointmentCount, appointmentTotal));
+        item.setAppointmentRate(calcRate(treatCount - returnVisits, rs.getInt("TOTALVISITS") - returnVisits));
         item.setVisitCount(visitCount);
-        item.setExamRate(calcRate(treatCount, visitCount));
-        item.setEfficiency(calcEfficiency(effectiveUnits, totalUnits));
+        item.setEfficiency(rs.getDouble("EFFICIENCY"));
         item.setEffectiveUnits(effectiveUnits);
         item.setTotalUnits(totalUnits);
         item.setFamousExpert(famousExpert);
@@ -542,12 +549,6 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
         return String.format("%.2f%%", (numerator * 100.0) / denominator);
     }
 
-    /** 计算效率 = 有效出诊单元 / 出诊单元总数（保留1位小数） */
-    private Double calcEfficiency(int effectiveUnits, int totalUnits) {
-        if (totalUnits == 0) return 0.0;
-        return Math.round((effectiveUnits * 100.0 / totalUnits) * 10.0) / 10.0;
-    }
-
     private int sumNonNull(Integer... values) {
         int sum = 0;
         for (Integer v : values) {
@@ -566,6 +567,19 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
             return Integer.parseInt(val.toString());
         } catch (NumberFormatException e) {
             return 0;
+        }
+    }
+
+    private Double getDbl(Map<String, Object> map, String key) {
+        Object val = map.get(key);
+        if (val == null) val = map.get(key.toUpperCase());
+        if (val == null) val = map.get(key.toLowerCase());
+        if (val == null) return 0.0;
+        if (val instanceof Number) return ((Number) val).doubleValue();
+        try {
+            return Double.parseDouble(val.toString());
+        } catch (NumberFormatException e) {
+            return 0.0;
         }
     }
 

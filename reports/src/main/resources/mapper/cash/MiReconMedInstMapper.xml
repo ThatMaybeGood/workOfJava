@@ -19,22 +19,22 @@
          单块内按bill_date分组(一天一行), Java侧再按日期+来源类型聚合;
          注意: XML里SQL不能写裸<号, <=要用<![CDATA[<=]]>包, 否则启动解析报错 -->
     <select id="queryOrgData" resultMap="orgDtlMap">
-        SELECT source_type,
-               settle_date,
-               qty,
-               fee,
-               insur_type,
-               insur_type_name,
-               count_flag
+        SELECT source_type, -- 来源类型
+               settle_date, -- 结算日期
+               qty, -- 数量
+               fee, -- 医疗总金额
+               insur_type, -- 类型代码
+               insur_type_name, -- 类型名称
+               count_flag -- 是否计入合计(1计入/0仅明细)
         FROM (
             <!-- 账平 -->
-            SELECT '账平' AS source_type,
-                   a.bill_date AS settle_date,
-                   COUNT(a.setl_id) AS qty,
-                   SUM(a.medfee_sumamt) AS fee,
-                   a.insutype AS insur_type,
-                   DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name,
-                   1 AS count_flag
+            SELECT '账平' AS source_type, -- 来源类型
+                   a.bill_date AS settle_date, -- 结算日期
+                   COUNT(a.setl_id) AS qty, -- 数量
+                   SUM(a.medfee_sumamt) AS fee, -- 医疗总金额
+                   a.insutype AS insur_type, -- 类型代码
+                   DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name, -- 类型名称
+                   1 AS count_flag -- 计入合计
             FROM ips_dz_biz_bills a
             WHERE a.zp_flag = 1
               AND a.bill_date BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
@@ -42,13 +42,13 @@
             GROUP BY a.insutype, a.bill_date
             UNION ALL
             <!-- 医保负金额-his正交易(医保负交易对HIS正交易, 金额取负) -->
-            SELECT '医保负金额-his正交易' AS source_type,
-                   b.bill_date AS settle_date,
-                   COUNT(b.setl_id) AS qty,
-                   SUM(b.medfee_sumamt) AS fee,
-                   b.insutype AS insur_type,
-                   DECODE(b.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name,
-                   1 AS count_flag
+            SELECT '医保负金额-his正交易' AS source_type, -- 来源类型
+                   b.bill_date AS settle_date, -- 结算日期
+                   COUNT(b.setl_id) AS qty, -- 数量
+                   SUM(b.medfee_sumamt) AS fee, -- 医疗总金额
+                   b.insutype AS insur_type, -- 类型代码
+                   DECODE(b.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name, -- 类型名称
+                   1 AS count_flag -- 计入合计
             FROM ips_dz_pay_bills b
             INNER JOIN ips_dz_biz_bills a
               ON a.INSUTYPE = b.INSUTYPE
@@ -64,13 +64,13 @@
             GROUP BY b.insutype, b.bill_date
             UNION ALL
             <!-- 医保负金额-医保正交易(医保负交易对医保正交易, 金额取负) -->
-            SELECT '医保负金额-医保正交易' AS source_type,
-                   b.bill_date AS settle_date,
-                   COUNT(b.setl_id) AS qty,
-                   -SUM(NVL(a.medfee_sumamt, 0)) AS fee,
-                   b.insutype AS insur_type,
-                   DECODE(b.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name,
-                   1 AS count_flag
+            SELECT '医保负金额-医保正交易' AS source_type, -- 来源类型
+                   b.bill_date AS settle_date, -- 结算日期
+                   COUNT(b.setl_id) AS qty, -- 数量
+                   -SUM(NVL(a.medfee_sumamt, 0)) AS fee, -- 医疗总金额(取负)
+                   b.insutype AS insur_type, -- 类型代码
+                   DECODE(b.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name, -- 类型名称
+                   1 AS count_flag -- 计入合计
             FROM ips_dz_pay_bills b
             INNER JOIN ips_dz_pay_bills a
               ON a.INSUTYPE = b.INSUTYPE
@@ -84,13 +84,13 @@
             GROUP BY b.insutype, b.bill_date
             UNION ALL
             <!-- 医保正金额 -->
-            SELECT '医保正金额' AS source_type,
-                   a.bill_date AS settle_date,
-                   COUNT(a.setl_id) AS qty,
-                   SUM(NVL(a.medfee_sumamt, 0)) AS fee,
-                   a.insutype AS insur_type,
-                   DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name,
-                   1 AS count_flag
+            SELECT '医保正金额' AS source_type, -- 来源类型
+                   a.bill_date AS settle_date, -- 结算日期
+                   COUNT(a.setl_id) AS qty, -- 数量
+                   SUM(NVL(a.medfee_sumamt, 0)) AS fee, -- 医疗总金额
+                   a.insutype AS insur_type, -- 类型代码
+                   DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name, -- 类型名称
+                   1 AS count_flag -- 计入合计
             FROM ips_dz_pay_bills a
             WHERE a.TRAN_TYPE = 1
               AND a.zp_flag = -1
@@ -99,13 +99,13 @@
             GROUP BY a.insutype, a.bill_date
             UNION ALL
             <!-- 金额不等(zp_flag=-2): 与医保机构侧口径一致不计入对账合计(count_flag=0), 仅明细弹窗展示 -->
-            SELECT '金额不等' AS source_type,
-                   a.bill_date AS settle_date,
-                   COUNT(a.setl_id) AS qty,
-                   SUM(a.medfee_sumamt) AS fee,
-                   a.insutype AS insur_type,
-                   DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name,
-                   0 AS count_flag
+            SELECT '金额不等' AS source_type, -- 来源类型
+                   a.bill_date AS settle_date, -- 结算日期
+                   COUNT(a.setl_id) AS qty, -- 数量
+                   SUM(a.medfee_sumamt) AS fee, -- 医疗总金额
+                   a.insutype AS insur_type, -- 类型代码
+                   DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name, -- 类型名称
+                   0 AS count_flag -- 不计入合计(仅明细)
             FROM ips_dz_biz_bills a
             WHERE a.zp_flag = -2
               AND a.bill_date BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
@@ -121,22 +121,22 @@
          金额不等=zp_flag=-2(与医疗机构侧口径一致不计入合计count_flag=0, 仅明细展示);
          单块按bill_date分组, Java侧再按日期+来源类型聚合 -->
     <select id="queryMiOrgData" resultMap="orgDtlMap">
-        SELECT source_type,
-               settle_date,
-               qty,
-               fee,
-               insur_type,
-               insur_type_name,
-               count_flag
+        SELECT source_type, -- 来源类型
+               settle_date, -- 结算日期
+               qty, -- 数量
+               fee, -- 医疗总金额
+               insur_type, -- 类型代码
+               insur_type_name, -- 类型名称
+               count_flag -- 是否计入合计(1计入/0仅明细)
         FROM (
             <!-- 账平 -->
-            SELECT '账平' AS source_type,
-                   a.bill_date AS settle_date,
-                   COUNT(a.setl_id) AS qty,
-                   SUM(a.medfee_sumamt) AS fee,
-                   a.insutype AS insur_type,
-                   DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name,
-                   1 AS count_flag
+            SELECT '账平' AS source_type, -- 来源类型
+                   a.bill_date AS settle_date, -- 结算日期
+                   COUNT(a.setl_id) AS qty, -- 数量
+                   SUM(a.medfee_sumamt) AS fee, -- 医疗总金额
+                   a.insutype AS insur_type, -- 类型代码
+                   DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name, -- 类型名称
+                   1 AS count_flag -- 计入合计
             FROM ips_dz_pay_bills a
             WHERE a.zp_flag = 1
               AND a.bill_date BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
@@ -144,13 +144,13 @@
             GROUP BY a.insutype, a.bill_date
             UNION ALL
             <!-- 医保负金额(负交易, 金额取负) -->
-            SELECT '医保负金额' AS source_type,
-                   a.bill_date AS settle_date,
-                   COUNT(a.setl_id) AS qty,
-                   SUM(a.medfee_sumamt) AS fee,
-                   a.insutype AS insur_type,
-                   DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name,
-                   1 AS count_flag
+            SELECT '医保负金额' AS source_type, -- 来源类型
+                   a.bill_date AS settle_date, -- 结算日期
+                   COUNT(a.setl_id) AS qty, -- 数量
+                   SUM(a.medfee_sumamt) AS fee, -- 医疗总金额
+                   a.insutype AS insur_type, -- 类型代码
+                   DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name, -- 类型名称
+                   1 AS count_flag -- 计入合计
             FROM ips_dz_pay_bills a
             WHERE a.TRAN_TYPE = 2
               AND a.zp_flag = -1
@@ -159,13 +159,13 @@
             GROUP BY a.insutype, a.bill_date
             UNION ALL
             <!-- 医保正金额(正交易) -->
-            SELECT '医保正金额' AS source_type,
-                   a.bill_date AS settle_date,
-                   COUNT(a.setl_id) AS qty,
-                   SUM(NVL(a.medfee_sumamt, 0)) AS fee,
-                   a.insutype AS insur_type,
-                   DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name,
-                   1 AS count_flag
+            SELECT '医保正金额' AS source_type, -- 来源类型
+                   a.bill_date AS settle_date, -- 结算日期
+                   COUNT(a.setl_id) AS qty, -- 数量
+                   SUM(NVL(a.medfee_sumamt, 0)) AS fee, -- 医疗总金额
+                   a.insutype AS insur_type, -- 类型代码
+                   DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name, -- 类型名称
+                   1 AS count_flag -- 计入合计
             FROM ips_dz_pay_bills a
             WHERE a.TRAN_TYPE = 1
               AND a.zp_flag = -1
@@ -174,13 +174,13 @@
             GROUP BY a.insutype, a.bill_date
             UNION ALL
             <!-- 金额不等(zp_flag=-2): 与医疗机构侧口径一致不计入对账合计(count_flag=0), 仅明细弹窗展示 -->
-            SELECT '金额不等' AS source_type,
-                   a.bill_date AS settle_date,
-                   COUNT(a.setl_id) AS qty,
-                   SUM(a.medfee_sumamt) AS fee,
-                   a.insutype AS insur_type,
-                   DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name,
-                   0 AS count_flag
+            SELECT '金额不等' AS source_type, -- 来源类型
+                   a.bill_date AS settle_date, -- 结算日期
+                   COUNT(a.setl_id) AS qty, -- 数量
+                   SUM(a.medfee_sumamt) AS fee, -- 医疗总金额
+                   a.insutype AS insur_type, -- 类型代码
+                   DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name, -- 类型名称
+                   0 AS count_flag -- 不计入合计(仅明细)
             FROM ips_dz_pay_bills a
             WHERE a.zp_flag = -2
               AND a.bill_date BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
@@ -215,16 +215,16 @@
     <!-- 某日两表全量合计(不限zp_flag/TRAN_TYPE): 账平差异弹窗顶部对照,
          总额对平但条数差大时, 多为医保侧一正一负自对冲交易(金额抵消条数虚增) -->
     <select id="queryDayTotals" resultMap="dayTotalMap">
-        SELECT 'HIS业务表' AS table_name,
-               COUNT(t.setl_id) AS qty,
-               SUM(NVL(t.medfee_sumamt, 0)) AS fee
+        SELECT 'HIS业务表' AS table_name, -- 表名
+               COUNT(t.setl_id) AS qty, -- 总条数
+               SUM(NVL(t.medfee_sumamt, 0)) AS fee -- 总金额
         FROM ips_dz_biz_bills t
         WHERE t.bill_date = TO_DATE(#{settleDate}, 'yyyy-mm-dd')
           AND t.insutype = #{insurType}
         UNION ALL
-        SELECT '医保支付表' AS table_name,
-               COUNT(t.setl_id) AS qty,
-               SUM(NVL(t.medfee_sumamt, 0)) AS fee
+        SELECT '医保支付表' AS table_name, -- 表名
+               COUNT(t.setl_id) AS qty, -- 总条数
+               SUM(NVL(t.medfee_sumamt, 0)) AS fee -- 总金额
         FROM ips_dz_pay_bills t
         WHERE t.bill_date = TO_DATE(#{settleDate}, 'yyyy-mm-dd')
           AND t.insutype = #{insurType}
@@ -243,11 +243,11 @@
          pay表正交易(机构侧块3关联: 同setl_id+同insutype)都查不到;
          仅用于明细弹窗展示差异来源, 不计入机构侧合计, 不影响对平状态 -->
     <select id="queryUnmatchedNeg" resultMap="unmatchedNegMap">
-        SELECT b.setl_id AS setl_id,
-               b.bill_date AS settle_date,
-               b.insutype AS insur_type,
-               DECODE(b.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name,
-               b.medfee_sumamt AS medfee_sumamt
+        SELECT b.setl_id AS setl_id, -- 结算ID
+               b.bill_date AS settle_date, -- 结算日期
+               b.insutype AS insur_type, -- 类型代码
+               DECODE(b.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name, -- 类型名称
+               b.medfee_sumamt AS medfee_sumamt -- 医疗总金额(退费,负)
         FROM ips_dz_pay_bills b
         WHERE b.TRAN_TYPE = 2
           AND b.zp_flag = -1
@@ -277,24 +277,24 @@
          + 账平标志不一致(同setl_id两边都有但zp_flag不同, 如1 vs -2, 两边标志金额都列出);
          假定setl_id在单表内唯一(结算号级), 两表列名相同(bill_date/insutype/setl_id/medfee_sumamt/zp_flag) -->
     <select id="queryZpDiff" resultMap="zpDiffMap">
-        SELECT diff_side,
-               settle_date,
-               setl_id,
-               insur_type,
-               insur_type_name,
-               pay_zp, pay_zp_name, biz_zp, biz_zp_name, pay_fee, biz_fee, offset_pair, pair_key
+        SELECT diff_side, -- 差异类型
+               settle_date, -- 结算日期
+               setl_id, -- 结算ID
+               insur_type, -- 类型代码
+               insur_type_name, -- 类型名称
+               pay_zp, pay_zp_name, biz_zp, biz_zp_name, pay_fee, biz_fee, offset_pair, pair_key -- 医保标志/中文,HIS标志/中文,医保金额,HIS金额,自对冲,配对键
         FROM (
-            SELECT '仅医保支付表' AS diff_side,
-                   p.bill_date AS settle_date,
-                   p.setl_id AS setl_id,
-                   p.insutype AS insur_type,
-                   DECODE(p.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name,
-                   TO_CHAR(p.zp_flag) AS pay_zp,
-                   DECODE(p.zp_flag, 1, '账平', -1, '单边', -2, '金额不等', TO_CHAR(p.zp_flag)) AS pay_zp_name,
-                   NULL AS biz_zp,
-                   NULL AS biz_zp_name,
-                   p.medfee_sumamt AS pay_fee,
-                   NULL AS biz_fee,
+            SELECT '仅医保支付表' AS diff_side, -- 差异类型
+                   p.bill_date AS settle_date, -- 结算日期
+                   p.setl_id AS setl_id, -- 结算ID
+                   p.insutype AS insur_type, -- 类型代码
+                   DECODE(p.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name, -- 类型名称
+                   TO_CHAR(p.zp_flag) AS pay_zp, -- 医保侧账平标志
+                   DECODE(p.zp_flag, 1, '账平', -1, '单边', -2, '金额不等', TO_CHAR(p.zp_flag)) AS pay_zp_name, -- 医保侧标志中文
+                   NULL AS biz_zp, -- HIS侧账平标志(无)
+                   NULL AS biz_zp_name, -- HIS侧标志中文(无)
+                   p.medfee_sumamt AS pay_fee, -- 医保侧医疗总金额
+                   NULL AS biz_fee, -- HIS侧医疗总金额(无)
                    <!-- 自对冲: pay表内同就诊同人员金额互为相反数的一对(收费+退费), 退费日期不早于收费;
                         is_show为字符串存'true' -->
                    CASE WHEN p.is_show = 'true' AND EXISTS (
@@ -307,44 +307,44 @@
                          AND r.is_show = 'true'
                          AND ( (p.medfee_sumamt > 0 AND r.bill_date >= p.bill_date)
                             OR (p.medfee_sumamt <![CDATA[<]]> 0 AND r.bill_date <![CDATA[<=]]> p.bill_date) )
-                   ) THEN '自对冲' END AS offset_pair,
-                   p.mdtrt_id AS pair_key
+                   ) THEN '自对冲' END AS offset_pair, -- 自对冲标记
+                   p.mdtrt_id AS pair_key -- 配对键(就诊号)
             FROM ips_dz_pay_bills p
             WHERE p.bill_date = TO_DATE(#{settleDate}, 'yyyy-mm-dd')
               AND p.insutype = #{insurType}
               AND NOT EXISTS (SELECT 1 FROM ips_dz_biz_bills b WHERE b.setl_id = p.setl_id)
             UNION ALL
-            SELECT '仅HIS业务表' AS diff_side,
-                   b.bill_date AS settle_date,
-                   b.setl_id AS setl_id,
-                   b.insutype AS insur_type,
-                   DECODE(b.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name,
-                   NULL AS pay_zp,
-                   NULL AS pay_zp_name,
-                   TO_CHAR(b.zp_flag) AS biz_zp,
-                   DECODE(b.zp_flag, 1, '账平', -1, '单边', -2, '金额不等', TO_CHAR(b.zp_flag)) AS biz_zp_name,
-                   NULL AS pay_fee,
-                   b.medfee_sumamt AS biz_fee,
-                   NULL AS offset_pair,
-                   NULL AS pair_key
+            SELECT '仅HIS业务表' AS diff_side, -- 差异类型
+                   b.bill_date AS settle_date, -- 结算日期
+                   b.setl_id AS setl_id, -- 结算ID
+                   b.insutype AS insur_type, -- 类型代码
+                   DECODE(b.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name, -- 类型名称
+                   NULL AS pay_zp, -- 医保侧账平标志(无)
+                   NULL AS pay_zp_name, -- 医保侧标志中文(无)
+                   TO_CHAR(b.zp_flag) AS biz_zp, -- HIS侧账平标志
+                   DECODE(b.zp_flag, 1, '账平', -1, '单边', -2, '金额不等', TO_CHAR(b.zp_flag)) AS biz_zp_name, -- HIS侧标志中文
+                   NULL AS pay_fee, -- 医保侧医疗总金额(无)
+                   b.medfee_sumamt AS biz_fee, -- HIS侧医疗总金额
+                   NULL AS offset_pair, -- 自对冲标记(无)
+                   NULL AS pair_key -- 配对键(无)
             FROM ips_dz_biz_bills b
             WHERE b.bill_date = TO_DATE(#{settleDate}, 'yyyy-mm-dd')
               AND b.insutype = #{insurType}
               AND NOT EXISTS (SELECT 1 FROM ips_dz_pay_bills p WHERE p.setl_id = b.setl_id)
             UNION ALL
-            SELECT '账平标志不一致' AS diff_side,
-                   p.bill_date AS settle_date,
-                   p.setl_id AS setl_id,
-                   p.insutype AS insur_type,
-                   DECODE(p.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name,
-                   TO_CHAR(p.zp_flag) AS pay_zp,
-                   DECODE(p.zp_flag, 1, '账平', -1, '单边', -2, '金额不等', TO_CHAR(p.zp_flag)) AS pay_zp_name,
-                   TO_CHAR(b.zp_flag) AS biz_zp,
-                   DECODE(b.zp_flag, 1, '账平', -1, '单边', -2, '金额不等', TO_CHAR(b.zp_flag)) AS biz_zp_name,
-                   p.medfee_sumamt AS pay_fee,
-                   b.medfee_sumamt AS biz_fee,
-                   NULL AS offset_pair,
-                   NULL AS pair_key
+            SELECT '账平标志不一致' AS diff_side, -- 差异类型
+                   p.bill_date AS settle_date, -- 结算日期
+                   p.setl_id AS setl_id, -- 结算ID
+                   p.insutype AS insur_type, -- 类型代码
+                   DECODE(p.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name, -- 类型名称
+                   TO_CHAR(p.zp_flag) AS pay_zp, -- 医保侧账平标志
+                   DECODE(p.zp_flag, 1, '账平', -1, '单边', -2, '金额不等', TO_CHAR(p.zp_flag)) AS pay_zp_name, -- 医保侧标志中文
+                   TO_CHAR(b.zp_flag) AS biz_zp, -- HIS侧账平标志
+                   DECODE(b.zp_flag, 1, '账平', -1, '单边', -2, '金额不等', TO_CHAR(b.zp_flag)) AS biz_zp_name, -- HIS侧标志中文
+                   p.medfee_sumamt AS pay_fee, -- 医保侧医疗总金额
+                   b.medfee_sumamt AS biz_fee, -- HIS侧医疗总金额
+                   NULL AS offset_pair, -- 自对冲标记(无)
+                   NULL AS pair_key -- 配对键(无)
             FROM ips_dz_pay_bills p
             INNER JOIN ips_dz_biz_bills b
               ON b.setl_id = p.setl_id
@@ -397,21 +397,21 @@
          险种名DECODE直出不依赖字典表; 退费块只统计匹配到HIS正交易的部分(正交易bill_date<=退费日, 范围上月月初~当月月末);
          金额符号跟交易类型走: 退费(TRAN_TYPE=2)金额为负直接SUM, 一律不额外取负 -->
     <sql id="payCompBlocks">
-        SELECT '账平' AS category,
-               t.bill_date AS bill_date,
-               t.insutype AS insur_type,
-               DECODE(t.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name,
-               COUNT(t.setl_id) AS qty,
-               SUM(t.medfee_sumamt) AS medfee_sumamt,
-               SUM(t.acct_pay) AS acct_pay,
-               SUM(t.hlfp_pay) AS hlfp_pay,
-               SUM(t.cash_pay) AS cash_pay,
-               SUM(t.cvlserv_pay) AS cvlserv_pay,
-               SUM(t.hlfes_pay) AS hlfes_pay,
-               SUM(t.hlfmi_pay) AS hlfmi_pay,
-               SUM(t.hlfob_pay) AS hlfob_pay,
-               SUM(t.maf_pay) AS maf_pay,
-               SUM(t.oth_pay) AS oth_pay
+        SELECT '账平' AS category, -- 类别
+               t.bill_date AS bill_date, -- 结算日期
+               t.insutype AS insur_type, -- 类型代码
+               DECODE(t.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name, -- 类型名称
+               COUNT(t.setl_id) AS qty, -- 条数
+               SUM(t.medfee_sumamt) AS medfee_sumamt, -- 医疗费总额
+               SUM(t.acct_pay) AS acct_pay, -- 个人账户支出
+               SUM(t.hlfp_pay) AS hlfp_pay, -- 统筹基金支出
+               SUM(t.cash_pay) AS cash_pay, -- 现金支出
+               SUM(t.cvlserv_pay) AS cvlserv_pay, -- 公务员补助支出
+               SUM(t.hlfes_pay) AS hlfes_pay, -- 企业补充医保支出
+               SUM(t.hlfmi_pay) AS hlfmi_pay, -- 居民大病支出
+               SUM(t.hlfob_pay) AS hlfob_pay, -- 职工大病支出
+               SUM(t.maf_pay) AS maf_pay, -- 医疗救助支出
+               SUM(t.oth_pay) AS oth_pay -- 其他支出
         FROM ips_dz_biz_bills t
         WHERE t.zp_flag = 1
           AND t.bill_date BETWEEN TO_DATE(#{startDate}, 'yyyy-mm-dd') AND TO_DATE(#{endDate}, 'yyyy-mm-dd')
@@ -420,21 +420,21 @@
           </if>
         GROUP BY t.insutype, t.bill_date
         UNION ALL
-        SELECT '医保负金额-退费' AS category,
-               b.bill_date AS bill_date,
-               b.insutype AS insur_type,
-               DECODE(b.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name,
-               COUNT(b.setl_id) AS qty,
-               SUM(b.medfee_sumamt) AS medfee_sumamt,
-               SUM(b.acct_pay) AS acct_pay,
-               SUM(b.hlfp_pay) AS hlfp_pay,
-               SUM(b.cash_pay) AS cash_pay,
-               SUM(b.cvlserv_pay) AS cvlserv_pay,
-               SUM(b.hlfes_pay) AS hlfes_pay,
-               SUM(b.hlfmi_pay) AS hlfmi_pay,
-               SUM(b.hlfob_pay) AS hlfob_pay,
-               SUM(b.maf_pay) AS maf_pay,
-               SUM(b.oth_pay) AS oth_pay
+        SELECT '医保负金额-退费' AS category, -- 类别
+               b.bill_date AS bill_date, -- 结算日期
+               b.insutype AS insur_type, -- 类型代码
+               DECODE(b.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name, -- 类型名称
+               COUNT(b.setl_id) AS qty, -- 条数
+               SUM(b.medfee_sumamt) AS medfee_sumamt, -- 医疗费总额
+               SUM(b.acct_pay) AS acct_pay, -- 个人账户支出
+               SUM(b.hlfp_pay) AS hlfp_pay, -- 统筹基金支出
+               SUM(b.cash_pay) AS cash_pay, -- 现金支出
+               SUM(b.cvlserv_pay) AS cvlserv_pay, -- 公务员补助支出
+               SUM(b.hlfes_pay) AS hlfes_pay, -- 企业补充医保支出
+               SUM(b.hlfmi_pay) AS hlfmi_pay, -- 居民大病支出
+               SUM(b.hlfob_pay) AS hlfob_pay, -- 职工大病支出
+               SUM(b.maf_pay) AS maf_pay, -- 医疗救助支出
+               SUM(b.oth_pay) AS oth_pay -- 其他支出
         FROM ips_dz_pay_bills b
         INNER JOIN ips_dz_biz_bills a
           ON a.INSUTYPE = b.INSUTYPE
@@ -451,21 +451,21 @@
           </if>
         GROUP BY b.insutype, b.bill_date
         UNION ALL
-        SELECT '医保正金额-收费' AS category,
-               a.bill_date AS bill_date,
-               a.insutype AS insur_type,
-               DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name,
-               COUNT(a.setl_id) AS qty,
-               SUM(a.medfee_sumamt) AS medfee_sumamt,
-               SUM(a.acct_pay) AS acct_pay,
-               SUM(a.hlfp_pay) AS hlfp_pay,
-               SUM(a.cash_pay) AS cash_pay,
-               SUM(a.cvlserv_pay) AS cvlserv_pay,
-               SUM(a.hlfes_pay) AS hlfes_pay,
-               SUM(a.hlfmi_pay) AS hlfmi_pay,
-               SUM(a.hlfob_pay) AS hlfob_pay,
-               SUM(a.maf_pay) AS maf_pay,
-               SUM(a.oth_pay) AS oth_pay
+        SELECT '医保正金额-收费' AS category, -- 类别
+               a.bill_date AS bill_date, -- 结算日期
+               a.insutype AS insur_type, -- 类型代码
+               DECODE(a.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name, -- 类型名称
+               COUNT(a.setl_id) AS qty, -- 条数
+               SUM(a.medfee_sumamt) AS medfee_sumamt, -- 医疗费总额
+               SUM(a.acct_pay) AS acct_pay, -- 个人账户支出
+               SUM(a.hlfp_pay) AS hlfp_pay, -- 统筹基金支出
+               SUM(a.cash_pay) AS cash_pay, -- 现金支出
+               SUM(a.cvlserv_pay) AS cvlserv_pay, -- 公务员补助支出
+               SUM(a.hlfes_pay) AS hlfes_pay, -- 企业补充医保支出
+               SUM(a.hlfmi_pay) AS hlfmi_pay, -- 居民大病支出
+               SUM(a.hlfob_pay) AS hlfob_pay, -- 职工大病支出
+               SUM(a.maf_pay) AS maf_pay, -- 医疗救助支出
+               SUM(a.oth_pay) AS oth_pay -- 其他支出
         FROM ips_dz_pay_bills a
         WHERE a.TRAN_TYPE = 1
           AND a.zp_flag = -1
@@ -478,12 +478,12 @@
 
     <!-- dim=sum: 按险种月合计(三类汇总, 即对账公式口径) -->
     <select id="queryPaySum" resultMap="payCompMap">
-        SELECT insur_type, insur_type_name,
-               SUM(qty) AS qty,
-               SUM(medfee_sumamt) AS medfee_sumamt, SUM(acct_pay) AS acct_pay, SUM(hlfp_pay) AS hlfp_pay,
-               SUM(cash_pay) AS cash_pay, SUM(cvlserv_pay) AS cvlserv_pay, SUM(hlfes_pay) AS hlfes_pay,
-               SUM(hlfmi_pay) AS hlfmi_pay, SUM(hlfob_pay) AS hlfob_pay, SUM(maf_pay) AS maf_pay,
-               SUM(oth_pay) AS oth_pay
+        SELECT insur_type, insur_type_name, -- 类型代码,类型名称
+               SUM(qty) AS qty, -- 条数
+               SUM(medfee_sumamt) AS medfee_sumamt, SUM(acct_pay) AS acct_pay, SUM(hlfp_pay) AS hlfp_pay, -- 医疗费总额,个人账户,统筹基金
+               SUM(cash_pay) AS cash_pay, SUM(cvlserv_pay) AS cvlserv_pay, SUM(hlfes_pay) AS hlfes_pay, -- 现金,公务员补助,企业补充医保
+               SUM(hlfmi_pay) AS hlfmi_pay, SUM(hlfob_pay) AS hlfob_pay, SUM(maf_pay) AS maf_pay, -- 居民大病,职工大病,医疗救助
+               SUM(oth_pay) AS oth_pay -- 其他支出
         FROM (
             <include refid="payCompBlocks"/>
         )
@@ -493,12 +493,12 @@
 
     <!-- dim=cat: 按险种+类别(退费仅本月匹配部分; 前端无数据类别不显示) -->
     <select id="queryPayCat" resultMap="payCompMap">
-        SELECT insur_type, insur_type_name, category,
-               SUM(qty) AS qty,
-               SUM(medfee_sumamt) AS medfee_sumamt, SUM(acct_pay) AS acct_pay, SUM(hlfp_pay) AS hlfp_pay,
-               SUM(cash_pay) AS cash_pay, SUM(cvlserv_pay) AS cvlserv_pay, SUM(hlfes_pay) AS hlfes_pay,
-               SUM(hlfmi_pay) AS hlfmi_pay, SUM(hlfob_pay) AS hlfob_pay, SUM(maf_pay) AS maf_pay,
-               SUM(oth_pay) AS oth_pay
+        SELECT insur_type, insur_type_name, category, -- 类型代码,类型名称,类别
+               SUM(qty) AS qty, -- 条数
+               SUM(medfee_sumamt) AS medfee_sumamt, SUM(acct_pay) AS acct_pay, SUM(hlfp_pay) AS hlfp_pay, -- 医疗费总额,个人账户,统筹基金
+               SUM(cash_pay) AS cash_pay, SUM(cvlserv_pay) AS cvlserv_pay, SUM(hlfes_pay) AS hlfes_pay, -- 现金,公务员补助,企业补充医保
+               SUM(hlfmi_pay) AS hlfmi_pay, SUM(hlfob_pay) AS hlfob_pay, SUM(maf_pay) AS maf_pay, -- 居民大病,职工大病,医疗救助
+               SUM(oth_pay) AS oth_pay -- 其他支出
         FROM (
             <include refid="payCompBlocks"/>
         )
@@ -509,12 +509,12 @@
 
     <!-- dim=day: 某险种按日合计(三类汇总, 每天一行总数) -->
     <select id="queryPayDay" resultMap="payCompMap">
-        SELECT bill_date,
-               SUM(qty) AS qty,
-               SUM(medfee_sumamt) AS medfee_sumamt, SUM(acct_pay) AS acct_pay, SUM(hlfp_pay) AS hlfp_pay,
-               SUM(cash_pay) AS cash_pay, SUM(cvlserv_pay) AS cvlserv_pay, SUM(hlfes_pay) AS hlfes_pay,
-               SUM(hlfmi_pay) AS hlfmi_pay, SUM(hlfob_pay) AS hlfob_pay, SUM(maf_pay) AS maf_pay,
-               SUM(oth_pay) AS oth_pay
+        SELECT bill_date, -- 结算日期
+               SUM(qty) AS qty, -- 条数
+               SUM(medfee_sumamt) AS medfee_sumamt, SUM(acct_pay) AS acct_pay, SUM(hlfp_pay) AS hlfp_pay, -- 医疗费总额,个人账户,统筹基金
+               SUM(cash_pay) AS cash_pay, SUM(cvlserv_pay) AS cvlserv_pay, SUM(hlfes_pay) AS hlfes_pay, -- 现金,公务员补助,企业补充医保
+               SUM(hlfmi_pay) AS hlfmi_pay, SUM(hlfob_pay) AS hlfob_pay, SUM(maf_pay) AS maf_pay, -- 居民大病,职工大病,医疗救助
+               SUM(oth_pay) AS oth_pay -- 其他支出
         FROM (
             <include refid="payCompBlocks"/>
         )
@@ -525,12 +525,12 @@
 
     <!-- dim=dayCat: 某险种按日+类别(当天三类拆分) -->
     <select id="queryPayDayCat" resultMap="payCompMap">
-        SELECT bill_date, category,
-               SUM(qty) AS qty,
-               SUM(medfee_sumamt) AS medfee_sumamt, SUM(acct_pay) AS acct_pay, SUM(hlfp_pay) AS hlfp_pay,
-               SUM(cash_pay) AS cash_pay, SUM(cvlserv_pay) AS cvlserv_pay, SUM(hlfes_pay) AS hlfes_pay,
-               SUM(hlfmi_pay) AS hlfmi_pay, SUM(hlfob_pay) AS hlfob_pay, SUM(maf_pay) AS maf_pay,
-               SUM(oth_pay) AS oth_pay
+        SELECT bill_date, category, -- 结算日期,类别
+               SUM(qty) AS qty, -- 条数
+               SUM(medfee_sumamt) AS medfee_sumamt, SUM(acct_pay) AS acct_pay, SUM(hlfp_pay) AS hlfp_pay, -- 医疗费总额,个人账户,统筹基金
+               SUM(cash_pay) AS cash_pay, SUM(cvlserv_pay) AS cvlserv_pay, SUM(hlfes_pay) AS hlfes_pay, -- 现金,公务员补助,企业补充医保
+               SUM(hlfmi_pay) AS hlfmi_pay, SUM(hlfob_pay) AS hlfob_pay, SUM(maf_pay) AS maf_pay, -- 居民大病,职工大病,医疗救助
+               SUM(oth_pay) AS oth_pay -- 其他支出
         FROM (
             <include refid="payCompBlocks"/>
         )
@@ -543,16 +543,16 @@
     <!-- dim=cross: 退费跨月配对明细(该月全部退费逐条: 本月匹配/跨月匹配/找不到;
          正交易查找范围 上月月初~退费当天, bill_date<=退费日) -->
     <select id="queryPayCross" resultMap="payCrossMap">
-        SELECT b.setl_id AS refund_setl_id,
-               b.bill_date AS refund_date,
-               b.medfee_sumamt AS refund_fee,
+        SELECT b.setl_id AS refund_setl_id, -- 退费结算号
+               b.bill_date AS refund_date, -- 退费日期
+               b.medfee_sumamt AS refund_fee, -- 退费金额(负)
                CASE WHEN a.setl_id IS NULL THEN '找不到'
                     WHEN TO_CHAR(a.bill_date, 'yyyy-mm') = TO_CHAR(b.bill_date, 'yyyy-mm') THEN '本月匹配'
-                    ELSE '跨月匹配' END AS match_status,
-               a.setl_id AS pos_setl_id,
-               a.bill_date AS pos_date,
-               TO_CHAR(a.bill_date, 'yyyy-mm') AS pos_month,
-               a.medfee_sumamt AS pos_fee
+                    ELSE '跨月匹配' END AS match_status, -- 匹配状态
+               a.setl_id AS pos_setl_id, -- 正交易结算号
+               a.bill_date AS pos_date, -- 正交易日期
+               TO_CHAR(a.bill_date, 'yyyy-mm') AS pos_month, -- 正交易月份
+               a.medfee_sumamt AS pos_fee -- 正交易金额
         FROM ips_dz_pay_bills b
         LEFT JOIN ips_dz_biz_bills a
           ON a.INSUTYPE = b.INSUTYPE
@@ -570,13 +570,13 @@
 
     <!-- dim=warn: 每险种当月退费匹配概况(主表"退费匹配"警示列: 跨月/找不到凸显, 点击直达跨月明细) -->
     <select id="queryPayWarn" resultMap="payWarnMap">
-        SELECT b.insutype AS insur_type,
-               DECODE(b.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name,
-               COUNT(b.setl_id) AS refund_total,
+        SELECT b.insutype AS insur_type, -- 类型代码
+               DECODE(b.insutype, '310', '职工', '390', '居民', '3101', '异地职工', '3901', '异地居民', '515253', '生育') AS insur_type_name, -- 类型名称
+               COUNT(b.setl_id) AS refund_total, -- 当月退费总条数
                SUM(CASE WHEN a.setl_id IS NOT NULL
                          AND TO_CHAR(a.bill_date, 'yyyy-mm') != TO_CHAR(b.bill_date, 'yyyy-mm')
-                        THEN 1 ELSE 0 END) AS cross_cnt,
-               SUM(CASE WHEN a.setl_id IS NULL THEN 1 ELSE 0 END) AS none_cnt
+                        THEN 1 ELSE 0 END) AS cross_cnt, -- 跨月匹配条数
+               SUM(CASE WHEN a.setl_id IS NULL THEN 1 ELSE 0 END) AS none_cnt -- 找不到条数
         FROM ips_dz_pay_bills b
         LEFT JOIN ips_dz_biz_bills a
           ON a.INSUTYPE = b.INSUTYPE

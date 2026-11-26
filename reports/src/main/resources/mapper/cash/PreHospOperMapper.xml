@@ -14,25 +14,25 @@
 
     <!-- 维护列表: 姓名本表直读 -->
     <select id="queryList" resultMap="operMap">
-        SELECT id, oper_no, dbuser, oper_name, valid_flag, create_time, update_time
+        SELECT id, oper_no, dbuser, oper_name, valid_flag, create_time, update_time -- 主键,操作员工号,登录ID,姓名,有效标志,创建时间,更新时间
         FROM tr_prehosp_oper
         ORDER BY id
     </select>
 
     <select id="queryValidOperNos" resultType="string">
-        SELECT oper_no FROM tr_prehosp_oper WHERE valid_flag = 1 ORDER BY oper_no
+        SELECT oper_no FROM tr_prehosp_oper WHERE valid_flag = 1 ORDER BY oper_no -- 有效操作员工号
     </select>
 
     <select id="queryValidOpers" resultMap="operMap">
-        SELECT oper_no, oper_name FROM tr_prehosp_oper WHERE valid_flag = 1 ORDER BY oper_no
+        SELECT oper_no, oper_name FROM tr_prehosp_oper WHERE valid_flag = 1 ORDER BY oper_no -- 工号,姓名
     </select>
 
     <select id="queryAllOperNos" resultType="string">
-        SELECT oper_no FROM tr_prehosp_oper ORDER BY oper_no
+        SELECT oper_no FROM tr_prehosp_oper ORDER BY oper_no -- 操作员工号
     </select>
 
     <select id="countByOperNo" resultType="int">
-        SELECT COUNT(1) FROM tr_prehosp_oper WHERE oper_no = #{operNo}
+        SELECT COUNT(1) FROM tr_prehosp_oper WHERE oper_no = #{operNo} -- 数量
     </select>
 
     <insert id="insertOper">

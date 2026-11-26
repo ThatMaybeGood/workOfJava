@@ -7,10 +7,10 @@
     <!-- ============================================================ -->
     <select id="queryOverview" resultType="com.reports.entity.RoomUsageOvEntity">
         SELECT
-        MAX(avg_usage) AS avgUsage,
-        MAX(am_usage) AS amUsage,
-        MAX(pm_usage) AS pmUsage,
-        MAX(holiday_usage) AS holidayUsage
+        MAX(avg_usage) AS avgUsage, -- 平均使用率
+        MAX(am_usage) AS amUsage, -- 上午使用率
+        MAX(pm_usage) AS pmUsage, -- 下午使用率
+        MAX(holiday_usage) AS holidayUsage -- 节假日使用率
         FROM TR_ROOM_USE_OV
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
     </select>
@@ -20,11 +20,11 @@
     <!-- ============================================================ -->
     <select id="queryDeptDetail" resultType="com.reports.entity.RoomUsageDtlEntity">
         SELECT
-        d.dept_name AS deptName,
-        MAX(avg_usage) AS avgUsage,
-        MAX(am_usage) AS amUsage,
-        MAX(pm_usage) AS pmUsage,
-        MAX(holiday_usage) AS holidayUsage
+        d.dept_name AS deptName, -- 科室名称
+        MAX(avg_usage) AS avgUsage, -- 平均使用率
+        MAX(am_usage) AS amUsage, -- 上午使用率
+        MAX(pm_usage) AS pmUsage, -- 下午使用率
+        MAX(holiday_usage) AS holidayUsage -- 节假日使用率
         FROM TR_ROOM_USE_DTL r
         INNER JOIN TR_DEPT_DICT d ON r.dept_code = d.dept_code
         WHERE r.stat_date BETWEEN #{startDate} AND #{endDate}

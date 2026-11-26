@@ -7,10 +7,10 @@
     <!-- ============================================================ -->
     <select id="queryOverview" resultType="com.reports.entity.TreatmentStatsOvEntity">
         SELECT
-        NVL(SUM(patient_count), 0) AS patientCount,
-        NVL(SUM(treatment_count), 0) AS treatmentCount,
-        NVL(SUM(treatment_amount), 0) AS treatmentAmount,
-        ROUND(NVL(SUM(treatment_amount), 0) / NULLIF(SUM(treatment_count), 0), 2) AS avgAmount
+        NVL(SUM(patient_count), 0) AS patientCount, -- 患者人数
+        NVL(SUM(treatment_count), 0) AS treatmentCount, -- 治疗人次
+        NVL(SUM(treatment_amount), 0) AS treatmentAmount, -- 治疗金额
+        ROUND(NVL(SUM(treatment_amount), 0) / NULLIF(SUM(treatment_count), 0), 2) AS avgAmount -- 平均金额
         FROM TR_TREAT_STAT_OV
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
     </select>
@@ -20,11 +20,11 @@
     <!-- ============================================================ -->
     <select id="queryDeptDetail" resultType="com.reports.entity.TreatmentStatsDtlEntity">
         SELECT
-        dept_name AS deptName,
-        NVL(SUM(patient_count), 0) AS patientCount,
-        NVL(SUM(treatment_count), 0) AS treatmentCount,
-        NVL(SUM(treatment_amount), 0) AS treatmentAmount,
-        ROUND(NVL(SUM(treatment_amount), 0) / NULLIF(SUM(treatment_count), 0), 2) AS avgAmount
+        dept_name AS deptName, -- 科室名称
+        NVL(SUM(patient_count), 0) AS patientCount, -- 患者人数
+        NVL(SUM(treatment_count), 0) AS treatmentCount, -- 治疗人次
+        NVL(SUM(treatment_amount), 0) AS treatmentAmount, -- 治疗金额
+        ROUND(NVL(SUM(treatment_amount), 0) / NULLIF(SUM(treatment_count), 0), 2) AS avgAmount -- 平均金额
         FROM TR_TREAT_STAT_DTL t
         INNER JOIN TR_DEPT_DICT d ON t.dept_code = d.dept_code
         WHERE t.stat_date BETWEEN #{startDate} AND #{endDate}
@@ -40,8 +40,8 @@
     <!-- ============================================================ -->
     <select id="queryTrend" resultType="com.reports.entity.TreatmentStatsTrendEntity">
         SELECT
-        trend_date AS trendDate,
-        NVL(SUM(trend_value), 0) AS trendValue
+        trend_date AS trendDate, -- 趋势日期
+        NVL(SUM(trend_value), 0) AS trendValue -- 趋势值
         FROM TR_TREAT_STAT_TREND
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         GROUP BY trend_date
@@ -53,8 +53,8 @@
     <!-- ============================================================ -->
     <select id="queryTopItems" resultType="map">
         SELECT
-        item_name AS "name",
-        NVL(SUM(treatment_count), 0) AS "value"
+        item_name AS "name", -- 治疗项目名称
+        NVL(SUM(treatment_count), 0) AS "value" -- 治疗人次
         FROM TR_TREAT_STAT_ITEM
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         GROUP BY item_name

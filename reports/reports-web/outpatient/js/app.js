@@ -196,7 +196,6 @@ class ReportController {
         const valueMap = {
             'totalVisits': row.totalVisits,
             'appointmentRate': row.appointmentRate,
-            'examRate': row.examRate,
             'efficiency': row.efficiency,
             'visitCount': row.visitCount,
             'famousExpert': row.famousExpert,
@@ -339,7 +338,6 @@ class ReportController {
                     <td>${row.deptName}</td>
                     <td>${row.totalVisits}</td>
                     <td>${row.appointmentRate}</td>
-                    <td>${row.examRate}</td>
                     <td>${row.efficiency}</td>
                     <td>${row.visitCount}</td>
                     <td>${row.famousExpert}</td>
@@ -367,7 +365,6 @@ class ReportController {
                     <td>全列表数据合计</td>
                     <td>${summary.totalVisits}</td>
                     <td>${summary.appointmentRate}%</td>
-                    <td>${summary.examRate}%</td>
                     <td>${summary.efficiency.toFixed(2)}</td>
                     <td>${summary.visitCount}</td>
                     <td>${summary.famousExpert}</td>
@@ -386,7 +383,7 @@ class ReportController {
                 </tr>
             `;
         } else {
-            html += `<tr><td colspan="19" class="text-center text-muted py-4">暂无数据</td></tr>`;
+            html += `<tr><td colspan="18" class="text-center text-muted py-4">暂无数据</td></tr>`;
         }
 
         tbody.innerHTML = html;
@@ -399,7 +396,6 @@ class ReportController {
         const summary = {
             totalVisits: 0,
             appointmentSum: 0,
-            examSum: 0,
             efficiencySum: 0,
             visitCount: 0,
             famousExpert: 0,
@@ -427,7 +423,6 @@ class ReportController {
         this.state.data.forEach(row => {
             summary.totalVisits += row.totalVisits;
             summary.appointmentSum += parseFloat(row.appointmentRate);
-            summary.examSum += parseFloat(row.examRate);
             summary.efficiencySum += parseFloat(row.efficiency);
             summary.visitCount += row.visitCount;
             summary.famousExpert += row.famousExpert;
@@ -454,7 +449,6 @@ class ReportController {
 
         const count = this.state.data.length;
         summary.appointmentRate = count > 0 ? (summary.appointmentSum / count).toFixed(2) : 0;
-        summary.examRate = count > 0 ? (summary.examSum / count).toFixed(2) : 0;
         summary.efficiency = count > 0 ? (summary.efficiencySum / count) : 0;
 
         return summary;
@@ -553,7 +547,7 @@ function exportData() {
 
     // 表头
     const headers = [
-        '科室', '门诊量', '预约挂号率', '预约诊察率', '接诊效率', '出诊人次',
+        '科室', '门诊量', '预约诊疗率', '平均等候时长', '出诊人次',
         '名医专家', '特需专家', '知名专家', '专家A类', '专家B类', '普通门诊',
         '有效出诊单元/出诊单元', '名医专家', '特需专家', '知名专家', '专家A类', '专家B类', '普通门诊'
     ];
@@ -563,7 +557,6 @@ function exportData() {
         row.deptName,
         row.totalVisits,
         row.appointmentRate,
-        row.examRate,
         row.efficiency,
         row.visitCount,
         row.famousExpert,
@@ -587,7 +580,6 @@ function exportData() {
         '全列表数据合计',
         summary.totalVisits,
         summary.appointmentRate + '%',
-        summary.examRate + '%',
         summary.efficiency.toFixed(2),
         summary.visitCount,
         summary.famousExpert,

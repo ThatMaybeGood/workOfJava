@@ -4,8 +4,8 @@
 
     <!-- bt6 分析tab： 医生出诊单元(汇总)。US7ASCII库, clinic_label中文全走RAWTOHEX与GBK hex匹配 -->
     <select id="bt6ClinicUnitOverall" resultType="java.util.LinkedHashMap">
-        SELECT COUNT(1) AS unitCnt,
-               COUNT(DISTINCT t.clinic_label) AS labelCnt
+        SELECT COUNT(1) AS unitCnt, <!-- 出诊单元数 -->
+               COUNT(DISTINCT t.clinic_label) AS labelCnt <!-- clinic_label去重数 -->
         FROM clinic_for_regist t
         WHERE RAWTOHEX(t.clinic_label) IN (
                   SELECT RAWTOHEX(i.clinic_label)
@@ -24,9 +24,9 @@
 
     <!-- bt6 分析tab： 医生出诊单元(按日) -->
     <select id="bt6ClinicUnitDaily" resultType="java.util.LinkedHashMap">
-        SELECT TRUNC(t.clinic_date) AS itemDate,
-               COUNT(1) AS unitCnt,
-               COUNT(DISTINCT t.clinic_label) AS labelCnt
+        SELECT TRUNC(t.clinic_date) AS itemDate, <!-- 日期 -->
+               COUNT(1) AS unitCnt, <!-- 出诊单元数 -->
+               COUNT(DISTINCT t.clinic_label) AS labelCnt <!-- clinic_label去重数 -->
         FROM clinic_for_regist t
         WHERE RAWTOHEX(t.clinic_label) IN (
                   SELECT RAWTOHEX(i.clinic_label)

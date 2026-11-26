@@ -96,3 +96,63 @@ COMMENT ON COLUMN tr_outp_op_dtl.update_time IS '更新时间';
 COMMENT ON COLUMN tr_outp_op_dtl.ext1 IS '扩展字段1';
 COMMENT ON COLUMN tr_outp_op_dtl.ext2 IS '扩展字段2';
 COMMENT ON COLUMN tr_outp_op_dtl.ext3 IS '扩展字段3';
+
+-- ============================================================
+-- 2026-11-26 版本: TR_OUTP_OP_DTL 废弃清理
+-- 原因: 门诊运行统计页面概览与科室表格均走 TR_OUTP_OP,
+--       DTL明细表从未被Service调用, 代码侧引用已全部移除
+-- ============================================================
+BEGIN
+    EXECUTE IMMEDIATE 'DROP TABLE tr_outp_op_dtl CASCADE CONSTRAINTS';
+EXCEPTION
+    WHEN OTHERS THEN
+        IF SQLCODE != -942 THEN RAISE; END IF; -- ORA-00942表不存在则忽略(幂等)
+END;
+/
+
+-- 验证: 应返回0行
+SELECT table_name FROM user_tables WHERE table_name = 'TR_OUTP_OP_DTL';
+
+-- ============================================================
+-- 2026-11-26 版本: TR_OUTP_OP 新增自助结算两字段
+-- 智慧结算率(概览卡) = SUM(self_settle_count)/SUM(self_pay_total)
+-- ============================================================
+BEGIN
+    EXECUTE IMMEDIATE 'ALTER TABLE TR_OUTP_OP ADD (self_pay_total NUMBER(10) DEFAULT 0)';
+EXCEPTION
+    WHEN OTHERS THEN
+        IF SQLCODE != -1430 THEN RAISE; END IF; -- ORA-01430列已存在则忽略(幂等)
+END;
+/
+BEGIN
+    EXECUTE IMMEDIATE 'ALTER TABLE TR_OUTP_OP ADD (self_settle_count NUMBER(10) DEFAULT 0)';
+EXCEPTION
+    WHEN OTHERS THEN
+        IF SQLCODE != -1430 THEN RAISE; END IF;
+END;
+/
+
+COMMENT ON COLUMN TR_OUTP_OP.self_pay_total IS '自助缴费总数(智慧结算率分母)';
+COMMENT ON COLUMN TR_OUTP_OP.self_settle_count IS '自助结算数(智慧结算率分子)';
+
+-- 验证: 应返回2行
+SELECT column_name FROM user_tab_columns
+WHERE table_name = 'TR_OUTP_OP' AND column_name IN ('SELF_PAY_TOTAL', 'SELF_SETTLE_COUNT');
+
+-- ============================================================
+-- 2026-11-26 版本: TR_OUTP_OP 新增非窗口挂号数
+-- 预约诊疗率 = (no_window_count - return_visits) / (total_visits - return_visits)
+-- ============================================================
+BEGIN
+    EXECUTE IMMEDIATE 'ALTER TABLE TR_OUTP_OP ADD (no_window_count NUMBER(10) DEFAULT 0)';
+EXCEPTION
+    WHEN OTHERS THEN
+        IF SQLCODE != -1430 THEN RAISE; END IF; -- ORA-01430列已存在则忽略(幂等)
+END;
+/
+
+COMMENT ON COLUMN TR_OUTP_OP.no_window_count IS '非窗口挂号数(预约诊疗率分子基数)';
+
+-- 验证: 应返回1行
+SELECT column_name FROM user_tab_columns
+WHERE table_name = 'TR_OUTP_OP' AND column_name = 'NO_WINDOW_COUNT';

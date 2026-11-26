@@ -7,10 +7,10 @@
     <!-- ============================================================ -->
     <select id="queryOverview" resultType="com.reports.entity.RevenueOvEntity">
         SELECT
-            NVL(SUM(r.register_revenue), 0) AS registerRevenue,
-            NVL(SUM(r.medical_revenue), 0) AS medicalRevenue,
-            NVL(SUM(r.register_revenue), 0) + NVL(SUM(r.medical_revenue), 0) + NVL(SUM(r.service_revenue), 0) AS outpatientRevenue,
-            NVL(SUM(r.service_revenue), 0) AS serviceRevenue
+            NVL(SUM(r.register_revenue), 0) AS registerRevenue, -- 挂号收入
+            NVL(SUM(r.medical_revenue), 0) AS medicalRevenue, -- 医疗收入
+            NVL(SUM(r.register_revenue), 0) + NVL(SUM(r.medical_revenue), 0) + NVL(SUM(r.service_revenue), 0) AS outpatientRevenue, -- 门诊收入
+            NVL(SUM(r.service_revenue), 0) AS serviceRevenue -- 服务收入
         FROM TR_REV_OV r
         INNER JOIN TR_DEPT_DICT d ON r.dept_code = d.dept_code
         WHERE r.stat_date BETWEEN #{startDate} AND #{endDate}
@@ -27,11 +27,11 @@
     <!-- ============================================================ -->
     <select id="queryDeptDetail" resultType="com.reports.entity.RevenueDeptEntity">
         SELECT
-            d.dept_name AS deptName,
-            NVL(SUM(r.register_revenue), 0) AS registerRevenue,
-            NVL(SUM(r.medical_revenue), 0) AS medicalRevenue,
-            NVL(SUM(r.register_revenue), 0) + NVL(SUM(r.medical_revenue), 0) + NVL(SUM(r.service_revenue), 0) AS outpatientRevenue,
-            NVL(SUM(r.service_revenue), 0) AS serviceRevenue
+            d.dept_name AS deptName, -- 科室名称
+            NVL(SUM(r.register_revenue), 0) AS registerRevenue, -- 挂号收入
+            NVL(SUM(r.medical_revenue), 0) AS medicalRevenue, -- 医疗收入
+            NVL(SUM(r.register_revenue), 0) + NVL(SUM(r.medical_revenue), 0) + NVL(SUM(r.service_revenue), 0) AS outpatientRevenue, -- 门诊收入
+            NVL(SUM(r.service_revenue), 0) AS serviceRevenue -- 服务收入
         FROM TR_REV_OV r
         INNER JOIN TR_DEPT_DICT d ON r.dept_code = d.dept_code
         WHERE r.stat_date BETWEEN #{startDate} AND #{endDate}
@@ -50,12 +50,12 @@
     <!-- ============================================================ -->
     <select id="queryDoctorDetail" resultType="com.reports.entity.RevenueDocEntity">
         SELECT
-            r.doctor_name AS doctorName,
-            d.dept_name AS deptName,
-            NVL(SUM(r.register_revenue), 0) AS registerRevenue,
-            NVL(SUM(r.medical_revenue), 0) AS medicalRevenue,
-            NVL(SUM(r.register_revenue), 0) + NVL(SUM(r.medical_revenue), 0) + NVL(SUM(r.service_revenue), 0) AS doctorBenefit,
-            NVL(SUM(r.service_revenue), 0) AS serviceRevenue
+            r.doctor_name AS doctorName, -- 医生姓名
+            d.dept_name AS deptName, -- 科室名称
+            NVL(SUM(r.register_revenue), 0) AS registerRevenue, -- 挂号收入
+            NVL(SUM(r.medical_revenue), 0) AS medicalRevenue, -- 医疗收入
+            NVL(SUM(r.register_revenue), 0) + NVL(SUM(r.medical_revenue), 0) + NVL(SUM(r.service_revenue), 0) AS doctorBenefit, -- 医生效益(挂号+医疗+服务)
+            NVL(SUM(r.service_revenue), 0) AS serviceRevenue -- 服务收入
         FROM TR_REV_OV r
         INNER JOIN TR_DEPT_DICT d ON r.dept_code = d.dept_code
         WHERE r.stat_date BETWEEN #{startDate} AND #{endDate}

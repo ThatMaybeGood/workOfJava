@@ -7,9 +7,9 @@
     <!-- ============================================================ -->
     <select id="queryOverview" resultType="com.reports.entity.WindowStatsOvEntity">
         SELECT
-        NVL(SUM(register_count), 0) AS registerCount,
-        NVL(SUM(payment_count), 0) AS paymentCount,
-        NVL(SUM(refund_count), 0) AS refundCount
+        NVL(SUM(register_count), 0) AS registerCount, -- 挂号人次
+        NVL(SUM(payment_count), 0) AS paymentCount, -- 收费人次
+        NVL(SUM(refund_count), 0) AS refundCount -- 退费人次
         FROM TR_WIN_STAT_OV
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
     </select>
@@ -19,8 +19,8 @@
     <!-- ============================================================ -->
     <select id="queryAgeAnalysis" resultType="com.reports.entity.WindowStatsAgeEntity">
         SELECT
-        age_group AS ageGroup,
-        NVL(SUM(patient_count), 0) AS patientCount
+        age_group AS ageGroup, -- 年龄段
+        NVL(SUM(patient_count), 0) AS patientCount -- 人数
         FROM TR_WIN_STAT_AGE
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         GROUP BY age_group
@@ -32,8 +32,8 @@
     <!-- ============================================================ -->
     <select id="queryTimeAnalysis" resultType="com.reports.entity.WindowStatsTmEntity">
         SELECT
-        time_slot AS timeSlot,
-        NVL(SUM(business_count), 0) AS businessCount
+        time_slot AS timeSlot, -- 时段
+        NVL(SUM(business_count), 0) AS businessCount -- 业务量
         FROM TR_WIN_STAT_TM
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         GROUP BY time_slot
@@ -45,8 +45,8 @@
     <!-- ============================================================ -->
     <select id="querySourceAnalysis" resultType="com.reports.entity.WindowStatsSrcEntity">
         SELECT
-        source_name AS sourceName,
-        NVL(SUM(source_count), 0) AS sourceCount
+        source_name AS sourceName, -- 来源名称
+        NVL(SUM(source_count), 0) AS sourceCount -- 数量
         FROM TR_WIN_STAT_SRC
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         GROUP BY source_name
@@ -58,9 +58,9 @@
     <!-- ============================================================ -->
     <select id="queryWorkload" resultType="com.reports.entity.WindowStatsTmEntity">
         SELECT
-        business_type AS businessType,
-         time_slot AS timeSlot,
-        NVL(SUM(business_count), 0) AS businessCount
+        business_type AS businessType, -- 业务类型(挂号/收费/退费)
+         time_slot AS timeSlot, -- 时段
+        NVL(SUM(business_count), 0) AS businessCount -- 业务量
         FROM TR_WIN_STAT_TM
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         GROUP BY business_type,time_slot

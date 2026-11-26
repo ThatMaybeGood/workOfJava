@@ -5,29 +5,29 @@
     <!-- 源库(yq_powersfp/院领导信箱)只读，这里只管人工登记表的增删改查 -->
 
     <sql id="cmplColumns">
-        id,
-        stat_date AS statDate,
-        complaint_time AS complaintTime,
-        dept_code AS deptCode,
-        dept_name AS deptName,
-        person_name AS personName,
-        position,
-        category,
-        result,
-        remark
+        id, -- 主键ID
+        stat_date AS statDate, -- 统计日期
+        complaint_time AS complaintTime, -- 投诉时间
+        dept_code AS deptCode, -- 科室代码
+        dept_name AS deptName, -- 科室
+        person_name AS personName, -- 人员
+        position, -- 职位
+        category, -- 分类
+        result, -- 处理结果
+        remark -- 备注
     </sql>
 
     <sql id="przColumns">
-        id,
-        stat_date AS statDate,
-        praise_time AS praiseTime,
-        dept_code AS deptCode,
-        dept_name AS deptName,
-        person_name AS personName,
-        position,
-        method,
-        feedback,
-        remark
+        id, -- 主键ID
+        stat_date AS statDate, -- 统计日期
+        praise_time AS praiseTime, -- 表扬时间
+        dept_code AS deptCode, -- 科室代码
+        dept_name AS deptName, -- 科室
+        person_name AS personName, -- 人员
+        position, -- 职位
+        method, -- 表扬方式
+        feedback, -- 是否反馈科室
+        remark -- 备注
     </sql>
 
     <!-- 数据维护弹窗：按日期范围查人工登记的投诉 -->

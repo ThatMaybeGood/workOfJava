@@ -8,16 +8,16 @@
     -->
     <select id="queryAnswers" resultType="com.reports.dto.source.QuestionAnswerRow">
         SELECT
-            a.RECORD_ID   AS recordId,
-            a.CREATE_TIME AS createTime,
-            a.ANSWER_INFO AS answerInfo,
-            a.QUESTION_ID AS questionId,
+            a.RECORD_ID   AS recordId, -- 答卷记录ID
+            a.CREATE_TIME AS createTime, -- 答卷创建时间
+            a.ANSWER_INFO AS answerInfo, -- 答卷JSON
+            a.QUESTION_ID AS questionId, -- 问卷ID
             (SELECT MAX(v.DISPOSE_RESULT) FROM POWERSFP_ADVICE_INFO v
-              WHERE v.EVALUATION_ID = a.RECORD_ID) AS disposeResult,
+              WHERE v.EVALUATION_ID = a.RECORD_ID) AS disposeResult, -- 意见箱-处理结果
             (SELECT MAX(v.DIVISION_NAME) FROM POWERSFP_ADVICE_INFO v
-              WHERE v.EVALUATION_ID = a.RECORD_ID) AS divisionName,
+              WHERE v.EVALUATION_ID = a.RECORD_ID) AS divisionName, -- 意见箱-科室名称
             (SELECT MAX(v.STATUS) FROM POWERSFP_ADVICE_INFO v
-              WHERE v.EVALUATION_ID = a.RECORD_ID) AS adviceStatus
+              WHERE v.EVALUATION_ID = a.RECORD_ID) AS adviceStatus -- 意见箱-处理状态(0未回复 1已回复 2无需回复)
         FROM SFP_QUESTION_ANSWER a
         WHERE a.CREATE_TIME &gt;= #{startDate}
           AND a.CREATE_TIME &lt; #{endDate} + 1

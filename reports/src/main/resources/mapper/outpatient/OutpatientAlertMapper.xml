@@ -7,9 +7,9 @@
     <!-- ============================================================ -->
     <select id="queryOverview" resultType="com.reports.entity.OutpatientAlertOvEntity">
         SELECT
-        NVL(SUM(remain_alert), 0) AS remainAlert,
-        NVL(SUM(appointment_alert), 0) AS appointmentAlert,
-        NVL(SUM(early_leave), 0) AS earlyLeave
+        NVL(SUM(remain_alert), 0) AS remainAlert, -- 滞留预警
+        NVL(SUM(appointment_alert), 0) AS appointmentAlert, -- 预约预警
+        NVL(SUM(early_leave), 0) AS earlyLeave -- 早退人数
         FROM TR_OUTP_ALT_OV
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
     </select>
@@ -19,10 +19,10 @@
     <!-- ============================================================ -->
     <select id="queryDeptDetail" resultType="com.reports.entity.OutpatientAlertOvEntity">
         SELECT
-        dept_name AS deptName,
-        NVL(SUM(remain_alert), 0) AS remainAlert,
-        NVL(SUM(appointment_alert), 0) AS appointmentAlert,
-        NVL(SUM(early_leave), 0) AS earlyLeave
+        dept_name AS deptName, -- 科室名称
+        NVL(SUM(remain_alert), 0) AS remainAlert, -- 滞留预警
+        NVL(SUM(appointment_alert), 0) AS appointmentAlert, -- 预约预警
+        NVL(SUM(early_leave), 0) AS earlyLeave -- 早退人数
         FROM TR_OUTP_ALT_OV
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         <if test="deptCode != null and deptCode != ''">
@@ -40,11 +40,11 @@
     <!-- ============================================================ -->
     <select id="queryDoctorDetail" resultType="com.reports.entity.OutpatientAlertOvEntity">
         SELECT
-        doctor_name AS doctorName,
-        dept_name AS deptName,
-        NVL(SUM(remain_alert), 0) AS remainAlert,
-        NVL(SUM(appointment_alert), 0) AS appointmentAlert,
-        NVL(SUM(early_leave), 0) AS earlyLeave
+        doctor_name AS doctorName, -- 医生姓名
+        dept_name AS deptName, -- 科室名称
+        NVL(SUM(remain_alert), 0) AS remainAlert, -- 滞留预警
+        NVL(SUM(appointment_alert), 0) AS appointmentAlert, -- 预约预警
+        NVL(SUM(early_leave), 0) AS earlyLeave -- 早退人数
         FROM TR_OUTP_ALT_OV
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
           AND doctor_name IS NOT NULL
@@ -63,14 +63,14 @@
     <!-- ============================================================ -->
     <select id="queryEarlyLeaveDetail" resultType="com.reports.entity.OutpatientAlertOvEntity">
         SELECT
-        dept_name AS deptName,
-        doctor_name AS doctorName,
-        stat_date AS statDate,
-        clinic_period AS clinicPeriod,
-        his_logout_time AS hisLogoutTime,
-        NVL(remain_alert, 0) AS remainAlert,
-        NVL(appointment_alert, 0) AS appointmentAlert,
-        NVL(early_leave, 0) AS earlyLeave
+        dept_name AS deptName, -- 科室名称
+        doctor_name AS doctorName, -- 医生姓名
+        stat_date AS statDate, -- 统计日期
+        clinic_period AS clinicPeriod, -- 出诊时段
+        his_logout_time AS hisLogoutTime, -- HIS退出时间
+        NVL(remain_alert, 0) AS remainAlert, -- 滞留预警
+        NVL(appointment_alert, 0) AS appointmentAlert, -- 预约预警
+        NVL(early_leave, 0) AS earlyLeave -- 早退人数
         FROM TR_OUTP_ALT_OV
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
           AND NVL(early_leave, 0) > 0

@@ -28,10 +28,10 @@
     <!-- 概览聚合:一次扫描,本期/同期两个区间OR过滤,行内CASE出两段; 人次=patient_id+visit_id去重 -->
     <select id="queryOverview" resultType="com.reports.entity.InpatPrepayOvEntity">
         SELECT
-        COUNT(DISTINCT CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN patient_id || '|' || visit_id END) AS countCurrent,
-        COUNT(DISTINCT CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN patient_id || '|' || visit_id END) AS countLast,
-        NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN amount ELSE 0 END), 0) AS amountCurrent,
-        NVL(SUM(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN amount ELSE 0 END), 0) AS amountLast
+        COUNT(DISTINCT CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN patient_id || '|' || visit_id END) AS countCurrent, -- 本期人次
+        COUNT(DISTINCT CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN patient_id || '|' || visit_id END) AS countLast, -- 去年同期人次
+        NVL(SUM(CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN amount ELSE 0 END), 0) AS amountCurrent, -- 本期金额
+        NVL(SUM(CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN amount ELSE 0 END), 0) AS amountLast -- 去年同期金额
         FROM tr_inpat_prepay_rcpt
         WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
            OR stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
@@ -43,21 +43,21 @@
         SELECT
         <choose>
             <when test="month">
-                TRUNC(axis_date, 'MM') AS itemDate
+                TRUNC(axis_date, 'MM') AS itemDate -- 日期(月初)
             </when>
             <otherwise>
-                axis_date AS itemDate
+                axis_date AS itemDate -- 日期
             </otherwise>
         </choose>,
-        COUNT(DISTINCT CASE WHEN in_current = 1 THEN pv END) AS countCurrent,
-        COUNT(DISTINCT CASE WHEN in_last = 1 THEN pv END) AS countLast,
-        NVL(SUM(CASE WHEN in_current = 1 THEN amount ELSE 0 END), 0) AS amountCurrent,
-        NVL(SUM(CASE WHEN in_last = 1 THEN amount ELSE 0 END), 0) AS amountLast
+        COUNT(DISTINCT CASE WHEN in_current = 1 THEN pv END) AS countCurrent, -- 本期人次
+        COUNT(DISTINCT CASE WHEN in_last = 1 THEN pv END) AS countLast, -- 去年同期人次
+        NVL(SUM(CASE WHEN in_current = 1 THEN amount ELSE 0 END), 0) AS amountCurrent, -- 本期金额
+        NVL(SUM(CASE WHEN in_last = 1 THEN amount ELSE 0 END), 0) AS amountLast -- 去年同期金额
         FROM (
-            SELECT patient_id || '|' || visit_id AS pv, amount,
-                   <include refid="axisExpr"/> AS axis_date,
-                   CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
-                   CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last
+            SELECT patient_id || '|' || visit_id AS pv, amount, -- 患者|就诊标识,交易金额
+                   <include refid="axisExpr"/> AS axis_date, -- 日期轴(同期平移+12月)
+                   CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current, -- 本期标志
+                   CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last -- 同期标志
             FROM tr_inpat_prepay_rcpt
             WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
                OR stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})
@@ -77,17 +77,17 @@
     <!-- 渠道×支付方式聚合 -->
     <select id="queryChannel" resultType="com.reports.entity.InpatPrepayChtEntity">
         SELECT
-        channel,
-        pay_way AS payWay,
-        COUNT(DISTINCT CASE WHEN in_current = 1 THEN pv END) AS countCurrent,
-        COUNT(DISTINCT CASE WHEN in_last = 1 THEN pv END) AS countLast,
-        NVL(SUM(CASE WHEN in_current = 1 THEN amount ELSE 0 END), 0) AS amountCurrent,
-        NVL(SUM(CASE WHEN in_last = 1 THEN amount ELSE 0 END), 0) AS amountLast
+        channel, -- 渠道
+        pay_way AS payWay, -- 支付方式
+        COUNT(DISTINCT CASE WHEN in_current = 1 THEN pv END) AS countCurrent, -- 本期人次
+        COUNT(DISTINCT CASE WHEN in_last = 1 THEN pv END) AS countLast, -- 去年同期人次
+        NVL(SUM(CASE WHEN in_current = 1 THEN amount ELSE 0 END), 0) AS amountCurrent, -- 本期金额
+        NVL(SUM(CASE WHEN in_last = 1 THEN amount ELSE 0 END), 0) AS amountLast -- 去年同期金额
         FROM (
-            SELECT patient_id || '|' || visit_id AS pv, amount, pay_way,
-                   <include refid="channelExpr"/> AS channel,
-                   CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current,
-                   CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last
+            SELECT patient_id || '|' || visit_id AS pv, amount, pay_way, -- 患者|就诊标识,交易金额,支付方式
+                   <include refid="channelExpr"/> AS channel, -- 渠道
+                   CASE WHEN stat_date BETWEEN #{startDate} AND #{endDate} THEN 1 ELSE 0 END AS in_current, -- 本期标志
+                   CASE WHEN stat_date BETWEEN #{lastStartDate} AND #{lastEndDate} THEN 1 ELSE 0 END AS in_last -- 同期标志
             FROM tr_inpat_prepay_rcpt
             WHERE (stat_date BETWEEN #{startDate} AND #{endDate}
                OR stat_date BETWEEN #{lastStartDate} AND #{lastEndDate})

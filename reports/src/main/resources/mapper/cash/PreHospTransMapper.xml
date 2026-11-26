@@ -21,10 +21,10 @@
                 <otherwise>
                     TO_CHAR(TRUNC(n.VISIT_DATE), 'YYYY-MM-DD')
                 </otherwise>
-            </choose> AS itemDate,
-            n.OPERATOR_NO AS operNo,
-            COUNT(1) AS rcptCnt,
-            COUNT(DISTINCT n.PATIENT_ID) AS personCnt
+            </choose> AS itemDate, <!-- 日期 -->
+            n.OPERATOR_NO AS operNo, <!-- 操作员工号 -->
+            COUNT(1) AS rcptCnt, <!-- 收据张数 -->
+            COUNT(DISTINCT n.PATIENT_ID) AS personCnt <!-- 人次 -->
         FROM outp_rcpt_master n
         WHERE n.VISIT_DATE &gt;= #{startDate}
           AND n.VISIT_DATE &lt; #{endDate} + 1
@@ -63,7 +63,7 @@
 
     <!-- HIS users: 姓名LIKE按RAWTOHEX匹配(GBK双字节hex纯ASCII, 避开US7ASCII驱动丢高字节) -->
     <select id="queryUsersByIds" resultType="com.reports.dto.response.cash.prehosp.PreHospUserItem">
-        SELECT USER_ID AS operNo, DB_USER AS operDbuser, RAWTOHEX(TRIM(USER_NAME)) AS operNameHex
+        SELECT USER_ID AS operNo, DB_USER AS operDbuser, RAWTOHEX(TRIM(USER_NAME)) AS operNameHex <!-- 工号,登录ID,姓名hex -->
         FROM users
         WHERE USER_ID IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
@@ -72,9 +72,9 @@
     </select>
 
     <select id="searchUsers" resultType="com.reports.dto.response.cash.prehosp.PreHospUserItem">
-        SELECT operNo, operDbuser, operNameHex FROM (
-            SELECT USER_ID AS operNo, DB_USER AS operDbuser,
-                   RAWTOHEX(TRIM(USER_NAME)) AS operNameHex, ROWNUM AS rn
+        SELECT operNo, operDbuser, operNameHex FROM ( <!-- 工号,登录ID,姓名hex -->
+            SELECT USER_ID AS operNo, DB_USER AS operDbuser, <!-- 工号,登录ID -->
+                   RAWTOHEX(TRIM(USER_NAME)) AS operNameHex, ROWNUM AS rn <!-- 姓名hex,行号 -->
             FROM users
             WHERE (USER_ID LIKE '%' || #{kw} || '%'
                 OR DB_USER LIKE '%' || #{kw} || '%'
@@ -84,7 +84,7 @@
     </select>
 
     <select id="countUsers" resultType="int">
-        SELECT COUNT(1)
+        SELECT COUNT(1) <!-- 数量 -->
         FROM users
         WHERE USER_ID LIKE '%' || #{kw} || '%'
            OR DB_USER LIKE '%' || #{kw} || '%'
@@ -92,7 +92,7 @@
     </select>
 
     <select id="queryUserByDbuser" resultType="com.reports.dto.response.cash.prehosp.PreHospUserItem">
-        SELECT USER_ID AS operNo, DB_USER AS operDbuser, RAWTOHEX(TRIM(USER_NAME)) AS operNameHex
+        SELECT USER_ID AS operNo, DB_USER AS operDbuser, RAWTOHEX(TRIM(USER_NAME)) AS operNameHex <!-- 工号,登录ID,姓名hex -->
         FROM users
         WHERE DB_USER = #{dbuser} AND ROWNUM = 1
     </select>

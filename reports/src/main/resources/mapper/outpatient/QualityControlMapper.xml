@@ -11,18 +11,18 @@
     <!-- 按月份区间查询（报表取数用，一月一行） -->
     <select id="queryMonthly" resultType="com.reports.dto.response.outpatient.quality.control.TableItem">
         SELECT
-            stat_month AS month,
-            <include refid="rate"><property name="col" value="emr_usage_rate"/></include> AS emrUsageRate,
-            <include refid="rate"><property name="col" value="standard_diagnosis_rate"/></include> AS standardDiagnosisRate,
-            <include refid="rate"><property name="col" value="on_time_rate"/></include> AS onTimeRate,
-            <include refid="rate"><property name="col" value="stop_rate"/></include> AS stopRate,
-            <include refid="rate"><property name="col" value="chemo_record_rate"/></include> AS chemoRecordRate,
-            <include refid="rate"><property name="col" value="chemo_adverse_rate"/></include> AS chemoAdverseRate,
-            <include refid="rate"><property name="col" value="chemo_infusion_rate"/></include> AS chemoInfusionRate,
-            <include refid="rate"><property name="col" value="critical_value_rate"/></include> AS criticalValueRate,
-            <include refid="rate"><property name="col" value="blood_draw_error_rate"/></include> AS bloodDrawErrorRate,
-            <include refid="rate"><property name="col" value="surgery_complication_rate"/></include> AS surgeryComplicationRate,
-            <include refid="rate"><property name="col" value="adverse_event_rate"/></include> AS adverseEventRate
+            stat_month AS month, -- 统计月份
+            <include refid="rate"><property name="col" value="emr_usage_rate"/></include> AS emrUsageRate, -- 门诊电子病历使用率
+            <include refid="rate"><property name="col" value="standard_diagnosis_rate"/></include> AS standardDiagnosisRate, -- 门诊标准诊断使用率
+            <include refid="rate"><property name="col" value="on_time_rate"/></include> AS onTimeRate, -- 门诊准时出诊率
+            <include refid="rate"><property name="col" value="stop_rate"/></include> AS stopRate, -- 门诊停诊率
+            <include refid="rate"><property name="col" value="chemo_record_rate"/></include> AS chemoRecordRate, -- 门诊化疗病历记录完整率
+            <include refid="rate"><property name="col" value="chemo_adverse_rate"/></include> AS chemoAdverseRate, -- 门诊化疗严重不良反应发生率
+            <include refid="rate"><property name="col" value="chemo_infusion_rate"/></include> AS chemoInfusionRate, -- 门诊化疗患者静脉治疗相关不良事件发生率
+            <include refid="rate"><property name="col" value="critical_value_rate"/></include> AS criticalValueRate, -- 门诊危急值30分钟内通报完成率
+            <include refid="rate"><property name="col" value="blood_draw_error_rate"/></include> AS bloodDrawErrorRate, -- 门诊静脉采血相关差错发生率
+            <include refid="rate"><property name="col" value="surgery_complication_rate"/></include> AS surgeryComplicationRate, -- 门诊手术并发症发生率
+            <include refid="rate"><property name="col" value="adverse_event_rate"/></include> AS adverseEventRate -- 每千门诊诊疗人次不良事件发生率
         FROM TR_QC_DTL
         WHERE stat_month BETWEEN #{startMonth} AND #{endMonth}
         ORDER BY stat_month
@@ -31,35 +31,35 @@
     <!-- 按月份查询单行（数据维护弹窗预填用） -->
     <select id="queryByMonth" resultType="com.reports.entity.QualityControlDtlEntity">
         SELECT
-            stat_month AS statMonth,
-            emr_usage_rate_num AS emrUsageRateNum,
-            emr_usage_rate_den AS emrUsageRateDen,
-            standard_diagnosis_rate_num AS standardDiagnosisRateNum,
-            standard_diagnosis_rate_den AS standardDiagnosisRateDen,
-            on_time_rate_num AS onTimeRateNum,
-            on_time_rate_den AS onTimeRateDen,
-            stop_rate_num AS stopRateNum,
-            stop_rate_den AS stopRateDen,
-            chemo_record_rate_num AS chemoRecordRateNum,
-            chemo_record_rate_den AS chemoRecordRateDen,
-            chemo_adverse_rate_num AS chemoAdverseRateNum,
-            chemo_adverse_rate_den AS chemoAdverseRateDen,
-            chemo_infusion_rate_num AS chemoInfusionRateNum,
-            chemo_infusion_rate_den AS chemoInfusionRateDen,
-            critical_value_rate_num AS criticalValueRateNum,
-            critical_value_rate_den AS criticalValueRateDen,
-            blood_draw_error_rate_num AS bloodDrawErrorRateNum,
-            blood_draw_error_rate_den AS bloodDrawErrorRateDen,
-            surgery_complication_rate_num AS surgeryComplicationRateNum,
-            surgery_complication_rate_den AS surgeryComplicationRateDen,
-            adverse_event_rate_num AS adverseEventRateNum,
-            adverse_event_rate_den AS adverseEventRateDen,
-            source_type AS sourceType,
-            create_time AS createTime,
-            update_time AS updateTime,
-            ext1 AS ext1,
-            ext2 AS ext2,
-            ext3 AS ext3
+            stat_month AS statMonth, -- 统计月份(YYYY-MM)
+            emr_usage_rate_num AS emrUsageRateNum, -- 门诊电子病历使用率-分子
+            emr_usage_rate_den AS emrUsageRateDen, -- 门诊电子病历使用率-分母
+            standard_diagnosis_rate_num AS standardDiagnosisRateNum, -- 门诊标准诊断使用率-分子
+            standard_diagnosis_rate_den AS standardDiagnosisRateDen, -- 门诊标准诊断使用率-分母
+            on_time_rate_num AS onTimeRateNum, -- 门诊准时出诊率-分子
+            on_time_rate_den AS onTimeRateDen, -- 门诊准时出诊率-分母
+            stop_rate_num AS stopRateNum, -- 门诊停诊率-分子
+            stop_rate_den AS stopRateDen, -- 门诊停诊率-分母
+            chemo_record_rate_num AS chemoRecordRateNum, -- 门诊化疗病历记录完整率-分子
+            chemo_record_rate_den AS chemoRecordRateDen, -- 门诊化疗病历记录完整率-分母
+            chemo_adverse_rate_num AS chemoAdverseRateNum, -- 门诊化疗严重不良反应发生率-分子
+            chemo_adverse_rate_den AS chemoAdverseRateDen, -- 门诊化疗严重不良反应发生率-分母
+            chemo_infusion_rate_num AS chemoInfusionRateNum, -- 门诊化疗患者静脉治疗相关不良事件发生率-分子
+            chemo_infusion_rate_den AS chemoInfusionRateDen, -- 门诊化疗患者静脉治疗相关不良事件发生率-分母
+            critical_value_rate_num AS criticalValueRateNum, -- 门诊危急值30分钟内通报完成率-分子
+            critical_value_rate_den AS criticalValueRateDen, -- 门诊危急值30分钟内通报完成率-分母
+            blood_draw_error_rate_num AS bloodDrawErrorRateNum, -- 门诊静脉采血相关差错发生率-分子
+            blood_draw_error_rate_den AS bloodDrawErrorRateDen, -- 门诊静脉采血相关差错发生率-分母
+            surgery_complication_rate_num AS surgeryComplicationRateNum, -- 门诊手术并发症发生率-分子
+            surgery_complication_rate_den AS surgeryComplicationRateDen, -- 门诊手术并发症发生率-分母
+            adverse_event_rate_num AS adverseEventRateNum, -- 每千门诊诊疗人次不良事件发生率-分子
+            adverse_event_rate_den AS adverseEventRateDen, -- 每千门诊诊疗人次不良事件发生率-分母
+            source_type AS sourceType, -- 数据来源
+            create_time AS createTime, -- 创建时间
+            update_time AS updateTime, -- 更新时间
+            ext1 AS ext1, -- 扩展字段1
+            ext2 AS ext2, -- 扩展字段2
+            ext3 AS ext3 -- 扩展字段3
         FROM TR_QC_DTL
         WHERE stat_month = #{statMonth}
     </select>
