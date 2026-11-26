@@ -181,7 +181,8 @@
         .data-table td.cell-locked { background: #f5f5f5; color: #999; cursor: not-allowed; }
         /* bt13 备注不换行: 内容多了整表向右撑出横向滚动, 不挤前面列 */
         .cell-money[data-field="remarks"], td.cell-remarks { white-space: pre; }
-        .cell-money.neg { color: #e91e8c; }
+        /* bt23 全表负金额红字(计算/返回/编辑值统一) */
+        .neg { color: #e64545; }
         .cell-changed { color: #f5222d !important; font-weight: 700; }
 
         .row-computed td { background: #fdf6ec; font-weight: 600; }
@@ -369,8 +370,6 @@
     const MONEY_FIELDS = ["his_advance_payment", "his_medical_income", "report_amount", "previous_temporary_receipt",
         "holiday_temporary_receipt", "actual_report_amount", "current_temporary_receipt", "actual_cash_amount",
         "retained_difference", "retained_cash", "petty_cash"];
-    // 负值标粉的列（原界面风格）
-    const NEG_PINK_FIELDS = ["his_advance_payment", "his_medical_income"];
     // 汇总行名（合计行的汇总排除它们）
     const COMPUTED_NAMES = ["合计", "当日暂收款", "日报表数", "合计存款金额", "住院部当日借款", "住院部当日回款",
         "门诊当日抵扣报表金额", "门诊当日退主病房", "门诊当日退三住院部", "门诊当日借款", "门诊当日回款", "门诊当日实存金额"];
@@ -779,7 +778,7 @@
                     if (field === "petty_cash") return; // 备用金列单独处理
                     const val = row[field];
                     const changed = state.changed.has(cellChangedKey(i, field));
-                    const negCls = (NEG_PINK_FIELDS.indexOf(field) >= 0 && toNumber(val) < 0) ? " neg" : "";
+                    const negCls = toNumber(val) < 0 ? " neg" : "";
                     const editCls = changed ? " cell-changed" : "";
                     const edgeCls = (skipMerge && field === "retained_cash") ? ' class="merge-edge"' : "";
                     if (isEditableCell(row, field)) {
@@ -805,10 +804,11 @@
             } else if (!skipMerge) {
                 const petty = row.petty_cash;
                 const changed = state.changed.has(cellChangedKey(i, "petty_cash"));
+                const pNeg = toNumber(petty) < 0 ? " neg" : "";
                 if (isEditableCell(row, "petty_cash")) {
-                    html.push('<td><div class="cell-money' + (changed ? " cell-changed" : "") + '" data-row="' + i + '" data-field="petty_cash">' + fmtMoney(petty) + "</div></td>");
+                    html.push('<td><div class="cell-money' + pNeg + (changed ? " cell-changed" : "") + '" data-row="' + i + '" data-field="petty_cash">' + fmtMoney(petty) + "</div></td>");
                 } else {
-                    html.push('<td><span class="' + (changed ? "cell-changed" : "") + '">' + fmtMoney(petty) + "</span></td>");
+                    html.push('<td><span class="' + (pNeg + (changed ? " cell-changed" : "")).trim() + '">' + fmtMoney(petty) + "</span></td>");
                 }
                 const remarks = row.remarks;
                 const rChanged = state.changed.has(cellChangedKey(i, "remarks"));
@@ -968,6 +968,8 @@
             if (title.classList.contains("total-mode")) title.style.color = "#e64545";
         }
         table.querySelectorAll(".merge-remarks, td.cell-remarks").forEach(d => { d.style.textAlign = "left"; });
+        // 负金额红字还原
+        table.querySelectorAll(".neg").forEach(d => { d.style.color = "#e64545"; });
         // 审核/出纳签字行一并导出
         const sign = document.getElementById("signLine").cloneNode(true);
         sign.style.cssText = "padding:12px 10px 2px;font-size:14pt;font-weight:bold;";
