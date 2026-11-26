@@ -1000,8 +1000,8 @@ public class ReportServiceImpl implements ReportService {
                 .getRecords();
         if (main == null) {
             main = new InpCashMainEntity();
-        } else {
-            //汇总区间: 优先汇总行落库值, 历史行回算连续节假日区间(审核页标题展示用)
+        } else if (Constant.YES.equals(holidayTotalFlag)) {
+            //汇总区间: 优先汇总行落库值, 历史行回算连续节假日区间(审核页标题展示用); 仅汇总行回算, 正常日回算会把标题带成汇总
             fillHolidayRange(main);
         }
         main.setAuditLogs(auditLogs);
