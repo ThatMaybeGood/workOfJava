@@ -567,7 +567,9 @@
     }
 
     function fillComputedValues(list, totals) {
-        const holidayMode = state.isHoliday === "1" || state.isHoliday === "4";
+        // 口径与后端setSpecialRowsValues一致: 1节假日/3节假日前一天/4月末节假日/5月末非节假日特殊计算 → 当日暂收款取节假日暂收款合计; 其中1/3/4日报表数清零
+        const useHolidayAdvance = ["1", "3", "4", "5"].indexOf(state.isHoliday) >= 0;
+        const zeroDayReport = ["1", "3", "4"].indexOf(state.isHoliday) >= 0;
         const curTemp = list.find(r => r.operator_name === "当日暂收款");
         const dayReport = list.find(r => r.operator_name === "日报表数");
         const deposit = list.find(r => r.operator_name === "合计存款金额");
@@ -582,10 +584,16 @@
             MONEY_FIELDS.forEach(f => totalRow[f] = totals[f]);
         }
         if (curTemp) {
-            curTemp.his_advance_payment = holidayMode ? totals.holiday_temporary_receipt : totals.current_temporary_receipt;
+            curTemp.his_advance_payment = useHolidayAdvance ? totals.holiday_temporary_receipt : totals.current_temporary_receipt;
         }
         if (dayReport) {
-            dayReport.his_advance_payment = holidayMode ? 0 : totals.actual_report_amount;
+            dayReport.his_advance_payment = zeroDayReport ? 0 : totals.actual_report_amount;
+        }
+        if (deposit) {
+            // 合计存款金额=当日暂收款+日报表数, 与后端setSpecialRowsValues一致
+            deposit.his_advance_payment =
+                toNumber(curTemp && curTemp.his_advance_payment) +
+                toNumber(dayReport && dayReport.his_advance_payment);
         }
         if (outpReal) {
             // bt20 口径与后端setSpecialRowsValues一致: 实存=暂收款+日报表数+回款-借款; 合计存款金额=暂收款+日报表数, 再加会翻倍
