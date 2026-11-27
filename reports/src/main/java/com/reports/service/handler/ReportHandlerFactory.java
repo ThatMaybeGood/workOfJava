@@ -48,7 +48,7 @@ public class ReportHandlerFactory {
             handlerMap.put(method, handler);
             log.debug("注册报表处理器: method=[{}], class=[{}]", method, clazz.getSimpleName());
         }
-        log.info("共注册 {} 个报表处理器", handlerMap.size());
+        log.debug("共注册 {} 个报表处理器", handlerMap.size());
     }
 
     /**

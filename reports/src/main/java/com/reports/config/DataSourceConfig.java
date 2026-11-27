@@ -64,7 +64,7 @@ public class DataSourceConfig {
         DynamicDataSource dynamicDataSource = new DynamicDataSource();
         dynamicDataSource.setTargetDataSources(targetDataSources);
         dynamicDataSource.setDefaultTargetDataSource(defaultDataSource);
-        log.info("动态数据源初始化完成，共 {} 个 {}，默认数据源: [{}]",
+        log.debug("动态数据源初始化完成，共 {} 个 {}，默认数据源: [{}]",
                 targetDataSources.size(), namedDataSources.keySet(), DynamicDataSourceContextHolder.DEFAULT_DS);
         return dynamicDataSource;
     }

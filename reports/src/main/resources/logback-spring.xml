@@ -111,6 +111,14 @@
     <logger name="com.baomidou.mybatisplus.core.metadata.TableInfoHelper" level="ERROR"/>
     <logger name="com.baomidou.mybatisplus.core.injector.DefaultSqlInjector" level="ERROR"/>
 
+    <!-- 简洁启动: 框架初始化日志压WARN, 只留Starting/Started/首页地址 -->
+    <logger name="org.springframework.boot" level="WARN"/>
+    <logger name="org.springframework.web" level="WARN"/>
+    <logger name="org.apache.tomcat" level="WARN"/>
+    <logger name="org.apache.catalina" level="WARN"/>
+    <logger name="org.apache.coyote" level="WARN"/>
+    <logger name="org.hibernate.validator" level="WARN"/>
+
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="INFO_FILE"/>

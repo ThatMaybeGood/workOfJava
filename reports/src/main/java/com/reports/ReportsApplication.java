@@ -42,9 +42,7 @@ public class ReportsApplication {
                 contextPath = contextPath.substring(0, contextPath.length() - 1);
             }
             String host = environment.getProperty("server.address", "localhost");
-            log.info("============================================================");
             log.info("首页地址: http://{}:{}{}/index.html", host, port, contextPath);
-            log.info("============================================================");
         }
     }
 
