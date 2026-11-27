@@ -177,7 +177,6 @@ public final class ReportTestDataSeeder {
         seedDicts(conn);
         seedOutpatientOperation(conn);
         seedOutpatientAlert(conn);
-        seedForecast(conn);
         seedInternetHospital(conn);
         seedLabStats(conn);
         seedMedTech(conn);
@@ -204,7 +203,6 @@ public final class ReportTestDataSeeder {
     public static void verify(Connection conn) throws SQLException {
         String[] tables = {
                 "TR_DEPT_DICT", "TR_OUTP_OP", "TR_OUTP_ALT_OV",
-                "TR_FC_APPOINT", "TR_FC_WEATHER", "TR_FC_HOLIDAY",
                 "TR_INET_HOSP_OV", "TR_INET_HOSP_OP", "TR_INET_HOSP_BIZ",
                 "TR_INET_HOSP_DEPT_RNK", "TR_INET_HOSP_DOC_RNK", "TR_INET_HOSP_GRW",
                 "TR_LABSTAT_OV", "TR_LABSTAT_RNK", "TR_LABSTAT_TM",
@@ -304,7 +302,6 @@ public final class ReportTestDataSeeder {
         String[] complaintResults = {"已处理", "处理中", "待处理", "已回访"};
         String[] praiseMethods = {"锦旗", "感谢信", "口头表扬", "电话表扬", "留言表扬"};
         String[] yesNo = {"是", "否"};
-        String[] weatherTypes = {"晴", "多云", "阴", "小雨", "中雨", "大雨", "雪"};
 
         List<Object[]> dictRows = new ArrayList<Object[]>();
         addDict(dictRows, "position", positions);
@@ -312,7 +309,6 @@ public final class ReportTestDataSeeder {
         addDict(dictRows, "complaintResult", complaintResults);
         addDict(dictRows, "praiseMethod", praiseMethods);
         addDict(dictRows, "feedback", yesNo);
-        addDict(dictRows, "weather_type", weatherTypes);
         batch(conn, "INSERT INTO TR_COMMON_DICT (id, dict_type, dict_code, dict_name, sort_no, status)"
                 + " VALUES (seq_tr_reports.NEXTVAL,?,?,?,?,1)", dictRows);
 
@@ -421,60 +417,6 @@ public final class ReportTestDataSeeder {
                 + " clinic_period, his_logout_time, remain_alert, appointment_alert, early_leave)"
                 + " VALUES (?,?,?,?,?,?,?,?,?)", rows);
         out.println("  [门诊预警] TR_OUTP_ALT_OV=" + rows.size());
-    }
-
-    private static void seedForecast(Connection conn) throws SQLException {
-        // 预约量表：今天起未来 60 天
-        List<Object[]> app = new ArrayList<Object[]>();
-        for (int d = 0; d < 60; d++) {
-            Date day = dayAt(DAYS + d);
-            for (String[] dept : DEPTS) {
-                app.add(new Object[]{day, dept[0], Integer.valueOf(rnd(5, 80))});
-            }
-        }
-        batch(conn, "INSERT INTO tr_fc_appoint (appoint_date, dept_code, appoint_count)"
-                + " VALUES (?,?,?)", app);
-
-        // 天气要一直造到未来 120 天：预测门诊量模块会按「明天 / 下周」查天气系数，
-        // 只造到今天的话未来日期查出来是 0 行
-        // 灌数模拟 ETL 抽数，来源记为接口同步；界面人工登记的走天气维护入口
-        String[] weathers = {"晴", "多云", "阴", "小雨", "中雨", "大雨", "雪"};
-        List<Object[]> wea = new ArrayList<Object[]>();
-        for (int d = 0; d < DAYS + 120; d++) {
-            wea.add(new Object[]{dayAt(d), weathers[rnd(0, weathers.length - 1)], Double.valueOf(1.0d), "接口同步"});
-        }
-        batch(conn, "INSERT INTO tr_fc_weather (weather_date, weather_type, weather_coef, weather_source)"
-                + " VALUES (?,?,?,?)", wea);
-
-        // 节假日：前一年/当年/次年各来一套，这样「近一年法定节假日」这类查询在任意今天都能查到数据。
-        // hol_date 上有唯一索引，用 Set 去重，避免与下面的调休日撞车。
-        List<Object[]> hol = new ArrayList<Object[]>();
-        Set<LocalDate> used = new HashSet<LocalDate>();
-        int y = endDate.getYear();
-        for (int yy = y - 1; yy <= y + 1; yy++) {
-            addHoliday(hol, used, LocalDate.of(yy, 1, 1), "元旦", "LEGAL_HOLIDAY");
-            addHoliday(hol, used, LocalDate.of(yy, 4, 4), "清明节", "LEGAL_HOLIDAY");
-            addHoliday(hol, used, LocalDate.of(yy, 5, 1), "劳动节", "LEGAL_HOLIDAY");
-            addHoliday(hol, used, LocalDate.of(yy, 5, 2), "劳动节", "LEGAL_HOLIDAY");
-            addHoliday(hol, used, LocalDate.of(yy, 5, 3), "劳动节", "LEGAL_HOLIDAY");
-            addHoliday(hol, used, LocalDate.of(yy, 10, 1), "国庆节", "LEGAL_HOLIDAY");
-            addHoliday(hol, used, LocalDate.of(yy, 10, 2), "国庆节", "LEGAL_HOLIDAY");
-            addHoliday(hol, used, LocalDate.of(yy, 10, 3), "国庆节", "LEGAL_HOLIDAY");
-        }
-        addHoliday(hol, used, endDate.plusDays(7), "周末调休上班", "WORKDAY_ADJUST");
-        addHoliday(hol, used, endDate.plusDays(8), "周末调休上班", "WORKDAY_ADJUST");
-        batch(conn, "INSERT INTO tr_fc_holiday (hol_date, hol_name, hol_type)"
-                + " VALUES (?,?,?)", hol);
-
-        out.println("  [预测门诊量] tr_fc_appoint=" + app.size() + ", tr_fc_weather=" + wea.size()
-                + ", tr_fc_holiday=" + hol.size());
-    }
-
-    private static void addHoliday(List<Object[]> rows, Set<LocalDate> used, LocalDate date,
-                                   String name, String type) {
-        if (used.add(date)) {
-            rows.add(new Object[]{Date.valueOf(date), name, type});
-        }
     }
 
     private static void seedInternetHospital(Connection conn) throws SQLException {

@@ -171,13 +171,5 @@ const ReportAPI = {
      */
     maintainQualityControl(params) {
         return apiRequest('reports.outp.quality-control-maintain', 'endpoint', params);
-    },
-
-    /**
-     * 天气数据维护（query/save/delete）
-     * method: reports.common.weather-maintain
-     */
-    maintainWeather(params) {
-        return apiRequest('reports.common.weather-maintain', 'endpoint', params);
     }
 };

@@ -215,17 +215,6 @@ public enum ReportModule {
                     new ReportMethod("queryStaffList", "查询人员列表")
             )),
 
-    /**
-     * 天气数据维护
-     */
-    WEATHER_MAINTAIN("天气数据维护",
-            "com.reports.service.WeatherMaintainService",
-            Arrays.asList(
-                    new ReportMethod("queryMaintainList", "查询天气明细"),
-                    new ReportMethod("saveMaintain", "保存天气明细"),
-                    new ReportMethod("deleteMaintain", "删除天气明细")
-            )),
-
     // ==================== 收费类报表 ====================
 
     /**
