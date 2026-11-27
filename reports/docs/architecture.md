@@ -55,7 +55,6 @@ reports/
     │   │   ├── RequestHead.java              # 请求头
     │   │   ├── BaseRequestBody.java          # 请求体基类
     │   │   ├── Result.java                  # 响应结果
-    │   │   ├── PageParam.java               # 分页参数
     │   │   └── PageResult.java              # 分页结果
     │   ├── request/                          # 请求 DTO
     │   │   └── OutpatientOperationRequest.java
@@ -229,12 +228,7 @@ spring:
 
 ### 6.1 分页参数
 
-```java
-public class PageParam {
-    private Integer page = 1;      // 当前页码
-    private Integer pageSize = 10; // 每页条数
-}
-```
+分页参数(page/pageSize)由各报表请求DTO自带, 无独立类。
 
 ### 6.2 分页结果
 
