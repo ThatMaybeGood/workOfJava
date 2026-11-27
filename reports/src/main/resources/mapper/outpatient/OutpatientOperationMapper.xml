@@ -6,43 +6,41 @@
     <!-- 查询指定时间范围和科室的统计数据汇总 -->
     <!-- ============================================================ -->
     <select id="querySummaryByDateAndDept" resultType="com.reports.entity.OutpatientOperationEntity">
-        SELECT t.*,                                          -- 内层聚合结果
-            (SELECT ROUND(AVG(NVL(o.avg_waiting_time_new, 0)), 1) FROM tr_hrap_opd_overview o
-              WHERE o.stat_date BETWEEN #{startDate} AND #{endDate}) AS efficiency -- 平均等候时长(tr_hrap_opd_overview.avg_waiting_time_new; 标量子查询须放外层, 纯聚合查询内会报ORA-00937)
-        FROM (
         SELECT
-            SUM(NVL(total_visits, 0))-SUM(NVL(return_visits, 0)) AS totalVisits,  --门诊量(总就诊人次-复诊人次)
-            SUM(NVL(famous_expert, 0)) AS famousExpert,       -- 名医出诊人次
-            SUM(NVL(special_expert, 0)) AS specialExpert,     -- 特需专家出诊人次
-            SUM(NVL(known_expert, 0)) AS knownExpert,         -- 知名专家出诊人次
-            SUM(NVL(expert_a, 0)) AS expertA,                 -- 专家A出诊人次
-            SUM(NVL(expert_b, 0)) AS expertB,                 -- 专家B出诊人次
-            SUM(NVL(ordinary, 0)) AS ordinary,                -- 普通门诊出诊人次
-            SUM(NVL(unit_famous_effective, 0)) AS unitFamousEffective,     -- 名医有效出诊单元
-            SUM(NVL(unit_famous_total, 0)) AS unitFamousTotal,             -- 名医出诊单元总数
-            SUM(NVL(unit_special_effective, 0)) AS unitSpecialEffective,   -- 特需有效出诊单元
-            SUM(NVL(unit_special_total, 0)) AS unitSpecialTotal,           -- 特需出诊单元总数
-            SUM(NVL(unit_known_effective, 0)) AS unitKnownEffective,       -- 知名专家有效出诊单元
-            SUM(NVL(unit_known_total, 0)) AS unitKnownTotal,               -- 知名专家出诊单元总数
-            SUM(NVL(unit_a_effective, 0)) AS unitAEffective,               -- 专家A有效出诊单元
-            SUM(NVL(unit_a_total, 0)) AS unitATotal,                       -- 专家A出诊单元总数
-            SUM(NVL(unit_b_effective, 0)) AS unitBEffective,               -- 专家B有效出诊单元
-            SUM(NVL(unit_b_total, 0)) AS unitBTotal,                       -- 专家B出诊单元总数
-            SUM(NVL(unit_ordinary_effective, 0)) AS unitOrdinaryEffective, -- 普通有效出诊单元
-            SUM(NVL(unit_ordinary_total, 0)) AS unitOrdinaryTotal,         -- 普通出诊单元总数
-            SUM(NVL(appointment_total, 0)) AS appointmentTotal,  -- 预约总数
-            SUM(NVL(appointment_count, 0)) AS appointmentCount,  -- 预约数
-            SUM(NVL(self_pay_total, 0)) AS selfPayTotal,         -- 自助缴费总数(智慧结算率分母)
-            SUM(NVL(self_settle_count, 0)) AS selfSettleCount,   -- 自助结算数(智慧结算率分子)
-            SUM(NVL(return_visits, 0)) AS returnVisits,          -- 复诊人次
-            SUM(NVL(no_window_count, 0)) AS treatCount,          -- 非窗口挂号数(预约诊疗率分子=本值-退号量)
-            MAX(unit) AS unit                                    -- 出诊单元
-        FROM TR_OUTP_OP
-        WHERE stat_date BETWEEN #{startDate} AND #{endDate}
+            SUM(NVL(a.total_visits, 0))-SUM(NVL(a.return_visits, 0)) AS totalVisits,  --门诊量(总就诊人次-复诊人次)
+            SUM(NVL(a.famous_expert, 0)) AS famousExpert,       -- 名医出诊人次
+            SUM(NVL(a.special_expert, 0)) AS specialExpert,     -- 特需专家出诊人次
+            SUM(NVL(a.known_expert, 0)) AS knownExpert,         -- 知名专家出诊人次
+            SUM(NVL(a.expert_a, 0)) AS expertA,                 -- 专家A出诊人次
+            SUM(NVL(a.expert_b, 0)) AS expertB,                 -- 专家B出诊人次
+            SUM(NVL(a.ordinary, 0)) AS ordinary,                -- 普通门诊出诊人次
+            SUM(NVL(a.unit_famous_effective, 0)) AS unitFamousEffective,     -- 名医有效出诊单元
+            SUM(NVL(a.unit_famous_total, 0)) AS unitFamousTotal,             -- 名医出诊单元总数
+            SUM(NVL(a.unit_special_effective, 0)) AS unitSpecialEffective,   -- 特需有效出诊单元
+            SUM(NVL(a.unit_special_total, 0)) AS unitSpecialTotal,           -- 特需出诊单元总数
+            SUM(NVL(a.unit_known_effective, 0)) AS unitKnownEffective,       -- 知名专家有效出诊单元
+            SUM(NVL(a.unit_known_total, 0)) AS unitKnownTotal,               -- 知名专家出诊单元总数
+            SUM(NVL(a.unit_a_effective, 0)) AS unitAEffective,               -- 专家A有效出诊单元
+            SUM(NVL(a.unit_a_total, 0)) AS unitATotal,                       -- 专家A出诊单元总数
+            SUM(NVL(a.unit_b_effective, 0)) AS unitBEffective,               -- 专家B有效出诊单元
+            SUM(NVL(a.unit_b_total, 0)) AS unitBTotal,                       -- 专家B出诊单元总数
+            SUM(NVL(a.unit_ordinary_effective, 0)) AS unitOrdinaryEffective, -- 普通有效出诊单元
+            SUM(NVL(a.unit_ordinary_total, 0)) AS unitOrdinaryTotal,         -- 普通出诊单元总数
+            SUM(NVL(a.appointment_total, 0)) AS appointmentTotal,  -- 预约总数
+            SUM(NVL(a.appointment_count, 0)) AS appointmentCount,  -- 预约数
+            SUM(NVL(a.self_pay_total, 0)) AS selfPayTotal,         -- 自助缴费总数(智慧结算率分母)
+            SUM(NVL(a.self_settle_count, 0)) AS selfSettleCount,   -- 自助结算数(智慧结算率分子)
+            SUM(NVL(a.return_visits, 0)) AS returnVisits,        -- 复诊人次
+            SUM(NVL(a.no_window_count, 0)) AS treatCount,        -- 非窗口挂号数(预约诊疗率分子=本值-退号量)
+            MAX(a.unit) AS unit,                                 -- 出诊单元
+            ROUND(AVG(NVL(o.avg_waiting_time_new, 0)), 1) AS efficiency -- 平均等候时长(tr_hrap_opd_overview每日一条,按stat_date左连,无数据计0)
+        FROM TR_OUTP_OP a
+        LEFT JOIN tr_hrap_opd_overview o
+        ON o.stat_date = a.stat_date
+        WHERE a.stat_date BETWEEN #{startDate} AND #{endDate}
         <if test="deptCode != null and deptCode != ''">
-            AND dept_code = #{deptCode}
+            AND a.dept_code = #{deptCode}
         </if>
-        ) t
     </select>
 
     <!-- ============================================================ -->

@@ -149,50 +149,45 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
     private OverviewData queryOverviewByJdbc(OutpatientOperationRequest request) {
         log.info("使用 JdbcTemplate 查询概览数据");
 
-        // 标量子查询须放外层, 纯聚合查询内会报ORA-00937
-        String sql = "SELECT t.*, " +
-                // 平均等候时长: tr_hrap_opd_overview.avg_waiting_time_new(替代原有效单元/总单元)
-                "(SELECT ROUND(AVG(NVL(o.avg_waiting_time_new, 0)), 1) FROM tr_hrap_opd_overview o " +
-                "WHERE o.stat_date BETWEEN ? AND ?) AS efficiency " +
-                "FROM (SELECT " +
-                "SUM(NVL(total_visits, 0)) AS totalVisits, " +
-                "SUM(NVL(famous_expert, 0)) AS famousExpert, " +
-                "SUM(NVL(special_expert, 0)) AS specialExpert, " +
-                "SUM(NVL(known_expert, 0)) AS knownExpert, " +
-                "SUM(NVL(expert_a, 0)) AS expertA, " +
-                "SUM(NVL(expert_b, 0)) AS expertB, " +
-                "SUM(NVL(ordinary, 0)) AS ordinary, " +
-                "SUM(NVL(unit_famous_effective, 0)) AS unitFamousEffective, " +
-                "SUM(NVL(unit_famous_total, 0)) AS unitFamousTotal, " +
-                "SUM(NVL(unit_special_effective, 0)) AS unitSpecialEffective, " +
-                "SUM(NVL(unit_special_total, 0)) AS unitSpecialTotal, " +
-                "SUM(NVL(unit_known_effective, 0)) AS unitKnownEffective, " +
-                "SUM(NVL(unit_known_total, 0)) AS unitKnownTotal, " +
-                "SUM(NVL(unit_a_effective, 0)) AS unitAEffective, " +
-                "SUM(NVL(unit_a_total, 0)) AS unitATotal, " +
-                "SUM(NVL(unit_b_effective, 0)) AS unitBEffective, " +
-                "SUM(NVL(unit_b_total, 0)) AS unitBTotal, " +
-                "SUM(NVL(unit_ordinary_effective, 0)) AS unitOrdinaryEffective, " +
-                "SUM(NVL(unit_ordinary_total, 0)) AS unitOrdinaryTotal, " +
-                "SUM(NVL(appointment_total, 0)) AS appointmentTotal, " +
-                "SUM(NVL(appointment_count, 0)) AS appointmentCount, " +
-                "SUM(NVL(self_pay_total, 0)) AS selfPayTotal, " +
-                "SUM(NVL(self_settle_count, 0)) AS selfSettleCount, " +
-                "SUM(NVL(return_visits, 0)) AS returnVisits, " +
-                "SUM(NVL(no_window_count, 0)) AS treatCount " +
-                "FROM TR_OUTP_OP " +
-                "WHERE stat_date BETWEEN ? AND ? ";
+        String sql = "SELECT " +
+                "SUM(NVL(a.total_visits, 0)) AS totalVisits, " +
+                "SUM(NVL(a.famous_expert, 0)) AS famousExpert, " +
+                "SUM(NVL(a.special_expert, 0)) AS specialExpert, " +
+                "SUM(NVL(a.known_expert, 0)) AS knownExpert, " +
+                "SUM(NVL(a.expert_a, 0)) AS expertA, " +
+                "SUM(NVL(a.expert_b, 0)) AS expertB, " +
+                "SUM(NVL(a.ordinary, 0)) AS ordinary, " +
+                "SUM(NVL(a.unit_famous_effective, 0)) AS unitFamousEffective, " +
+                "SUM(NVL(a.unit_famous_total, 0)) AS unitFamousTotal, " +
+                "SUM(NVL(a.unit_special_effective, 0)) AS unitSpecialEffective, " +
+                "SUM(NVL(a.unit_special_total, 0)) AS unitSpecialTotal, " +
+                "SUM(NVL(a.unit_known_effective, 0)) AS unitKnownEffective, " +
+                "SUM(NVL(a.unit_known_total, 0)) AS unitKnownTotal, " +
+                "SUM(NVL(a.unit_a_effective, 0)) AS unitAEffective, " +
+                "SUM(NVL(a.unit_a_total, 0)) AS unitATotal, " +
+                "SUM(NVL(a.unit_b_effective, 0)) AS unitBEffective, " +
+                "SUM(NVL(a.unit_b_total, 0)) AS unitBTotal, " +
+                "SUM(NVL(a.unit_ordinary_effective, 0)) AS unitOrdinaryEffective, " +
+                "SUM(NVL(a.unit_ordinary_total, 0)) AS unitOrdinaryTotal, " +
+                "SUM(NVL(a.appointment_total, 0)) AS appointmentTotal, " +
+                "SUM(NVL(a.appointment_count, 0)) AS appointmentCount, " +
+                "SUM(NVL(a.self_pay_total, 0)) AS selfPayTotal, " +
+                "SUM(NVL(a.self_settle_count, 0)) AS selfSettleCount, " +
+                "SUM(NVL(a.return_visits, 0)) AS returnVisits, " +
+                "SUM(NVL(a.no_window_count, 0)) AS treatCount, " +
+                // 平均等候时长: tr_hrap_opd_overview每日一条按stat_date左连,无数据计0
+                "ROUND(AVG(NVL(o.avg_waiting_time_new, 0)), 1) AS efficiency " +
+                "FROM TR_OUTP_OP a " +
+                "LEFT JOIN tr_hrap_opd_overview o ON o.stat_date = a.stat_date " +
+                "WHERE a.stat_date BETWEEN ? AND ? ";
 
         List<Object> params = new ArrayList<>();
-        params.add(request.getStartDate()); // efficiency子查询
-        params.add(request.getEndDate());
         params.add(request.getStartDate());
         params.add(request.getEndDate());
         if (request.getDeptCode() != null && !request.getDeptCode().isEmpty()) {
-            sql += "AND dept_code = ? ";
+            sql += "AND a.dept_code = ? ";
             params.add(request.getDeptCode());
         }
-        sql += ") t";
 
         try {
             Map<String, Object> result = jdbcTemplate.queryForMap(sql, params.toArray());
