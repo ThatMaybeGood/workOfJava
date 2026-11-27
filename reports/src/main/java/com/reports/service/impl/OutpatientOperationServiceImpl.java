@@ -149,10 +149,12 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
     private OverviewData queryOverviewByJdbc(OutpatientOperationRequest request) {
         log.info("使用 JdbcTemplate 查询概览数据");
 
-        String sql = "SELECT " +
+        // 标量子查询须放外层, 纯聚合查询内会报ORA-00937
+        String sql = "SELECT t.*, " +
                 // 平均等候时长: tr_hrap_opd_overview.avg_waiting_time_new(替代原有效单元/总单元)
                 "(SELECT ROUND(AVG(NVL(o.avg_waiting_time_new, 0)), 1) FROM tr_hrap_opd_overview o " +
-                "WHERE o.stat_date BETWEEN ? AND ?) AS efficiency, " +
+                "WHERE o.stat_date BETWEEN ? AND ?) AS efficiency " +
+                "FROM (SELECT " +
                 "SUM(NVL(total_visits, 0)) AS totalVisits, " +
                 "SUM(NVL(famous_expert, 0)) AS famousExpert, " +
                 "SUM(NVL(special_expert, 0)) AS specialExpert, " +
@@ -190,6 +192,7 @@ public class OutpatientOperationServiceImpl implements OutpatientOperationServic
             sql += "AND dept_code = ? ";
             params.add(request.getDeptCode());
         }
+        sql += ") t";
 
         try {
             Map<String, Object> result = jdbcTemplate.queryForMap(sql, params.toArray());

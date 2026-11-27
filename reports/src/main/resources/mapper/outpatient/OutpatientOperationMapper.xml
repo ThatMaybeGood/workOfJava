@@ -6,6 +6,10 @@
     <!-- 查询指定时间范围和科室的统计数据汇总 -->
     <!-- ============================================================ -->
     <select id="querySummaryByDateAndDept" resultType="com.reports.entity.OutpatientOperationEntity">
+        SELECT t.*,                                          -- 内层聚合结果
+            (SELECT ROUND(AVG(NVL(o.avg_waiting_time_new, 0)), 1) FROM tr_hrap_opd_overview o
+              WHERE o.stat_date BETWEEN #{startDate} AND #{endDate}) AS efficiency -- 平均等候时长(tr_hrap_opd_overview.avg_waiting_time_new; 标量子查询须放外层, 纯聚合查询内会报ORA-00937)
+        FROM (
         SELECT
             SUM(NVL(total_visits, 0))-SUM(NVL(return_visits, 0)) AS totalVisits,  --门诊量(总就诊人次-复诊人次)
             SUM(NVL(famous_expert, 0)) AS famousExpert,       -- 名医出诊人次
@@ -32,14 +36,13 @@
             SUM(NVL(self_settle_count, 0)) AS selfSettleCount,   -- 自助结算数(智慧结算率分子)
             SUM(NVL(return_visits, 0)) AS returnVisits,          -- 复诊人次
             SUM(NVL(no_window_count, 0)) AS treatCount,          -- 非窗口挂号数(预约诊疗率分子=本值-退号量)
-            MAX(unit) AS unit,                                   -- 出诊单元
-            (SELECT ROUND(AVG(NVL(o.avg_waiting_time_new, 0)), 1) FROM tr_hrap_opd_overview o
-              WHERE o.stat_date BETWEEN #{startDate} AND #{endDate}) AS efficiency -- 平均等候时长(tr_hrap_opd_overview.avg_waiting_time_new)
+            MAX(unit) AS unit                                    -- 出诊单元
         FROM TR_OUTP_OP
         WHERE stat_date BETWEEN #{startDate} AND #{endDate}
         <if test="deptCode != null and deptCode != ''">
             AND dept_code = #{deptCode}
         </if>
+        ) t
     </select>
 
     <!-- ============================================================ -->
