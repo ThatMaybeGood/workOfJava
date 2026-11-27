@@ -107,6 +107,10 @@
         <appender-ref ref="CONSOLE"/>
     </logger>
 
+    <!-- 聚合实体无主键是设计如此, 屏蔽MP启动刷屏警告 -->
+    <logger name="com.baomidou.mybatisplus.core.metadata.TableInfoHelper" level="ERROR"/>
+    <logger name="com.baomidou.mybatisplus.core.injector.DefaultSqlInjector" level="ERROR"/>
+
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="INFO_FILE"/>

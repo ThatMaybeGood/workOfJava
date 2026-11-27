@@ -46,7 +46,7 @@ public class ReportHandlerFactory {
                 log.warn("Method [{}] 已存在处理器，将被覆盖", method);
             }
             handlerMap.put(method, handler);
-            log.info("注册报表处理器: method=[{}], class=[{}]", method, clazz.getSimpleName());
+            log.debug("注册报表处理器: method=[{}], class=[{}]", method, clazz.getSimpleName());
         }
         log.info("共注册 {} 个报表处理器", handlerMap.size());
     }

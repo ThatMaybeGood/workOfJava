@@ -51,7 +51,7 @@ public class DataSourceConfig {
         Map<Object, Object> targetDataSources = new LinkedHashMap<>();
         for (Map.Entry<String, DruidDataSource> entry : namedDataSources.entrySet()) {
             targetDataSources.put(entry.getKey(), entry.getValue());
-            log.info("注册数据源: key=[{}]", entry.getKey());
+            log.debug("注册数据源: key=[{}]", entry.getKey());
         }
 
         DruidDataSource defaultDataSource = namedDataSources.get(DynamicDataSourceContextHolder.DEFAULT_DS);
@@ -64,8 +64,8 @@ public class DataSourceConfig {
         DynamicDataSource dynamicDataSource = new DynamicDataSource();
         dynamicDataSource.setTargetDataSources(targetDataSources);
         dynamicDataSource.setDefaultTargetDataSource(defaultDataSource);
-        log.info("动态数据源初始化完成，共 {} 个，默认数据源: [{}]",
-                targetDataSources.size(), DynamicDataSourceContextHolder.DEFAULT_DS);
+        log.info("动态数据源初始化完成，共 {} 个 {}，默认数据源: [{}]",
+                targetDataSources.size(), namedDataSources.keySet(), DynamicDataSourceContextHolder.DEFAULT_DS);
         return dynamicDataSource;
     }
 }
