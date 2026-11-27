@@ -112,8 +112,8 @@
                    0 AS shuang_yue_age_60_69, 0 AS shuang_yue_age_70_79, 0 AS shuang_yue_age_80_89, -- 爽约-60至69/70至79/80至89岁(占位)
                    0 AS shuang_yue_age_90_up -- 爽约-90岁及以上(占位)
             FROM TR_OUTP_FIN_CLINIC_MASTER c
-            WHERE c.returned_date BETWEEN #{startDate} AND #{endDate}
-            GROUP BY TRUNC(c.returned_date), c.dept_code
+            WHERE c.stat_date BETWEEN #{startDate} AND #{endDate}
+            GROUP BY TRUNC(c.stat_date), c.dept_code
             UNION ALL
             -- C. 爽约情况一: 预约了未到诊(queue当日预约行关联不上挂号记录), 科室NULL只进合计
             SELECT TRUNC(q.stat_date) AS stat_day, -- 统计日期
